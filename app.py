@@ -1,36 +1,51 @@
-
 import os
 import streamlit as st
 
+# ローカル(.env)でも動くようにする保険（Cloudでは無害）
 try:
-    # ローカル開発で .env を使う場合の保険（Cloudでは無くてもOK）
     from dotenv import load_dotenv
     load_dotenv()
 except Exception:
     pass
 
-def get_secret(key: str, default=None):
-    # Cloud: st.secrets（推奨）
-    try:
-        if key in st.secrets:
-            return st.secrets[key]
-    except Exception:
-        pass
-    # Local/WSL: 環境変数
-    return os.getenv(key, default)
+APP_TITLE = "Smoke Test"
 
-st.title("Art Pulse Editor - Smoke Test (Step6)")
+# ここだけプロジェクトごとに変えればOK
+REQUIRED = [
+    "OPENAI_API_KEY",
+    "GEMINI_API_KEY",
+    "R2_ACCESS_KEY_ID",
+    "R2_SECRET_ACCESS_KEY",
+    "R2_ENDPOINT",
+    "R2_BUCKET",
+]
 
-def is_set(k: str) -> bool:
-    v = get_secret(k)
-    return bool(v)
+# キー名ゆれの吸収（今回の事故対策）
+ALIASES = {
+    "R2_ENDPOINT": ["R2_ENDPOINT", "R2_ENDPOINT_URL", "R2_S3_ENDPOINT"],
+    "OPENAI_API_KEY": ["OPENAI_API_KEY"],
+    "GEMINI_API_KEY": ["GEMINI_API_KEY", "GOOGLE_API_KEY"],  # どっちで入れてもOKにする場合
+}
 
-st.write("✅ OPENAI_API_KEY set:", is_set("OPENAI_API_KEY"))
-st.write("✅ GEMINI_API_KEY set:", is_set("GEMINI_API_KEY"))
+def get_any(names, default=None):
+    # Cloud: st.secrets → Local: env の順で探す
+    for k in names:
+        try:
+            if k in st.secrets:
+                v = st.secrets[k]
+                if v:
+                    return v
+        except Exception:
+            pass
+        v = os.getenv(k)
+        if v:
+            return v
+    return default
 
-st.write("✅ R2_ACCESS_KEY_ID set:", is_set("R2_ACCESS_KEY_ID"))
-st.write("✅ R2_SECRET_ACCESS_KEY set:", is_set("R2_SECRET_ACCESS_KEY"))
-st.write("✅ R2_ENDPOINT set:", bool(get_secret("R2_ENDPOINT")))
-st.write("✅ R2_BUCKET set:", bool(get_secret("R2_BUCKET")))
+st.title(APP_TITLE)
 
-st.caption("この画面が Cloud 上で表示できれば Step6 合格（接続の実テストは Step7 で実施）")
+for key in REQUIRED:
+    names = ALIASES.get(key, [key])
+    st.write(f"✅ {key} set:", bool(get_any(names)))
+
+st.caption("表示できればデプロイ疎通OK。")
