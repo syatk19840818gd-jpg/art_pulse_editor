@@ -1,0 +1,13 @@
+streamlit
+python-dotenv
+requests
+beautifulsoup4
+lxml
+pandas
+pydantic
+tenacity
+tqdm
+pillow
+playwright
+boto3google-genai
+openai

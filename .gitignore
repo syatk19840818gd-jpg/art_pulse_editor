@@ -86,6 +86,6 @@ Thumbs.db
 .cursorignore
 .cursorindexingignore
 
-# Jupyter/Colabの一時ファイルなどが出るなら必要に応じて追加
-# .cache/
-# tmp/.streamlit/secrets.toml
+# streamlit
+.streamlit/secrets.toml
+secrets.toml
