@@ -125,4 +125,9 @@ if st.button("3) R2 upload/list/download"):
         keys = [x["Key"] for x in resp.get("Contents", [])]
         st.write("list (last 10):", keys[-10:])
 
-        obj
+        obj = s3.get_object(Bucket=bucket, Key=key)
+        data = obj["Body"].read().decode("utf-8")
+        st.success(f"download OK: {data}")
+
+    except Exception as e:
+        st.error(f"R2 ERROR: {type(e).__name__}: {e}")
