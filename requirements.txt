@@ -9,5 +9,6 @@ tenacity
 tqdm
 pillow
 playwright
-boto3google-genai
+boto3
+google-genai
 openai
