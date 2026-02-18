@@ -88,4 +88,4 @@ Thumbs.db
 
 # Jupyter/Colabの一時ファイルなどが出るなら必要に応じて追加
 # .cache/
-# tmp/
+# tmp/.streamlit/secrets.toml
