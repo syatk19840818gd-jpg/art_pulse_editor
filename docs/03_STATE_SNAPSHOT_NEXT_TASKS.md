@@ -13,7 +13,7 @@ STREAMLIT_ENTRYPOINT（固定）
 - Local run: streamlit run app.py
 
 SOURCE_SSOT: 01_PROJECT_SPEC_CURRENT_FULL.docx
-LAST_UPDATED: 2026-02-19 JST
+LAST_UPDATED: 2026-02-19 18:09 JST
 
 
 ========================
@@ -68,9 +68,9 @@ STATE_SNAPSHOT（現在地）
 ========================
 ■いまの最優先フェーズ（Codexが随時更新する）
 - Phase 1：RAG抽出パイプライン成立（seed10で安定稼働させる）
-  - 直近の到達目標：4-1 Exhibitions Text で「取得→保存→再実行でスキップ」を成立
-  - 次の到達目標：失敗ログ/台帳で“割り切って前進”できる状態（無限ループしない）
-  - その次：Enrichment を事後バッチへ分離して回せる入口
+  - 直近の到達目標：Enrichment を事後バッチへ分離して回せる入口
+  - 次の到達目標：Tarutani_Text の条件付き取り込みゲートへ進む
+  - その次：Phase2（検索/表示）へ接続する
 
 ※この「直近の到達目標」は、達成したら必ず書き換える（意味がなくなるので残さない）
 
@@ -88,6 +88,19 @@ STATE_SNAPSHOT（現在地）
 - ギャラリーリストCSV（repo配置＆コミット済み）
   - data/gallery_lists/gallery_list_frieze_london.csv
   - data/gallery_lists/gallery_list_liste.csv
+- Phase1 seed10 最小実行入口（4-1 Exhibitions Textのみ）を作成
+  - run_phase1_seed10.py
+  - 取得ループ内LLM加工なし（headline_ja / summary_ja は空で保存）
+  - 生成物：data/phase1_seed10/raw/*.jsonl, data/phase1_seed10/logs/*.json
+- TASK 4 完了（4-1 Exhibitions Text）
+  - 同じコマンド2回実行で自動スキップが動作（KNOWN_FAILED_URL 系）
+  - 台帳を再利用して 2回目以降の再取得を抑制
+- TASK 5 完了（台帳/失敗ログ運用）
+  - failed_fetches に reason_code / attempt_count / last_attempt_at を保持
+  - 再実行時はクールダウン・上限判定で打ち切り/スキップ（無限再試行を防止）
+  - 補足：saved=0 は異常ではない。既存raw 64件があるrunでは new_saved=0 / skipped_known_saved_page=64 / skipped_out_of_year=14 が正常
+- C対応（saved=0 切り分け）
+  - DNS切り分け後に実ネット再実行で saved=64 を確認（原因はネット経路と既存失敗台帳クールダウンの複合）
 
 ■作業環境メモ（固定しておく）
 - OS：Windows 11 + WSL2 Ubuntu
@@ -127,20 +140,20 @@ NEXT_TASKS（次回やること）
     - 02は “参照しやすさのための索引”。衝突したら必ず01が正。
     - まずは Phase1 に必要な範囲（4-0共通 / 4-1 Exhibitions Text）だけでOK
 
-[ ] 3) Phase 1 用の「最小実行入口スクリプト」を作る（seed10）
+[x] 3) Phase 1 用の「最小実行入口スクリプト」を作る（seed10）
     - 例：python run_phase1_seed10.py
     - seed10の定義：
       - frieze = gallery_list_frieze_london.csv の先頭5件
       - liste  = gallery_list_liste.csv の先頭5件
     - 目的：UIより先に、取得→保存が通ることを確認
 
-[ ] 4) 4-1 Exhibitions Text だけで「取得→保存→再実行でスキップ」を成立させる
+[x] 4) 4-1 Exhibitions Text だけで「取得→保存→再実行でスキップ」を成立させる
     - まずはこの1カテゴリだけでOK（他カテゴリへは後で拡張）
     - 成立条件：
       - 1回目：取得→保存→完走
       - 2回目：同じコマンドで “自動スキップ” が効く（台帳が働く）
 
-[ ] 5) 台帳（visited_pages / failed_fetches など）を保存し、失敗をログ化して割り切れる状態にする
+[x] 5) 台帳（visited_pages / failed_fetches など）を保存し、失敗をログ化して割り切れる状態にする
     - 目的：取れない分はログに残して前進（頻出ドメイン×汎用ロジックのみ改善）
     - 成立条件：失敗URLが一覧で追える／再実行しても同じ失敗を無限に繰り返さない
 
@@ -384,6 +397,12 @@ CODEX_SNIPPETS（頻出コピペ：ここだけ使えば回る）
 この03の NEXT_TASKS から最優先の [ ] を1つ選び、(1)変更ファイル (2)変更点 (3)動作確認コマンド を短く計画として出してから実装してください。
 
 
+■A-1）毎タスク（冒頭コピペ）
+・設定されたタスクごとに毎回、以下を冒頭に貼る
+
+運用ルールは前回と同じ（SSOT=01、索引=02、今日=03、機能削除禁止、ドメイン専用ハードコード禁止、LLM加工はPost-fetchのみ）。
+
+
 ■B）中断・締め（中断するたびに貼る：03更新＋次プロンプト提示まで強制）
 
 作業をここで区切ります。以下を必ず実施してから終了してください。
@@ -433,3 +452,8 @@ CODEX_SNIPPETS（頻出コピペ：ここだけ使えば回る）
 CHANGELOG（このファイルの更新履歴）
 ========================
 - 2026-02-19：03 統合最終版（省略ゼロ）を確定。A0/A/B/C と TASK 1〜7 を同一ファイルに統合。
+- 2026-02-19：TASK 3 実施。run_phase1_seed10.py を追加し、seed10（Frieze5+Liste5）実行入口と成果物保存（raw/logs）を作成。次は TASK 4（再実行スキップ成立）。
+- 2026-02-19：TASK 4 実施。run_phase1_seed10.py に台帳再利用（visited_pages/failed_fetches）と既存text_hashスキップを実装し、同一コマンド2回実行でスキップログを確認。次は TASK 5（失敗ログ運用の整備）。
+- 2026-02-19：TASK 5 実施。失敗理由を reason_code（DNS_ERROR/HTTP_429等）で正規化し、attempt_count/last_attempt_at を failed_fetches に保存。クールダウン＋再試行上限で再実行時の無限ループを防止。次は TASK 6（Enrichment導線）。
+- 2026-02-19：C対応（saved=0切り分け）。curl/socket/resolv.confでDNS切り分け後、失敗台帳のクールダウン影響を解除して再実行し saved=64 / skipped=14 を確認。原因は「ネットワーク経路（sandbox制約）＋既存失敗台帳クールダウン」の複合。
+- 2026-02-19：TASK6前の認識合わせ。run_summary/コンソールに existing/new/after-run 指標を追加し、saved=0でも既存raw件数が明確に分かるよう修正。visited_pages / failed_fetches の保存形式をSSOT準拠のdict（キー: page_url_hash / fail_hash）へ統一。

@@ -1,0 +1,6 @@
+[START] Phase1 seed10 fetch (exhibitions_text) at 2026-02-19T08:26:14Z
+[INFO] Loaded seed galleries: frieze_london=5, liste=5
+[INFO] Loaded ledgers: visited=78 failed=0 existing_text_hashes=64
+[DONE] Phase1 seed10 fetch complete. saved=0 failed_new=0 skipped=78
+[DONE] skip_breakdown: KNOWN_SAVED_PAGE=64 OUT_OF_YEAR=14
+[DONE] summary=data/phase1_seed10/logs/run_summary_seed10_2025.json
