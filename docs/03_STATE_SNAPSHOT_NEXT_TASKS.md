@@ -13,7 +13,7 @@ STREAMLIT_ENTRYPOINT（固定）
 - Local run: streamlit run app.py
 
 SOURCE_SSOT: 01_PROJECT_SPEC_CURRENT_FULL.docx
-LAST_UPDATED: 2026-02-22 19:10 JST
+LAST_UPDATED: 2026-02-22 19:34 JST
 
 
 ========================
@@ -112,6 +112,10 @@ STATE_SNAPSHOT（現在地）
   - run_enrichment_tarutani_text.py を追加（tarutani_text.jsonl読込→未付与headline_ja候補を抽出）
   - 生成物：data/Tarutani_data/enrichment/enrichment_requests_tarutani_text.jsonl（7件）
   - 生成物：data/Tarutani_data/enrichment/enrichment_summary_tarutani_text.json
+- Tarutani_data のR2正本運用を整理（最小差分）
+  - SSOT 5-5 に「R2正本 / source_pathメタ保持 / Git非コミット方針」を追記
+  - run_tarutani_r2_sync.py を追加（dry-run/apply, logs出力）
+  - dry-run結果：16ファイル / 14.59MB（本実行は未実施）
 - C対応（saved=0 切り分け）
   - DNS切り分け後に実ネット再実行で saved=64 を確認（原因はネット経路と既存失敗台帳クールダウンの複合）
 
@@ -197,6 +201,7 @@ NEXT_TASKS（次回やること）
       - headline_ja の生成結果（output）が保存される
       - tarutani_text.jsonl で headline_ja が一部以上更新される
       - 更新件数/未更新件数の summary が保存される
+    - メモ：Tarutani_data の初回R2同期は dry-run 済み（2026-02-22）、本実行は未実施
 
 
 ========================
@@ -540,3 +545,4 @@ CHANGELOG（このファイルの更新履歴）
 - 2026-02-19：TASK 6 実施。run_enrichment_seed10.py を追加し、Post-fetchで raw（64件）を読み込み、headline_ja/summary_ja 未付与の enrichment requests（64件）と summary を生成。次は TASK 7（Tarutani_Text着手前質問）。
 - 2026-02-22：TASK 7 実施。ユーザー回答の配置（data/Tarutani_data/{Series_Name}/Text/{Text_File}、docx/pdf）で run_tarutani_text_import.py を作成し、Tarutani_Text を16件取り込み（jsonl/summary生成）。次は TASK 8（Tarutani_Textの事後Enrichment入口）。
 - 2026-02-22：TASK 8 実施。run_enrichment_tarutani_text.py を追加し、tarutani_text.jsonl（16件）から headline_ja 未付与かつ text 非空の候補（7件）を抽出して requests/summary を生成。次は TASK 9（headline_ja実生成とjsonl反映）。
+- 2026-02-22：整理タスク実施。SSOT 5-5 に Tarutani_data のR2正本運用（source_pathメタ保持 / Git非コミット方針）を追記し、run_tarutani_r2_sync.py を追加。dry-runで 16ファイル / 14.59MB を確認（本実行は未実施）。

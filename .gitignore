@@ -90,3 +90,15 @@ Thumbs.db
 # streamlit
 .streamlit/secrets.toml
 secrets.toml
+
+############################################################
+# ⑪ ローカル作業データ（R2正本運用）
+############################################################
+# Tarutani_data 本体は R2 を正本として扱うため、ローカル data は原則コミットしない
+data/Tarutani_data/
+# 必要時のみ、最小サンプルを個別に例外解除して管理する
+# !data/Tarutani_data/sample/
+# !data/Tarutani_data/sample/**
+
+# デバッグ用アーカイブ
+debug_bundle_*.tgz
