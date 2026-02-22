@@ -13,7 +13,7 @@ STREAMLIT_ENTRYPOINT（固定）
 - Local run: streamlit run app.py
 
 SOURCE_SSOT: 01_PROJECT_SPEC_CURRENT_FULL.docx
-LAST_UPDATED: 2026-02-22 22:55 JST
+LAST_UPDATED: 2026-02-23 00:40 JST
 
 
 ========================
@@ -68,7 +68,7 @@ STATE_SNAPSHOT（現在地）
 ========================
 ■いまの最優先フェーズ（Codexが随時更新する）
 - Phase 1：RAG抽出パイプライン成立（seed10で安定稼働させる）
-  - 直近の到達目標：Tarutani_Text の headline_ja 付与バッチ（実行・反映）を成立させる
+  - 直近の到達目標：Tarutani_Text のEmbedding/Index入口（TASK 10）を成立させる
   - 次の到達目標：Phase2（検索/表示）へ接続する
   - その次：検索品質と表示品質の改善サイクルに入る
 
@@ -107,15 +107,28 @@ STATE_SNAPSHOT（現在地）
   - run_tarutani_text_import.py を追加（docx/pdf読込→tarutani_text.jsonl追記）
   - 生成物：data/Tarutani_data/tarutani_text.jsonl（16件）
   - 生成物：data/Tarutani_data/tarutani_text_import_summary.json
-  - PDF抽出ライブラリ未導入のため、PDFはSSOT準拠で text=""（OCRなし）
+  - 初回取り込み時は PDF由来レコードに text="" を含む状態（OCRなし）
 - TASK 8 完了（Tarutani_Text Enrichment入口）
   - run_enrichment_tarutani_text.py を追加（tarutani_text.jsonl読込→未付与headline_ja候補を抽出）
   - 生成物：data/Tarutani_data/enrichment/enrichment_requests_tarutani_text.jsonl（7件）
   - 生成物：data/Tarutani_data/enrichment/enrichment_summary_tarutani_text.json
+- TASK 9 完了（Tarutani_Text headline_ja 反映）
+  - run_enrichment_tarutani_text_apply.py を追加（requests読込→headline生成→tarutani_text.jsonl更新）
+  - 生成物：data/Tarutani_data/enrichment/enrichment_output_tarutani_text_*.jsonl
+  - 生成物：data/Tarutani_data/enrichment/enrichment_apply_summary_tarutani_text_*.json
+  - 実行結果：updated=7 / failed=0（再実行は updated=0 / failed=0）
+- TASK 9.5 完了（TarutaniRAG向けPDF抽出＋バックフィル）
+  - run_tarutani_text_pdf_backfill.py を追加（TarutaniRAGのPDFのみ本文抽出。OCRなし）
+  - 実行結果：pdf_records_updated_with_text=9 / pdf_records_still_empty_after=0
+  - 再Enrichment結果：requests candidates=9 → apply updated=9 / failed=0
+  - 現在値：tarutani_text.jsonl は 16件すべて text非空・headline_ja非空
+- SSOT更新（TarutaniRAG PDF抽出ルール）
+  - 01 の 4-5 に「TarutaniRAGはPDF本文抽出を標準実装とする（未実装理由の一律text空を禁止）」を追記
+  - 抽出失敗PDFのみ text="" とし、extract_status に理由を残す方針へ明確化
 - Tarutani_data のR2正本運用を整理（最小差分）
   - SSOT 5-5 に「R2正本 / source_pathメタ保持 / Git非コミット方針」を追記
   - run_tarutani_r2_sync.py を追加（dry-run/apply, logs出力）
-  - dry-run結果：16ファイル / 14.59MB（本実行は未実施）
+  - 実行結果：apply 1回目 uploaded=16 / failed=0、2回目 skipped=16 / failed=0（冪等）
 - C対応（saved=0 切り分け）
   - DNS切り分け後に実ネット再実行で saved=64 を確認（原因はネット経路と既存失敗台帳クールダウンの複合）
 
@@ -194,14 +207,31 @@ NEXT_TASKS（次回やること）
       - python run_enrichment_tarutani_text.py（例）が実行できる
       - tarutani_text.jsonl を読み、未付与headline_ja候補の requests/summary を出力できる
 
-[ ] 9) Tarutani_Text のheadline_jaを事後バッチで実生成し、jsonlへ反映する
+[x] 9) Tarutani_Text のheadline_jaを事後バッチで実生成し、jsonlへ反映する
     - 目的：TASK 8で作成した requests を使って headline_ja を生成し、tarutani_text.jsonl を更新する
     - 制約：取り込み（fetch）ループでは実行しない。Post-fetchのバッチとして実行する
     - 成立条件：
       - headline_ja の生成結果（output）が保存される
       - tarutani_text.jsonl で headline_ja が一部以上更新される
-      - 更新件数/未更新件数の summary が保存される
+    - 更新件数/未更新件数の summary が保存される
     - メモ：Tarutani_data のR2同期は本実行まで完了（uploaded=16, failed=0）。再実行で skipped=16 を確認（冪等）。
+
+[x] 9.5) TarutaniRAG向けPDF抽出を実装し、既存PDFをバックフィルする
+    - 目的：Tarutani_Textに限り、PDF本文を抽出して text を埋め、再Enrichment/検索に載せる
+    - 制約：TarutaniRAGのみ対象（他カテゴリのPDF処理は変えない）
+    - 成立条件：
+      - PDF抽出実装後に tarutani_text.jsonl の text 空件数が減る
+      - 抽出失敗分は text="" のまま + extract_status に理由が残る
+      - headline_ja 再生成で更新件数が summary に出る
+    - 実行メモ：backfill updated=9 / still_empty=0、再Enrichment apply updated=9 / failed=0
+
+[ ] 10) Tarutani_Text のEmbedding/Index入口を作る
+    - 目的：headline_ja 付与済み tarutani_text.jsonl を対象に、ベクトル化と検索用index生成の入口を作る
+    - 制約：fetchループには組み込まない（Post-fetchバッチとして分離）
+    - 成立条件：
+      - python run_vectorize_tarutani_text.py（例）が実行できる
+      - embedding入力件数 / skip件数（text空など） / 生成物パスが summary に出る
+      - 生成物（index + meta）が保存される
 
 
 ========================
@@ -432,6 +462,63 @@ TASK 9) Tarutani_Text のheadline_jaを事後バッチで実生成し、jsonlへ
 動作確認コマンド：
 - （WSL）python run_enrichment_tarutani_text_apply.py
 
+------------------------------------------------------------
+TASK 9.5) TarutaniRAG向けPDF抽出を実装し、既存PDFをバックフィルする
+------------------------------------------------------------
+目的：
+- TarutaniRAG（⑤）に限りPDF本文抽出を実装し、既存の text="" レコードをバックフィルして検索可能データを増やす。
+
+参照ファイル：
+- 01（SSOT）4-5 / 5-5 / Post-fetch
+- 02（索引）CARD_ID: 16_TARUTANI_TEXT_SCOPE / CARD_ID: 08_POST_FETCH_ENRICHMENT
+- run_tarutani_text_import.py
+- data/Tarutani_data/tarutani_text.jsonl
+- data/Tarutani_data/*/Text/*.pdf
+
+制約：
+- TarutaniRAGのみ対象（Exhibitions/Artist側のPDF処理は変えない）
+- 取り込みループ内でLLM加工はしない（headline_jaはPost-fetch）
+- OCRはしない（抽出不能PDFは text="" 維持 + extract_status に理由記録）
+
+完了条件：
+- python run_tarutani_text_pdf_backfill.py（例）が実行できる
+- tarutani_text.jsonl の PDF由来レコードで text 非空件数が増える（増加件数をsummaryで確認）
+- 抽出失敗レコードは text="" のまま、extract_status が更新される
+- その後 python run_enrichment_tarutani_text.py / python run_enrichment_tarutani_text_apply.py を再実行し、headline_ja 更新件数を確認
+- 03 の NEXT_TASKS の 9.5) を [x]、CHANGELOG追記
+- 次の最優先タスクのプロンプト全文を提示する
+
+動作確認コマンド：
+- （WSL）python run_tarutani_text_pdf_backfill.py
+- （WSL）python run_enrichment_tarutani_text.py
+- （WSL）python run_enrichment_tarutani_text_apply.py
+
+------------------------------------------------------------
+TASK 10) Tarutani_Text のEmbedding/Index入口を作る
+------------------------------------------------------------
+目的：
+- headline_ja 付与済み tarutani_text.jsonl を対象に、Embeddingと検索用Indexの生成入口を作る。
+
+参照ファイル：
+- 01（SSOT）5-5 / 5-8 / 5-9 / Post-fetch/Enrichment
+- 02（索引）CARD_ID: 05_MANIFEST_SYNC / CARD_ID: 16_TARUTANI_TEXT_SCOPE
+- data/Tarutani_data/tarutani_text.jsonl
+
+制約：
+- 取り込みループ内で実行しない（Post-fetchバッチとして分離）
+- text が空文字のレコードは埋め込み対象外としてスキップし、件数をログ化する
+- 作品画像（Tarutani_Works）は扱わない
+
+完了条件：
+- python run_vectorize_tarutani_text.py（例）が実行できる
+- embedding入力件数 / skip件数 / 出力先が summary に保存される
+- index + meta の生成物が保存される
+- 03 の NEXT_TASKS の 10) を [x]、CHANGELOG追記
+- 次の最優先タスクのプロンプト全文を提示する
+
+動作確認コマンド：
+- （WSL）python run_vectorize_tarutani_text.py
+
 
 ========================
 CODEX_SNIPPETS（頻出コピペ：ここだけ使えば回る）
@@ -547,3 +634,7 @@ CHANGELOG（このファイルの更新履歴）
 - 2026-02-22：TASK 8 実施。run_enrichment_tarutani_text.py を追加し、tarutani_text.jsonl（16件）から headline_ja 未付与かつ text 非空の候補（7件）を抽出して requests/summary を生成。次は TASK 9（headline_ja実生成とjsonl反映）。
 - 2026-02-22：整理タスク実施。SSOT 5-5 に Tarutani_data のR2正本運用（source_pathメタ保持 / Git非コミット方針）を追記し、run_tarutani_r2_sync.py を追加。dry-runで 16ファイル / 14.59MB を確認（本実行は未実施）。
 - 2026-02-22：Tarutani R2 sync 実行確認。apply 1回目で uploaded=16 / failed=0、2回目で skipped=16 / failed=0 を確認（冪等）。TASK9メモを更新。
+- 2026-02-22：TASK 9 実施。run_enrichment_tarutani_text_apply.py を追加し、headline_ja を7件生成して tarutani_text.jsonl に反映（failed=0）。再実行で updated=0 を確認。次は TASK 10（Tarutani_TextのEmbedding/Index入口）。
+- 2026-02-22：SSOT改定。TarutaniRAGに限りPDF本文抽出を標準実装化（未実装理由の一律text空を禁止）し、TASK 9.5（PDF抽出実装＋バックフィル）をNEXT_TASKS/CODEX_TASK_PROMPTSへ追加。
+- 2026-02-23：TASK 9.5 実施。run_tarutani_text_pdf_backfill.py でTarutaniRAGのPDF 9件を本文抽出してバックフィル（still_empty=0）。続けて Enrichment requests再生成（candidates=9）→ applyで headline_ja を9件更新（failed=0）。次は TASK 10（Embedding/Index入口）。
+- 2026-02-23：運用メンテ実施。`私とあなたの物語り ／水谷イズル(アーティスト),2020.pdf` のレコードを削除済みPDFから新規DOCX（`私とあなたの物語り_水谷イズル_2020.docx`）へ差し替え、text再抽出（1477文字）と headline_ja 再生成（updated=1）を反映。
