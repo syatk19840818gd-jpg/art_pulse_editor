@@ -1,0 +1,18 @@
+{
+  "started_at": "2026-02-22T10:03:05Z",
+  "completed_at": "2026-02-22T10:03:05Z",
+  "root_path": "data/Tarutani_data",
+  "output_jsonl_path": "data/Tarutani_data/tarutani_text.jsonl",
+  "records_existing_before_run": 16,
+  "records_appended_in_run": 0,
+  "records_total_after_run": 16,
+  "counters": {
+    "scanned_files_total": 16,
+    "scanned_docx": 7,
+    "skipped_existing_source_path": 16,
+    "scanned_pdf": 9,
+    "skipped_unexpected_path_structure": 2
+  },
+  "extract_status_counts": {},
+  "unexpected_series_names": []
+}

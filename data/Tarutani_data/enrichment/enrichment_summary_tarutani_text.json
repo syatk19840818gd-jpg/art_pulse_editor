@@ -1,0 +1,22 @@
+{
+  "started_at": "2026-02-22T10:09:23Z",
+  "completed_at": "2026-02-22T10:09:23Z",
+  "input_jsonl_path": "data/Tarutani_data/tarutani_text.jsonl",
+  "records_total": 16,
+  "enrichment_candidates_total": 7,
+  "series_counts_total": {
+    "1_Grains": 5,
+    "2_Slideshow": 3,
+    "3_Curves_and_Straights": 8
+  },
+  "series_counts_candidates": {
+    "1_Grains": 3,
+    "2_Slideshow": 1,
+    "3_Curves_and_Straights": 3
+  },
+  "counters": {
+    "candidates_total": 7,
+    "skipped_empty_text": 9
+  },
+  "output_requests_path": "data/Tarutani_data/enrichment/enrichment_requests_tarutani_text.jsonl"
+}

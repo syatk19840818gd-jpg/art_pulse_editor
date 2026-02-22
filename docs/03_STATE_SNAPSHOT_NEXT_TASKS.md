@@ -13,7 +13,7 @@ STREAMLIT_ENTRYPOINT（固定）
 - Local run: streamlit run app.py
 
 SOURCE_SSOT: 01_PROJECT_SPEC_CURRENT_FULL.docx
-LAST_UPDATED: 2026-02-19 18:09 JST
+LAST_UPDATED: 2026-02-22 19:10 JST
 
 
 ========================
@@ -68,9 +68,9 @@ STATE_SNAPSHOT（現在地）
 ========================
 ■いまの最優先フェーズ（Codexが随時更新する）
 - Phase 1：RAG抽出パイプライン成立（seed10で安定稼働させる）
-  - 直近の到達目標：Enrichment を事後バッチへ分離して回せる入口
-  - 次の到達目標：Tarutani_Text の条件付き取り込みゲートへ進む
-  - その次：Phase2（検索/表示）へ接続する
+  - 直近の到達目標：Tarutani_Text の headline_ja 付与バッチ（実行・反映）を成立させる
+  - 次の到達目標：Phase2（検索/表示）へ接続する
+  - その次：検索品質と表示品質の改善サイクルに入る
 
 ※この「直近の到達目標」は、達成したら必ず書き換える（意味がなくなるので残さない）
 
@@ -99,6 +99,19 @@ STATE_SNAPSHOT（現在地）
   - failed_fetches に reason_code / attempt_count / last_attempt_at を保持
   - 再実行時はクールダウン・上限判定で打ち切り/スキップ（無限再試行を防止）
   - 補足：saved=0 は異常ではない。既存raw 64件があるrunでは new_saved=0 / skipped_known_saved_page=64 / skipped_out_of_year=14 が正常
+- TASK 6 完了（Enrichment事後バッチ入口）
+  - run_enrichment_seed10.py を追加（raw読込→未Enrichment抽出→requests/summary出力）
+  - 生成物：data/phase1_seed10/enrichment/enrichment_requests_seed10_2025.jsonl
+  - 生成物：data/phase1_seed10/enrichment/enrichment_summary_seed10_2025.json
+- TASK 7 完了（Tarutani_Text 取り込み）
+  - run_tarutani_text_import.py を追加（docx/pdf読込→tarutani_text.jsonl追記）
+  - 生成物：data/Tarutani_data/tarutani_text.jsonl（16件）
+  - 生成物：data/Tarutani_data/tarutani_text_import_summary.json
+  - PDF抽出ライブラリ未導入のため、PDFはSSOT準拠で text=""（OCRなし）
+- TASK 8 完了（Tarutani_Text Enrichment入口）
+  - run_enrichment_tarutani_text.py を追加（tarutani_text.jsonl読込→未付与headline_ja候補を抽出）
+  - 生成物：data/Tarutani_data/enrichment/enrichment_requests_tarutani_text.jsonl（7件）
+  - 生成物：data/Tarutani_data/enrichment/enrichment_summary_tarutani_text.json
 - C対応（saved=0 切り分け）
   - DNS切り分け後に実ネット再実行で saved=64 を確認（原因はネット経路と既存失敗台帳クールダウンの複合）
 
@@ -157,11 +170,11 @@ NEXT_TASKS（次回やること）
     - 目的：取れない分はログに残して前進（頻出ドメイン×汎用ロジックのみ改善）
     - 成立条件：失敗URLが一覧で追える／再実行しても同じ失敗を無限に繰り返さない
 
-[ ] 6) （余力があれば）Enrichment（見出し/かな等）を「事後バッチ」で回す導線を作る
+[x] 6) （余力があれば）Enrichment（見出し/かな等）を「事後バッチ」で回す導線を作る
     - FetchとEnrichmentは分離（取得ループ内で逐次実行しない）
     - UIはPhase 2でOK。まずはバッチ/CLIで成立させる
 
-[ ] 7) Tarutani_Text 取り込み（条件付き：忘れ防止ゲート）
+[x] 7) Tarutani_Text 取り込み（条件付き：忘れ防止ゲート）
     - 条件：「Phase1 seed10 が2回連続で完走」したら着手する
       - ここでいう完走：
         - スクリプトが例外で落ちずに終了（exit code 0）
@@ -169,6 +182,21 @@ NEXT_TASKS（次回やること）
     - 着手の最初に必ずやること：
       - Codex は作業開始前に、ユーザーへ「TarutaniRAGの配置場所/形式」を質問してから開始する
     - 目的：機能⑤用の文章RAG（作品画像は扱わない）
+
+[x] 8) Tarutani_Text のPost-fetch Enrichment入口を作る
+    - 目的：Tarutani_Text（tarutani_text.jsonl）の headline_ja 付与を事後バッチで回す導線を作る
+    - 制約：取り込みループ内でLLMを呼ばない（Fetch/Enrichment分離）
+    - 成立条件：
+      - python run_enrichment_tarutani_text.py（例）が実行できる
+      - tarutani_text.jsonl を読み、未付与headline_ja候補の requests/summary を出力できる
+
+[ ] 9) Tarutani_Text のheadline_jaを事後バッチで実生成し、jsonlへ反映する
+    - 目的：TASK 8で作成した requests を使って headline_ja を生成し、tarutani_text.jsonl を更新する
+    - 制約：取り込み（fetch）ループでは実行しない。Post-fetchのバッチとして実行する
+    - 成立条件：
+      - headline_ja の生成結果（output）が保存される
+      - tarutani_text.jsonl で headline_ja が一部以上更新される
+      - 更新件数/未更新件数の summary が保存される
 
 
 ========================
@@ -347,6 +375,58 @@ TASK 7) Tarutani_Text（条件付き：Phase1が安定してから）
 動作確認コマンド：
 - （WSL）python run_tarutani_text_import.py（例：作った場合）
 
+------------------------------------------------------------
+TASK 8) Tarutani_Text のPost-fetch Enrichment入口を作る
+------------------------------------------------------------
+目的：
+- Tarutani_Text（tarutani_text.jsonl）に対する headline_ja 付与を、Fetch後の事後バッチで回す入口を作る。
+
+参照ファイル：
+- 01（SSOT）Post-fetch/Enrichment / 4-5 / 5-5
+- 02（索引）CARD_ID: 08_POST_FETCH_ENRICHMENT / CARD_ID: 16_TARUTANI_TEXT_SCOPE
+- data/Tarutani_data/tarutani_text.jsonl
+
+制約：
+- 取り込みループ内でLLM加工をしない（Fetch/Enrichment分離）
+- 作品画像（Tarutani_Works）は扱わない
+
+完了条件：
+- python run_enrichment_tarutani_text.py（例）が実行できる
+- 未付与headline_ja候補の requests/summary を生成できる
+- 03 の NEXT_TASKS の 8) を [x]、CHANGELOG追記
+- 次の最優先タスクのプロンプト全文を提示する
+
+動作確認コマンド：
+- （WSL）python run_enrichment_tarutani_text.py
+
+------------------------------------------------------------
+TASK 9) Tarutani_Text のheadline_jaを事後バッチで実生成し、jsonlへ反映する
+------------------------------------------------------------
+目的：
+- TASK 8 で生成した requests を使い、Tarutani_Text の headline_ja を Post-fetch バッチで付与する。
+
+参照ファイル：
+- 01（SSOT）Post-fetch/Enrichment / 4-5 / 5-5
+- 02（索引）CARD_ID: 08_POST_FETCH_ENRICHMENT / CARD_ID: 16_TARUTANI_TEXT_SCOPE
+- run_enrichment_tarutani_text.py
+- data/Tarutani_data/enrichment/enrichment_requests_tarutani_text.jsonl
+- data/Tarutani_data/tarutani_text.jsonl
+
+制約：
+- 取り込みループ内でLLM加工をしない（Fetch/Enrichment分離）
+- 作品画像（Tarutani_Works）は扱わない
+- text が空文字のレコードは headline_ja を空文字のまま維持する
+
+完了条件：
+- python run_enrichment_tarutani_text_apply.py（例）が実行できる
+- headline_ja の生成結果（output jsonl等）を保存できる
+- tarutani_text.jsonl の headline_ja を更新できる（更新件数が summary に出る）
+- 03 の NEXT_TASKS の 9) を [x]、CHANGELOG追記
+- 次の最優先タスクのプロンプト全文を提示する
+
+動作確認コマンド：
+- （WSL）python run_enrichment_tarutani_text_apply.py
+
 
 ========================
 CODEX_SNIPPETS（頻出コピペ：ここだけ使えば回る）
@@ -457,3 +537,6 @@ CHANGELOG（このファイルの更新履歴）
 - 2026-02-19：TASK 5 実施。失敗理由を reason_code（DNS_ERROR/HTTP_429等）で正規化し、attempt_count/last_attempt_at を failed_fetches に保存。クールダウン＋再試行上限で再実行時の無限ループを防止。次は TASK 6（Enrichment導線）。
 - 2026-02-19：C対応（saved=0切り分け）。curl/socket/resolv.confでDNS切り分け後、失敗台帳のクールダウン影響を解除して再実行し saved=64 / skipped=14 を確認。原因は「ネットワーク経路（sandbox制約）＋既存失敗台帳クールダウン」の複合。
 - 2026-02-19：TASK6前の認識合わせ。run_summary/コンソールに existing/new/after-run 指標を追加し、saved=0でも既存raw件数が明確に分かるよう修正。visited_pages / failed_fetches の保存形式をSSOT準拠のdict（キー: page_url_hash / fail_hash）へ統一。
+- 2026-02-19：TASK 6 実施。run_enrichment_seed10.py を追加し、Post-fetchで raw（64件）を読み込み、headline_ja/summary_ja 未付与の enrichment requests（64件）と summary を生成。次は TASK 7（Tarutani_Text着手前質問）。
+- 2026-02-22：TASK 7 実施。ユーザー回答の配置（data/Tarutani_data/{Series_Name}/Text/{Text_File}、docx/pdf）で run_tarutani_text_import.py を作成し、Tarutani_Text を16件取り込み（jsonl/summary生成）。次は TASK 8（Tarutani_Textの事後Enrichment入口）。
+- 2026-02-22：TASK 8 実施。run_enrichment_tarutani_text.py を追加し、tarutani_text.jsonl（16件）から headline_ja 未付与かつ text 非空の候補（7件）を抽出して requests/summary を生成。次は TASK 9（headline_ja実生成とjsonl反映）。

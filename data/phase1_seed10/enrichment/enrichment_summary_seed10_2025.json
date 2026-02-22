@@ -1,0 +1,19 @@
+{
+  "started_at": "2026-02-19T09:40:02Z",
+  "completed_at": "2026-02-19T09:40:02Z",
+  "target_year": 2025,
+  "raw_input_paths": {
+    "frieze_london": "data/phase1_seed10/raw/exhibitions_frieze_london_2025.jsonl",
+    "liste": "data/phase1_seed10/raw/exhibitions_liste_2025.jsonl"
+  },
+  "raw_records_by_fair": {
+    "frieze_london": 28,
+    "liste": 36
+  },
+  "raw_records_total": 64,
+  "enrichment_candidates_total": 64,
+  "counters": {
+    "candidates_new": 64
+  },
+  "output_requests_path": "data/phase1_seed10/enrichment/enrichment_requests_seed10_2025.jsonl"
+}
