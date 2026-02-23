@@ -12,6 +12,8 @@ from typing import Any
 LOG_DIR = Path("data/phase1_seed10/logs")
 DEFAULT_SUMMARY_TEMPLATE = "run_summary_seed10_{target_year}.json"
 OUTPUT_TEMPLATE = "phase1_guard_summary_{target_year}_{timestamp}.json"
+GUARD_SCHEMA_VERSION = "1.0"
+GENERATED_BY = "run_compare_phase1_guard.py"
 
 REQUIRED_SUMMARY_KEYS = {
     "target_year",
@@ -582,9 +584,12 @@ def main() -> int:
     summary_payload = {
         "started_at": started_at,
         "completed_at": utc_now_iso(),
+        "generated_by": GENERATED_BY,
+        "guard_schema_version": GUARD_SCHEMA_VERSION,
         "target_year": args.target_year,
         "fail_on_mismatch": bool(args.fail_on_mismatch),
         "guard_passed": guard_passed,
+        "mismatches": len(deduped_mismatches),
         "mismatch_fields": deduped_mismatches,
         "input_paths": {
             "run_summary_path": str(summary_path),

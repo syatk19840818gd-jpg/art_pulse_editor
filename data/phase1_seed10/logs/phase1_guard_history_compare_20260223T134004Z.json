@@ -1,0 +1,48 @@
+{
+  "started_at": "2026-02-23T13:40:04Z",
+  "completed_at": "2026-02-23T13:40:04Z",
+  "generated_by": "run_compare_phase1_guard_history.py",
+  "current_summary_path": "data/phase1_seed10/logs/phase1_guard_summary_2025_20260223T133952Z.json",
+  "baseline_summary_path": "data/phase1_seed10/logs/phase1_guard_summary_2025_20260223T133952Z.json",
+  "comparison_compatible": true,
+  "compatibility_errors": [],
+  "compatibility_warnings": [],
+  "diffs": {
+    "records_saved_total": {
+      "baseline": 0,
+      "current": 0,
+      "delta": 0
+    },
+    "skipped_total": {
+      "baseline": 78,
+      "current": 78,
+      "delta": 0
+    },
+    "failed_fetches_total_ledger": {
+      "baseline": 0,
+      "current": 0,
+      "delta": 0
+    },
+    "visited_pages_total_ledger": {
+      "baseline": 78,
+      "current": 78,
+      "delta": 0
+    },
+    "mismatches": {
+      "baseline": 0,
+      "current": 0,
+      "delta": 0
+    },
+    "mismatch_fields": {
+      "added": [],
+      "removed": [],
+      "common": [],
+      "baseline_count": 0,
+      "current_count": 0
+    }
+  },
+  "regression_passed": true,
+  "regression_reasons": [],
+  "fail_on_regression": true,
+  "exit_code": 0
+}
