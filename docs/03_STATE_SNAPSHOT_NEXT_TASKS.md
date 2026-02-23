@@ -13,7 +13,7 @@ STREAMLIT_ENTRYPOINT（固定）
 - Local run: streamlit run app.py
 
 SOURCE_SSOT: 01_PROJECT_SPEC_CURRENT_FULL.docx
-LAST_UPDATED: 2026-02-23 22:36 JST
+LAST_UPDATED: 2026-02-23 22:47 JST
 
 
 ========================
@@ -68,7 +68,7 @@ STATE_SNAPSHOT（現在地）
 ========================
 ■いまの最優先フェーズ（Codexが随時更新する）
 - Phase 1：RAG抽出パイプライン成立（seed10で安定稼働させる）
-  - 直近の到達目標：Exhibitions/Artist向け比較CLI + guard最小版（TASK 18）を成立させる
+  - 直近の到達目標：Phase1 guardの回帰比較（TASK 19）を成立させる
   - 次の到達目標：Phase2（検索/表示）へ接続する
   - その次：検索品質と表示品質の改善サイクルに入る
 
@@ -386,13 +386,25 @@ NEXT_TASKS（次回やること）
     - 動作確認コマンド：
       - （今回は文面整理のみのため実行コマンド不要）
 
-[ ] 18) Exhibitions/Artists向け比較CLI + guard最小版を実装する
+[x] 18) Exhibitions/Artists向け比較CLI + guard最小版を実装する
     - 目的：TASK17で確定した共通ガード項目（G1〜G4）をCLI化し、Phase1本体データの整合確認を再実行可能にする
     - 制約：取得ループには入れずPost-fetch検証CLIとして分離、failed_fetchesを「存在しただけで失敗」扱いにしない
     - 成立条件：
       - `python run_compare_phase1_guard.py --target-year 2025` が実行できる
       - 必須キー/内部整合/summary↔ledger整合/失敗前進運用チェックの結果を summary JSON に保存できる
       - `--fail-on-mismatch` で非0終了ガードが機能する
+      - 03のCHANGELOGに反映される
+    - 実行メモ：`python run_compare_phase1_guard.py --target-year 2025` 実行で `guard_passed=true` / `mismatches=0` を確認し、`data/phase1_seed10/logs/phase1_guard_summary_2025_20260223T132951Z.json` を保存。
+    - 実行メモ：`python run_compare_phase1_guard.py --target-year 2025 --fail-on-mismatch` 実行でも差分なしのため exit 0 を確認（`phase1_guard_summary_2025_20260223T132959Z.json`）。
+    - 実行メモ：不一致確認として `python run_compare_phase1_guard.py --target-year 2024 --fail-on-mismatch` を実行し、`guard_passed=false` / `mismatches=7` / exit 2 を確認（`phase1_guard_summary_2024_20260223T133211Z.json`）。
+
+[ ] 19) Phase1 guardの回帰比較CLIを追加する（前回runとの比較）
+    - 目的：TASK18の単発整合チェックに加え、前回runと比較して悪化（回帰）を検知できるようにする
+    - 制約：取得ループには組み込まず、Post-fetchの検証CLIとして分離する
+    - 成立条件：
+      - `python run_compare_phase1_guard_history.py --current-summary \"...\" --baseline-summary \"...\"` が実行できる
+      - `records_saved_total / skipped_total / failed_fetches_total_ledger / visited_pages_total_ledger / mismatch_fields` の差分を summary JSON に保存できる
+      - `--fail-on-regression` 指定時のみ回帰で非0終了、差分なしは0終了
       - 03のCHANGELOGに反映される
 
 ========================
@@ -940,6 +952,39 @@ TASK 18) Exhibitions/Artists向け比較CLI + guard最小版を実装する
 - （WSL）python run_compare_phase1_guard.py --target-year 2025
 - （WSL）python run_compare_phase1_guard.py --target-year 2025 --fail-on-mismatch
 
+------------------------------------------------------------
+TASK 19) Phase1 guardの回帰比較CLIを追加する（前回runとの比較）
+------------------------------------------------------------
+目的：
+- TASK18で生成した guard summary を2本比較し、Phase1本体（Exhibitions/Artists）の悪化を自動検知できるようにする。
+
+参照ファイル：
+- 01（SSOT）4-0共通 / 4-1 Exhibitions / 4-3 Artists / 5-1 / 5-3 / 5-8
+- 02（索引）CARD_ID: 05_MANIFEST_SYNC / CARD_ID: 09_FAILURE_LOGGING / CARD_ID: 14_CATEGORY_4_0_COMMON / CARD_ID: 15_CATEGORY_4_1_EXHIBITIONS_TEXT
+- run_compare_phase1_guard.py
+- data/phase1_seed10/logs/phase1_guard_summary_*.json
+- data/phase1_seed10/logs/run_summary_seed10_2025.json
+
+制約：
+- 取り込みループ内で実行しない（Post-fetch検証CLIとして分離）
+- ドメイン専用ハードコードを増やさない
+- failed_fetches が増減した事実は比較に含めるが、「存在するだけ」で失敗扱いにはしない
+- Tarutani側の新機能追加はしない（参照のみ）
+
+完了条件：
+- `python run_compare_phase1_guard_history.py --current-summary \"...\" --baseline-summary \"...\"` が実行できる
+- 回帰比較summaryに以下を保存できる
+  - `guard_passed_current / guard_passed_baseline`
+  - `delta_records_saved_total / delta_skipped_total / delta_failed_fetches_total_ledger / delta_visited_pages_total_ledger`
+  - `new_mismatch_fields / resolved_mismatch_fields`
+- `--fail-on-regression` 指定時のみ回帰で非0終了、回帰なしは0終了
+- 03 の NEXT_TASKS の 19) を [x]、CHANGELOG追記
+- 次の最優先タスク（TASK 20）のプロンプト全文を提示する
+
+動作確認コマンド：
+- （WSL）python run_compare_phase1_guard_history.py --current-summary "data/phase1_seed10/logs/phase1_guard_summary_2025_YYYYMMDDTHHMMSSZ.json" --baseline-summary "data/phase1_seed10/logs/phase1_guard_summary_2025_YYYYMMDDTHHMMSSZ.json"
+- （WSL）python run_compare_phase1_guard_history.py --current-summary "data/phase1_seed10/logs/phase1_guard_summary_2025_YYYYMMDDTHHMMSSZ.json" --baseline-summary "data/phase1_seed10/logs/phase1_guard_summary_2025_YYYYMMDDTHHMMSSZ.json" --fail-on-regression
+
 
 ========================
 CODEX_SNIPPETS（頻出コピペ：ここだけ使えば回る）
@@ -1076,3 +1121,4 @@ CHANGELOG（このファイルの更新履歴）
 - 2026-02-23：TASK 16 実施。run_compare_tarutani_answers.py に `--fail-on-mismatch` を追加し、summary へ `guard_passed` / `mismatch_fields` / `watch_numbers` を保存。最新contextでは `guard_passed=true` で exit 0、旧contextでは `mismatch_fields=['contains_700','contains_180']` で exit 2 を確認。次は TASK 17（数値ウォッチ設定の外出し）。
 - 2026-02-23：優先順位見直し。TASK 17 を Tarutani guard profile 設定化から「Phase1本体（Exhibitions/Artist）へ復帰する準備」へ置換。旧TASK 17 は Backlog（後回し/保留）へ退避し、Tarutani側は当面保守モードとした。
 - 2026-02-23：TASK 17 実施（設計整理）。01の4-0/4-1/4-3、02カード、run_phase1_seed10.pyを突合し、Exhibitions/Artists向け共通ガード項目（必須キー、内部整合、summary↔ledger/manifest整合、failed_fetches前進運用維持）を03に明文化。次タスクとして TASK 18（`run_compare_phase1_guard.py` の最小実装）プロンプトを追加。
+- 2026-02-23：TASK 18 実施。`run_compare_phase1_guard.py` を追加し、run_summary必須キー・内部整合・summary↔ledger整合・failed_fetches前進運用維持（schema確認）を検証可能化。`--target-year 2025` と `--fail-on-mismatch` の両実行で `guard_passed=true` / exit 0 を確認し、不一致ケース（`--target-year 2024 --fail-on-mismatch`）では exit 2 を確認。次は TASK 19（前回runとの回帰比較CLI）。
