@@ -13,7 +13,7 @@ STREAMLIT_ENTRYPOINT（固定）
 - Local run: streamlit run app.py
 
 SOURCE_SSOT: 01_PROJECT_SPEC_CURRENT_FULL.docx
-LAST_UPDATED: 2026-02-23 11:25 JST
+LAST_UPDATED: 2026-02-23 12:34 JST
 
 
 ========================
@@ -129,6 +129,14 @@ STATE_SNAPSHOT（現在地）
   - 生成物：data/Tarutani_data/vector/tarutani_text_meta.jsonl
   - 生成物：data/Tarutani_data/vector/tarutani_text_vectorize_summary.json
   - 生成物：data/Tarutani_data/vector/artifact_manifest.json
+- TASK X-2 完了（共通ストレージ方針の明文化＋Tarutani派生/ログR2バックアップ導線）
+  - SSOT 5-7/5-8 に「source/derived/vectorはR2正本」「local dataはキャッシュ」「重要ログのR2 logsバックアップ推奨」を追記
+  - SSOT 5-5 に Tarutani派生データ/重要ログのR2バックアップ対象を追記
+  - run_tarutani_r2_sync.py を `--scope source|derived|logs|all` 対応へ拡張し、`tarutani/{source,derived,logs,vectors}/...` へ同期可能化
+  - 実行結果：derived 初回 uploaded=20 / 再実行 skipped=20、logs 初回 uploaded=8 / 再実行 skipped=8（+新規2）
+- X-3 反映（Exhibition/Artist章への最小追記）
+  - SSOT 5-1（Exhibitions Text）/5-3（Artist Text）に、5-7/5-8参照・保存分類（source/derived/logs/vectors）・カテゴリ分離キー・manifest準拠を追記
+  - 02の該当カード（04/05/15）も01準拠で索引更新（新仕様の追加なし）
 - SSOT更新（TarutaniRAG PDF抽出ルール）
   - 01 の 4-5 に「TarutaniRAGはPDF本文抽出を標準実装とする（未実装理由の一律text空を禁止）」を追記
   - 抽出失敗PDFのみ text="" とし、extract_status に理由を残す方針へ明確化
@@ -248,9 +256,21 @@ NEXT_TASKS（次回やること）
     - 反映：01の5-9へ追記済み、run_vectorize_tarutani_text.py のmeta出力へ3項目を追加済み
     - 確認：meta 76件すべてで text_len / embed_input_len / is_truncated を確認
 
+[x] X-2) ストレージ方針をSSOTで明文化し、Tarutani派生データ/ログのR2バックアップ導線を追加
+    - 目的：共通ストレージ方針の運用ぶれを防ぎ、Tarutani派生/ログ/将来vectorのR2退避導線を最小差分で追加する
+    - 反映：01の5-5/5-7/5-8追記、run_tarutani_r2_sync.py の scope拡張（source/derived/logs/all）
+    - 実行メモ：derived 初回 uploaded=20 / 再実行 skipped=20、logs 初回 uploaded=8 / 再実行 skipped=8（+新規2）
+
+[x] X-3) Exhibition / Artist 章へ保存方針の最小追記（SSOT明確化）
+    - 目的：Exhibition/Artist章でも、共通方針（5-7/5-8）参照と保存分類（source/derived/logs/vectors）を明確化する
+    - 反映：01の5-1/5-3へ最小追記、02のCARD 04/05/15を01準拠で索引更新
+    - メモ：R2キーはカテゴリ分離、manifestは5-8最低項目準拠
+
 [ ] 11) Tarutani_Text の検索スモークCLIを作る（chunk index検証）
     - 目的：TASK10の index+meta を使って、Tarutani_Text の top-k 検索結果をCLIで確認できるようにする
     - 制約：RETRIEVAL_QUERY（Gemini, 1536次元, L2正規化）でクエリ埋め込みし、TASK10の index 空間と混在させない
+    - メモ：Tarutani vectors生成時は R2 `tarutani/vectors/` へ保存し、`artifact_manifest.json` を同梱する
+    - メモ：Exhibition/Artist も Tarutani と同じ保存分類（source/derived/logs/vectors）で統一し、manifestは5-8準拠で運用する
     - 成立条件：
       - python run_search_tarutani_text.py --query \"...\" が実行できる
       - top-k の source_path / chunk_index / score を出力できる
@@ -712,3 +732,5 @@ CHANGELOG（このファイルの更新履歴）
 - 2026-02-23：SSOT改定。TarutaniRAGのEmbedding方針を更新し、「先頭2000字1本」ではなく「1000字チャンク＋200字オーバーラップで複数埋め込み」を5-9へ追記。
 - 2026-02-23：TASK 10 実施。run_vectorize_tarutani_text.py を追加し、Tarutani_Text 16件をチャンク分割（76チャンク）で埋め込み生成（embedded=76 / failed=0）。index/meta/summary/manifest を data/Tarutani_data/vector/ に保存。次は TASK 11（検索スモークCLI）。
 - 2026-02-23：TASK X 実施。SSOT 5-9に埋め込みメタ `text_len` / `embed_input_len` / `is_truncated` を明記し、run_vectorize_tarutani_text.py のmeta出力へ反映（76件すべてで項目確認）。
+- 2026-02-23：TASK X-2 実施。SSOT 5-5/5-7/5-8 に共通ストレージ方針（source/derived/vector=R2正本、local=dataキャッシュ、重要ログR2 logs推奨）とmanifest最低項目を追記。run_tarutani_r2_sync.py を `--scope source|derived|logs|all` 対応へ拡張し、`tarutani/{source,derived,logs,vectors}/...` へ同期可能化。検証: derived 初回 uploaded=20→再実行 skipped=20、logs 初回 uploaded=8→再実行 skipped=8（+新規2）。
+- 2026-02-23：TASK X-3 実施。SSOT 5-1/5-3（Exhibition/Artist保存章）へ、5-7/5-8参照・保存分類（source/derived/logs/vectors）・カテゴリ分離キー・manifest準拠の最小追記を追加。02のCARD 04/05/15を01準拠で索引更新。03に運用メモを追記。
