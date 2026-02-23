@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -11,9 +13,31 @@ LOG_DIR = Path("data/phase1_seed10/logs")
 OUTPUT_TEMPLATE = "phase1_guard_history_compare_{timestamp}.json"
 EXPECTED_GENERATOR = "run_compare_phase1_guard.py"
 EXPECTED_SIGNATURE_KEYS = {"guard_passed", "mismatch_fields", "check_results", "input_paths", "target_year"}
+SUMMARY_FILENAME_PATTERN = re.compile(r"^phase1_guard_summary_(\d{4})_(\d{8}T\d{6}Z)\.json$")
 
 REGRESSION_EXIT_CODE = 2
 INCOMPATIBLE_EXIT_CODE = 3
+EXIT_CODE_MEANING = {
+    "0": "pass（差分なし or 差分ありだが回帰なし）",
+    "2": "regression（回帰検知）",
+    "3": "incompatible（比較不成立）",
+}
+
+
+@dataclass
+class BaselineCandidate:
+    path: Path
+    load_error: str | None
+    generated_ok: bool
+    generated_reason: str
+    target_year: int | None
+    target_year_matches: bool
+    schema_version: str | None
+    schema_matches_current: bool | None
+    guard_passed: bool | None
+    sort_time: datetime | None
+    is_past_current: bool
+    mandatory_compatible: bool
 
 
 def utc_now_iso() -> str:
@@ -30,11 +54,21 @@ def parse_args() -> argparse.Namespace:
         description="Compare two Phase1 guard summaries and detect regressions."
     )
     parser.add_argument("--current-summary", required=True, help="current phase1 guard summary json path")
-    parser.add_argument("--baseline-summary", required=True, help="baseline phase1 guard summary json path")
+    parser.add_argument("--baseline-summary", default="", help="baseline phase1 guard summary json path")
+    parser.add_argument(
+        "--baseline-search-dir",
+        default="",
+        help="directory for auto baseline search when --baseline-summary is omitted (default: current summary parent)",
+    )
     parser.add_argument(
         "--fail-on-regression",
         action="store_true",
-        help="return non-zero only when regression (or incompatible comparison) is detected",
+        help="return non-zero when regression or incompatible comparison is detected",
+    )
+    parser.add_argument(
+        "--strict-compatibility",
+        action="store_true",
+        help="return non-zero when compatibility checks fail (exit 3)",
     )
     parser.add_argument(
         "--output-path",
@@ -95,6 +129,41 @@ def parse_string_list(value: Any) -> list[str]:
         if item not in values:
             values.append(item)
     return values
+
+
+def parse_iso_utc(value: Any) -> datetime | None:
+    if not isinstance(value, str) or not value:
+        return None
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00")).astimezone(timezone.utc)
+    except ValueError:
+        return None
+
+
+def parse_summary_time_from_filename(path: Path) -> datetime | None:
+    match = SUMMARY_FILENAME_PATTERN.match(path.name)
+    if not match:
+        return None
+    timestamp_raw = match.group(2)
+    try:
+        return datetime.strptime(timestamp_raw, "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
+    except ValueError:
+        return None
+
+
+def resolve_summary_sort_time(path: Path, summary_obj: dict[str, Any] | None) -> datetime | None:
+    by_name = parse_summary_time_from_filename(path)
+    if by_name is not None:
+        return by_name
+    if isinstance(summary_obj, dict):
+        for key in ("completed_at", "started_at"):
+            parsed = parse_iso_utc(summary_obj.get(key))
+            if parsed is not None:
+                return parsed
+    try:
+        return datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc)
+    except OSError:
+        return None
 
 
 def detect_generated_by(summary_obj: dict[str, Any]) -> tuple[bool, str]:
@@ -163,29 +232,224 @@ def diff_metric(name: str, current: dict[str, int | None], baseline: dict[str, i
     }
 
 
+def build_candidate(
+    *,
+    path: Path,
+    current_path: Path,
+    current_target_year: int | None,
+    current_schema_version: str | None,
+    current_time: datetime | None,
+) -> BaselineCandidate:
+    obj, load_error = load_json_object(path)
+    if obj is None:
+        obj = {}
+
+    generated_ok, generated_reason = detect_generated_by(obj)
+    target_year = safe_int(obj.get("target_year"))
+    target_year_matches = current_target_year is not None and target_year == current_target_year
+
+    schema_version = obj.get("guard_schema_version") if isinstance(obj.get("guard_schema_version"), str) else None
+    if current_schema_version is None or schema_version is None:
+        schema_matches_current: bool | None = None
+    else:
+        schema_matches_current = schema_version == current_schema_version
+
+    guard_passed: bool | None
+    if "guard_passed" in obj:
+        guard_passed = parse_bool(obj.get("guard_passed"))
+    else:
+        guard_passed = None
+
+    sort_time = resolve_summary_sort_time(path, obj)
+    is_past_current = bool(sort_time is not None and current_time is not None and sort_time < current_time)
+
+    mandatory_compatible = (
+        load_error is None and generated_ok and target_year_matches and path.resolve() != current_path.resolve()
+    )
+
+    return BaselineCandidate(
+        path=path,
+        load_error=load_error,
+        generated_ok=generated_ok,
+        generated_reason=generated_reason,
+        target_year=target_year,
+        target_year_matches=target_year_matches,
+        schema_version=schema_version,
+        schema_matches_current=schema_matches_current,
+        guard_passed=guard_passed,
+        sort_time=sort_time,
+        is_past_current=is_past_current,
+        mandatory_compatible=mandatory_compatible,
+    )
+
+
+def candidate_to_dict(candidate: BaselineCandidate) -> dict[str, Any]:
+    return {
+        "path": str(candidate.path),
+        "load_error": candidate.load_error,
+        "generated_ok": candidate.generated_ok,
+        "generated_reason": candidate.generated_reason,
+        "target_year": candidate.target_year,
+        "target_year_matches": candidate.target_year_matches,
+        "schema_version": candidate.schema_version,
+        "schema_matches_current": candidate.schema_matches_current,
+        "guard_passed": candidate.guard_passed,
+        "sort_time": candidate.sort_time.isoformat().replace("+00:00", "Z") if candidate.sort_time else None,
+        "is_past_current": candidate.is_past_current,
+        "mandatory_compatible": candidate.mandatory_compatible,
+    }
+
+
+def select_auto_baseline(
+    *,
+    current_path: Path,
+    current_obj: dict[str, Any],
+    search_dir: Path,
+) -> tuple[Path | None, str, str, int, list[str], list[dict[str, Any]]]:
+    current_target_year = safe_int(current_obj.get("target_year"))
+    current_schema_version = current_obj.get("guard_schema_version") if isinstance(current_obj.get("guard_schema_version"), str) else None
+    current_time = resolve_summary_sort_time(current_path, current_obj)
+
+    candidates: list[BaselineCandidate] = []
+    try:
+        raw_paths = sorted(search_dir.glob("phase1_guard_summary_*.json"))
+    except OSError:
+        raw_paths = []
+
+    for path in raw_paths:
+        if path.resolve() == current_path.resolve():
+            continue
+        candidates.append(
+            build_candidate(
+                path=path,
+                current_path=current_path,
+                current_target_year=current_target_year,
+                current_schema_version=current_schema_version,
+                current_time=current_time,
+            )
+        )
+
+    candidate_dicts = [candidate_to_dict(x) for x in candidates]
+    candidate_paths = [str(x.path) for x in candidates]
+
+    mandatory_candidates = [x for x in candidates if x.mandatory_compatible]
+    if not mandatory_candidates:
+        return (
+            None,
+            "auto_not_found",
+            "no_baseline_found: no mandatory-compatible candidate",
+            len(candidates),
+            candidate_paths,
+            candidate_dicts,
+        )
+
+    # Prefer summaries older than current.
+    older_candidates = [x for x in mandatory_candidates if x.is_past_current]
+    pool = older_candidates if older_candidates else mandatory_candidates
+    older_priority_applied = len(older_candidates) > 0
+
+    # Prefer schema version match when current has schema_version and matching candidates exist.
+    schema_priority_applied = False
+    if current_schema_version is not None:
+        schema_matched = [x for x in pool if x.schema_matches_current is True]
+        if schema_matched:
+            pool = schema_matched
+            schema_priority_applied = True
+
+    # Prefer guard_passed=True baseline.
+    passed_pool = [x for x in pool if x.guard_passed is True]
+    if passed_pool:
+        pool = passed_pool
+        resolution_mode = "auto_latest_passed"
+    else:
+        resolution_mode = "auto_latest_compatible"
+
+    def sort_key(candidate: BaselineCandidate) -> tuple[int, datetime]:
+        ts = candidate.sort_time if candidate.sort_time is not None else datetime.min.replace(tzinfo=timezone.utc)
+        return (0 if candidate.sort_time is None else 1, ts)
+
+    selected = max(pool, key=sort_key)
+    reason_parts = ["auto-selected compatible candidate"]
+    if older_priority_applied:
+        reason_parts.append("preferred_past_summary")
+    else:
+        reason_parts.append("past_summary_not_found_fallback")
+    if schema_priority_applied:
+        reason_parts.append("preferred_schema_match")
+    else:
+        reason_parts.append("schema_match_not_applied")
+    if resolution_mode == "auto_latest_passed":
+        reason_parts.append("preferred_guard_passed_true")
+    else:
+        reason_parts.append("guard_passed_true_not_found")
+
+    return (
+        selected.path,
+        resolution_mode,
+        "; ".join(reason_parts),
+        len(candidates),
+        candidate_paths,
+        candidate_dicts,
+    )
+
+
 def main() -> int:
     args = parse_args()
     started_at = utc_now_iso()
     print(f"[START] Phase1 guard history compare at {started_at}")
 
     current_path = Path(args.current_summary)
-    baseline_path = Path(args.baseline_summary)
 
     compatibility_errors: list[str] = []
     compatibility_warnings: list[str] = []
 
     current_obj, current_err = load_json_object(current_path)
-    baseline_obj, baseline_err = load_json_object(baseline_path)
-
     if current_err:
         compatibility_errors.append(f"current_summary_load_error:{current_err}")
-    if baseline_err:
-        compatibility_errors.append(f"baseline_summary_load_error:{baseline_err}")
-
     if current_obj is None:
         current_obj = {}
-    if baseline_obj is None:
+
+    baseline_auto_search_dir = Path(args.baseline_search_dir) if args.baseline_search_dir else current_path.parent
+    baseline_resolution_mode = "manual" if args.baseline_summary else "auto"
+    baseline_selected_reason = "manual_baseline_argument" if args.baseline_summary else ""
+    baseline_candidates_checked = 0
+    baseline_candidate_paths: list[str] = []
+    baseline_candidate_details: list[dict[str, Any]] = []
+
+    if args.baseline_summary:
+        baseline_path: Path | None = Path(args.baseline_summary)
+    else:
+        if current_err:
+            baseline_path = None
+            baseline_resolution_mode = "auto_not_found"
+            baseline_selected_reason = "no_baseline_found: current summary load failed"
+            compatibility_errors.append("no_baseline_found")
+        else:
+            (
+                baseline_path,
+                baseline_resolution_mode,
+                baseline_selected_reason,
+                baseline_candidates_checked,
+                baseline_candidate_paths,
+                baseline_candidate_details,
+            ) = select_auto_baseline(
+                current_path=current_path,
+                current_obj=current_obj,
+                search_dir=baseline_auto_search_dir,
+            )
+            if baseline_path is None:
+                compatibility_errors.append("no_baseline_found")
+
+    baseline_obj: dict[str, Any]
+    if baseline_path is None:
         baseline_obj = {}
+        baseline_err = "MISSING_BASELINE"
+    else:
+        baseline_obj_or_none, baseline_err = load_json_object(baseline_path)
+        baseline_obj = baseline_obj_or_none if baseline_obj_or_none is not None else {}
+
+    if baseline_err:
+        compatibility_errors.append(f"baseline_summary_load_error:{baseline_err}")
 
     current_generator_ok, current_generator_reason = detect_generated_by(current_obj)
     baseline_generator_ok, baseline_generator_reason = detect_generated_by(baseline_obj)
@@ -274,15 +538,16 @@ def main() -> int:
 
     regression_passed = comparison_compatible and len(regression_reasons) == 0
 
-    if args.fail_on_regression:
-        if not comparison_compatible:
-            exit_code = INCOMPATIBLE_EXIT_CODE
-        elif not regression_passed:
+    if comparison_compatible:
+        if args.fail_on_regression and not regression_passed:
             exit_code = REGRESSION_EXIT_CODE
         else:
             exit_code = 0
     else:
-        exit_code = 0
+        if args.strict_compatibility or args.fail_on_regression:
+            exit_code = INCOMPATIBLE_EXIT_CODE
+        else:
+            exit_code = 0
 
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     output_path = Path(args.output_path) if args.output_path else LOG_DIR / OUTPUT_TEMPLATE.format(timestamp=timestamp)
@@ -292,15 +557,23 @@ def main() -> int:
         "completed_at": utc_now_iso(),
         "generated_by": "run_compare_phase1_guard_history.py",
         "current_summary_path": str(current_path),
-        "baseline_summary_path": str(baseline_path),
+        "baseline_summary_path": str(baseline_path) if baseline_path else None,
         "comparison_compatible": comparison_compatible,
         "compatibility_errors": compatibility_errors,
         "compatibility_warnings": compatibility_warnings,
+        "baseline_resolution_mode": baseline_resolution_mode,
+        "baseline_candidates_checked": baseline_candidates_checked,
+        "baseline_selected_reason": baseline_selected_reason,
+        "baseline_auto_search_dir": str(baseline_auto_search_dir),
+        "baseline_candidate_paths": baseline_candidate_paths,
+        "baseline_candidate_details": baseline_candidate_details,
         "diffs": diffs,
         "regression_passed": regression_passed,
         "regression_reasons": regression_reasons,
         "fail_on_regression": bool(args.fail_on_regression),
+        "strict_compatibility": bool(args.strict_compatibility),
         "exit_code": exit_code,
+        "exit_code_meaning": EXIT_CODE_MEANING,
     }
     write_json(output_path, payload)
 
@@ -308,6 +581,10 @@ def main() -> int:
         "[DONE] Phase1 guard history compare complete. "
         f"compatible={comparison_compatible} regression_passed={regression_passed}"
     )
+    if baseline_path is not None:
+        print(f"[DONE] baseline={baseline_path} mode={baseline_resolution_mode}")
+    else:
+        print(f"[DONE] baseline=NONE mode={baseline_resolution_mode}")
     if compatibility_errors:
         print(f"[DONE] compatibility_errors={compatibility_errors}")
     if regression_reasons:

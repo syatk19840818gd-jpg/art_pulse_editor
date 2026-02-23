@@ -1,0 +1,147 @@
+{
+  "started_at": "2026-02-23T13:50:44Z",
+  "completed_at": "2026-02-23T13:50:44Z",
+  "generated_by": "run_compare_phase1_guard_history.py",
+  "current_summary_path": "data/phase1_seed10/logs/phase1_guard_summary_2025_regression_fixture.json",
+  "baseline_summary_path": "data/phase1_seed10/logs/phase1_guard_summary_2025_20260223T132959Z.json",
+  "comparison_compatible": true,
+  "compatibility_errors": [],
+  "compatibility_warnings": [
+    "baseline_summary_generator_inferred_by_signature",
+    "baseline_guard_schema_version_missing"
+  ],
+  "baseline_resolution_mode": "auto_latest_passed",
+  "baseline_candidates_checked": 5,
+  "baseline_selected_reason": "auto-selected compatible candidate; preferred_past_summary; schema_match_not_applied; preferred_guard_passed_true",
+  "baseline_auto_search_dir": "data/phase1_seed10/logs",
+  "baseline_candidate_paths": [
+    "data/phase1_seed10/logs/phase1_guard_summary_2024_20260223T133211Z.json",
+    "data/phase1_seed10/logs/phase1_guard_summary_2025_20260223T132951Z.json",
+    "data/phase1_seed10/logs/phase1_guard_summary_2025_20260223T132959Z.json",
+    "data/phase1_seed10/logs/phase1_guard_summary_2025_20260223T133952Z.json",
+    "data/phase1_seed10/logs/phase1_guard_summary_2025_20260223T135031Z.json"
+  ],
+  "baseline_candidate_details": [
+    {
+      "path": "data/phase1_seed10/logs/phase1_guard_summary_2024_20260223T133211Z.json",
+      "load_error": null,
+      "generated_ok": true,
+      "generated_reason": "inferred_by_signature",
+      "target_year": 2024,
+      "target_year_matches": false,
+      "schema_version": null,
+      "schema_matches_current": null,
+      "guard_passed": false,
+      "sort_time": "2026-02-23T13:32:11Z",
+      "is_past_current": true,
+      "mandatory_compatible": false
+    },
+    {
+      "path": "data/phase1_seed10/logs/phase1_guard_summary_2025_20260223T132951Z.json",
+      "load_error": null,
+      "generated_ok": true,
+      "generated_reason": "inferred_by_signature",
+      "target_year": 2025,
+      "target_year_matches": true,
+      "schema_version": null,
+      "schema_matches_current": null,
+      "guard_passed": true,
+      "sort_time": "2026-02-23T13:29:51Z",
+      "is_past_current": true,
+      "mandatory_compatible": true
+    },
+    {
+      "path": "data/phase1_seed10/logs/phase1_guard_summary_2025_20260223T132959Z.json",
+      "load_error": null,
+      "generated_ok": true,
+      "generated_reason": "inferred_by_signature",
+      "target_year": 2025,
+      "target_year_matches": true,
+      "schema_version": null,
+      "schema_matches_current": null,
+      "guard_passed": true,
+      "sort_time": "2026-02-23T13:29:59Z",
+      "is_past_current": true,
+      "mandatory_compatible": true
+    },
+    {
+      "path": "data/phase1_seed10/logs/phase1_guard_summary_2025_20260223T133952Z.json",
+      "load_error": null,
+      "generated_ok": true,
+      "generated_reason": "explicit_generated_by",
+      "target_year": 2025,
+      "target_year_matches": true,
+      "schema_version": "1.0",
+      "schema_matches_current": true,
+      "guard_passed": true,
+      "sort_time": "2026-02-23T13:39:52Z",
+      "is_past_current": false,
+      "mandatory_compatible": true
+    },
+    {
+      "path": "data/phase1_seed10/logs/phase1_guard_summary_2025_20260223T135031Z.json",
+      "load_error": null,
+      "generated_ok": true,
+      "generated_reason": "explicit_generated_by",
+      "target_year": 2025,
+      "target_year_matches": true,
+      "schema_version": "1.0",
+      "schema_matches_current": true,
+      "guard_passed": true,
+      "sort_time": "2026-02-23T13:50:31Z",
+      "is_past_current": false,
+      "mandatory_compatible": true
+    }
+  ],
+  "diffs": {
+    "records_saved_total": {
+      "baseline": 0,
+      "current": 0,
+      "delta": 0
+    },
+    "skipped_total": {
+      "baseline": 78,
+      "current": 78,
+      "delta": 0
+    },
+    "failed_fetches_total_ledger": {
+      "baseline": 0,
+      "current": 0,
+      "delta": 0
+    },
+    "visited_pages_total_ledger": {
+      "baseline": 78,
+      "current": 78,
+      "delta": 0
+    },
+    "mismatches": {
+      "baseline": 0,
+      "current": 2,
+      "delta": 2
+    },
+    "mismatch_fields": {
+      "added": [
+        "required_summary_keys_missing",
+        "summary_ledger_count_mismatch"
+      ],
+      "removed": [],
+      "common": [],
+      "baseline_count": 0,
+      "current_count": 2
+    }
+  },
+  "regression_passed": false,
+  "regression_reasons": [
+    "guard_passed_regressed:true->false",
+    "mismatches_increased:0->2",
+    "new_mismatch_fields:required_summary_keys_missing,summary_ledger_count_mismatch"
+  ],
+  "fail_on_regression": true,
+  "strict_compatibility": false,
+  "exit_code": 2,
+  "exit_code_meaning": {
+    "0": "pass（差分なし or 差分ありだが回帰なし）",
+    "2": "regression（回帰検知）",
+    "3": "incompatible（比較不成立）"
+  }
+}
