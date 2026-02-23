@@ -13,7 +13,7 @@ STREAMLIT_ENTRYPOINT（固定）
 - Local run: streamlit run app.py
 
 SOURCE_SSOT: 01_PROJECT_SPEC_CURRENT_FULL.docx
-LAST_UPDATED: 2026-02-23 12:34 JST
+LAST_UPDATED: 2026-02-23 13:56 JST
 
 
 ========================
@@ -68,7 +68,7 @@ STATE_SNAPSHOT（現在地）
 ========================
 ■いまの最優先フェーズ（Codexが随時更新する）
 - Phase 1：RAG抽出パイプライン成立（seed10で安定稼働させる）
-  - 直近の到達目標：Tarutani_Text の検索スモーク（TASK 11）を成立させる
+  - 直近の到達目標：Tarutani_Text 検索結果の機能⑤向けコンテキスト化（TASK 12）を成立させる
   - 次の到達目標：Phase2（検索/表示）へ接続する
   - その次：検索品質と表示品質の改善サイクルに入る
 
@@ -129,6 +129,11 @@ STATE_SNAPSHOT（現在地）
   - 生成物：data/Tarutani_data/vector/tarutani_text_meta.jsonl
   - 生成物：data/Tarutani_data/vector/tarutani_text_vectorize_summary.json
   - 生成物：data/Tarutani_data/vector/artifact_manifest.json
+- TASK 11 完了（Tarutani_Text 検索スモークCLI）
+  - run_search_tarutani_text.py を追加（RETRIEVAL_QUERY / 1536次元 / L2正規化）
+  - 実行結果：query=「曲線と直線」, top-k=5 を出力（source_path / chunk_index / score）
+  - 生成物：data/Tarutani_data/vector/search/tarutani_text_search_results_*.jsonl
+  - 生成物：data/Tarutani_data/vector/search/tarutani_text_search_summary_*.json
 - TASK X-2 完了（共通ストレージ方針の明文化＋Tarutani派生/ログR2バックアップ導線）
   - SSOT 5-7/5-8 に「source/derived/vectorはR2正本」「local dataはキャッシュ」「重要ログのR2 logsバックアップ推奨」を追記
   - SSOT 5-5 に Tarutani派生データ/重要ログのR2バックアップ対象を追記
@@ -266,7 +271,7 @@ NEXT_TASKS（次回やること）
     - 反映：01の5-1/5-3へ最小追記、02のCARD 04/05/15を01準拠で索引更新
     - メモ：R2キーはカテゴリ分離、manifestは5-8最低項目準拠
 
-[ ] 11) Tarutani_Text の検索スモークCLIを作る（chunk index検証）
+[x] 11) Tarutani_Text の検索スモークCLIを作る（chunk index検証）
     - 目的：TASK10の index+meta を使って、Tarutani_Text の top-k 検索結果をCLIで確認できるようにする
     - 制約：RETRIEVAL_QUERY（Gemini, 1536次元, L2正規化）でクエリ埋め込みし、TASK10の index 空間と混在させない
     - メモ：Tarutani vectors生成時は R2 `tarutani/vectors/` へ保存し、`artifact_manifest.json` を同梱する
@@ -275,6 +280,16 @@ NEXT_TASKS（次回やること）
       - python run_search_tarutani_text.py --query \"...\" が実行できる
       - top-k の source_path / chunk_index / score を出力できる
       - 検索summary（入力クエリ、k、出力先）を保存できる
+    - 実行メモ：query=「曲線と直線」で top-k=5 を確認、results/summary 保存済み
+    - 実行メモ：検索優先度プロファイル（`config/tarutani_text_search_profile.json`）を反映。`曲線と直線_概要.docx` と `垂谷_ステートメント.docx` を優先しつつ、同一source偏り抑制（max_per_source=1）を適用。
+
+[ ] 12) Tarutani_Text 検索結果を機能⑤向けコンテキストJSONに整形する
+    - 目的：検索top-k結果を、機能⑤でそのままLLM投入できるコンテキスト形式（根拠付き）に変換する
+    - 制約：取得ループには組み込まない（Post-fetchバッチのまま）
+    - 成立条件：
+      - python run_build_tarutani_context.py --query \"...\" が実行できる
+      - source_path / chunk_index / score / excerpt を含む context JSON が保存される
+      - 03のCHANGELOGに反映される
 
 
 ========================
@@ -610,6 +625,33 @@ TASK 11) Tarutani_Text の検索スモークCLIを作る（chunk index検証）
 動作確認コマンド：
 - （WSL）python run_search_tarutani_text.py --query "曲線と直線"
 
+------------------------------------------------------------
+TASK 12) Tarutani_Text 検索結果を機能⑤向けコンテキストJSONに整形する
+------------------------------------------------------------
+目的：
+- TASK11の検索結果（top-k）を、機能⑤でそのまま投入できるコンテキストJSONへ整形する。
+
+参照ファイル：
+- 01（SSOT）機能⑤（Tarutani_Textの使い方） / 5-8 / 5-9
+- 02（索引）CARD_ID: 16_TARUTANI_TEXT_SCOPE / CARD_ID: 05_MANIFEST_SYNC
+- run_search_tarutani_text.py
+- data/Tarutani_data/vector/tarutani_text_meta.jsonl
+- data/Tarutani_data/tarutani_text.jsonl
+
+制約：
+- 取り込みループ内で実行しない（Post-fetchバッチとして分離）
+- 作品画像（Tarutani_Works）は扱わない
+- 既存の検索スコア計算（TASK11）を壊さない
+
+完了条件：
+- python run_build_tarutani_context.py --query "..." が実行できる
+- source_path / chunk_index / score / excerpt を含む context JSON が保存される
+- 03 の NEXT_TASKS の 12) を [x]、CHANGELOG追記
+- 次の最優先タスクのプロンプト全文を提示する
+
+動作確認コマンド：
+- （WSL）python run_build_tarutani_context.py --query "曲線と直線"
+
 
 ========================
 CODEX_SNIPPETS（頻出コピペ：ここだけ使えば回る）
@@ -734,3 +776,7 @@ CHANGELOG（このファイルの更新履歴）
 - 2026-02-23：TASK X 実施。SSOT 5-9に埋め込みメタ `text_len` / `embed_input_len` / `is_truncated` を明記し、run_vectorize_tarutani_text.py のmeta出力へ反映（76件すべてで項目確認）。
 - 2026-02-23：TASK X-2 実施。SSOT 5-5/5-7/5-8 に共通ストレージ方針（source/derived/vector=R2正本、local=dataキャッシュ、重要ログR2 logs推奨）とmanifest最低項目を追記。run_tarutani_r2_sync.py を `--scope source|derived|logs|all` 対応へ拡張し、`tarutani/{source,derived,logs,vectors}/...` へ同期可能化。検証: derived 初回 uploaded=20→再実行 skipped=20、logs 初回 uploaded=8→再実行 skipped=8（+新規2）。
 - 2026-02-23：TASK X-3 実施。SSOT 5-1/5-3（Exhibition/Artist保存章）へ、5-7/5-8参照・保存分類（source/derived/logs/vectors）・カテゴリ分離キー・manifest準拠の最小追記を追加。02のCARD 04/05/15を01準拠で索引更新。03に運用メモを追記。
+- 2026-02-23：TASK 11 実施。run_search_tarutani_text.py を追加し、Tarutani_Text index+meta から RETRIEVAL_QUERY で top-k 検索を実行。query=「曲線と直線」で source_path/chunk_index/score を確認し、search results/summary を保存。次は TASK 12（機能⑤向けコンテキストJSON整形）。
+- 2026-02-23：検索品質調整（Tarutani_Text）。SSOTへ「source_path優先度プロファイル + max_per_source」方針を追記し、run_search_tarutani_text.py を設定駆動で拡張。`曲線と直線` で `曲線と直線_概要.docx` を1位、`垂谷_ステートメント.docx` を2位で確認。
+- 2026-02-23：検索プロファイル再調整。`config/tarutani_text_search_profile.json` から補完資料の減点ルールを除外し、上位2件（概要/ステートメント）優先は維持。3位以下は重みなしのクエリ素点で可変（同一source偏り抑制 `max_per_source=1` は維持）。
+- 2026-02-23：検索プロファイル微調整。`垂谷_ステートメント.docx` の `score_boost` を 0.04 に調整し、query=「曲線と直線」で 1位 `曲線と直線_概要.docx` / 2位 `垂谷_ステートメント.docx` を再確認。
