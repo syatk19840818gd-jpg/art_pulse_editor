@@ -13,7 +13,7 @@ STREAMLIT_ENTRYPOINT（固定）
 - Local run: streamlit run app.py
 
 SOURCE_SSOT: 01_PROJECT_SPEC_CURRENT_FULL.docx
-LAST_UPDATED: 2026-02-23 00:40 JST
+LAST_UPDATED: 2026-02-23 11:25 JST
 
 
 ========================
@@ -68,7 +68,7 @@ STATE_SNAPSHOT（現在地）
 ========================
 ■いまの最優先フェーズ（Codexが随時更新する）
 - Phase 1：RAG抽出パイプライン成立（seed10で安定稼働させる）
-  - 直近の到達目標：Tarutani_Text のEmbedding/Index入口（TASK 10）を成立させる
+  - 直近の到達目標：Tarutani_Text の検索スモーク（TASK 11）を成立させる
   - 次の到達目標：Phase2（検索/表示）へ接続する
   - その次：検索品質と表示品質の改善サイクルに入る
 
@@ -122,9 +122,18 @@ STATE_SNAPSHOT（現在地）
   - 実行結果：pdf_records_updated_with_text=9 / pdf_records_still_empty_after=0
   - 再Enrichment結果：requests candidates=9 → apply updated=9 / failed=0
   - 現在値：tarutani_text.jsonl は 16件すべて text非空・headline_ja非空
+- TASK 10 完了（Tarutani_Text Embedding/Index入口）
+  - run_vectorize_tarutani_text.py を追加（Post-fetchバッチ。fetchループ非依存）
+  - 実行結果：records_total=16 / chunk_size=1000 / overlap=200 / embedding_input_count=76 / embedded=76 / failed=0
+  - 生成物：data/Tarutani_data/vector/tarutani_text_index.npy
+  - 生成物：data/Tarutani_data/vector/tarutani_text_meta.jsonl
+  - 生成物：data/Tarutani_data/vector/tarutani_text_vectorize_summary.json
+  - 生成物：data/Tarutani_data/vector/artifact_manifest.json
 - SSOT更新（TarutaniRAG PDF抽出ルール）
   - 01 の 4-5 に「TarutaniRAGはPDF本文抽出を標準実装とする（未実装理由の一律text空を禁止）」を追記
   - 抽出失敗PDFのみ text="" とし、extract_status に理由を残す方針へ明確化
+- SSOT更新（TarutaniRAG Embeddingチャンク方針）
+  - 01 の 5-9 に「TarutaniRAGは先頭2000字1本ではなく、1000字チャンク＋200字オーバーラップで複数埋め込み」を追記
 - Tarutani_data のR2正本運用を整理（最小差分）
   - SSOT 5-5 に「R2正本 / source_pathメタ保持 / Git非コミット方針」を追記
   - run_tarutani_r2_sync.py を追加（dry-run/apply, logs出力）
@@ -225,13 +234,27 @@ NEXT_TASKS（次回やること）
       - headline_ja 再生成で更新件数が summary に出る
     - 実行メモ：backfill updated=9 / still_empty=0、再Enrichment apply updated=9 / failed=0
 
-[ ] 10) Tarutani_Text のEmbedding/Index入口を作る
+[x] 10) Tarutani_Text のEmbedding/Index入口を作る
     - 目的：headline_ja 付与済み tarutani_text.jsonl を対象に、ベクトル化と検索用index生成の入口を作る
     - 制約：fetchループには組み込まない（Post-fetchバッチとして分離）
     - 成立条件：
       - python run_vectorize_tarutani_text.py（例）が実行できる
       - embedding入力件数 / skip件数（text空など） / 生成物パスが summary に出る
       - 生成物（index + meta）が保存される
+    - 実行メモ：chunk_size=1000 / overlap=200 / embedding_input_count=76 / embedded=76 / failed=0
+
+[x] X) SSOT追記：埋め込み入力メタ3項目（text_len / embed_input_len / is_truncated）の明文化と実装反映
+    - 目的：後で取りこぼし分析できるよう、埋め込み時メタ3項目をSSOTと実装で統一する
+    - 反映：01の5-9へ追記済み、run_vectorize_tarutani_text.py のmeta出力へ3項目を追加済み
+    - 確認：meta 76件すべてで text_len / embed_input_len / is_truncated を確認
+
+[ ] 11) Tarutani_Text の検索スモークCLIを作る（chunk index検証）
+    - 目的：TASK10の index+meta を使って、Tarutani_Text の top-k 検索結果をCLIで確認できるようにする
+    - 制約：RETRIEVAL_QUERY（Gemini, 1536次元, L2正規化）でクエリ埋め込みし、TASK10の index 空間と混在させない
+    - 成立条件：
+      - python run_search_tarutani_text.py --query \"...\" が実行できる
+      - top-k の source_path / chunk_index / score を出力できる
+      - 検索summary（入力クエリ、k、出力先）を保存できる
 
 
 ========================
@@ -508,6 +531,7 @@ TASK 10) Tarutani_Text のEmbedding/Index入口を作る
 - 取り込みループ内で実行しない（Post-fetchバッチとして分離）
 - text が空文字のレコードは埋め込み対象外としてスキップし、件数をログ化する
 - 作品画像（Tarutani_Works）は扱わない
+- TarutaniRAGは「先頭2000字1本」ではなく、1000字チャンク（200字オーバーラップ）で複数埋め込みする
 
 完了条件：
 - python run_vectorize_tarutani_text.py（例）が実行できる
@@ -518,6 +542,53 @@ TASK 10) Tarutani_Text のEmbedding/Index入口を作る
 
 動作確認コマンド：
 - （WSL）python run_vectorize_tarutani_text.py
+
+------------------------------------------------------------
+TASK X) SSOT追記：埋め込み入力メタ3項目の明文化（完了済み・参照用）
+------------------------------------------------------------
+目的：
+- 01_PROJECT_SPEC_CURRENT_FULL.docx（SSOT）に、埋め込み時の保存メタ text_len / embed_input_len / is_truncated を明記する。
+
+参照ファイル：
+- 01_PROJECT_SPEC_CURRENT_FULL.docx（SSOT）
+- 02_RAG_SPEC_DERIVED.md（索引）
+- 03_STATE_SNAPSHOT_NEXT_TASKS.md
+
+完了条件：
+- 01の5-9近傍に、上記3項目の保存メタが明記される
+- 必要に応じて02の該当カードを01準拠で更新する
+- 03の該当タスクを [x] にし、CHANGELOGに1行追記する
+
+動作確認コマンド（実装反映時）：
+- （WSL）python run_vectorize_tarutani_text.py
+
+------------------------------------------------------------
+TASK 11) Tarutani_Text の検索スモークCLIを作る（chunk index検証）
+------------------------------------------------------------
+目的：
+- TASK10で生成した Tarutani_Text の index+meta を使って、クエリ検索（top-k）の最小CLIを成立させる。
+
+参照ファイル：
+- 01（SSOT）5-8 / 5-9 / 機能⑤（Tarutani_Textの扱い）
+- 02（索引）CARD_ID: 05_MANIFEST_SYNC / CARD_ID: 16_TARUTANI_TEXT_SCOPE
+- run_vectorize_tarutani_text.py
+- data/Tarutani_data/vector/tarutani_text_index.npy
+- data/Tarutani_data/vector/tarutani_text_meta.jsonl
+
+制約：
+- 取り込みループ内で実行しない（Post-fetchバッチとして分離）
+- クエリ埋め込みは RETRIEVAL_QUERY（Gemini, 1536次元, L2正規化）で統一する
+- 作品画像（Tarutani_Works）は扱わない
+
+完了条件：
+- python run_search_tarutani_text.py --query "..." が実行できる
+- top-k の source_path / chunk_index / score を出力できる
+- 検索summary（query, k, output paths）が保存される
+- 03 の NEXT_TASKS の 11) を [x]、CHANGELOG追記
+- 次の最優先タスクのプロンプト全文を提示する
+
+動作確認コマンド：
+- （WSL）python run_search_tarutani_text.py --query "曲線と直線"
 
 
 ========================
@@ -638,3 +709,6 @@ CHANGELOG（このファイルの更新履歴）
 - 2026-02-22：SSOT改定。TarutaniRAGに限りPDF本文抽出を標準実装化（未実装理由の一律text空を禁止）し、TASK 9.5（PDF抽出実装＋バックフィル）をNEXT_TASKS/CODEX_TASK_PROMPTSへ追加。
 - 2026-02-23：TASK 9.5 実施。run_tarutani_text_pdf_backfill.py でTarutaniRAGのPDF 9件を本文抽出してバックフィル（still_empty=0）。続けて Enrichment requests再生成（candidates=9）→ applyで headline_ja を9件更新（failed=0）。次は TASK 10（Embedding/Index入口）。
 - 2026-02-23：運用メンテ実施。`私とあなたの物語り ／水谷イズル(アーティスト),2020.pdf` のレコードを削除済みPDFから新規DOCX（`私とあなたの物語り_水谷イズル_2020.docx`）へ差し替え、text再抽出（1477文字）と headline_ja 再生成（updated=1）を反映。
+- 2026-02-23：SSOT改定。TarutaniRAGのEmbedding方針を更新し、「先頭2000字1本」ではなく「1000字チャンク＋200字オーバーラップで複数埋め込み」を5-9へ追記。
+- 2026-02-23：TASK 10 実施。run_vectorize_tarutani_text.py を追加し、Tarutani_Text 16件をチャンク分割（76チャンク）で埋め込み生成（embedded=76 / failed=0）。index/meta/summary/manifest を data/Tarutani_data/vector/ に保存。次は TASK 11（検索スモークCLI）。
+- 2026-02-23：TASK X 実施。SSOT 5-9に埋め込みメタ `text_len` / `embed_input_len` / `is_truncated` を明記し、run_vectorize_tarutani_text.py のmeta出力へ反映（76件すべてで項目確認）。
