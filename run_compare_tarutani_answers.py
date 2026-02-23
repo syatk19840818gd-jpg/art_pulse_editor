@@ -37,6 +37,19 @@ def normalize_numeric_token(raw: str) -> str:
     return raw.replace(",", "")
 
 
+def parse_watch_numbers(raw: str) -> list[str]:
+    values: list[str] = []
+    for token in raw.split(","):
+        token = normalize_numeric_token(token.strip())
+        if not token:
+            continue
+        if not re.fullmatch(r"\d+", token):
+            continue
+        if token not in values:
+            values.append(token)
+    return values
+
+
 def extract_numeric_tokens(text: str) -> list[str]:
     tokens = re.findall(r"\d[\d,]*", text)
     normalized = [normalize_numeric_token(token) for token in tokens]
@@ -105,6 +118,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--query", required=True, help="retrieval query for query_rebuild mode")
     parser.add_argument("--context-path", required=True, help="fixed context json for fixed_context mode")
     parser.add_argument("--k", type=int, default=5, help="top-k used in query_rebuild mode")
+    parser.add_argument(
+        "--fail-on-mismatch",
+        action="store_true",
+        help="return non-zero when numeric mismatch is detected",
+    )
+    parser.add_argument(
+        "--watch-numbers",
+        default="700,180",
+        help="comma-separated major numeric tokens to guard (default: 700,180)",
+    )
     return parser.parse_args()
 
 
@@ -150,6 +173,24 @@ def main() -> int:
 
     query_numeric = set(query_info["numeric_tokens"])
     fixed_numeric = set(fixed_info["numeric_tokens"])
+    numeric_only_in_query_rebuild = sorted(query_numeric - fixed_numeric, key=int)
+    numeric_only_in_fixed_context = sorted(fixed_numeric - query_numeric, key=int)
+    watch_numbers = parse_watch_numbers(args.watch_numbers)
+    watch_number_presence: dict[str, dict[str, bool]] = {}
+    for token in watch_numbers:
+        watch_number_presence[token] = {
+            "query_rebuild": token in query_numeric,
+            "fixed_context": token in fixed_numeric,
+        }
+
+    mismatch_fields: list[str] = []
+    if watch_numbers:
+        for token, presence in watch_number_presence.items():
+            if bool(presence["query_rebuild"]) != bool(presence["fixed_context"]):
+                mismatch_fields.append(f"contains_{token}")
+    elif numeric_only_in_query_rebuild or numeric_only_in_fixed_context:
+        mismatch_fields.append("numeric_token_set")
+    guard_passed = len(mismatch_fields) == 0
 
     compare_summary = {
         "started_at": started_at,
@@ -157,6 +198,10 @@ def main() -> int:
         "question": args.question,
         "query": args.query,
         "context_path": str(context_path),
+        "fail_on_mismatch": bool(args.fail_on_mismatch),
+        "watch_numbers": watch_numbers,
+        "guard_passed": guard_passed,
+        "mismatch_fields": mismatch_fields,
         "query_rebuild": {
             "output_path": str(query_output_path),
             "summary_path": str(query_summary_path),
@@ -170,8 +215,8 @@ def main() -> int:
         "differences": {
             "answer_chars_delta": int(query_info["answer_chars"]) - int(fixed_info["answer_chars"]),
             "evidence_count_delta": int(query_info["evidence_count"]) - int(fixed_info["evidence_count"]),
-            "numeric_only_in_query_rebuild": sorted(query_numeric - fixed_numeric, key=int),
-            "numeric_only_in_fixed_context": sorted(fixed_numeric - query_numeric, key=int),
+            "numeric_only_in_query_rebuild": numeric_only_in_query_rebuild,
+            "numeric_only_in_fixed_context": numeric_only_in_fixed_context,
             "contains_700": {
                 "query_rebuild": bool(query_info["contains_700"]),
                 "fixed_context": bool(fixed_info["contains_700"]),
@@ -180,6 +225,7 @@ def main() -> int:
                 "query_rebuild": bool(query_info["contains_180"]),
                 "fixed_context": bool(fixed_info["contains_180"]),
             },
+            "watch_number_presence": watch_number_presence,
         },
     }
 
@@ -191,7 +237,10 @@ def main() -> int:
         "[DONE] Tarutani advisor compare complete. "
         f"query_chars={query_info['answer_chars']} fixed_chars={fixed_info['answer_chars']}"
     )
+    print(f"[DONE] guard_passed={guard_passed} mismatch_fields={mismatch_fields}")
     print(f"[DONE] summary={output_path}")
+    if args.fail_on_mismatch and not guard_passed:
+        return 2
     return 0
 
 
