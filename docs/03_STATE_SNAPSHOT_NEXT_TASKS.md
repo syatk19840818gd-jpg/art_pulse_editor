@@ -13,7 +13,7 @@ STREAMLIT_ENTRYPOINT（固定）
 - Local run: streamlit run app.py
 
 SOURCE_SSOT: 01_PROJECT_SPEC_CURRENT_FULL.docx
-LAST_UPDATED: 2026-02-23 21:40 JST
+LAST_UPDATED: 2026-02-23 21:45 JST
 
 
 ========================
@@ -68,7 +68,7 @@ STATE_SNAPSHOT（現在地）
 ========================
 ■いまの最優先フェーズ（Codexが随時更新する）
 - Phase 1：RAG抽出パイプライン成立（seed10で安定稼働させる）
-  - 直近の到達目標：機能⑤回答の比較レポート導線（TASK 15）を成立させる
+  - 直近の到達目標：機能⑤回答の差分ガード（TASK 16）を成立させる
   - 次の到達目標：Phase2（検索/表示）へ接続する
   - その次：検索品質と表示品質の改善サイクルに入る
 
@@ -149,6 +149,10 @@ STATE_SNAPSHOT（現在地）
   - 実行結果：context_input_mode=fixed_context を summary に保存し、query再生成モードと区別可能化
   - 生成物：data/Tarutani_data/answers/tarutani_advisor_answer_*.json
   - 生成物：data/Tarutani_data/answers/tarutani_advisor_answer_summary_*.json
+- TASK 15 完了（機能⑤回答の比較レポートCLI）
+  - run_compare_tarutani_answers.py を追加（query再生成 vs context固定を1回で比較）
+  - 実行結果：query_chars=585 / fixed_chars=482、evidence_count は双方5、主要数値比較で 700 は双方True・180 は双方False
+  - 生成物：data/Tarutani_data/answers/tarutani_advisor_answer_compare_*.json
 - TASK X-2 完了（共通ストレージ方針の明文化＋Tarutani派生/ログR2バックアップ導線）
   - SSOT 5-7/5-8 に「source/derived/vectorはR2正本」「local dataはキャッシュ」「重要ログのR2 logsバックアップ推奨」を追記
   - SSOT 5-5 に Tarutani派生データ/重要ログのR2バックアップ対象を追記
@@ -326,12 +330,21 @@ NEXT_TASKS（次回やること）
       - 03のCHANGELOGに反映される
     - 実行メモ：`--context-path data/Tarutani_data/context/tarutani_text_context_20260223T123040Z.json` で `context_input_mode=fixed_context`、`--query "曲線と直線"` で `context_input_mode=query_rebuild` を確認（summaryで両モード識別）
 
-[ ] 15) 機能⑤回答の比較レポートCLIを作る（query再生成 vs context固定）
+[x] 15) 機能⑤回答の比較レポートCLIを作る（query再生成 vs context固定）
     - 目的：query再生成モードと context固定モードの回答差分を可視化し、再現性確認を短時間で回せるようにする
     - 制約：Tarutani_Text は回答根拠セクションとしてのみ使用し、検索結果一覧へは出さない
     - 成立条件：
       - python run_compare_tarutani_answers.py --question \"...\" --query \"...\" --context-path \"...\" が実行できる
       - 回答本文長・根拠件数・主要数値（例：700/180）の差分サマリを保存できる
+      - 03のCHANGELOGに反映される
+    - 実行メモ：`--question "曲線と直線の要点を教えて" --query "曲線と直線" --context-path "...123040Z.json"` で比較実行し、`contains_700=True/True`・`contains_180=False/False` を確認
+
+[ ] 16) 機能⑤回答に差分ガードを追加する（数値競合アラート）
+    - 目的：比較結果を使って、主要数値（例：700/180）に差分が出た時に警告を出すガードをCLIに追加する
+    - 制約：Tarutani_Text は回答根拠セクションとしてのみ使用し、検索結果一覧へは出さない
+    - 成立条件：
+      - python run_compare_tarutani_answers.py ... --fail-on-mismatch で差分検知時に非0終了できる
+      - 差分がなければ0終了し、summary に guard 判定結果を保存できる
       - 03のCHANGELOGに反映される
 
 
@@ -774,6 +787,33 @@ TASK 15) 機能⑤回答の比較レポートCLIを作る（query再生成 vs co
 動作確認コマンド：
 - （WSL）python run_compare_tarutani_answers.py --question "曲線と直線の要点を教えて" --query "曲線と直線" --context-path "data/Tarutani_data/context/tarutani_text_context_YYYYMMDDTHHMMSSZ.json"
 
+------------------------------------------------------------
+TASK 16) 機能⑤回答に差分ガードを追加する（数値競合アラート）
+------------------------------------------------------------
+目的：
+- 比較CLIにガード機能を追加し、主要数値の不一致をCI/手元で自動検知できるようにする。
+
+参照ファイル：
+- 01（SSOT）機能⑤（Tarutani_Textの使い方）
+- 02（索引）CARD_ID: 16_TARUTANI_TEXT_SCOPE
+- run_compare_tarutani_answers.py
+- data/Tarutani_data/answers/tarutani_advisor_answer_compare_*.json
+
+制約：
+- 取り込みループ内で実行しない（Post-fetchバッチとして分離）
+- Tarutani_Text は検索結果一覧に混ぜない（回答の根拠セクションとしてのみ使う）
+- 作品画像（Tarutani_Works）は扱わない
+
+完了条件：
+- python run_compare_tarutani_answers.py ... --fail-on-mismatch が実行できる
+- 主要数値差分がある場合は非0終了、差分なしなら0終了になる
+- summary に `guard_passed` / `mismatch_fields` が保存される
+- 03 の NEXT_TASKS の 16) を [x]、CHANGELOG追記
+- 次の最優先タスクのプロンプト全文を提示する
+
+動作確認コマンド：
+- （WSL）python run_compare_tarutani_answers.py --question "曲線と直線の要点を教えて" --query "曲線と直線" --context-path "data/Tarutani_data/context/tarutani_text_context_YYYYMMDDTHHMMSSZ.json" --fail-on-mismatch
+
 
 ========================
 CODEX_SNIPPETS（頻出コピペ：ここだけ使えば回る）
@@ -906,3 +946,4 @@ CHANGELOG（このファイルの更新履歴）
 - 2026-02-23：TASK 13 実施。run_answer_tarutani_advisor.py を追加し、TASK12 context を使って機能⑤向け回答をCLI生成。question=「曲線と直線の要点を教えて」/ query=「曲線と直線」で回答本文+根拠（source_path/chunk_index/score/excerpt）を output JSON に保存（k_used=5, answer_chars=396）。次は TASK 14（context固定の再現モード）。
 - 2026-02-23：回答品質調整（Tarutani機能⑤）。SSOTに「数値競合時は最新要約資料+rank上位優先」を追記し、run_build_tarutani_context.py の excerpt デフォルトを 900 へ拡張、run_answer_tarutani_advisor.py に競合解決プロンプト（rank優先）を追加。再実行で「約700名」を採用し「180名」は採用しないことを確認。
 - 2026-02-23：TASK 14 実施。run_answer_tarutani_advisor.py に `--context-path` を追加し、query再生成モードと排他で context固定再現モードを実装。`--context-path data/Tarutani_data/context/tarutani_text_context_20260223T123040Z.json` で `context_input_mode=fixed_context`、`--query "曲線と直線"` で `context_input_mode=query_rebuild` を確認し、summaryで両モード識別できることを確認。次は TASK 15（回答比較レポートCLI）。
+- 2026-02-23：TASK 15 実施。run_compare_tarutani_answers.py を追加し、query再生成とcontext固定を1回で比較可能化。`--question "曲線と直線の要点を教えて" --query "曲線と直線" --context-path "...123040Z.json"` で実行し、回答本文長（585/482）・根拠件数（5/5）・主要数値（700=True/True, 180=False/False）をサマリ保存。次は TASK 16（差分ガード）。
