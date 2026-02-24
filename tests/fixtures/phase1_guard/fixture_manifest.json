@@ -49,6 +49,115 @@
       "expected_exit_code": 3,
       "recommended_command": "python run_compare_phase1_guard_history.py --current-summary tests/fixtures/phase1_guard/category_mismatch/current_category_mismatch_2025.json --baseline-summary tests/fixtures/phase1_guard/category_mismatch/baseline_category_mismatch_2025.json --strict-compatibility",
       "notes": "Category mismatch should become incompatibility in strict mode (exit 3)."
+    },
+    {
+      "case_id": "artists_history_compatible",
+      "description": "artists_text context comparison (both current/baseline artists_text) stays compatible.",
+      "current_summary": "tests/fixtures/phase1_guard/artists_history/current_artists_compatible_2025.json",
+      "baseline_summary": "tests/fixtures/phase1_guard/artists_history/baseline_artists_compatible_2025.json",
+      "expected_exit_code": 0,
+      "recommended_command": "python run_compare_phase1_guard_history.py --current-summary tests/fixtures/phase1_guard/artists_history/current_artists_compatible_2025.json --baseline-summary tests/fixtures/phase1_guard/artists_history/baseline_artists_compatible_2025.json --fail-on-regression",
+      "expected_summary_checks": [
+        {
+          "path": "current_category",
+          "equals": "artists_text"
+        },
+        {
+          "path": "baseline_category",
+          "equals": "artists_text"
+        },
+        {
+          "path": "category_comparison_mode",
+          "equals": "both_present"
+        },
+        {
+          "path": "category_compatible",
+          "equals": true
+        },
+        {
+          "path": "comparison_compatible",
+          "equals": true
+        },
+        {
+          "path": "category_effective_for_comparison",
+          "equals": "artists_text"
+        },
+        {
+          "path": "category_warnings",
+          "exists": true
+        }
+      ],
+      "notes": "Artists-compatible baseline for category context checks."
+    },
+    {
+      "case_id": "artists_vs_exhibitions_category_mismatch_non_strict",
+      "description": "Category mismatch artists_text vs exhibitions_text in non-strict mode; comparison continues.",
+      "current_summary": "tests/fixtures/phase1_guard/artists_history/current_artists_compatible_2025.json",
+      "baseline_summary": "tests/fixtures/phase1_guard/artists_history/baseline_exhibitions_2025.json",
+      "expected_exit_code": 0,
+      "recommended_command": "python run_compare_phase1_guard_history.py --current-summary tests/fixtures/phase1_guard/artists_history/current_artists_compatible_2025.json --baseline-summary tests/fixtures/phase1_guard/artists_history/baseline_exhibitions_2025.json --fail-on-regression",
+      "expected_summary_checks": [
+        {
+          "path": "current_category",
+          "equals": "artists_text"
+        },
+        {
+          "path": "baseline_category",
+          "equals": "exhibitions_text"
+        },
+        {
+          "path": "category_comparison_mode",
+          "equals": "both_present"
+        },
+        {
+          "path": "category_compatible",
+          "equals": false
+        },
+        {
+          "path": "comparison_compatible",
+          "equals": true
+        },
+        {
+          "path": "category_warnings",
+          "contains": "category_mismatch:exhibitions_text!=artists_text"
+        }
+      ],
+      "notes": "Non-strict mode keeps comparison compatible while surfacing category mismatch."
+    },
+    {
+      "case_id": "artists_vs_exhibitions_category_mismatch_strict",
+      "description": "Category mismatch artists_text vs exhibitions_text in strict mode; incompatible (exit 3).",
+      "current_summary": "tests/fixtures/phase1_guard/artists_history/current_artists_compatible_2025.json",
+      "baseline_summary": "tests/fixtures/phase1_guard/artists_history/baseline_exhibitions_2025.json",
+      "expected_exit_code": 3,
+      "recommended_command": "python run_compare_phase1_guard_history.py --current-summary tests/fixtures/phase1_guard/artists_history/current_artists_compatible_2025.json --baseline-summary tests/fixtures/phase1_guard/artists_history/baseline_exhibitions_2025.json --strict-compatibility",
+      "expected_summary_checks": [
+        {
+          "path": "current_category",
+          "equals": "artists_text"
+        },
+        {
+          "path": "baseline_category",
+          "equals": "exhibitions_text"
+        },
+        {
+          "path": "category_comparison_mode",
+          "equals": "both_present"
+        },
+        {
+          "path": "category_compatible",
+          "equals": false
+        },
+        {
+          "path": "comparison_compatible",
+          "equals": false
+        },
+        {
+          "path": "compatibility_errors",
+          "contains": "category_mismatch:exhibitions_text!=artists_text"
+        }
+      ],
+      "notes": "Strict mode promotes category mismatch to compatibility error."
     }
   ]
 }

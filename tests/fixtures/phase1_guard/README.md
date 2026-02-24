@@ -55,6 +55,9 @@ Important: this runner executes `run_compare_phase1_guard.py` (guard本体) and 
 - `incompatible`: incompatible comparison, expected exit code `3` (`--strict-compatibility`)
 - `category_mismatch_non_strict`: category only mismatch, expected exit code `0` (warning-only, comparison continues)
 - `category_mismatch_strict`: category only mismatch, expected exit code `3` (`--strict-compatibility`)
+- `artists_history_compatible`: artists_text vs artists_text, expected exit code `0`
+- `artists_vs_exhibitions_category_mismatch_non_strict`: artists_text vs exhibitions_text (non-strict), expected exit code `0`
+- `artists_vs_exhibitions_category_mismatch_strict`: artists_text vs exhibitions_text (strict), expected exit code `3`
 
 Fixture metadata is defined in `fixture_manifest.json`.
 
@@ -113,6 +116,32 @@ python run_compare_phase1_guard_history.py \
 ```
 
 Expected exit code (strict): `3`
+
+```bash
+python run_compare_phase1_guard_history.py \
+  --current-summary tests/fixtures/phase1_guard/artists_history/current_artists_compatible_2025.json \
+  --baseline-summary tests/fixtures/phase1_guard/artists_history/baseline_artists_compatible_2025.json \
+  --fail-on-regression
+```
+
+Expected exit code (artists compatible): `0`
+
+```bash
+python run_compare_phase1_guard_history.py \
+  --current-summary tests/fixtures/phase1_guard/artists_history/current_artists_compatible_2025.json \
+  --baseline-summary tests/fixtures/phase1_guard/artists_history/baseline_exhibitions_2025.json
+```
+
+Expected exit code (artists vs exhibitions non-strict): `0`
+
+```bash
+python run_compare_phase1_guard_history.py \
+  --current-summary tests/fixtures/phase1_guard/artists_history/current_artists_compatible_2025.json \
+  --baseline-summary tests/fixtures/phase1_guard/artists_history/baseline_exhibitions_2025.json \
+  --strict-compatibility
+```
+
+Expected exit code (artists vs exhibitions strict): `3`
 
 ## Option flags reminder
 
@@ -189,3 +218,17 @@ Expected:
   - `category_compatible`
   - `category_warnings`
 - old summary files without category are treated as backward-compatible warnings (`current_only` / `baseline_only` / `both_missing`), not immediate failure in non-strict mode.
+
+## Artists history fixture checks
+
+`artists_history_*` cases are dedicated to TASK36 category-context reproducibility in artists flow.
+
+Read these keys in generated history summary:
+
+- `current_category`
+- `baseline_category`
+- `category_comparison_mode`
+- `category_effective_for_comparison`
+- `category_compatible`
+- `comparison_compatible`
+- strict mismatch only: `compatibility_errors` contains `category_mismatch:*`

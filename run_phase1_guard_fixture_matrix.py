@@ -20,7 +20,7 @@ SOURCE_CLI = "run_phase1_guard_fixture_matrix.py"
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Run Phase1 guard history fixture matrix and verify expected exit codes."
+        description="Run Phase1 guard history fixture matrix and verify expected exit codes + summary checks."
     )
     parser.add_argument(
         "--manifest-path",
@@ -40,7 +40,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--fail-fast",
         action="store_true",
-        help="stop matrix execution at first expected/actual exit code mismatch",
+        help="stop matrix execution at first case failure (exit mismatch or summary check mismatch)",
     )
     return parser.parse_args()
 
@@ -56,6 +56,20 @@ def load_manifest(path: Path) -> tuple[dict[str, Any] | None, str | None]:
         return None, f"MANIFEST_OS_ERROR:{exc}"
     if not isinstance(obj, dict):
         return None, f"MANIFEST_INVALID_ROOT_TYPE:{type(obj).__name__}"
+    return obj, None
+
+
+def load_json_object(path: Path) -> tuple[dict[str, Any] | None, str | None]:
+    if not path.exists():
+        return None, f"MISSING_FILE:{path}"
+    try:
+        obj = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        return None, f"JSON_DECODE_ERROR:{exc}"
+    except OSError as exc:
+        return None, f"OS_ERROR:{exc}"
+    if not isinstance(obj, dict):
+        return None, f"INVALID_ROOT_TYPE:{type(obj).__name__}"
     return obj, None
 
 
@@ -80,6 +94,20 @@ def as_text(value: Any, default: str = "") -> str:
     if value is None:
         return default
     return str(value)
+
+
+def as_bool(value: Any, default: bool = False) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, int):
+        return value != 0
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized in {"1", "true", "yes", "on"}:
+            return True
+        if normalized in {"0", "false", "no", "off"}:
+            return False
+    return default
 
 
 def resolve_path(value: str, repo_root: Path) -> Path:
@@ -109,6 +137,82 @@ def parse_recommended_flags(command_text: str) -> set[str]:
         return set()
     recognized = {"--fail-on-regression", "--strict-compatibility"}
     return {token for token in tokens if token in recognized}
+
+
+def get_nested_value(obj: dict[str, Any], path: str) -> tuple[bool, Any]:
+    current: Any = obj
+    if not path:
+        return True, current
+    for part in path.split("."):
+        if not isinstance(current, dict) or part not in current:
+            return False, None
+        current = current[part]
+    return True, current
+
+
+def is_non_empty(value: Any) -> bool:
+    if value is None:
+        return False
+    if isinstance(value, (str, list, dict, tuple, set)):
+        return len(value) > 0
+    return True
+
+
+def check_contains(container: Any, expected: Any) -> bool:
+    if isinstance(container, list):
+        return expected in container
+    if isinstance(container, str):
+        return str(expected) in container
+    if isinstance(container, dict):
+        return expected in container or expected in container.values()
+    return False
+
+
+def evaluate_summary_checks(summary_obj: dict[str, Any], checks_raw: Any) -> tuple[bool, list[str]]:
+    if checks_raw is None:
+        return True, []
+    if not isinstance(checks_raw, list):
+        return False, ["summary_checks_not_list"]
+
+    failures: list[str] = []
+    for index, raw_check in enumerate(checks_raw, start=1):
+        if not isinstance(raw_check, dict):
+            failures.append(f"check_{index}:invalid_check_object")
+            continue
+        path = as_text(raw_check.get("path"))
+        if not path:
+            failures.append(f"check_{index}:missing_path")
+            continue
+
+        found, value = get_nested_value(summary_obj, path)
+
+        if "exists" in raw_check:
+            expected_exists = as_bool(raw_check.get("exists"), default=False)
+            if found != expected_exists:
+                failures.append(f"{path}:exists_mismatch:expected={expected_exists}:actual={found}")
+                continue
+            if not expected_exists:
+                continue
+
+        if not found:
+            failures.append(f"{path}:missing")
+            continue
+
+        if "equals" in raw_check and value != raw_check.get("equals"):
+            failures.append(f"{path}:equals_mismatch:expected={raw_check.get('equals')!r}:actual={value!r}")
+
+        if "non_empty" in raw_check:
+            expected_non_empty = as_bool(raw_check.get("non_empty"), default=False)
+            actual_non_empty = is_non_empty(value)
+            if expected_non_empty != actual_non_empty:
+                failures.append(
+                    f"{path}:non_empty_mismatch:expected={expected_non_empty}:actual={actual_non_empty}"
+                )
+
+        if "contains" in raw_check and not check_contains(value, raw_check.get("contains")):
+            failures.append(f"{path}:contains_missing:{raw_check.get('contains')!r}")
+
+    return len(failures) == 0, failures
 
 
 def build_history_command(
@@ -218,6 +322,8 @@ def main() -> int:
                     "description": "invalid manifest case (not dict)",
                     "expected_exit_code": None,
                     "actual_exit_code": None,
+                    "summary_checks_passed": False,
+                    "summary_check_failures": ["CASE_NOT_OBJECT"],
                     "pass_fail": False,
                     "command": "",
                     "output_summary_path": None,
@@ -236,6 +342,7 @@ def main() -> int:
         baseline_summary_raw = as_text(raw_case.get("baseline_summary"))
         expected_exit_code = safe_int(raw_case.get("expected_exit_code"))
         recommended_command = as_text(raw_case.get("recommended_command"))
+        expected_summary_checks = raw_case.get("expected_summary_checks")
 
         case_timestamp = f"{timestamp}_{index:02d}"
         output_summary = logs_dir / HISTORY_OUTPUT_TEMPLATE.format(
@@ -251,6 +358,8 @@ def main() -> int:
                     "description": description,
                     "expected_exit_code": expected_exit_code,
                     "actual_exit_code": None,
+                    "summary_checks_passed": False,
+                    "summary_check_failures": ["MISSING_REQUIRED_CASE_FIELDS"],
                     "pass_fail": False,
                     "command": "",
                     "output_summary_path": str(output_summary),
@@ -278,7 +387,19 @@ def main() -> int:
 
         proc = subprocess.run(command, cwd=repo_root, check=False)
         actual_exit_code = int(proc.returncode)
-        pass_fail = actual_exit_code == expected_exit_code
+        summary_obj, summary_error = load_json_object(output_summary)
+        summary_checks_passed = False
+        summary_check_failures: list[str] = []
+        if summary_error:
+            summary_check_failures.append(f"summary_load_error:{summary_error}")
+        elif summary_obj is None:
+            summary_check_failures.append("summary_load_error:UNKNOWN")
+        else:
+            summary_checks_passed, summary_check_failures = evaluate_summary_checks(
+                summary_obj, expected_summary_checks
+            )
+
+        pass_fail = actual_exit_code == expected_exit_code and summary_checks_passed
 
         case_results.append(
             {
@@ -286,6 +407,8 @@ def main() -> int:
                 "description": description,
                 "expected_exit_code": expected_exit_code,
                 "actual_exit_code": actual_exit_code,
+                "summary_checks_passed": summary_checks_passed,
+                "summary_check_failures": summary_check_failures,
                 "pass_fail": pass_fail,
                 "command": command_text,
                 "output_summary_path": str(output_summary),
@@ -294,12 +417,12 @@ def main() -> int:
 
         if pass_fail:
             passed_cases += 1
-            print(f"[CASE] {case_name} expected={expected_exit_code} actual={actual_exit_code} OK")
+            print(f"[CASE] {case_name} expected={expected_exit_code} actual={actual_exit_code} checks=OK")
         else:
             failed_cases += 1
-            print(f"[CASE] {case_name} expected={expected_exit_code} actual={actual_exit_code} NG")
+            print(f"[CASE] {case_name} expected={expected_exit_code} actual={actual_exit_code} checks=NG")
             if args.fail_fast:
-                stop_reason = f"fail_fast:expected_{expected_exit_code}_actual_{actual_exit_code}:{case_name}"
+                stop_reason = f"fail_fast:case_failed:{case_name}"
                 break
 
     executed_cases = len(case_results)

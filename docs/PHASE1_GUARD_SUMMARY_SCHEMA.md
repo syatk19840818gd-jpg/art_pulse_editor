@@ -391,9 +391,16 @@ Minimum keys to read:
   - `case_name`
   - `expected_exit_code` (inner CLI expectation: `0/2/3`)
   - `actual_exit_code`
+  - `summary_checks_passed`
+  - `summary_check_failures`
   - `pass_fail`
   - `output_summary_path`
 - `wrapper_exit_code` (matrix wrapper exit: `0/1`)
+
+TASK36 artists-history fixture pair is included in this matrix:
+
+- compatible: `artists_text` vs `artists_text` (`category_compatible=true`, exit `0`)
+- mismatch strict: `artists_text` vs `exhibitions_text` + `--strict-compatibility` (exit `3`)
 
 ### 7.2 Category profile fixture matrix summary (guard CLI)
 
