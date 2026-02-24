@@ -75,37 +75,175 @@ def _copy_default_profiles() -> dict[str, dict[str, Any]]:
     return copy.deepcopy(DEFAULT_CATEGORY_PROFILES)
 
 
-def _validate_category_profiles_config(config_obj: Any) -> tuple[dict[str, dict[str, Any]] | None, str | None, str | None]:
+def _is_non_empty_string(value: Any) -> bool:
+    return isinstance(value, str) and bool(value.strip())
+
+
+def _is_string_list(value: Any) -> bool:
+    return isinstance(value, list) and all(isinstance(item, str) for item in value)
+
+
+def validate_category_profiles_config(config_obj: Any) -> tuple[bool, str | None, str | None]:
+    """
+    Validate external category profile config with minimal safety checks.
+    Returns:
+      (is_valid, error_code, error_detail)
+    error_code is normalized as `config_schema_error:*` when invalid.
+    """
     if not isinstance(config_obj, dict):
-        return None, None, "config_root_not_dict"
+        return False, "config_schema_error:root_not_dict", "config root must be a JSON object"
 
     config_version_raw = config_obj.get("category_profile_config_version")
-    if config_version_raw is None:
-        config_version = DEFAULT_CATEGORY_PROFILE_CONFIG_VERSION
-    elif isinstance(config_version_raw, str) and config_version_raw.strip():
-        config_version = config_version_raw.strip()
-    else:
-        return None, None, "category_profile_config_version_invalid"
+    if config_version_raw is not None and not _is_non_empty_string(config_version_raw):
+        return (
+            False,
+            "config_schema_error:type_error:category_profile_config_version",
+            "category_profile_config_version must be a non-empty string when present",
+        )
+
+    if "categories" not in config_obj:
+        return False, "config_schema_error:missing_categories", "missing required key: categories"
 
     categories_obj = config_obj.get("categories")
     if not isinstance(categories_obj, dict):
-        return None, None, "categories_not_dict"
+        return False, "config_schema_error:type_error:categories", "categories must be a JSON object"
 
-    if DEFAULT_GUARD_CATEGORY not in categories_obj:
-        return None, None, f"default_category_missing:{DEFAULT_GUARD_CATEGORY}"
+    for required_category in ("exhibitions_text", "artists_text"):
+        if required_category not in categories_obj:
+            return (
+                False,
+                f"config_schema_error:missing_category:{required_category}",
+                f"missing required category profile: {required_category}",
+            )
 
-    normalized_profiles: dict[str, dict[str, Any]] = {}
     for category, profile in categories_obj.items():
         if not isinstance(category, str) or not category:
-            return None, None, "category_key_invalid"
+            return False, "config_schema_error:category_key_invalid", "category keys must be non-empty strings"
         if not isinstance(profile, dict):
-            return None, None, f"category_profile_not_dict:{category}"
-        normalized_profiles[category] = copy.deepcopy(profile)
+            return (
+                False,
+                f"config_schema_error:type_error:{category}",
+                f"category profile must be object: {category}",
+            )
 
-    if not normalized_profiles:
-        return None, None, "categories_empty"
+        if "required_input_files" not in profile:
+            return (
+                False,
+                f"config_schema_error:missing_key:{category}.required_input_files",
+                f"missing required key for {category}: required_input_files",
+            )
+        if not _is_string_list(profile.get("required_input_files")):
+            return (
+                False,
+                f"config_schema_error:type_error:{category}.required_input_files",
+                f"{category}.required_input_files must be list[str]",
+            )
 
-    return normalized_profiles, config_version, None
+        if "support_mode_configured" in profile:
+            support_key = "support_mode_configured"
+        else:
+            support_key = "support_mode"
+        if support_key not in profile:
+            return (
+                False,
+                f"config_schema_error:missing_key:{category}.support_mode",
+                f"missing required key for {category}: support_mode (or support_mode_configured)",
+            )
+        if not _is_non_empty_string(profile.get(support_key)):
+            return (
+                False,
+                f"config_schema_error:type_error:{category}.{support_key}",
+                f"{category}.{support_key} must be non-empty string",
+            )
+
+        has_required_summary_keys = "required_summary_keys" in profile
+        has_required_summary_drop = "required_summary_keys_drop" in profile
+        has_required_summary_add = "required_summary_keys_add" in profile
+        if not (has_required_summary_keys or has_required_summary_drop or has_required_summary_add):
+            return (
+                False,
+                f"config_schema_error:missing_key:{category}.required_summary_keys",
+                f"{category} must define required_summary_keys or required_summary_keys_drop/add",
+            )
+
+        if has_required_summary_keys and not _is_string_list(profile.get("required_summary_keys")):
+            return (
+                False,
+                f"config_schema_error:type_error:{category}.required_summary_keys",
+                f"{category}.required_summary_keys must be list[str]",
+            )
+        if has_required_summary_drop and not _is_string_list(profile.get("required_summary_keys_drop")):
+            return (
+                False,
+                f"config_schema_error:type_error:{category}.required_summary_keys_drop",
+                f"{category}.required_summary_keys_drop must be list[str]",
+            )
+        if has_required_summary_add and not _is_string_list(profile.get("required_summary_keys_add")):
+            return (
+                False,
+                f"config_schema_error:type_error:{category}.required_summary_keys_add",
+                f"{category}.required_summary_keys_add must be list[str]",
+            )
+
+        if "activation_conditions" not in profile:
+            return (
+                False,
+                f"config_schema_error:missing_key:{category}.activation_conditions",
+                f"missing required key for {category}: activation_conditions",
+            )
+        if not _is_string_list(profile.get("activation_conditions")):
+            return (
+                False,
+                f"config_schema_error:type_error:{category}.activation_conditions",
+                f"{category}.activation_conditions must be list[str]",
+            )
+
+        if "reserved_reason" not in profile:
+            return (
+                False,
+                f"config_schema_error:missing_key:{category}.reserved_reason",
+                f"missing required key for {category}: reserved_reason",
+            )
+        reserved_reason = profile.get("reserved_reason")
+        if not isinstance(reserved_reason, str):
+            return (
+                False,
+                f"config_schema_error:type_error:{category}.reserved_reason",
+                f"{category}.reserved_reason must be string",
+            )
+
+        if "profile_version" in profile and not _is_non_empty_string(profile.get("profile_version")):
+            return (
+                False,
+                f"config_schema_error:type_error:{category}.profile_version",
+                f"{category}.profile_version must be non-empty string when present",
+            )
+
+    return True, None, None
+
+
+def _normalize_category_profiles_config(
+    config_obj: dict[str, Any],
+) -> tuple[dict[str, dict[str, Any]], str]:
+    config_version_raw = config_obj.get("category_profile_config_version")
+    if _is_non_empty_string(config_version_raw):
+        config_version = str(config_version_raw).strip()
+    else:
+        config_version = DEFAULT_CATEGORY_PROFILE_CONFIG_VERSION
+
+    categories_obj = config_obj.get("categories", {})
+    normalized_profiles: dict[str, dict[str, Any]] = {}
+    if isinstance(categories_obj, dict):
+        for category, profile in categories_obj.items():
+            if isinstance(category, str) and category and isinstance(profile, dict):
+                normalized_profile = copy.deepcopy(profile)
+                if "support_mode" not in normalized_profile and _is_non_empty_string(
+                    normalized_profile.get("support_mode_configured")
+                ):
+                    normalized_profile["support_mode"] = str(normalized_profile["support_mode_configured"]).strip()
+                normalized_profiles[category] = normalized_profile
+
+    return normalized_profiles, config_version
 
 
 def load_category_profiles(config_path: str | Path) -> dict[str, Any]:
@@ -118,7 +256,8 @@ def load_category_profiles(config_path: str | Path) -> dict[str, Any]:
             "source": "builtin_fallback",
             "config_path": str(resolved_path),
             "config_loaded": False,
-            "config_error": "config_path_not_found",
+            "config_error": "config_missing:file_not_found",
+            "config_error_detail": f"config path does not exist: {resolved_path}",
             "config_version_effective": DEFAULT_CATEGORY_PROFILE_CONFIG_VERSION,
         }
 
@@ -130,7 +269,8 @@ def load_category_profiles(config_path: str | Path) -> dict[str, Any]:
             "source": "builtin_fallback",
             "config_path": str(resolved_path),
             "config_loaded": False,
-            "config_error": f"config_json_decode_error:{exc}",
+            "config_error": "config_json_decode_error:invalid_json",
+            "config_error_detail": str(exc),
             "config_version_effective": DEFAULT_CATEGORY_PROFILE_CONFIG_VERSION,
         }
     except OSError as exc:
@@ -139,27 +279,32 @@ def load_category_profiles(config_path: str | Path) -> dict[str, Any]:
             "source": "builtin_fallback",
             "config_path": str(resolved_path),
             "config_loaded": False,
-            "config_error": f"config_os_error:{exc}",
+            "config_error": "config_missing:read_error",
+            "config_error_detail": str(exc),
             "config_version_effective": DEFAULT_CATEGORY_PROFILE_CONFIG_VERSION,
         }
 
-    normalized_profiles, config_version, validation_error = _validate_category_profiles_config(raw_obj)
-    if validation_error is not None or normalized_profiles is None:
+    is_valid, error_code, error_detail = validate_category_profiles_config(raw_obj)
+    if not is_valid:
         return {
             "profiles": default_profiles,
             "source": "builtin_fallback",
             "config_path": str(resolved_path),
             "config_loaded": False,
-            "config_error": f"config_schema_error:{validation_error}",
+            "config_error": error_code or "config_schema_error:unknown",
+            "config_error_detail": error_detail,
             "config_version_effective": DEFAULT_CATEGORY_PROFILE_CONFIG_VERSION,
         }
 
+    assert isinstance(raw_obj, dict)
+    normalized_profiles, config_version = _normalize_category_profiles_config(raw_obj)
     return {
         "profiles": normalized_profiles,
         "source": "external_config",
         "config_path": str(resolved_path),
         "config_loaded": True,
         "config_error": None,
+        "config_error_detail": None,
         "config_version_effective": config_version,
     }
 

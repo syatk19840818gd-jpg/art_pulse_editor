@@ -1,0 +1,112 @@
+{
+  "generated_at": "2026-02-24T06:36:08Z",
+  "source_cli": "run_phase1_guard_fixture_matrix.py",
+  "fixture_manifest_path": "/home/syatk/my_projects/art_pulse_editor/tests/fixtures/phase1_guard/fixture_manifest.json",
+  "total_cases": 8,
+  "executed_cases": 8,
+  "passed_cases": 8,
+  "failed_cases": 0,
+  "fail_fast": false,
+  "all_cases_passed": true,
+  "cases": [
+    {
+      "case_name": "pass",
+      "description": "Compatible comparison with no regression.",
+      "expected_exit_code": 0,
+      "actual_exit_code": 0,
+      "summary_checks_passed": true,
+      "summary_check_failures": [],
+      "pass_fail": true,
+      "command": "/usr/bin/python /home/syatk/my_projects/art_pulse_editor/run_compare_phase1_guard_history.py --current-summary /home/syatk/my_projects/art_pulse_editor/tests/fixtures/phase1_guard/pass/current_pass_2025.json --baseline-summary /home/syatk/my_projects/art_pulse_editor/tests/fixtures/phase1_guard/pass/baseline_pass_2025.json --output-path /home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_guard_history_compare_fixture_pass_20260224T063607Z_01.json --fail-on-regression",
+      "output_summary_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_guard_history_compare_fixture_pass_20260224T063607Z_01.json"
+    },
+    {
+      "case_name": "regression",
+      "description": "Compatible comparison with regression (guard_passed true->false and mismatch increase).",
+      "expected_exit_code": 2,
+      "actual_exit_code": 2,
+      "summary_checks_passed": true,
+      "summary_check_failures": [],
+      "pass_fail": true,
+      "command": "/usr/bin/python /home/syatk/my_projects/art_pulse_editor/run_compare_phase1_guard_history.py --current-summary /home/syatk/my_projects/art_pulse_editor/tests/fixtures/phase1_guard/regression/current_regression_2025.json --baseline-summary /home/syatk/my_projects/art_pulse_editor/tests/fixtures/phase1_guard/regression/baseline_regression_2025.json --output-path /home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_guard_history_compare_fixture_regression_20260224T063607Z_02.json --fail-on-regression",
+      "output_summary_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_guard_history_compare_fixture_regression_20260224T063607Z_02.json"
+    },
+    {
+      "case_name": "incompatible",
+      "description": "Incompatible comparison due to target_year mismatch.",
+      "expected_exit_code": 3,
+      "actual_exit_code": 3,
+      "summary_checks_passed": true,
+      "summary_check_failures": [],
+      "pass_fail": true,
+      "command": "/usr/bin/python /home/syatk/my_projects/art_pulse_editor/run_compare_phase1_guard_history.py --current-summary /home/syatk/my_projects/art_pulse_editor/tests/fixtures/phase1_guard/incompatible/current_incompatible_2025.json --baseline-summary /home/syatk/my_projects/art_pulse_editor/tests/fixtures/phase1_guard/incompatible/baseline_incompatible_2024.json --output-path /home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_guard_history_compare_fixture_incompatible_20260224T063607Z_03.json --strict-compatibility",
+      "output_summary_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_guard_history_compare_fixture_incompatible_20260224T063607Z_03.json"
+    },
+    {
+      "case_name": "category_mismatch_non_strict",
+      "description": "Category mismatch only (both_present mismatch) in non-strict mode; comparison continues with warning.",
+      "expected_exit_code": 0,
+      "actual_exit_code": 0,
+      "summary_checks_passed": true,
+      "summary_check_failures": [],
+      "pass_fail": true,
+      "command": "/usr/bin/python /home/syatk/my_projects/art_pulse_editor/run_compare_phase1_guard_history.py --current-summary /home/syatk/my_projects/art_pulse_editor/tests/fixtures/phase1_guard/category_mismatch/current_category_mismatch_2025.json --baseline-summary /home/syatk/my_projects/art_pulse_editor/tests/fixtures/phase1_guard/category_mismatch/baseline_category_mismatch_2025.json --output-path /home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_guard_history_compare_fixture_category_mismatch_non_strict_20260224T063607Z_04.json --fail-on-regression",
+      "output_summary_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_guard_history_compare_fixture_category_mismatch_non_strict_20260224T063607Z_04.json"
+    },
+    {
+      "case_name": "category_mismatch_strict",
+      "description": "Category mismatch only (both_present mismatch) in strict mode; treated as incompatibility.",
+      "expected_exit_code": 3,
+      "actual_exit_code": 3,
+      "summary_checks_passed": true,
+      "summary_check_failures": [],
+      "pass_fail": true,
+      "command": "/usr/bin/python /home/syatk/my_projects/art_pulse_editor/run_compare_phase1_guard_history.py --current-summary /home/syatk/my_projects/art_pulse_editor/tests/fixtures/phase1_guard/category_mismatch/current_category_mismatch_2025.json --baseline-summary /home/syatk/my_projects/art_pulse_editor/tests/fixtures/phase1_guard/category_mismatch/baseline_category_mismatch_2025.json --output-path /home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_guard_history_compare_fixture_category_mismatch_strict_20260224T063607Z_05.json --strict-compatibility",
+      "output_summary_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_guard_history_compare_fixture_category_mismatch_strict_20260224T063607Z_05.json"
+    },
+    {
+      "case_name": "artists_history_compatible",
+      "description": "artists_text context comparison (both current/baseline artists_text) stays compatible.",
+      "expected_exit_code": 0,
+      "actual_exit_code": 0,
+      "summary_checks_passed": true,
+      "summary_check_failures": [],
+      "pass_fail": true,
+      "command": "/usr/bin/python /home/syatk/my_projects/art_pulse_editor/run_compare_phase1_guard_history.py --current-summary /home/syatk/my_projects/art_pulse_editor/tests/fixtures/phase1_guard/artists_history/current_artists_compatible_2025.json --baseline-summary /home/syatk/my_projects/art_pulse_editor/tests/fixtures/phase1_guard/artists_history/baseline_artists_compatible_2025.json --output-path /home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_guard_history_compare_fixture_artists_history_compatible_20260224T063607Z_06.json --fail-on-regression",
+      "output_summary_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_guard_history_compare_fixture_artists_history_compatible_20260224T063607Z_06.json"
+    },
+    {
+      "case_name": "artists_vs_exhibitions_category_mismatch_non_strict",
+      "description": "Category mismatch artists_text vs exhibitions_text in non-strict mode; comparison continues.",
+      "expected_exit_code": 0,
+      "actual_exit_code": 0,
+      "summary_checks_passed": true,
+      "summary_check_failures": [],
+      "pass_fail": true,
+      "command": "/usr/bin/python /home/syatk/my_projects/art_pulse_editor/run_compare_phase1_guard_history.py --current-summary /home/syatk/my_projects/art_pulse_editor/tests/fixtures/phase1_guard/artists_history/current_artists_compatible_2025.json --baseline-summary /home/syatk/my_projects/art_pulse_editor/tests/fixtures/phase1_guard/artists_history/baseline_exhibitions_2025.json --output-path /home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_guard_history_compare_fixture_artists_vs_exhibitions_category_mismatch_non_strict_20260224T063607Z_07.json --fail-on-regression",
+      "output_summary_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_guard_history_compare_fixture_artists_vs_exhibitions_category_mismatch_non_strict_20260224T063607Z_07.json"
+    },
+    {
+      "case_name": "artists_vs_exhibitions_category_mismatch_strict",
+      "description": "Category mismatch artists_text vs exhibitions_text in strict mode; incompatible (exit 3).",
+      "expected_exit_code": 3,
+      "actual_exit_code": 3,
+      "summary_checks_passed": true,
+      "summary_check_failures": [],
+      "pass_fail": true,
+      "command": "/usr/bin/python /home/syatk/my_projects/art_pulse_editor/run_compare_phase1_guard_history.py --current-summary /home/syatk/my_projects/art_pulse_editor/tests/fixtures/phase1_guard/artists_history/current_artists_compatible_2025.json --baseline-summary /home/syatk/my_projects/art_pulse_editor/tests/fixtures/phase1_guard/artists_history/baseline_exhibitions_2025.json --output-path /home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_guard_history_compare_fixture_artists_vs_exhibitions_category_mismatch_strict_20260224T063607Z_08.json --strict-compatibility",
+      "output_summary_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_guard_history_compare_fixture_artists_vs_exhibitions_category_mismatch_strict_20260224T063607Z_08.json"
+    }
+  ],
+  "exit_code_meaning": {
+    "0": "pass（差分なし or 差分ありだが回帰なし）",
+    "2": "regression（回帰検知）",
+    "3": "incompatible（比較不成立）"
+  },
+  "wrapper_exit_code_meaning": {
+    "0": "matrix_pass",
+    "1": "matrix_fail"
+  },
+  "wrapper_exit_code": 0,
+  "stop_reason": null
+}

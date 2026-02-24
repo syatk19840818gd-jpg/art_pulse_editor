@@ -58,6 +58,7 @@ Typical file:
 - `category_profile_config_path`
 - `category_profile_config_loaded`
 - `category_profile_config_error`
+- `category_profile_config_error_detail` (optional)
 - `category_profile_config_version_effective`
 - `category_required_files_profile`
 - `required_input_files_effective`
@@ -91,6 +92,9 @@ Category notes:
 - category profile is loaded from external config by default (`config/phase1_guard_category_profiles.json`).
   - success: `category_profile_source=external_config`
   - missing/invalid config: `category_profile_source=builtin_fallback` and `category_profile_config_error` is recorded
+    - `config_missing:*`
+    - `config_json_decode_error:*`
+    - `config_schema_error:*`
 - unknown category values fall back to `exhibitions_text` and are recorded in `category_warnings`.
 - `category_required_files_profile` is the effective required-files profile used for this run.
 - `required_input_files_effective` shows which required inputs were actually resolved.

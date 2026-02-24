@@ -501,6 +501,12 @@ def main() -> int:
         if isinstance(category_profile_config_error_raw, str) and category_profile_config_error_raw
         else None
     )
+    category_profile_config_error_detail_raw = category_profile_bundle.get("config_error_detail")
+    category_profile_config_error_detail = (
+        str(category_profile_config_error_detail_raw)
+        if isinstance(category_profile_config_error_detail_raw, str) and category_profile_config_error_detail_raw
+        else None
+    )
     category_profile_config_version_effective = str(
         category_profile_bundle.get("config_version_effective") or ""
     )
@@ -609,6 +615,7 @@ def main() -> int:
         "config_path": category_profile_config_path,
         "config_loaded": category_profile_config_loaded,
         "config_error": category_profile_config_error,
+        "config_error_detail": category_profile_config_error_detail,
         "config_version_effective": category_profile_config_version_effective,
         "support_mode_configured": category_support_mode_configured,
         "support_mode_effective": category_support_mode_effective,
@@ -1110,6 +1117,7 @@ def main() -> int:
         "category_profile_config_path": category_profile_config_path,
         "category_profile_config_loaded": category_profile_config_loaded,
         "category_profile_config_error": category_profile_config_error,
+        "category_profile_config_error_detail": category_profile_config_error_detail,
         "category_profile_config_version_effective": category_profile_config_version_effective,
         "category_required_files_profile": effective_category,
         "required_input_files_effective": required_input_files_effective,

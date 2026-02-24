@@ -13,7 +13,7 @@ STREAMLIT_ENTRYPOINT（固定）
 - Local run: streamlit run app.py
 
 SOURCE_SSOT: 01_PROJECT_SPEC_CURRENT_FULL.docx
-LAST_UPDATED: 2026-02-24 15:22 JST
+LAST_UPDATED: 2026-02-24 15:45 JST
 
 
 ========================
@@ -68,7 +68,7 @@ STATE_SNAPSHOT（現在地）
 ========================
 ■いまの最優先フェーズ（Codexが随時更新する）
 - Phase 1：RAG抽出パイプライン成立（seed10で安定稼働させる）
-  - 直近の到達目標：category profile 設定ファイルのスキーマ検証（最小）を追加し、設定ミス検知の安定性を上げる（TASK 38）
+  - 直近の到達目標：history比較summaryにも category_profile_config 文脈を載せ、運用可視化を揃える（TASK 39）
   - 次の到達目標：Phase2（検索/表示）へ接続する
   - その次：検索品質と表示品質の改善サイクルに入る
 
@@ -768,12 +768,46 @@ NEXT_TASKS（次回やること）
         - `python run_phase1_guard_fixture_matrix.py` → wrapper exit 0（8ケース）
         - `python run_phase1_guard_category_fixture_matrix.py` → wrapper exit 0（2ケース）
 
-[ ] 38) category profile 設定ファイルのスキーマ検証を最小追加し、設定ミス検知を安定化する（安全側）
+[x] 38) category profile 設定ファイルのスキーマ検証を最小追加し、設定ミス検知を安定化する（安全側）
     - 目的：外部設定導入後の運用事故を減らすため、configの型/必須キー不足を summary warning として可視化し、fallback理由を一貫化する
     - 制約：guard/history 判定ロジック・終了コード規約は変更しない（設定検証はロード段だけ）
     - 成立条件：
       - profile config の最小スキーマ検証が関数化される
       - 検証失敗時の error code 体系（config_schema_error:*）が統一される
+      - 03のCHANGELOGに反映される
+    - 実行メモ：
+      - `phase1_guard_common.py` に `validate_category_profiles_config(config_obj)` を追加し、最小スキーマを検証：
+        - root dict
+        - `categories` dict
+        - 必須カテゴリ（`exhibitions_text` / `artists_text`）
+        - category profile dict
+        - 最低限キーと型（`required_input_files`, `support_mode`系, required_summary_keys系, `activation_conditions`, `reserved_reason`）
+      - error codeを統一：
+        - `config_missing:*`
+        - `config_json_decode_error:*`
+        - `config_schema_error:*`
+      - `run_compare_phase1_guard.py` は判定ロジック不変で、設定エラー詳細メタのみ追加：
+        - `category_profile_config_error_detail`
+      - fallback確認：
+        - missing: `config_missing:file_not_found`
+        - bad json: `config_json_decode_error:invalid_json`
+        - bad schema（missing key）: `config_schema_error:missing_category:artists_text`
+        - bad schema（type error）: `config_schema_error:type_error:exhibitions_text.required_input_files`
+      - 動作確認：
+        - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+        - `python run_compare_phase1_guard.py --target-year 2025 --category-profile-config /tmp/phase1_guard_missing_config.json` → exit 0
+        - `python run_compare_phase1_guard.py --target-year 2025 --category-profile-config /tmp/phase1_guard_bad_config.json` → exit 0
+        - `python run_compare_phase1_guard.py --target-year 2025 --category-profile-config /tmp/phase1_guard_bad_schema_missing.json` → exit 0
+        - `python run_compare_phase1_guard.py --target-year 2025 --category-profile-config /tmp/phase1_guard_bad_schema_type.json` → exit 0
+        - `python run_phase1_guard_fixture_matrix.py` → wrapper exit 0（8ケース）
+        - `python run_phase1_guard_category_fixture_matrix.py` → wrapper exit 0（2ケース）
+
+[ ] 39) history比較summaryにも category_profile_config 文脈を載せ、運用可視化を揃える（安全側）
+    - 目的：current/baseline の guard summary がどの profile config ソースで生成されたかを history summary に写し、比較時の前提差を早く把握できるようにする
+    - 制約：history回帰判定・互換判定ロジックは変更しない（可視化キー追加のみ）
+    - 成立条件：
+      - history summary に `current_category_profile_config_*` / `baseline_category_profile_config_*` 系キーが追加される
+      - strict/non-strict の終了コード規約（0/2/3）は不変
       - 03のCHANGELOGに反映される
 
 ========================
@@ -2027,6 +2061,50 @@ TASK 38) category profile 設定ファイルのスキーマ検証を最小追加
 - （WSL）python run_phase1_guard_fixture_matrix.py
 - （WSL）python run_phase1_guard_category_fixture_matrix.py
 
+------------------------------------------------------------
+TASK 39) history比較summaryにも category_profile_config 文脈を載せて、運用可視化を揃える（安全側）
+------------------------------------------------------------
+目的：
+- `run_compare_phase1_guard_history.py` の summary に、current/baseline の category profile config 文脈（source/path/error/version）を追加し、比較前提差を読み取りやすくする。
+- 回帰判定/互換判定ロジックは変更せず、可視化キー追加のみで運用診断を強化する。
+
+参照ファイル：
+- 01（SSOT）4-0共通 / 4-1 Exhibitions / 4-3 Artists / 5-8
+- 02（索引）CARD_ID: 14_CATEGORY_4_0_COMMON / CARD_ID: 05_MANIFEST_SYNC
+- phase1_guard_common.py
+- run_compare_phase1_guard.py
+- run_compare_phase1_guard_history.py
+- docs/PHASE1_GUARD_SUMMARY_SCHEMA.md
+- tests/fixtures/phase1_guard/fixture_manifest.json
+
+制約：
+- history回帰判定ロジック（`guard_passed`/`mismatches`/`mismatch_fields`）は変更しない
+- compatibility判定ロジック（target_year/schema/category）は変更しない
+- 終了コード規約を維持（history: 0/2/3、matrix wrapper: 0/1）
+- 取得ループには組み込まない（Post-fetch検証CLIのまま）
+
+完了条件：
+- history summary に最低限以下が保存される
+  - `current_category_profile_source`
+  - `baseline_category_profile_source`
+  - `current_category_profile_config_path`
+  - `baseline_category_profile_config_path`
+  - `current_category_profile_config_loaded`
+  - `baseline_category_profile_config_loaded`
+  - `current_category_profile_config_error`
+  - `baseline_category_profile_config_error`
+  - `current_category_profile_config_version_effective`
+  - `baseline_category_profile_config_version_effective`
+- old summary（キー欠落）でも比較継続できる（後方互換）
+- `docs/PHASE1_GUARD_SUMMARY_SCHEMA.md` に history側キーを最小追記
+- 03 の NEXT_TASKS の 39) を [x]、CHANGELOG追記
+- 次の最優先タスク（TASK40）のプロンプト全文を提示する
+
+動作確認コマンド：
+- （WSL）python run_compare_phase1_guard_history.py --current-summary "tests/fixtures/phase1_guard/pass/current_pass_2025.json" --baseline-summary "tests/fixtures/phase1_guard/pass/baseline_pass_2025.json" --fail-on-regression
+- （WSL）python run_compare_phase1_guard_history.py --current-summary "tests/fixtures/phase1_guard/incompatible/current_incompatible_2025.json" --baseline-summary "tests/fixtures/phase1_guard/incompatible/baseline_incompatible_2024.json" --strict-compatibility
+- （WSL）python run_phase1_guard_fixture_matrix.py
+
 
 ========================
 CODEX_SNIPPETS（頻出コピペ：ここだけ使えば回る）
@@ -2183,3 +2261,4 @@ CHANGELOG（このファイルの更新履歴）
 - 2026-02-24：TASK 35 実施。artists category profile 再現用 fixture（`artists_reserved_warning` / `artists_provisional_pass`）を追加し、`category_fixture_manifest.json` と `run_phase1_guard_category_fixture_matrix.py` で1コマンド実行化。matrix summary に `cases[].summary_checks_passed` / `summary_check_failures` を保存し、reserved/provisional の categoryキー検証を固定化。動作確認は個別2ケース exit 0、category matrix exit 0、既存history matrix exit 0（既存fixture影響なし）。
 - 2026-02-24：TASK 36 実施。artists history fixture（`artists_history_compatible` / `artists_vs_exhibitions_category_mismatch_non_strict` / `artists_vs_exhibitions_category_mismatch_strict`）を追加し、`fixture_manifest.json` に expected_summary_checks を定義。`run_phase1_guard_fixture_matrix.py` を最小拡張して summaryキー検証（`summary_checks_passed` / `summary_check_failures`）を追加。動作確認は artists個別（0/3/0）と history matrix（8ケース）exit 0、category matrix（2ケース）exit 0で既存影響なしを確認。
 - 2026-02-24：TASK 37 実施。category profile を `config/phase1_guard_category_profiles.json` へ外部化し、`phase1_guard_common.py` に外部優先/内蔵fallback（missing/JSON壊れ/schema不正）導線を追加。`run_compare_phase1_guard.py` へ `--category-profile-config` と summaryメタ（`category_profile_source` / `category_profile_config_*`）を追加。fallback検証は missing path / broken JSON / schema不正 の3ケースで `builtin_fallback` を確認。動作確認は guard通常/カテゴリ指定 exit 0、history matrix（8ケース）exit 0、category matrix（2ケース）exit 0で既存影響なしを確認。
+- 2026-02-24：TASK 38 実施。`phase1_guard_common.py` に `validate_category_profiles_config(config_obj)` を追加し、最小スキーマ（root/categories/必須カテゴリ/必須キー/型）を検証。`category_profile_config_error` のコード体系を `config_missing:*` / `config_json_decode_error:*` / `config_schema_error:*` に統一し、`run_compare_phase1_guard.py` summaryへ `category_profile_config_error_detail` を追加。fallback確認は missing/bad json/bad schema（missing key・type error）で `builtin_fallback` 継続を確認。history matrix（8ケース）/category matrix（2ケース）とも exit 0 で既存影響なし。
