@@ -9,19 +9,22 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-LOG_DIR = Path("data/phase1_seed10/logs")
+from phase1_guard_common import (
+    EXIT_CODE_MEANING,
+    INCOMPATIBLE_EXIT_CODE,
+    REGRESSION_EXIT_CODE,
+    paths_equal,
+    resolve_logs_dir,
+    utc_now_iso,
+    utc_timestamp_compact,
+    write_summary_json,
+)
+
 OUTPUT_TEMPLATE = "phase1_guard_history_compare_{timestamp}.json"
 EXPECTED_GENERATOR = "run_compare_phase1_guard.py"
 EXPECTED_SIGNATURE_KEYS = {"guard_passed", "mismatch_fields", "check_results", "input_paths", "target_year"}
 SUMMARY_FILENAME_PATTERN = re.compile(r"^phase1_guard_summary_(\d{4})_(\d{8}T\d{6}Z)\.json$")
-
-REGRESSION_EXIT_CODE = 2
-INCOMPATIBLE_EXIT_CODE = 3
-EXIT_CODE_MEANING = {
-    "0": "pass（差分なし or 差分ありだが回帰なし）",
-    "2": "regression（回帰検知）",
-    "3": "incompatible（比較不成立）",
-}
+DEFAULT_SUMMARY_GLOB = "phase1_guard_summary_*.json"
 
 
 @dataclass
@@ -40,15 +43,6 @@ class BaselineCandidate:
     mandatory_compatible: bool
 
 
-def utc_now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
-
-
-def write_json(path: Path, payload: dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-
-
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Compare two Phase1 guard summaries and detect regressions."
@@ -59,6 +53,11 @@ def parse_args() -> argparse.Namespace:
         "--baseline-search-dir",
         default="",
         help="directory for auto baseline search when --baseline-summary is omitted (default: current summary parent)",
+    )
+    parser.add_argument(
+        "--summary-glob",
+        default=DEFAULT_SUMMARY_GLOB,
+        help="glob pattern for auto baseline candidates (default: phase1_guard_summary_*.json)",
     )
     parser.add_argument(
         "--fail-on-regression",
@@ -73,7 +72,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--output-path",
         default="",
-        help="optional output summary path (default: data/phase1_seed10/logs/phase1_guard_history_compare_<timestamp>.json)",
+        help="optional output summary path (default: <current-summary-parent>/phase1_guard_history_compare_<timestamp>.json)",
     )
     return parser.parse_args()
 
@@ -263,9 +262,7 @@ def build_candidate(
     sort_time = resolve_summary_sort_time(path, obj)
     is_past_current = bool(sort_time is not None and current_time is not None and sort_time < current_time)
 
-    mandatory_compatible = (
-        load_error is None and generated_ok and target_year_matches and path.resolve() != current_path.resolve()
-    )
+    mandatory_compatible = load_error is None and generated_ok and target_year_matches and not paths_equal(path, current_path)
 
     return BaselineCandidate(
         path=path,
@@ -305,6 +302,7 @@ def select_auto_baseline(
     current_path: Path,
     current_obj: dict[str, Any],
     search_dir: Path,
+    summary_glob: str,
 ) -> tuple[Path | None, str, str, int, list[str], list[dict[str, Any]]]:
     current_target_year = safe_int(current_obj.get("target_year"))
     current_schema_version = current_obj.get("guard_schema_version") if isinstance(current_obj.get("guard_schema_version"), str) else None
@@ -312,12 +310,12 @@ def select_auto_baseline(
 
     candidates: list[BaselineCandidate] = []
     try:
-        raw_paths = sorted(search_dir.glob("phase1_guard_summary_*.json"))
+        raw_paths = sorted(search_dir.glob(summary_glob))
     except OSError:
         raw_paths = []
 
     for path in raw_paths:
-        if path.resolve() == current_path.resolve():
+        if paths_equal(path, current_path):
             continue
         candidates.append(
             build_candidate(
@@ -398,7 +396,7 @@ def main() -> int:
     started_at = utc_now_iso()
     print(f"[START] Phase1 guard history compare at {started_at}")
 
-    current_path = Path(args.current_summary)
+    current_path = resolve_logs_dir(args.current_summary)
 
     compatibility_errors: list[str] = []
     compatibility_warnings: list[str] = []
@@ -409,9 +407,9 @@ def main() -> int:
     if current_obj is None:
         current_obj = {}
 
-    baseline_auto_search_dir = Path(args.baseline_search_dir) if args.baseline_search_dir else current_path.parent
+    baseline_auto_search_dir = resolve_logs_dir(args.baseline_search_dir) if args.baseline_search_dir else current_path.parent
     baseline_resolution_mode = "manual" if args.baseline_summary else "auto"
-    baseline_selected_reason = "manual_baseline_argument" if args.baseline_summary else ""
+    baseline_selected_reason = "manual_baseline_argument:auto_search_skipped" if args.baseline_summary else ""
     baseline_candidates_checked = 0
     baseline_candidate_paths: list[str] = []
     baseline_candidate_details: list[dict[str, Any]] = []
@@ -436,6 +434,7 @@ def main() -> int:
                 current_path=current_path,
                 current_obj=current_obj,
                 search_dir=baseline_auto_search_dir,
+                summary_glob=args.summary_glob,
             )
             if baseline_path is None:
                 compatibility_errors.append("no_baseline_found")
@@ -549,8 +548,12 @@ def main() -> int:
         else:
             exit_code = 0
 
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    output_path = Path(args.output_path) if args.output_path else LOG_DIR / OUTPUT_TEMPLATE.format(timestamp=timestamp)
+    timestamp = utc_timestamp_compact()
+    output_path = (
+        resolve_logs_dir(args.output_path)
+        if args.output_path
+        else current_path.parent / OUTPUT_TEMPLATE.format(timestamp=timestamp)
+    )
 
     payload = {
         "started_at": started_at,
@@ -564,7 +567,8 @@ def main() -> int:
         "baseline_resolution_mode": baseline_resolution_mode,
         "baseline_candidates_checked": baseline_candidates_checked,
         "baseline_selected_reason": baseline_selected_reason,
-        "baseline_auto_search_dir": str(baseline_auto_search_dir),
+        "baseline_auto_search_dir": str(baseline_auto_search_dir) if not args.baseline_summary else None,
+        "summary_glob_effective": args.summary_glob,
         "baseline_candidate_paths": baseline_candidate_paths,
         "baseline_candidate_details": baseline_candidate_details,
         "diffs": diffs,
@@ -575,7 +579,7 @@ def main() -> int:
         "exit_code": exit_code,
         "exit_code_meaning": EXIT_CODE_MEANING,
     }
-    write_json(output_path, payload)
+    write_summary_json(output_path, payload)
 
     print(
         "[DONE] Phase1 guard history compare complete. "

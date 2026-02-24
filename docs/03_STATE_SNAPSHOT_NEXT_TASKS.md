@@ -13,7 +13,7 @@ STREAMLIT_ENTRYPOINT（固定）
 - Local run: streamlit run app.py
 
 SOURCE_SSOT: 01_PROJECT_SPEC_CURRENT_FULL.docx
-LAST_UPDATED: 2026-02-24 10:12 JST
+LAST_UPDATED: 2026-02-24 10:25 JST
 
 
 ========================
@@ -68,7 +68,7 @@ STATE_SNAPSHOT（現在地）
 ========================
 ■いまの最優先フェーズ（Codexが随時更新する）
 - Phase 1：RAG抽出パイプライン成立（seed10で安定稼働させる）
-  - 直近の到達目標：Phase1 guard historyのパス/探索汎化（TASK 23）を成立させる
+  - 直近の到達目標：Phase1 guard系CLIの共通fixture/テストデータ整理（TASK 25）を成立させる
   - 次の到達目標：Phase2（検索/表示）へ接続する
   - その次：検索品質と表示品質の改善サイクルに入る
 
@@ -478,13 +478,39 @@ NEXT_TASKS（次回やること）
       - `python run_compare_phase1_guard.py --target-year 2025 --logs-dir "data/phase1_seed10/logs"` で `guard_passed=true` / exit 0 を確認（`phase1_guard_summary_2025_20260224T010751Z.json`）。
       - `python run_compare_phase1_guard.py --target-year 2025 --logs-dir "data/phase1_seed10/logs" --fail-on-mismatch` で差分なし exit 0 を確認（`phase1_guard_summary_2025_20260224T010758Z.json`）。
 
-[ ] 23) Phase1 guard history比較のパス/探索汎化を実装する（seed10互換維持）
+[x] 23) Phase1 guard history比較のパス/探索汎化を実装する（seed10互換維持）
     - 目的：`run_compare_phase1_guard_history.py` の baseline探索を seed10 固定前提から外し、current summary 起点で他runにも使えるようにする
     - 制約：既定値は現行互換を維持し、`--fail-on-regression` / `--strict-compatibility` の終了コード規約（0/2/3）を壊さない
     - 成立条件：
       - `--baseline-search-dir` 未指定時に `--current-summary` の親ディレクトリを既定探索先として使える
       - 候補探索のglobをCLIから指定できる（例：`--summary-glob`、既定は現行互換）
       - summary に `baseline_auto_search_dir` / `baseline_candidates_checked` / `baseline_resolution_mode` が保存される
+      - 03のCHANGELOGに反映される
+    - 実行メモ：
+      - auto baseline: `python run_compare_phase1_guard_history.py --current-summary data/phase1_seed10/logs/phase1_guard_summary_2025_20260224T010758Z.json --output-path data/phase1_seed10/logs/phase1_guard_history_compare_task23_auto.json` で exit 0。`baseline_auto_search_dir` / `summary_glob_effective` / `baseline_candidates_checked` を確認。
+      - regression: `--fail-on-regression` 付き（fixture利用）で exit 2（`phase1_guard_history_compare_task23_regression.json`）。
+      - incompatible: `--strict-compatibility` 付き（target_year不一致）で exit 3（`phase1_guard_history_compare_task23_incompatible.json`）。
+      - manual優先: `--baseline-summary` 明示時は `--baseline-search-dir` / `--summary-glob` を探索に使わず、`baseline_resolution_mode=manual` / `baseline_selected_reason=manual_baseline_argument:auto_search_skipped` を確認（`phase1_guard_history_compare_task23_manual.json`）。
+
+[x] 24) Phase1 guard CLIの共通関数化（path解決/summary保存）を最小実装する
+    - 目的：`run_compare_phase1_guard.py` と `run_compare_phase1_guard_history.py` の重複処理（パス解決・summary書き出し・終了コード説明）を共通化し、保守性を上げる
+    - 制約：挙動変更を最小化し、既存CLIオプションと終了コード規約（0/2/3）を壊さない
+    - 成立条件：
+      - 共通ユーティリティ（例: `phase1_guard_common.py`）へ最小切り出しができる
+      - 両CLIの既存コマンドが従来どおり成功する
+      - 03のCHANGELOGに反映される
+    - 実行メモ：
+      - `phase1_guard_common.py` を追加し、`resolve_logs_dir` / `paths_equal` / `write_summary_json` / `utc_now_iso` / `utc_timestamp_compact` / `EXIT_CODE_MEANING` を共通化。
+      - `run_compare_phase1_guard.py` は path解決・summary保存・時刻生成のみ共通関数へ差し替え（判定ロジックは維持）。
+      - `run_compare_phase1_guard_history.py` は path比較・path解決・summary保存・終了コード説明の参照を共通化（regression/compatibility判定ロジックは維持）。
+      - 動作確認：guard本体 2コマンドは exit 0、history比較は auto=0 / regression=2 / incompatible=3 を確認。
+
+[ ] 25) Phase1 guard系CLIの共通fixture/テストデータ整理（回帰/非互換の再現性向上）
+    - 目的：機能追加より安全性を優先し、guard本体/history比較の回帰ケース・非互換ケースを毎回同じ入力で再現できるようにする
+    - 制約：CLIロジック本体は変更しない（テストデータと実行手順の整備のみ）
+    - 成立条件：
+      - 最低限3ケース（pass/regression/incompatible）のfixtureセットを整理できる
+      - 実行コマンドと期待exit code（0/2/3）を明文化できる
       - 03のCHANGELOGに反映される
 
 ========================
@@ -1195,6 +1221,73 @@ TASK 23) Phase1 guard history比較のパス/探索汎化を実装する（seed1
 - （WSL）python run_compare_phase1_guard_history.py --current-summary "data/phase1_seed10/logs/phase1_guard_summary_2025_YYYYMMDDTHHMMSSZ.json" --baseline-search-dir "data/phase1_seed10/logs" --summary-glob "phase1_guard_summary_*.json"
 - （WSL）python run_compare_phase1_guard_history.py --current-summary "data/phase1_seed10/logs/phase1_guard_summary_2025_YYYYMMDDTHHMMSSZ.json" --strict-compatibility
 
+------------------------------------------------------------
+TASK 24) Phase1 guard CLIの共通関数化（path解決/summary保存）を最小実装する
+------------------------------------------------------------
+目的：
+- `run_compare_phase1_guard.py` と `run_compare_phase1_guard_history.py` で重複している処理（パス正規化・タイムスタンプ付きsummary出力・終了コード説明）を最小差分で共通化し、今後の汎化タスクでの変更点を減らす。
+
+参照ファイル：
+- 01（SSOT）4-0共通 / 4-1 Exhibitions / 4-3 Artists / 5-8
+- 02（索引）CARD_ID: 14_CATEGORY_4_0_COMMON / CARD_ID: 05_MANIFEST_SYNC / CARD_ID: 09_FAILURE_LOGGING
+- run_compare_phase1_guard.py
+- run_compare_phase1_guard_history.py
+- （新規）phase1_guard_common.py（必要なら）
+- data/phase1_seed10/logs/phase1_guard_summary_*.json
+- data/phase1_seed10/logs/phase1_guard_history_compare_*.json
+
+制約：
+- 取り込みループ内で実行しない（Post-fetch検証CLIとして分離）
+- 機能追加より保守性優先（挙動変更は最小）
+- 既存CLI引数・既存summary項目・終了コード規約（0=pass, 2=regression, 3=incompatible）を壊さない
+- failed_fetches は「存在しただけ」で失敗扱いにしない方針を維持
+- Tarutani側の新機能追加はしない
+
+完了条件：
+- 共通化対象を最小2点以上切り出せる（例：`write_json`/`utc_now_iso`/output path helper）
+- 両CLIの既存コマンド（TASK22/TASK23で使ったコマンド）が従来どおり成功する
+- summaryの主要キー互換（既存キーが消えていない）を確認できる
+- 03 の NEXT_TASKS の 24) を [x]、CHANGELOG追記
+- 次の最優先タスク（TASK 25）のプロンプト全文を提示する
+
+動作確認コマンド：
+- （WSL）python run_compare_phase1_guard.py --target-year 2025
+- （WSL）python run_compare_phase1_guard_history.py --current-summary "data/phase1_seed10/logs/phase1_guard_summary_2025_YYYYMMDDTHHMMSSZ.json"
+- （WSL）python run_compare_phase1_guard_history.py --current-summary "data/phase1_seed10/logs/phase1_guard_summary_2025_regression_fixture.json" --baseline-summary "data/phase1_seed10/logs/phase1_guard_summary_2025_YYYYMMDDTHHMMSSZ.json" --fail-on-regression
+
+------------------------------------------------------------
+TASK 25) Phase1 guard系CLIの共通fixture/テストデータ整理（回帰/非互換の再現性向上）
+------------------------------------------------------------
+目的：
+- 安全側（機能追加なし）を優先し、`run_compare_phase1_guard.py` / `run_compare_phase1_guard_history.py` の回帰判定・比較不成立判定を、毎回同じ入力で再現できるfixture運用を整備する。
+
+参照ファイル：
+- 01（SSOT）4-0共通 / 4-1 Exhibitions / 4-3 Artists / 5-8
+- 02（索引）CARD_ID: 14_CATEGORY_4_0_COMMON / CARD_ID: 09_FAILURE_LOGGING / CARD_ID: 05_MANIFEST_SYNC
+- run_compare_phase1_guard.py
+- run_compare_phase1_guard_history.py
+- data/phase1_seed10/logs/phase1_guard_summary_*.json
+- （新規候補）tests/fixtures/phase1_guard/ または data/phase1_seed10/logs/fixtures/
+
+制約：
+- 取り込みループ内で実行しない（Post-fetch検証CLIとして分離）
+- CLI本体ロジックは変更しない（fixture整理・実行手順・確認スクリプト中心）
+- 既存終了コード規約（0=pass,2=regression,3=incompatible）を維持
+- Tarutani側の新機能追加はしない
+
+完了条件：
+- 最低3ケースのfixtureを明示できる（pass / regression / incompatible）
+- 各ケースで「入力ファイル」「実行コマンド」「期待exit code」を一覧化できる
+- 可能なら `run_guard_smoke_matrix.sh`（または同等）で一括実行できる
+- 03 の NEXT_TASKS の 25) を [x]、CHANGELOG追記
+- 次の最優先タスク（TASK 26）のプロンプト全文を提示する
+
+動作確認コマンド：
+- （WSL）python run_compare_phase1_guard.py --target-year 2025
+- （WSL）python run_compare_phase1_guard_history.py --current-summary "<pass_case_current_summary>"
+- （WSL）python run_compare_phase1_guard_history.py --current-summary "<regression_case_current>" --baseline-summary "<regression_case_baseline>" --fail-on-regression
+- （WSL）python run_compare_phase1_guard_history.py --current-summary "<incompatible_case_current>" --baseline-summary "<incompatible_case_baseline>" --strict-compatibility
+
 
 ========================
 CODEX_SNIPPETS（頻出コピペ：ここだけ使えば回る）
@@ -1336,3 +1429,5 @@ CHANGELOG（このファイルの更新履歴）
 - 2026-02-23：TASK 20 実施。`run_compare_phase1_guard_history.py` に baseline自動解決（manual/auto、過去summary優先、schema一致/guard_passed優先）と `--strict-compatibility` を追加。summaryへ `baseline_resolution_mode` などの運用メタと `exit_code_meaning` を保存し、終了コード運用（0=pass,2=regression,3=incompatible）を明文化。正常系 exit 0、回帰系 exit 2、比較不成立(strict) exit 3 を確認。
 - 2026-02-23：TASK 21 実施（設計整理）。01/02/guard系CLI/run_phase1_seed10.py を突合し、seed10固定箇所を5分類（ファイル名/ディレクトリ/年/カテゴリ/baseline探索）で棚卸し。互換維持方針（未指定時seed10維持）と最小CLI仕様案（logs-dir/summary-path/category/baseline-search-dir）を明文化し、次タスクを TASK 22（guard本体のパス/年汎化実装）に確定。
 - 2026-02-24：TASK 22 実施。`run_compare_phase1_guard.py` に `--logs-dir` / `--run-summary-path` / `--category` を追加し、入力解決（run_summary/visited/failed/output_files）と summary出力既定を logs-dir 基準へ汎化（seed10既定互換を維持）。`--target-year 2025` / `--logs-dir` 指定 / `--fail-on-mismatch` の3コマンドでいずれも `guard_passed=true`・exit 0 を確認。次は TASK 23（history比較CLIのパス/探索汎化）。
+- 2026-02-24：TASK 23 実施。`run_compare_phase1_guard_history.py` の baseline探索既定を `--current-summary` 親ディレクトリ起点へ汎化し、`--summary-glob`（既定 `phase1_guard_summary_*.json`）を追加。`--baseline-summary` 明示時はauto探索を無効化（manual固定）し、summaryへ `baseline_auto_search_dir` / `summary_glob_effective` などを保存。終了コード規約（0=pass,2=regression,3=incompatible）は維持確認。次は TASK 24（guard CLI共通関数化）。
+- 2026-02-24：TASK 24 実施。`phase1_guard_common.py` を追加し、path解決/summary保存/時刻生成/終了コード説明を共通化。`run_compare_phase1_guard.py` と `run_compare_phase1_guard_history.py` は共通関数参照へ最小差し替え（比較ロジック本体は変更最小）を実施し、動作確認で exit code 規約（0/2/3）維持を確認。次は TASK 25（共通fixture/テストデータ整理）。

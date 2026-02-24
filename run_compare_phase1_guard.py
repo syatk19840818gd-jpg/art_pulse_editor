@@ -6,9 +6,10 @@ import json
 import re
 import sys
 from dataclasses import dataclass
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+from phase1_guard_common import resolve_logs_dir, utc_now_iso, utc_timestamp_compact, write_summary_json
 
 DEFAULT_LOGS_DIR = Path("data/phase1_seed10/logs")
 DEFAULT_RUN_SUMMARY_TEMPLATE = "run_summary_seed10_{target_year}.json"
@@ -48,15 +49,6 @@ class LedgerLoadResult:
     load_error: str | None
     key_hash_mismatch_count: int
     missing_hash_field_count: int
-
-
-def utc_now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
-
-
-def write_json(path: Path, payload: dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 def parse_args() -> argparse.Namespace:
@@ -241,10 +233,6 @@ def resolve_path(override: str, fallback: Any) -> Path | None:
     return None
 
 
-def normalize_logs_dir(path_value: str) -> Path:
-    return Path(path_value).expanduser().resolve()
-
-
 def pick_latest_by_mtime(paths: list[Path]) -> Path | None:
     if not paths:
         return None
@@ -379,8 +367,8 @@ def main() -> int:
     started_at = utc_now_iso()
     print(f"[START] Phase1 guard compare at {started_at}")
 
-    logs_dir = normalize_logs_dir(args.logs_dir)
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    logs_dir = resolve_logs_dir(args.logs_dir)
+    timestamp = utc_timestamp_compact()
 
     # Backward-compatible fallback:
     # If old usage passed --summary-path as input run_summary path, treat it as input when it
@@ -716,7 +704,7 @@ def main() -> int:
         },
         "check_results": check_results,
     }
-    write_json(output_path, summary_payload)
+    write_summary_json(output_path, summary_payload)
 
     print(
         "[DONE] Phase1 guard compare complete. "
