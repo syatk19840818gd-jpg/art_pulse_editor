@@ -1,0 +1,90 @@
+{
+  "version": "1.0",
+  "description": "Reproducible fixture set for guard-category profile behavior checks (artists_text reserved/provisional).",
+  "cases": [
+    {
+      "case_id": "artists_reserved_warning",
+      "description": "artists_text without artists raw data keeps reserved_minimal and emits activation warnings.",
+      "logs_dir": "tests/fixtures/phase1_guard/category_profile/artists_reserved_warning/logs",
+      "target_year": 2025,
+      "category": "artists_text",
+      "expected_exit_code": 0,
+      "fail_on_mismatch": false,
+      "recommended_command": "python run_compare_phase1_guard.py --target-year 2025 --category artists_text --logs-dir tests/fixtures/phase1_guard/category_profile/artists_reserved_warning/logs",
+      "expected_summary_checks": [
+        {
+          "path": "category",
+          "equals": "artists_text"
+        },
+        {
+          "path": "category_support_mode",
+          "equals": "reserved_minimal"
+        },
+        {
+          "path": "category_support_mode_configured",
+          "equals": "reserved_minimal"
+        },
+        {
+          "path": "required_summary_keys_effective",
+          "non_empty": true
+        },
+        {
+          "path": "category_activation_conditions",
+          "non_empty": true
+        },
+        {
+          "path": "category_data_presence.has_artists_data",
+          "equals": false
+        },
+        {
+          "path": "category_warnings",
+          "contains": "category_reserved_reason:artists_summary_and_raw_conventions_not_finalized"
+        }
+      ]
+    },
+    {
+      "case_id": "artists_provisional_pass",
+      "description": "artists_text with artists raw detection promotes support mode to provisional_minimal.",
+      "logs_dir": "tests/fixtures/phase1_guard/category_profile/artists_provisional_pass/logs",
+      "target_year": 2025,
+      "category": "artists_text",
+      "expected_exit_code": 0,
+      "fail_on_mismatch": false,
+      "recommended_command": "python run_compare_phase1_guard.py --target-year 2025 --category artists_text --logs-dir tests/fixtures/phase1_guard/category_profile/artists_provisional_pass/logs",
+      "expected_summary_checks": [
+        {
+          "path": "category",
+          "equals": "artists_text"
+        },
+        {
+          "path": "category_support_mode",
+          "equals": "provisional_minimal"
+        },
+        {
+          "path": "category_support_mode_configured",
+          "equals": "reserved_minimal"
+        },
+        {
+          "path": "required_input_files_effective",
+          "non_empty": true
+        },
+        {
+          "path": "required_summary_keys_effective",
+          "non_empty": true
+        },
+        {
+          "path": "category_profile_version",
+          "equals": "1.1"
+        },
+        {
+          "path": "category_data_presence.has_artists_data",
+          "equals": true
+        },
+        {
+          "path": "category_warnings",
+          "contains": "artists_data_detected:support_mode_promoted:reserved_minimal->provisional_minimal"
+        }
+      ]
+    }
+  ]
+}

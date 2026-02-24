@@ -395,6 +395,27 @@ Minimum keys to read:
   - `output_summary_path`
 - `wrapper_exit_code` (matrix wrapper exit: `0/1`)
 
+### 7.2 Category profile fixture matrix summary (guard CLI)
+
+Use guard-category one-command execution:
+
+```bash
+python run_phase1_guard_category_fixture_matrix.py
+```
+
+Matrix summary file:
+
+- `data/phase1_seed10/logs/phase1_guard_category_fixture_matrix_YYYYMMDDTHHMMSSZ.json`
+
+Minimum keys to read:
+
+- `all_cases_passed`
+- `cases[].expected_exit_code`
+- `cases[].actual_exit_code`
+- `cases[].summary_checks_passed`
+- `cases[].summary_check_failures`
+- `cases[].output_summary_path`
+
 ## 8. Backward Compatibility Notes (TASK26/27)
 
 - Old guard summaries may not include `additional_guard_check_results`.

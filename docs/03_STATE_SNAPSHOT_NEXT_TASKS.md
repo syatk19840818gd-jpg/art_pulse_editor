@@ -13,7 +13,7 @@ STREAMLIT_ENTRYPOINT（固定）
 - Local run: streamlit run app.py
 
 SOURCE_SSOT: 01_PROJECT_SPEC_CURRENT_FULL.docx
-LAST_UPDATED: 2026-02-24 11:44 JST
+LAST_UPDATED: 2026-02-24 11:52 JST
 
 
 ========================
@@ -68,7 +68,7 @@ STATE_SNAPSHOT（現在地）
 ========================
 ■いまの最優先フェーズ（Codexが随時更新する）
 - Phase 1：RAG抽出パイプライン成立（seed10で安定稼働させる）
-  - 直近の到達目標：artists_text の最小guard挙動（pass/warning）を fixture で固定再現し、運用の再現性を先に固める（TASK 35）
+  - 直近の到達目標：artists_text 文脈の history比較fixture（同一/不一致）を追加し、横展開時の再現性を先に固める（TASK 36）
   - 次の到達目標：Phase2（検索/表示）へ接続する
   - その次：検索品質と表示品質の改善サイクルに入る
 
@@ -689,12 +689,37 @@ NEXT_TASKS（次回やること）
         - `--category artists_text`: exit 0（クラッシュなし、reserved理由をsummaryに保存）
         - `--category artists_text --fail-on-mismatch`: exit 0（差分なし）
 
-[ ] 35) artists_text 用の最小fixture（pass/欠落warning）を追加して再現性を固定する（安全側）
+[x] 35) artists_text 用の最小fixture（pass/欠落warning）を追加して再現性を固定する（安全側）
     - 目的：TASK34で追加した artists category profile 挙動（reserved/provisional判定・warning）を fixture で毎回同じ入力で再現できるようにする
     - 制約：guard本体/ history本体ロジックは変更しない。fixture/manifest/README/matrix整備のみで対応する
     - 成立条件：
       - artists_text の pass ケース（互換継続）と warning ケース（reserved維持）を fixture として固定化できる
       - matrix 1コマンド実行で期待exit codeと確認キーを検証できる
+      - 03のCHANGELOGに反映される
+    - 実行メモ：
+      - 追加fixture（guard本体向け）：
+        - `tests/fixtures/phase1_guard/category_profile/artists_reserved_warning/...`
+        - `tests/fixtures/phase1_guard/category_profile/artists_provisional_pass/...`
+      - 追加manifest：`tests/fixtures/phase1_guard/category_fixture_manifest.json`
+        - `artists_reserved_warning`（expected exit=0）
+        - `artists_provisional_pass`（expected exit=0）
+        - `expected_summary_checks` で category profile キー検証を固定化
+      - 追加1コマンド入口：`run_phase1_guard_category_fixture_matrix.py`
+        - wrapper exit: `0=matrix pass / 1=matrix fail`
+        - matrix summary: `phase1_guard_category_fixture_matrix_*.json`
+        - case summary結果: `cases[].summary_checks_passed` / `cases[].summary_check_failures`
+      - 動作確認：
+        - reserved個別: exit 0（`category_support_mode=reserved_minimal`）
+        - provisional個別: exit 0（`category_support_mode=provisional_minimal`）
+        - category matrix: 2ケースとも expected一致で exit 0
+        - 既存history matrix（`run_phase1_guard_fixture_matrix.py`）: 5ケース pass、exit 0（影響なし）
+
+[ ] 36) artists_text 用の history比較fixture（category同一/不一致）を追加し、history再現性を固定する
+    - 目的：artists文脈でも history比較（compatible / incompatible）を固定再現し、Exhibitions→Artists横展開時の検証導線を揃える
+    - 制約：history/guard 本体ロジックは変更しない（fixture/manifest/README/matrix整備のみ）
+    - 成立条件：
+      - artists同一カテゴリ比較（compatible）と artists↔exhibitions 比較（strict incompatible）の最低2ケースを固定化できる
+      - matrix 1コマンドで expected exit と category互換キーを確認できる
       - 03のCHANGELOGに反映される
 
 ========================
@@ -1831,6 +1856,48 @@ TASK 35) artists_text 用の最小fixture（pass/欠落warning）を追加して
 - （WSL）python run_compare_phase1_guard_history.py --current-summary "tests/fixtures/phase1_guard/artists/current_artists_reserved_2025.json" --baseline-summary "tests/fixtures/phase1_guard/artists/baseline_artists_reserved_2025.json" --fail-on-regression
 - （WSL）python run_phase1_guard_fixture_matrix.py
 
+------------------------------------------------------------
+TASK 36) artists_text 用の history比較fixture（category同一/不一致）を追加し、history再現性を固定する
+------------------------------------------------------------
+目的：
+- artists文脈でも history比較（compatible / incompatible）を固定再現し、Exhibitions→Artists横展開時の検証導線を揃える。
+- 既存 history比較ロジック（0/2/3）を変更せず、fixture/manifest/README/matrix運用を整える。
+
+参照ファイル：
+- 01（SSOT）4-0共通 / 4-3 Artists / 5-8
+- 02（索引）CARD_ID: 14_CATEGORY_4_0_COMMON / CARD_ID: 09_FAILURE_LOGGING / CARD_ID: 05_MANIFEST_SYNC
+- run_compare_phase1_guard_history.py
+- run_phase1_guard_fixture_matrix.py
+- tests/fixtures/phase1_guard/fixture_manifest.json
+- tests/fixtures/phase1_guard/README.md
+- docs/PHASE1_GUARD_SUMMARY_SCHEMA.md
+
+制約：
+- history/guard CLI本体の判定ロジックは変更しない（fixture/manifest/README更新のみ）
+- 既存終了コード規約を維持（history: 0/2/3、matrix wrapper: 0/1）
+- 既存fixture（pass/regression/incompatible/category_mismatch + category_profile）を壊さない
+- 取得ループには組み込まない（Post-fetch検証CLIのまま）
+
+完了条件：
+- artists用 history fixture を最低2ケース追加できる
+  - artists_same_category_compatible（expected 0）
+  - artists_vs_exhibitions_category_mismatch_strict（expected 3）
+- summaryで category互換キーの確認を固定化できる
+  - `current_category`
+  - `baseline_category`
+  - `category_comparison_mode`
+  - `category_effective_for_comparison`
+  - `category_compatible`
+  - `compatibility_errors`（strict mismatch時）
+- fixture manifest / README / matrix手順を更新できる
+- 03 の NEXT_TASKS の 36) を [x]、CHANGELOG追記
+- 次の最優先タスク（TASK 37）のプロンプト全文を提示する
+
+動作確認コマンド：
+- （WSL）python run_compare_phase1_guard_history.py --current-summary "tests/fixtures/phase1_guard/artists_history/current_artists_same_category_2025.json" --baseline-summary "tests/fixtures/phase1_guard/artists_history/baseline_artists_same_category_2025.json" --fail-on-regression
+- （WSL）python run_compare_phase1_guard_history.py --current-summary "tests/fixtures/phase1_guard/artists_history/current_artists_same_category_2025.json" --baseline-summary "tests/fixtures/phase1_guard/artists_history/baseline_exhibitions_category_2025.json" --strict-compatibility
+- （WSL）python run_phase1_guard_fixture_matrix.py
+
 
 ========================
 CODEX_SNIPPETS（頻出コピペ：ここだけ使えば回る）
@@ -1984,3 +2051,4 @@ CHANGELOG（このファイルの更新履歴）
 - 2026-02-24：TASK 32 実施。`run_compare_phase1_guard_history.py` に category 比較メタ（`current_category` / `baseline_category` / `category_comparison_mode` / `category_effective_for_comparison` / `category_compatible` / `category_compatibility_policy` / `category_warnings`）を追加。互換ルールは「both_present一致=OK、不一致=NG、欠落は後方互換warning」とし、non-strictは比較継続、strictは不一致を `compatibility_errors` へ昇格して exit 3。動作確認は通常比較 exit 0、regression exit 2、incompatible exit 3、category欠落後方互換（/tmpコピー）で継続確認。終了コード規約（0/2/3）と回帰判定ロジックは維持。
 - 2026-02-24：TASK 33 実施。category mismatch 固定fixture（`tests/fixtures/phase1_guard/category_mismatch/*.json`）を追加し、manifestに non-strict（expected 0）/ strict（expected 3）を2ケース登録（方式：manifest分離）。READMEとschema文書へ確認手順/確認キー（`current_category` / `baseline_category` / `category_comparison_mode` / `category_effective_for_comparison` / `category_compatible` / `category_warnings`）を追記。動作確認は non-strict exit 0、strict exit 3、matrix（5ケース）exit 0。history回帰判定ロジックは未変更。
 - 2026-02-24：TASK 34 実施。artists_text profile を最小具体化（必須入力集合/必須summaryキー）し、`category_profile_version=1.1`、`required_summary_keys_effective`、`category_support_mode_configured`、`category_activation_conditions`、`category_data_presence` を summary へ追加。artistsデータ未検出のため `support_mode=reserved_minimal` を維持し、`category_warnings` に reserved理由と activation条件系メッセージを保存。動作確認は default/exhibitions/artists/`--fail-on-mismatch` の各実行で exit 0（既存互換維持）。
+- 2026-02-24：TASK 35 実施。artists category profile 再現用 fixture（`artists_reserved_warning` / `artists_provisional_pass`）を追加し、`category_fixture_manifest.json` と `run_phase1_guard_category_fixture_matrix.py` で1コマンド実行化。matrix summary に `cases[].summary_checks_passed` / `summary_check_failures` を保存し、reserved/provisional の categoryキー検証を固定化。動作確認は個別2ケース exit 0、category matrix exit 0、既存history matrix exit 0（既存fixture影響なし）。

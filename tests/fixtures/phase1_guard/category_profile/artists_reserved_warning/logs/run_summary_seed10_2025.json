@@ -1,0 +1,24 @@
+{
+  "target_year": 2025,
+  "records_saved_total": 0,
+  "existing_records_total": 2,
+  "new_records_saved_total": 0,
+  "records_total_after_run": 2,
+  "records_saved_by_fair": {
+    "artists_fixture": 0
+  },
+  "failed_fetches_new_in_run": 0,
+  "failed_fetches_total_ledger": 0,
+  "visited_pages_total_ledger": 1,
+  "skipped_total": 1,
+  "skipped_by_reason": {
+    "KNOWN_SAVED_PAGE": 1
+  },
+  "skip_breakdown": {
+    "KNOWN_SAVED_PAGE": 1
+  },
+  "failed_fetches_reason_counts": {},
+  "failed_fetches_path": "tests/fixtures/phase1_guard/category_profile/artists_reserved_warning/logs/failed_fetches_seed10_2025.json",
+  "visited_pages_path": "tests/fixtures/phase1_guard/category_profile/artists_reserved_warning/logs/visited_pages_seed10_2025.json",
+  "output_files": {}
+}

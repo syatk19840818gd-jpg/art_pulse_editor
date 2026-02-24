@@ -2,7 +2,7 @@
 
 This directory provides reproducible JSON inputs for Phase1 guard/history smoke checks.
 
-## One-command matrix runner (recommended)
+## One-command matrix runner (history compare)
 
 Run all fixture cases from `fixture_manifest.json`:
 
@@ -24,6 +24,30 @@ Wrapper exit code meanings:
 Important: inner CLI exit codes (`run_compare_phase1_guard_history.py`) are still `0/2/3`.
 The matrix runner treats those as case expectations and validates them per fixture.
 
+## One-command matrix runner (guard category profile)
+
+Run guard-category fixtures from `category_fixture_manifest.json`:
+
+```bash
+python run_phase1_guard_category_fixture_matrix.py
+```
+
+Optional fail-fast mode:
+
+```bash
+python run_phase1_guard_category_fixture_matrix.py --fail-fast
+```
+
+Wrapper exit code meanings:
+
+- `0`: matrix pass (all cases matched expected exit codes and summary checks)
+- `1`: matrix fail
+
+Important: this runner executes `run_compare_phase1_guard.py` (guard本体) and validates both:
+
+- expected exit code
+- expected summary keys/values (`summary_checks_passed`)
+
 ## Cases
 
 - `pass`: compatible comparison, no regression, expected exit code `0`
@@ -33,6 +57,8 @@ The matrix runner treats those as case expectations and validates them per fixtu
 - `category_mismatch_strict`: category only mismatch, expected exit code `3` (`--strict-compatibility`)
 
 Fixture metadata is defined in `fixture_manifest.json`.
+
+Guard category fixture metadata is defined in `category_fixture_manifest.json`.
 
 ## Recommended order
 
@@ -93,6 +119,33 @@ Expected exit code (strict): `3`
 - `--fail-on-regression`: return non-zero only when regression is detected (compatible comparison).
 - `--strict-compatibility`: return non-zero when compatibility checks fail.
 - matrix runner `--fail-fast`: stop at the first expected/actual mismatch.
+
+## Category profile fixtures (guard CLI)
+
+Category profile fixtures are under `tests/fixtures/phase1_guard/category_profile/`:
+
+- `artists_reserved_warning`: no `artists_*_<year>.jsonl` in fixture raw dir
+  - expected: `category_support_mode=reserved_minimal`
+  - expected: `category_data_presence.has_artists_data=false`
+- `artists_provisional_pass`: has `artists_*_<year>.jsonl` in fixture raw dir
+  - expected: `category_support_mode=provisional_minimal`
+  - expected: `category_data_presence.has_artists_data=true`
+
+Individual commands:
+
+```bash
+python run_compare_phase1_guard.py --target-year 2025 --category artists_text --logs-dir tests/fixtures/phase1_guard/category_profile/artists_reserved_warning/logs
+python run_compare_phase1_guard.py --target-year 2025 --category artists_text --logs-dir tests/fixtures/phase1_guard/category_profile/artists_provisional_pass/logs
+```
+
+Summary keys to read:
+
+- `category_support_mode`
+- `category_support_mode_configured`
+- `required_summary_keys_effective`
+- `category_activation_conditions`
+- `category_data_presence`
+- `category_warnings`
 
 ## Schema version check (guard_schema_version)
 

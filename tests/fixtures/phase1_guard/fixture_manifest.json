@@ -1,6 +1,9 @@
 {
   "version": "1.0",
   "description": "Reusable fixture set for Phase1 guard/history CLI regression checks.",
+  "related_manifests": [
+    "tests/fixtures/phase1_guard/category_fixture_manifest.json"
+  ],
   "cases": [
     {
       "case_id": "pass",
