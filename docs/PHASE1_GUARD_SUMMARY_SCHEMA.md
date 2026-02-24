@@ -1,0 +1,308 @@
+# Phase1 Guard Summary Schema Guide
+
+## 1. Purpose
+
+This document fixes how to read summary JSON outputs from the Phase1 guard CLIs.
+
+- Target CLI 1: `run_compare_phase1_guard.py` (single-run guard check)
+- Target CLI 2: `run_compare_phase1_guard_history.py` (current vs baseline history compare)
+
+The goal is to prevent interpretation drift in local operations and CI.
+This guide standardizes:
+
+- key meaning
+- read order
+- exit code interpretation
+- fixture-based reproduction
+
+This document does not change CLI logic. It is an operations reading guide.
+
+## 2. Target CLIs and Basic Commands
+
+### 2.1 Guard CLI (single-run)
+
+```bash
+python run_compare_phase1_guard.py --target-year 2025
+python run_compare_phase1_guard.py --target-year 2025 --fail-on-mismatch
+```
+
+- `--fail-on-mismatch`: return non-zero only when mismatches exist (exit `2`)
+
+### 2.2 History CLI (current vs baseline)
+
+```bash
+python run_compare_phase1_guard_history.py --current-summary "<path>"
+python run_compare_phase1_guard_history.py --current-summary "<path>" --fail-on-regression
+python run_compare_phase1_guard_history.py --current-summary "<path>" --strict-compatibility
+```
+
+- `--fail-on-regression`: return exit `2` when regression is detected
+- `--strict-compatibility`: return exit `3` when comparison is incompatible
+
+## 3. Guard Summary (`run_compare_phase1_guard.py`)
+
+Typical file:
+
+- `data/phase1_seed10/logs/phase1_guard_summary_YYYY_YYYYMMDDTHHMMSSZ.json`
+
+### 3.1 Top-level keys (current schema)
+
+- `started_at`
+- `completed_at`
+- `generated_by`
+- `guard_schema_version`
+- `target_year`
+- `category`
+- `logs_dir`
+- `fail_on_mismatch`
+- `guard_passed`
+- `mismatches`
+- `mismatch_fields`
+- `additional_guard_checks`
+- `additional_guard_check_results`
+- `missing_keys`
+- `skipped_checks`
+- `input_paths`
+- `check_results`
+
+### 3.2 Core judgment keys
+
+- `guard_passed`: final pass/fail boolean for this run
+- `mismatch_fields`: mismatch identifiers (primary root cause list)
+- `mismatches`: count of `mismatch_fields`
+
+### 3.3 Existing check groups (`check_results`)
+
+- `run_summary_load`
+- `required_summary_keys`
+- `output_files`
+- `visited_ledger`
+- `failed_ledger`
+- `internal_consistency`
+- `summary_vs_ledger_counts`
+- `failed_fetches_schema`
+- `manifest`
+
+### 3.4 Additional checks from TASK26
+
+- `additional_guard_checks`:
+  - `GX_SKIP_BREAKDOWN_SUM_MATCH`
+  - `GX_FAILED_REASON_COUNTS_SUM_MATCH`
+  - `GX_RECORDS_RELATIONS_MATCH`
+- `additional_guard_check_results`: per-check status/passed/value details
+- `missing_keys`: missing input keys (backward-compatible skip context)
+- `skipped_checks`: checks skipped for backward compatibility
+
+### 3.5 Data fields used by additional checks
+
+- `skipped_total`
+- `skip_breakdown` or `skipped_by_reason` (either accepted)
+- `failed_fetches_reason_counts`
+- `failed_fetches_total_ledger`
+- `existing_records_total`
+- `new_records_saved_total`
+- `records_total_after_run`
+- `records_saved_total` (semantic-aware check)
+
+### 3.6 Recommended read order (single-run)
+
+1. `guard_passed`
+2. `mismatch_fields`
+3. `additional_guard_check_results`
+4. `check_results.internal_consistency`
+5. `check_results.summary_vs_ledger_counts`
+6. `input_paths` (what was actually compared)
+
+## 4. History Summary (`run_compare_phase1_guard_history.py`)
+
+Typical file:
+
+- `data/.../phase1_guard_history_compare_YYYYMMDDTHHMMSSZ.json`
+
+### 4.1 Top-level keys
+
+- `started_at`
+- `completed_at`
+- `generated_by`
+- `current_summary_path`
+- `baseline_summary_path`
+- `comparison_compatible`
+- `compatibility_errors`
+- `compatibility_warnings`
+- `baseline_resolution_mode`
+- `baseline_candidates_checked`
+- `baseline_selected_reason`
+- `baseline_auto_search_dir`
+- `summary_glob_effective`
+- `baseline_candidate_paths`
+- `baseline_candidate_details`
+- `diffs`
+- `additional_guard_checks_diff`
+- `additional_guard_checks_changed_fields`
+- `additional_guard_check_transitions`
+- `additional_guard_checks_comparison_mode`
+- `additional_guard_checks_missing_in`
+- `regression_passed`
+- `regression_reasons`
+- `fail_on_regression`
+- `strict_compatibility`
+- `exit_code`
+- `exit_code_meaning`
+
+### 4.2 Compatibility block
+
+- `comparison_compatible`: whether baseline/current can be compared
+- `compatibility_errors`: hard incompatibility reasons
+- `strict_compatibility`: if true, incompatibility returns exit `3`
+
+### 4.3 Baseline resolution block
+
+- `baseline_resolution_mode`: `manual`, `auto_*`, `auto_not_found`
+- `baseline_auto_search_dir`: actual auto search directory
+- `baseline_candidates_checked`: number of candidates scanned
+- `baseline_selected_reason`: chosen baseline reason
+- `summary_glob_effective`: candidate glob used in auto mode
+
+### 4.4 Numeric/mismatch diffs
+
+`diffs` includes:
+
+- `records_saved_total`
+- `skipped_total`
+- `failed_fetches_total_ledger`
+- `visited_pages_total_ledger`
+- `mismatches`
+- `mismatch_fields` (`added` / `removed` / `common`)
+
+### 4.5 Additional check visualization (TASK27)
+
+- `additional_guard_checks_diff`:
+  - `changed_to_fail`
+  - `changed_to_pass`
+  - `changed_to_skipped`
+  - `changed_from_skipped`
+  - `unchanged_pass`
+  - `unchanged_fail`
+  - `unchanged_skipped`
+  - `added_checks`
+  - `removed_checks`
+- `additional_guard_checks_changed_fields`: flattened changed check list
+- `additional_guard_check_transitions`: check-by-check transition map
+- `additional_guard_checks_comparison_mode`:
+  - `both_present`, `current_only`, `baseline_only`, `both_missing`
+- `additional_guard_checks_missing_in`: which side lacks additional check payload
+
+### 4.6 Regression judgment (unchanged logic)
+
+History regression reasons are based on existing logic:
+
+- `guard_passed` baseline true -> current false
+- `mismatches` increase
+- new `mismatch_fields` added
+
+These are emitted in `regression_reasons`.
+
+## 5. Exit Codes (0/2/3)
+
+Exit code meaning comes from `phase1_guard_common.py` and summary `exit_code_meaning`.
+
+- `0`: pass (or no fail condition triggered by flags)
+- `2`: regression (for history with `--fail-on-regression`) or mismatch (for guard with `--fail-on-mismatch`)
+- `3`: incompatible (history with `--strict-compatibility`)
+
+### 5.1 CLI + flag mapping
+
+- Guard CLI:
+  - no `--fail-on-mismatch`: always writes summary, exit can remain `0`
+  - with `--fail-on-mismatch`: mismatches -> exit `2`
+- History CLI:
+  - with `--fail-on-regression`: regression -> exit `2`
+  - with `--strict-compatibility`: incompatible -> exit `3`
+
+## 6. Operations Read Order
+
+### 6.1 Human (local)
+
+1. check process exit code
+2. open summary JSON
+3. read `guard_passed` or `comparison_compatible` / `regression_passed`
+4. read `mismatch_fields` or `regression_reasons`
+5. read additional visualization fields for quick root-cause targeting
+
+### 6.2 CI
+
+1. gate on exit code (`0/2/3`)
+2. upload summary artifact
+3. parse:
+   - `compatibility_errors`
+   - `mismatch_fields`
+   - `additional_guard_checks_changed_fields`
+
+### 6.3 Triage priority
+
+1. `compatibility_errors`
+2. `mismatch_fields`
+3. `additional_guard_checks_changed_fields`
+4. `additional_guard_check_transitions`
+
+## 7. Fixture Reproduction (minimum)
+
+Base fixture directory:
+
+- `tests/fixtures/phase1_guard/`
+
+Commands:
+
+```bash
+# pass -> exit 0
+python run_compare_phase1_guard_history.py \
+  --current-summary tests/fixtures/phase1_guard/pass/current_pass_with_additional_2025.json \
+  --baseline-summary tests/fixtures/phase1_guard/pass/baseline_pass_with_additional_2025.json
+
+# regression -> exit 2
+python run_compare_phase1_guard_history.py \
+  --current-summary tests/fixtures/phase1_guard/regression/current_regression_with_additional_2025.json \
+  --baseline-summary tests/fixtures/phase1_guard/regression/baseline_regression_with_additional_2025.json \
+  --fail-on-regression
+
+# incompatible -> exit 3
+python run_compare_phase1_guard_history.py \
+  --current-summary tests/fixtures/phase1_guard/incompatible/current_incompatible_with_additional_2025.json \
+  --baseline-summary tests/fixtures/phase1_guard/incompatible/baseline_incompatible_2024.json \
+  --strict-compatibility
+```
+
+### 7.1 Matrix runner summary (one-command entry)
+
+Use one-command matrix execution:
+
+```bash
+python run_phase1_guard_fixture_matrix.py
+```
+
+Matrix summary file:
+
+- `data/phase1_seed10/logs/phase1_guard_fixture_matrix_YYYYMMDDTHHMMSSZ.json`
+
+Minimum keys to read:
+
+- `all_cases_passed`
+- `total_cases`
+- `passed_cases`
+- `failed_cases`
+- `cases` (each case result)
+  - `case_name`
+  - `expected_exit_code` (inner CLI expectation: `0/2/3`)
+  - `actual_exit_code`
+  - `pass_fail`
+  - `output_summary_path`
+- `wrapper_exit_code` (matrix wrapper exit: `0/1`)
+
+## 8. Backward Compatibility Notes (TASK26/27)
+
+- Old guard summaries may not include `additional_guard_check_results`.
+- History compare does not treat this as incompatibility.
+- Missing additional check payload is represented by:
+  - `additional_guard_checks_comparison_mode`
+  - `additional_guard_checks_missing_in`
+- This keeps comparison executable while making missing context explicit.

@@ -2,6 +2,28 @@
 
 This directory provides reproducible JSON inputs for Phase1 guard/history smoke checks.
 
+## One-command matrix runner (recommended)
+
+Run all fixture cases from `fixture_manifest.json`:
+
+```bash
+python run_phase1_guard_fixture_matrix.py
+```
+
+Optional fail-fast mode:
+
+```bash
+python run_phase1_guard_fixture_matrix.py --fail-fast
+```
+
+Wrapper exit code meanings:
+
+- `0`: matrix pass (all cases matched expected exit codes)
+- `1`: matrix fail (at least one mismatch or execution error)
+
+Important: inner CLI exit codes (`run_compare_phase1_guard_history.py`) are still `0/2/3`.
+The matrix runner treats those as case expectations and validates them per fixture.
+
 ## Cases
 
 - `pass`: compatible comparison, no regression, expected exit code `0`
@@ -51,3 +73,4 @@ Expected exit code: `3`
 
 - `--fail-on-regression`: return non-zero only when regression is detected (compatible comparison).
 - `--strict-compatibility`: return non-zero when compatibility checks fail.
+- matrix runner `--fail-fast`: stop at the first expected/actual mismatch.
