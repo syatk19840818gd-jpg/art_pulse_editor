@@ -114,6 +114,17 @@ Report CLI exit codes:
 - `0`: report generated
 - `1`: summary missing/invalid
 
+Optional strict policy for CI:
+
+```bash
+python run_phase1_guard_all_matrices_report.py --summary-path data/phase1_seed10/logs/phase1_guard_all_matrices_latest.json --fail-on-failed-matrix
+```
+
+Policy behavior:
+
+- default (flag omitted): readable summary -> `exit 0` even when `all_passed=false`
+- with `--fail-on-failed-matrix`: readable summary + `all_passed=false` -> `exit 1`
+
 ### Report CLI fixture matrix (TASK45)
 
 Run fixed report fixtures (valid/missing/bad_json) in one command:
@@ -127,11 +138,32 @@ Cases:
 - `report_valid_summary` -> expected exit `0`
 - `report_missing_summary` -> expected exit `1`
 - `report_bad_json_summary` -> expected exit `1`
+- `report_failed_summary_default_policy` -> expected exit `0`
+- `report_failed_summary_strict_policy` -> expected exit `1` (`--fail-on-failed-matrix`)
 
 Matrix wrapper exit codes:
 
 - `0`: all fixture cases matched expected result
 - `1`: at least one fixture case mismatch
+
+Policy-visibility keys in matrix `cases[]` (TASK47):
+
+- `fail_on_failed_matrix` (input flag used for the case)
+- `policy_expected` (manifest-defined expected policy)
+- `policy_actual` (read from report output JSON `exit_policy`)
+- `policy_match` (`policy_expected == policy_actual`)
+
+Policy guard keys in matrix `cases[]` (TASK48):
+
+- `policy_check_mode` (default: `enforce_when_available`)
+- `policy_guard_applied` (`policy_actual` is available)
+- `policy_guard_passed`
+- `policy_guard_reason`
+
+Guard behavior:
+
+- if `policy_actual` exists and `policy_check_mode=enforce_when_available`, `policy_match=false` makes the case fail
+- if `policy_actual` is unavailable (missing/bad_json), case keeps backward-compatible warning-only handling
 
 ## Cases
 

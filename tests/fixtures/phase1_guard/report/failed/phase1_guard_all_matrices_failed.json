@@ -1,0 +1,36 @@
+{
+  "all_passed": false,
+  "wrapper_exit_code": 1,
+  "started_at_utc": "2026-02-24T00:10:00Z",
+  "finished_at_utc": "2026-02-24T00:10:05Z",
+  "source_cli": "run_phase1_guard_all_matrices.py",
+  "execution_order": [
+    "lint",
+    "category",
+    "history"
+  ],
+  "executed_matrices": 3,
+  "matrices": [
+    {
+      "name": "lint",
+      "actual_exit_code": 0,
+      "pass_fail": "pass",
+      "summary_path": "data/phase1_seed10/logs/phase1_guard_lint_fixture_matrix_fixture.json"
+    },
+    {
+      "name": "category",
+      "actual_exit_code": 1,
+      "pass_fail": "fail",
+      "summary_path": "data/phase1_seed10/logs/phase1_guard_category_fixture_matrix_fixture.json"
+    },
+    {
+      "name": "history",
+      "actual_exit_code": 0,
+      "pass_fail": "pass",
+      "summary_path": "data/phase1_seed10/logs/phase1_guard_fixture_matrix_fixture.json"
+    }
+  ],
+  "warnings": [
+    "category:fixture_failed"
+  ]
+}

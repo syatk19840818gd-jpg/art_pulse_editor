@@ -16,6 +16,7 @@ DEFAULT_LOGS_DIR = "data/phase1_seed10/logs"
 OUTPUT_TEMPLATE = "phase1_guard_all_matrices_report_fixture_matrix_{timestamp}.json"
 REPORT_OUTPUT_TEMPLATE = "phase1_guard_all_matrices_report_fixture_{case_name}_{timestamp}.json"
 SOURCE_CLI = "run_phase1_guard_all_matrices_report_fixture_matrix.py"
+DEFAULT_POLICY_CHECK_MODE = "enforce_when_available"
 
 
 def parse_args() -> argparse.Namespace:
@@ -195,8 +196,14 @@ def evaluate_summary_checks(summary_obj: dict[str, Any], checks_raw: Any) -> tup
     return len(failures) == 0, failures
 
 
-def build_report_command(*, repo_root: Path, summary_path: Path, output_report: Path) -> list[str]:
-    return [
+def build_report_command(
+    *,
+    repo_root: Path,
+    summary_path: Path,
+    output_report: Path,
+    fail_on_failed_matrix: bool,
+) -> list[str]:
+    command = [
         sys.executable,
         str((repo_root / "run_phase1_guard_all_matrices_report.py").resolve()),
         "--summary-path",
@@ -204,6 +211,9 @@ def build_report_command(*, repo_root: Path, summary_path: Path, output_report: 
         "--output-json",
         str(output_report),
     ]
+    if fail_on_failed_matrix:
+        command.append("--fail-on-failed-matrix")
+    return command
 
 
 def main() -> int:
@@ -233,7 +243,10 @@ def main() -> int:
             "fail_fast": bool(args.fail_fast),
             "all_cases_passed": False,
             "cases": [],
-            "report_exit_code_meaning": {"0": "report_generated", "1": "summary_not_found_or_invalid"},
+            "report_exit_code_meaning": {
+                "0": "report_generated",
+                "1": "summary_not_found_or_invalid_or_failed_matrix_detected",
+            },
             "wrapper_exit_code_meaning": {"0": "matrix_pass", "1": "matrix_fail"},
             "wrapper_exit_code": 1,
         }
@@ -256,7 +269,10 @@ def main() -> int:
             "fail_fast": bool(args.fail_fast),
             "all_cases_passed": False,
             "cases": [],
-            "report_exit_code_meaning": {"0": "report_generated", "1": "summary_not_found_or_invalid"},
+            "report_exit_code_meaning": {
+                "0": "report_generated",
+                "1": "summary_not_found_or_invalid_or_failed_matrix_detected",
+            },
             "wrapper_exit_code_meaning": {"0": "matrix_pass", "1": "matrix_fail"},
             "wrapper_exit_code": 1,
         }
@@ -282,6 +298,13 @@ def main() -> int:
                     "actual_exit_code": None,
                     "summary_checks_passed": False,
                     "summary_check_failures": ["CASE_NOT_OBJECT"],
+                    "policy_check_mode": DEFAULT_POLICY_CHECK_MODE,
+                    "policy_expected": None,
+                    "policy_actual": None,
+                    "policy_match": False,
+                    "policy_guard_applied": False,
+                    "policy_guard_passed": False,
+                    "policy_guard_reason": "case_not_object",
                     "pass_fail": False,
                     "command": "",
                     "report_output_path": None,
@@ -297,6 +320,11 @@ def main() -> int:
         description = as_text(raw_case.get("description"))
         summary_path_raw = as_text(raw_case.get("summary_path"))
         expected_exit_code = safe_int(raw_case.get("expected_exit_code"))
+        fail_on_failed_matrix = as_bool(raw_case.get("fail_on_failed_matrix"), default=False)
+        policy_check_mode = as_text(raw_case.get("policy_check_mode")) or DEFAULT_POLICY_CHECK_MODE
+        policy_expected = as_text(raw_case.get("policy_expected")) or (
+            "fail_on_failed_matrix" if fail_on_failed_matrix else "default_report_only"
+        )
         expected_summary_checks = raw_case.get("expected_summary_checks")
 
         case_timestamp = f"{timestamp}_{index:02d}"
@@ -316,6 +344,13 @@ def main() -> int:
                     "actual_exit_code": None,
                     "summary_checks_passed": False,
                     "summary_check_failures": ["MISSING_REQUIRED_CASE_FIELDS"],
+                    "policy_check_mode": policy_check_mode,
+                    "policy_expected": policy_expected,
+                    "policy_actual": None,
+                    "policy_match": False,
+                    "policy_guard_applied": False,
+                    "policy_guard_passed": False,
+                    "policy_guard_reason": "missing_required_case_fields",
                     "pass_fail": False,
                     "command": "",
                     "report_output_path": None,
@@ -332,17 +367,24 @@ def main() -> int:
             repo_root=repo_root,
             summary_path=summary_path,
             output_report=output_report,
+            fail_on_failed_matrix=fail_on_failed_matrix,
         )
         command_text = " ".join(shlex.quote(part) for part in command)
 
         proc = subprocess.run(command, cwd=repo_root, check=False)
         actual_exit_code = int(proc.returncode)
 
+        report_obj: dict[str, Any] | None = None
+        report_load_error: str | None = None
+        if output_report.exists():
+            report_obj, report_load_error = load_json_object(output_report)
+        else:
+            report_load_error = f"REPORT_OUTPUT_MISSING:{output_report}"
+
         if expected_summary_checks is None:
             summary_checks_passed = True
             summary_check_failures: list[str] = []
         else:
-            report_obj, report_load_error = load_json_object(output_report)
             if report_load_error:
                 summary_checks_passed = False
                 summary_check_failures = [f"REPORT_LOAD_ERROR:{report_load_error}"]
@@ -352,8 +394,27 @@ def main() -> int:
                     report_obj, expected_summary_checks
                 )
 
+        policy_actual = None
+        if isinstance(report_obj, dict):
+            raw_policy_actual = report_obj.get("exit_policy")
+            if isinstance(raw_policy_actual, str) and raw_policy_actual.strip():
+                policy_actual = raw_policy_actual.strip()
+        policy_match = policy_actual == policy_expected
+        policy_guard_applied = policy_actual is not None
+        if not policy_guard_applied:
+            policy_guard_passed = True
+            policy_guard_reason = "policy_actual_unavailable_warning_only"
+        elif policy_check_mode == "enforce_when_available":
+            policy_guard_passed = policy_match
+            policy_guard_reason = (
+                "policy_match" if policy_match else "policy_mismatch_enforced"
+            )
+        else:
+            policy_guard_passed = True
+            policy_guard_reason = "policy_check_mode_warning_only"
+
         exit_code_matches = actual_exit_code == expected_exit_code
-        pass_fail = exit_code_matches and summary_checks_passed
+        pass_fail = exit_code_matches and summary_checks_passed and policy_guard_passed
         report_output_path = str(output_report) if output_report.exists() else None
 
         case_results.append(
@@ -363,6 +424,14 @@ def main() -> int:
                 "expected_exit_code": expected_exit_code,
                 "actual_exit_code": actual_exit_code,
                 "exit_code_match": exit_code_matches,
+                "fail_on_failed_matrix": fail_on_failed_matrix,
+                "policy_check_mode": policy_check_mode,
+                "policy_expected": policy_expected,
+                "policy_actual": policy_actual,
+                "policy_match": policy_match,
+                "policy_guard_applied": policy_guard_applied,
+                "policy_guard_passed": policy_guard_passed,
+                "policy_guard_reason": policy_guard_reason,
                 "summary_checks_passed": summary_checks_passed,
                 "summary_check_failures": summary_check_failures,
                 "pass_fail": pass_fail,
@@ -396,8 +465,19 @@ def main() -> int:
         "failed_cases": failed_cases,
         "fail_fast": bool(args.fail_fast),
         "all_cases_passed": all_cases_passed,
+        "policy_check_mode": DEFAULT_POLICY_CHECK_MODE,
+        "policy_check_modes_used": sorted(
+            {
+                as_text(row.get("policy_check_mode"), default=DEFAULT_POLICY_CHECK_MODE)
+                for row in case_results
+                if isinstance(row, dict)
+            }
+        ),
         "cases": case_results,
-        "report_exit_code_meaning": {"0": "report_generated", "1": "summary_not_found_or_invalid"},
+        "report_exit_code_meaning": {
+            "0": "report_generated",
+            "1": "summary_not_found_or_invalid_or_failed_matrix_detected",
+        },
         "wrapper_exit_code_meaning": {"0": "matrix_pass", "1": "matrix_fail"},
         "wrapper_exit_code": wrapper_exit_code,
         "stop_reason": stop_reason if stop_reason else None,

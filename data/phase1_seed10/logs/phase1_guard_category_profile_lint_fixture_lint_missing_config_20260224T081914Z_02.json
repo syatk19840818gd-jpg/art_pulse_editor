@@ -1,0 +1,22 @@
+{
+  "checked_at": "2026-02-24T08:19:14Z",
+  "source_cli": "run_phase1_guard_category_profile_lint.py",
+  "config_path": "/home/syatk/my_projects/art_pulse_editor/tests/fixtures/phase1_guard/lint/missing/phase1_guard_missing_config.json",
+  "config_exists": false,
+  "config_valid": false,
+  "config_error_code": "config_missing:file_not_found",
+  "config_error_detail": "config path does not exist: /home/syatk/my_projects/art_pulse_editor/tests/fixtures/phase1_guard/lint/missing/phase1_guard_missing_config.json",
+  "category_profile_source": "builtin_fallback",
+  "category_profile_config_loaded": false,
+  "category_profile_config_version_effective": "1.0",
+  "categories_effective": [
+    "artists_text",
+    "exhibitions_text"
+  ],
+  "output_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_guard_category_profile_lint_fixture_lint_missing_config_20260224T081914Z_02.json",
+  "exit_code": 1,
+  "exit_code_meaning": {
+    "0": "lint_pass",
+    "1": "lint_fail"
+  }
+}

@@ -35,6 +35,11 @@ def parse_args() -> argparse.Namespace:
         default="",
         help="optional report output JSON path",
     )
+    parser.add_argument(
+        "--fail-on-failed-matrix",
+        action="store_true",
+        help="return exit 1 when summary is readable but all_passed=false",
+    )
     return parser.parse_args()
 
 
@@ -194,14 +199,32 @@ def main() -> int:
     assert summary_obj is not None
 
     report = _extract_report(summary_obj, summary_path)
+    exit_policy = "fail_on_failed_matrix" if args.fail_on_failed_matrix else "default_report_only"
+    if args.fail_on_failed_matrix and not _as_bool(report.get("all_passed")):
+        exit_reason = "failed_matrix_detected"
+        exit_code = 1
+    else:
+        exit_reason = "report_generated"
+        exit_code = 0
+
+    report["fail_on_failed_matrix"] = bool(args.fail_on_failed_matrix)
+    report["exit_policy"] = exit_policy
+    report["exit_reason"] = exit_reason
+    report["report_exit_code"] = exit_code
+    report["report_exit_code_meaning"] = {
+        "0": "report_generated",
+        "1": "summary_not_found_or_invalid_or_failed_matrix_detected",
+    }
+
     _print_report(report)
+    print(f"[REPORT] exit_policy={exit_policy} exit_reason={exit_reason} exit_code={exit_code}")
 
     if args.output_json:
         output_path = resolve_logs_dir(args.output_json)
         write_summary_json(output_path, report)
         print(f"[REPORT] output_json={output_path}")
 
-    return 0
+    return exit_code
 
 
 if __name__ == "__main__":

@@ -591,11 +591,22 @@ Report output keys:
 - `execution_order`
 - `failed_matrices` (`name` / `actual_exit_code` / `summary_path`)
 - `child_summary_paths`
+- `fail_on_failed_matrix`
+- `exit_policy`
+- `exit_reason`
+- `report_exit_code`
 
 Report CLI exit codes:
 
 - `0`: report generated
 - `1`: summary not found or invalid JSON/schema
+
+Policy option:
+
+- `--fail-on-failed-matrix`
+  - summary readable + `all_passed=true` -> `0`
+  - summary readable + `all_passed=false` -> `1`
+  - summary missing/invalid -> `1` (same as default)
 
 ### 7.7 Report CLI fixture matrix summary (TASK45)
 
@@ -617,7 +628,32 @@ Minimum keys to read:
 - `cases[].summary_checks_passed`
 - `cases[].summary_check_failures`
 - `cases[].report_output_path`
+- `cases[].fail_on_failed_matrix`
+- `cases[].policy_expected` (manifest-defined)
+- `cases[].policy_actual` (read from report output `exit_policy`)
+- `cases[].policy_match`
+- `cases[].policy_check_mode`
+- `cases[].policy_guard_applied`
+- `cases[].policy_guard_passed`
+- `cases[].policy_guard_reason`
 - `wrapper_exit_code` (`0=matrix_pass`, `1=matrix_fail`)
+
+TASK46 policy cases included:
+
+- `report_failed_summary_default_policy` (exit `0`)
+- `report_failed_summary_strict_policy` (exit `1`, with `--fail-on-failed-matrix`)
+
+TASK47 read-note:
+
+- strict case should record `policy_actual=fail_on_failed_matrix`
+- default case should record `policy_actual=default_report_only`
+- when report JSON is not generated (missing/bad_json), `policy_actual` can be `null`
+
+TASK48 policy guard note:
+
+- summary top-level keeps `policy_check_mode` (default `enforce_when_available`)
+- when `policy_actual` exists and `policy_match=false`, matrix case becomes fail
+- when `policy_actual` is unavailable (missing/bad_json), keep warning-only backward compatibility
 
 ## 8. Backward Compatibility Notes (TASK26/27)
 

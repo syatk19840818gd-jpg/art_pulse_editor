@@ -1,6 +1,6 @@
 # 04_TASK_PROGRESS_LOG.md
 
-最終更新: 2026-02-24 17:01 JST  
+最終更新: 2026-02-24 17:22 JST  
 対象プロジェクト: ART_PULSE_EDITOR（Phase1 seed10 / Guard運用整備）  
 位置づけ: 実装進捗ログ（01=SSOT、02=索引、03=現行運用タスクの補助ログ）
 
@@ -29,8 +29,8 @@
 
 ## 2. 全体の進捗サマリ（現時点）
 
-- 完了: **TASK 1 ～ TASK 43**
-- 次の予定: **TASK 44**
+- 完了: **TASK 1 ～ TASK 46**
+- 次の予定: **TASK 47**
 - 直近の重点:
   - TarutaniRAG 側で比較/guard の「型」を作成 → Phase1本体（Exhibitions/Artists）へ横展開
   - Phase1 guard 本体 / history 比較 / fixture / matrix / schema文書化 / category文脈まで整備
@@ -463,16 +463,15 @@
 
 ---
 
-## 10. 現在の次タスク（TASK44）
+## 10. 現在の次タスク（TASK47）
 
-[ ] 44) 統合matrix summaryの軽量レポートCLIを追加し、CI失敗時の切り分けを高速化する（安全側）
+[ ] 47) report fixture matrixに終了ポリシー可視化キーを追加し、CIログ読解を固定化する（安全側）
 - 目的：
-  - `run_phase1_guard_all_matrices.py` が出力する統合summaryを1画面で読めるレポートへ整形し、失敗matrixの特定を即時化する
+  - report fixture matrix の `cases[]` で default/strict ポリシー差（`--fail-on-failed-matrix`）を明示保存し、CIログ読解をブレなくする
 - 制約：
-  - guard/history/lint 各CLIおよび各matrix wrapperの判定ロジックは変更しない（summary読取CLIのみ追加）
+  - guard/history/lint/各matrix本体ロジックは変更しない（report fixture matrix可視化のみ）
 - 成立条件：
-  - `--summary-path` / `--latest` の2経路でレポート生成ができる
-  - `all_passed` / 失敗matrix名 / `actual_exit_code` / `summary_path` を最低限出力できる
+  - `fail_on_failed_matrix` / `policy_expected` / `policy_actual` / `policy_match` 相当を summary に保存
   - 03 の CHANGELOG に反映
 
 ---
@@ -534,3 +533,50 @@
 - 統合summary保存先：
   - `data/phase1_seed10/logs/phase1_guard_all_matrices_20260224T075951Z.json`
   - `data/phase1_seed10/logs/phase1_guard_all_matrices_latest.json`
+
+## 14. TASK44 実行ログ（統合summaryレポートCLI）
+
+[x] 44) 統合matrix summaryの軽量レポートCLIを追加し、CI失敗時の切り分けを高速化する（安全側）
+- 追加ファイル：
+  - `run_phase1_guard_all_matrices_report.py`
+- 実装内容：
+  - `--summary-path` / `--latest` の2経路で統合summaryを読取
+  - `all_passed` / `wrapper_exit_code` / `execution_order` / `failed_matrices` / `child_summary_paths` を短く出力
+  - 任意 `--output-json` でレポートJSONを保存
+- 動作確認：
+  - report CLI の指定コマンドで exit 0 を確認
+
+## 15. TASK45 実行ログ（report fixture matrix）
+
+[x] 45) report CLIの固定再現fixtureを追加し、summary欠落/破損時の挙動を1コマンドで検証できるようにする（安全側）
+- 追加ファイル：
+  - `tests/fixtures/phase1_guard/report_fixture_manifest.json`
+  - `run_phase1_guard_all_matrices_report_fixture_matrix.py`
+  - `tests/fixtures/phase1_guard/report/valid/phase1_guard_all_matrices_valid.json`
+  - `tests/fixtures/phase1_guard/report/bad_json/phase1_guard_all_matrices_bad.json`
+- 実装内容：
+  - valid/missing/bad_json の3ケースを固定再現
+  - matrix summary に expected/actual exit と summary checks を保存
+- 動作確認：
+  - `run_phase1_guard_all_matrices_report_fixture_matrix.py` で exit 0
+
+## 16. TASK46 実行ログ（report終了ポリシー拡張）
+
+[x] 46) report CLIに `--fail-on-failed-matrix` を追加し、統合summaryが失敗状態なら非0終了を選べるようにした（安全側）
+- 変更ファイル：
+  - `run_phase1_guard_all_matrices_report.py`
+  - `run_phase1_guard_all_matrices_report_fixture_matrix.py`
+  - `tests/fixtures/phase1_guard/report_fixture_manifest.json`
+  - `tests/fixtures/phase1_guard/report/failed/phase1_guard_all_matrices_failed.json`
+- 実装内容：
+  - 既定（フラグなし）：後方互換で summary読取成功時は exit 0
+  - strict（`--fail-on-failed-matrix`）：`all_passed=false` を exit 1 へ昇格
+  - 追加メタ：`fail_on_failed_matrix` / `exit_policy` / `exit_reason` / `report_exit_code`
+  - report fixture matrix を 5ケースへ拡張（default/strict差を固定再現）
+- 動作確認（要点）：
+  - latest summary（all_passed=true）で strict指定しても exit 0
+  - failed fixture summary（all_passed=false）で
+    - フラグなし exit 0
+    - strict指定 exit 1
+  - `--summary-path /tmp/not_found.json --fail-on-failed-matrix` で exit 1
+  - `run_phase1_guard_all_matrices_report_fixture_matrix.py` で exit 0（5ケース）
