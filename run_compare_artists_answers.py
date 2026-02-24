@@ -12,6 +12,7 @@ from typing import Any
 
 ANSWER_SCRIPT_PATH = Path("run_answer_artists_seed10.py")
 OUTPUT_DIR = Path("data/phase1_seed10/derived/answer")
+ANSWER_STATUS_PRIORITY = {"ok": 0, "fallback": 1, "error": 2}
 
 
 def utc_now_iso() -> str:
@@ -85,11 +86,30 @@ def build_mode_summary(answer_obj: dict[str, Any], summary_obj: dict[str, Any]) 
     evidence = answer_obj.get("evidence", [])
     evidence_count = len(evidence) if isinstance(evidence, list) else 0
     answer_chars = int(summary_obj.get("answer_chars", len(answer_text)))
+    output_valid_raw = summary_obj.get("output_valid")
+    if output_valid_raw is None:
+        output_valid_raw = answer_obj.get("output_valid")
+
+    output_valid: bool | None
+    if isinstance(output_valid_raw, bool):
+        output_valid = output_valid_raw
+    elif isinstance(output_valid_raw, str):
+        normalized = output_valid_raw.strip().lower()
+        if normalized in {"true", "1", "yes"}:
+            output_valid = True
+        elif normalized in {"false", "0", "no"}:
+            output_valid = False
+        else:
+            output_valid = None
+    else:
+        output_valid = None
+
     return {
         "context_input_mode": str(summary_obj.get("context_input_mode", "")),
         "answer_status": str(answer_obj.get("answer_status", summary_obj.get("answer_status", ""))),
         "answer_chars": answer_chars,
         "evidence_count": evidence_count,
+        "output_valid": output_valid,
         "numeric_tokens": extract_numeric_tokens(answer_text),
     }
 
@@ -106,6 +126,11 @@ def parse_args() -> argparse.Namespace:
         "--fail-on-mismatch",
         action="store_true",
         help="return non-zero when mismatch_fields is not empty",
+    )
+    parser.add_argument(
+        "--fail-on-regression",
+        action="store_true",
+        help="return non-zero when regression (degradation) is detected",
     )
     return parser.parse_args()
 
@@ -163,6 +188,66 @@ def main() -> int:
     if query_numeric != fixed_numeric:
         mismatch_fields.append("numeric_tokens")
 
+    regression_reasons: list[str] = []
+    regression_warnings: list[str] = []
+    regression_check_fields = ["answer_status", "output_valid", "evidence_count"]
+
+    baseline_info = query_info
+    current_info = fixed_info
+    baseline_label = "query_rebuild"
+    current_label = "fixed_context"
+
+    baseline_status = str(baseline_info.get("answer_status", "")).strip()
+    current_status = str(current_info.get("answer_status", "")).strip()
+    baseline_status_rank = ANSWER_STATUS_PRIORITY.get(baseline_status)
+    current_status_rank = ANSWER_STATUS_PRIORITY.get(current_status)
+    if baseline_status and current_status:
+        if baseline_status_rank is None:
+            regression_warnings.append(
+                f"unknown_answer_status:{baseline_label}:{baseline_status}"
+            )
+        if current_status_rank is None:
+            regression_warnings.append(
+                f"unknown_answer_status:{current_label}:{current_status}"
+            )
+        if (
+            baseline_status_rank is not None
+            and current_status_rank is not None
+            and current_status_rank > baseline_status_rank
+        ):
+            regression_reasons.append(
+                f"answer_status_regressed:{baseline_status}->{current_status}"
+            )
+    else:
+        regression_warnings.append("missing_field_for_regression_check:answer_status")
+
+    baseline_output_valid = baseline_info.get("output_valid")
+    current_output_valid = current_info.get("output_valid")
+    if isinstance(baseline_output_valid, bool) and isinstance(current_output_valid, bool):
+        if baseline_output_valid and not current_output_valid:
+            regression_reasons.append("output_valid_regressed:true->false")
+    else:
+        regression_warnings.append("missing_field_for_regression_check:output_valid")
+
+    baseline_evidence_count = int(baseline_info["evidence_count"])
+    current_evidence_count = int(current_info["evidence_count"])
+    if current_evidence_count < baseline_evidence_count:
+        regression_reasons.append(
+            f"evidence_count_decreased:{baseline_evidence_count}->{current_evidence_count}"
+        )
+
+    regression_detected = bool(regression_reasons)
+    guard_passed = not regression_detected
+
+    exit_code = 0
+    exit_reason = "comparison_completed"
+    if args.fail_on_regression and regression_detected:
+        exit_code = 2
+        exit_reason = "regression_detected"
+    elif args.fail_on_mismatch and mismatch_fields:
+        exit_code = 2
+        exit_reason = "mismatch_detected"
+
     compare_summary = {
         "started_at": started_at,
         "completed_at": utc_now_iso(),
@@ -171,7 +256,17 @@ def main() -> int:
         "context_path": str(context_path),
         "k_requested": args.k,
         "fail_on_mismatch": bool(args.fail_on_mismatch),
+        "fail_on_regression": bool(args.fail_on_regression),
         "mismatch_fields": mismatch_fields,
+        "guard_passed": guard_passed,
+        "regression_detected": regression_detected,
+        "regression_reasons": regression_reasons,
+        "regression_check_fields": regression_check_fields,
+        "regression_warnings": regression_warnings,
+        "regression_baseline_mode": baseline_label,
+        "regression_current_mode": current_label,
+        "compare_exit_code": exit_code,
+        "exit_reason": exit_reason,
         "query_rebuild": {
             "output_path": str(query_output_path),
             "summary_path": str(query_summary_path),
@@ -199,11 +294,9 @@ def main() -> int:
         f"query_chars={query_info['answer_chars']} fixed_chars={fixed_info['answer_chars']}"
     )
     print(f"[DONE] mismatch_fields={mismatch_fields}")
+    print(f"[DONE] guard_passed={guard_passed} regression_reasons={regression_reasons}")
     print(f"[DONE] summary={summary_path}")
-
-    if args.fail_on_mismatch and mismatch_fields:
-        return 2
-    return 0
+    return exit_code
 
 
 if __name__ == "__main__":

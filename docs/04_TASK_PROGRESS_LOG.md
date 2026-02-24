@@ -1,6 +1,6 @@
 # 04_TASK_PROGRESS_LOG.md
 
-最終更新: 2026-02-24 20:02 JST  
+最終更新: 2026-02-24 21:09 JST  
 対象プロジェクト: ART_PULSE_EDITOR（Phase1 seed10 / Guard運用整備）  
 位置づけ: 実装進捗ログ（01=SSOT、02=索引、03=現行運用タスクの補助ログ）
 
@@ -29,8 +29,8 @@
 
 ## 2. 全体の進捗サマリ（現時点）
 
-- 完了: **TASK 1 ～ TASK 62**
-- 次の予定: **TASK 63**
+- 完了: **TASK 1 ～ TASK 65**
+- 次の予定: **TASK 66**
 - 直近の重点:
   - TarutaniRAG 側で比較/guard の「型」を作成 → Phase1本体（Exhibitions/Artists）へ横展開
   - Phase1 guard 本体 / history 比較 / fixture / matrix / schema文書化 / category文脈まで整備
@@ -463,17 +463,17 @@
 
 ---
 
-## 10. 現在の次タスク（TASK63）
+## 10. 現在の次タスク（TASK66）
 
-[ ] 63) artists_text 回答比較CLIに最小回帰ガードを追加し、差分悪化時のみ非0終了にする（本体前進）
+[ ] 66) artists回答QA統合CLIにcontext固定再現モードを追加し、日次runと再現runの入口を一本化する（本体前進）
 - 目的：
-  - TASK61の単純差分比較を「差分」と「回帰」に分離し、運用ノイズを抑えて悪化のみ検知する
+  - query再生成とcontext固定再現を同一CLIで運用し、日次確認と再現確認の導線を一本化する
 - 制約：
   - 取得ループ内LLM加工は追加しない（Post-fetch分離）
   - 既存Exhibitions/Tarutani/guard/history/lint/matrixの既存処理を壊さない
 - 成立条件：
-  - `run_compare_artists_answers.py --fail-on-regression` を追加し、回帰時のみ非0終了できる
-  - summaryへ `guard_passed` / `regression_reasons` / `mismatch_fields` を保存できる
+  - `run_artists_answer_qa_smoke.py` で `--query` / `--context-path` を排他で扱える
+  - summaryへ `qa_input_mode` / `context_path_effective` / `steps[].exit_code` を保存できる
   - 03 / 04 のログ更新に反映できる
 
 ---
@@ -934,3 +934,91 @@
 - 生成物：
   - `data/phase1_seed10/derived/answer/artists_text_answer_summary_20260224T110049Z.json`（正常）
   - `data/phase1_seed10/derived/answer/artists_text_answer_summary_20260224T110214Z.json`（無効ケース）
+
+## 33. TASK63 実行ログ（artists 回答比較の最小回帰ガード）
+
+[x] 63) artists_text 回答比較CLIに最小回帰ガードを追加し、差分悪化時のみ非0終了にする（本体前進）
+- 変更ファイル：
+  - `run_compare_artists_answers.py`
+  - `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md`
+  - `docs/04_TASK_PROGRESS_LOG.md`
+- 実装内容：
+  - `run_compare_artists_answers.py` に `--fail-on-regression` を追加（既定は後方互換で `False`）
+  - 差分 (`mismatch_fields`) と回帰 (`regression_reasons`) を分離
+  - 回帰条件（最小）：
+    - `answer_status` 悪化（`ok < fallback < error`）
+    - `output_valid` 悪化（`true -> false`）
+    - `evidence_count` 減少
+  - summaryへ `fail_on_regression` / `guard_passed` / `regression_detected` / `regression_reasons` / `regression_warnings` / `compare_exit_code` / `exit_reason` を追加
+- 動作確認（2026-02-24）：
+  - 通常系（外向き接続あり）：
+    - `python run_build_artists_context_seed10.py --query "contemporary painting"` → exit 0
+    - `python run_answer_artists_seed10.py --question "この検索結果から注目作家の傾向を教えて" --query "contemporary painting" --fail-on-invalid-output` → exit 0
+    - `python run_compare_artists_answers.py --question "この検索結果から注目作家の傾向を教えて" --query "contemporary painting" --context-path "data/phase1_seed10/derived/context/artists_text_context_20260224T111221Z.json"` → exit 0
+    - `python run_compare_artists_answers.py --question "この検索結果から注目作家の傾向を教えて" --query "contemporary painting" --context-path "data/phase1_seed10/derived/context/artists_text_context_20260224T111221Z.json" --fail-on-regression` → exit 0（`guard_passed=true`）
+  - 回帰系（意図的な無効context）：
+    - `python run_compare_artists_answers.py --question "この検索結果から注目作家の傾向を教えて" --query "contemporary painting" --context-path "/tmp/artists_invalid_context_task63.json" --fail-on-regression` → exit 2
+    - `guard_passed=false`
+    - `regression_reasons=['output_valid_regressed:true->false','evidence_count_decreased:5->1']`
+  - 既存互換：
+    - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+- 生成物：
+  - `data/phase1_seed10/derived/answer/artists_text_answer_compare_20260224T111318Z.json`
+  - `data/phase1_seed10/derived/answer/artists_text_answer_compare_20260224T111347Z.json`
+  - `data/phase1_seed10/derived/answer/artists_text_answer_compare_20260224T111430Z.json`
+
+## 34. TASK64 実行ログ（artists 回答QA統合スモークCLI）
+
+[x] 64) artists回答導線のQA統合スモークCLIを追加し、context生成→回答→比較を1コマンドで実行できるようにする（本体前進）
+- 変更ファイル：
+  - `run_artists_answer_qa_smoke.py`（新規）
+  - `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md`
+  - `docs/04_TASK_PROGRESS_LOG.md`
+- 実装内容：
+  - `run_artists_answer_qa_smoke.py` を追加し、以下を順次実行する統合入口を実装
+    - context build（`run_build_artists_context_seed10.py`）
+    - answer generate（`run_answer_artists_seed10.py --fail-on-invalid-output`）
+    - answer compare（`run_compare_artists_answers.py`、`--fail-on-regression` 任意）
+  - QA summary に `all_passed` / `wrapper_exit_code` / `steps[].name|command|exit_code|output_paths` を保存
+  - wrapper 終了コードを `0=all_passed / 1=any_step_failed` で固定
+- 動作確認（2026-02-24）：
+  - sandbox内実行（ネットワーク制約確認）：
+    - `python run_artists_answer_qa_smoke.py --question "この検索結果から注目作家の傾向を教えて" --query "contemporary painting"` → exit 1
+    - 要因：`context_build` が DNS失敗（`Temporary failure in name resolution`）
+  - 外向き接続付きで再実行：
+    - `python run_artists_answer_qa_smoke.py --question "この検索結果から注目作家の傾向を教えて" --query "contemporary painting"` → exit 0
+    - `python run_artists_answer_qa_smoke.py --question "この検索結果から注目作家の傾向を教えて" --query "contemporary painting" --fail-on-regression` → exit 0
+    - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+- 生成物：
+  - `data/phase1_seed10/derived/answer/artists_answer_qa_smoke_summary_20260224T112201Z.json`（sandbox DNS失敗 run）
+  - `data/phase1_seed10/derived/answer/artists_answer_qa_smoke_summary_20260224T112405Z.json`（通常 run）
+  - `data/phase1_seed10/derived/answer/artists_answer_qa_smoke_summary_20260224T112518Z.json`（`--fail-on-regression` run）
+
+## 35. TASK65 実行ログ（artists 根拠整形フォールバック最小強化）
+
+[x] 65) artists回答の根拠整形を最小強化し、excerpt/headline欠落時フォールバックを安定化する（本体前進）
+- 変更ファイル：
+  - `run_answer_artists_seed10.py`
+  - `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md`
+  - `docs/04_TASK_PROGRESS_LOG.md`
+- 実装内容：
+  - `run_answer_artists_seed10.py` に raw参照インデックス（record_id/source_url）を追加
+  - evidence整形のフォールバックを追加
+    - `excerpt` 欠落時：`headline_ja` → raw `text` 断片（260字）
+    - `headline_ja` 欠落時：raw `headline_ja` → `excerpt` 先頭（80字）
+  - summary / answer payload に以下メタを追加
+    - `evidence_fallback_excerpt_count`
+    - `evidence_fallback_headline_count`
+    - `evidence_source_row_missing_count`
+  - `--fail-on-invalid-output` の既存終了規約は維持
+- 動作確認（2026-02-24）：
+  - `python run_build_artists_context_seed10.py --query "contemporary painting"` → exit 0
+  - `python run_answer_artists_seed10.py --question "この検索結果から注目作家の傾向を教えて" --query "contemporary painting" --fail-on-invalid-output` → exit 0
+  - `python run_compare_artists_answers.py --question "この検索結果から注目作家の傾向を教えて" --query "contemporary painting" --context-path "data/phase1_seed10/derived/context/artists_text_context_20260224T120544Z.json"` → exit 0
+  - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+  - 欠落再現（/tmp 一時context）：
+    - `python run_answer_artists_seed10.py --question "この検索結果から注目作家の傾向を教えて" --context-path /tmp/artists_context_task65_missing_excerpt_headline.json --fail-on-invalid-output` → exit 0
+    - `evidence_fallback_excerpt_count=2` / `evidence_fallback_headline_count=2` / `output_valid=true` を確認
+- 生成物：
+  - `data/phase1_seed10/derived/answer/artists_text_answer_summary_20260224T120624Z.json`
+  - `data/phase1_seed10/derived/answer/artists_text_answer_summary_20260224T120844Z.json`

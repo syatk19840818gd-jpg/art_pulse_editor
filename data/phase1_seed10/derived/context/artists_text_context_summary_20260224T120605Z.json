@@ -1,0 +1,23 @@
+{
+  "started_at": "2026-02-24T12:06:02Z",
+  "completed_at": "2026-02-24T12:06:05Z",
+  "query": "contemporary painting",
+  "k_requested": 5,
+  "k_returned": 5,
+  "excerpt_chars": 700,
+  "input_paths": {
+    "search_results": "data/phase1_seed10/derived/vector/search/artists_text_search_results_20260224T120605Z.jsonl",
+    "search_summary": "data/phase1_seed10/derived/vector/search/artists_text_search_summary_20260224T120605Z.json",
+    "raw_by_fair": {
+      "frieze_london": "data/phase1_seed10/raw/artists_frieze_london_2025.jsonl",
+      "liste": "data/phase1_seed10/raw/artists_liste_2025.jsonl"
+    }
+  },
+  "output_paths": {
+    "context": "data/phase1_seed10/derived/context/artists_text_context_20260224T120605Z.json",
+    "summary": "data/phase1_seed10/derived/context/artists_text_context_summary_20260224T120605Z.json"
+  },
+  "missing_source_count": 0,
+  "empty_excerpt_count": 0,
+  "excerpt_truncated_count": 5
+}

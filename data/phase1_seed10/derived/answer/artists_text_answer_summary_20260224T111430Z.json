@@ -1,0 +1,26 @@
+{
+  "started_at": "2026-02-24T11:14:23Z",
+  "completed_at": "2026-02-24T11:14:30Z",
+  "source_cli": "run_answer_artists_seed10.py",
+  "question": "この検索結果から注目作家の傾向を教えて",
+  "query": "invalid",
+  "context_input_mode": "fixed_context",
+  "context_path": "/tmp/artists_invalid_context_task63.json",
+  "context_summary_path": "/tmp/artists_invalid_context_task63.json",
+  "k_requested": 5,
+  "k_returned": 1,
+  "answer_status": "ok",
+  "answer_chars": 233,
+  "output_valid": false,
+  "invalid_reasons": [
+    "empty_evidence_value:0.source_url",
+    "empty_evidence_value:0.record_id",
+    "empty_evidence_value:0.excerpt"
+  ],
+  "fail_on_invalid_output": false,
+  "output_paths": {
+    "answer_json": "data/phase1_seed10/derived/answer/artists_text_answer_20260224T111430Z.json",
+    "summary_json": "data/phase1_seed10/derived/answer/artists_text_answer_summary_20260224T111430Z.json"
+  },
+  "warnings": []
+}

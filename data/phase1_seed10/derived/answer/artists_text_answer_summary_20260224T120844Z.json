@@ -1,0 +1,25 @@
+{
+  "started_at": "2026-02-24T12:08:10Z",
+  "completed_at": "2026-02-24T12:08:44Z",
+  "source_cli": "run_answer_artists_seed10.py",
+  "question": "この検索結果から注目作家の傾向を教えて",
+  "query": "contemporary painting",
+  "context_input_mode": "fixed_context",
+  "context_path": "/tmp/artists_context_task65_missing_excerpt_headline.json",
+  "context_summary_path": "/tmp/artists_context_task65_missing_excerpt_headline.json",
+  "k_requested": 5,
+  "k_returned": 5,
+  "answer_status": "ok",
+  "answer_chars": 635,
+  "evidence_fallback_excerpt_count": 2,
+  "evidence_fallback_headline_count": 2,
+  "evidence_source_row_missing_count": 0,
+  "output_valid": true,
+  "invalid_reasons": [],
+  "fail_on_invalid_output": true,
+  "output_paths": {
+    "answer_json": "data/phase1_seed10/derived/answer/artists_text_answer_20260224T120844Z.json",
+    "summary_json": "data/phase1_seed10/derived/answer/artists_text_answer_summary_20260224T120844Z.json"
+  },
+  "warnings": []
+}

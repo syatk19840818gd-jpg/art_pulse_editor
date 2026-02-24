@@ -1,0 +1,61 @@
+{
+  "started_at": "2026-02-24T11:13:18Z",
+  "completed_at": "2026-02-24T11:13:47Z",
+  "question": "この検索結果から注目作家の傾向を教えて",
+  "query": "contemporary painting",
+  "context_path": "data/phase1_seed10/derived/context/artists_text_context_20260224T111221Z.json",
+  "k_requested": 5,
+  "fail_on_mismatch": false,
+  "fail_on_regression": true,
+  "mismatch_fields": [
+    "answer_chars",
+    "numeric_tokens"
+  ],
+  "guard_passed": true,
+  "regression_detected": false,
+  "regression_reasons": [],
+  "regression_check_fields": [
+    "answer_status",
+    "output_valid",
+    "evidence_count"
+  ],
+  "regression_warnings": [],
+  "regression_baseline_mode": "query_rebuild",
+  "regression_current_mode": "fixed_context",
+  "compare_exit_code": 0,
+  "exit_reason": "comparison_completed",
+  "query_rebuild": {
+    "output_path": "data/phase1_seed10/derived/answer/artists_text_answer_20260224T111336Z.json",
+    "summary_path": "data/phase1_seed10/derived/answer/artists_text_answer_summary_20260224T111336Z.json",
+    "context_input_mode": "query_rebuild",
+    "answer_status": "ok",
+    "answer_chars": 700,
+    "evidence_count": 5,
+    "output_valid": true,
+    "numeric_tokens": []
+  },
+  "fixed_context": {
+    "output_path": "data/phase1_seed10/derived/answer/artists_text_answer_20260224T111347Z.json",
+    "summary_path": "data/phase1_seed10/derived/answer/artists_text_answer_summary_20260224T111347Z.json",
+    "context_input_mode": "fixed_context",
+    "answer_status": "ok",
+    "answer_chars": 580,
+    "evidence_count": 5,
+    "output_valid": true,
+    "numeric_tokens": [
+      "60",
+      "45",
+      "200"
+    ]
+  },
+  "differences": {
+    "answer_chars_delta": 120,
+    "evidence_count_delta": 0,
+    "numeric_only_in_query_rebuild": [],
+    "numeric_only_in_fixed_context": [
+      "45",
+      "60",
+      "200"
+    ]
+  }
+}

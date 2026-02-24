@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -16,11 +17,17 @@ from openai import OpenAI
 
 BUILD_CONTEXT_SCRIPT_PATH = Path("run_build_artists_context_seed10.py")
 OUTPUT_DIR = Path("data/phase1_seed10/derived/answer")
+RAW_INPUT_PATHS = {
+    "frieze_london": Path("data/phase1_seed10/raw/artists_frieze_london_2025.jsonl"),
+    "liste": Path("data/phase1_seed10/raw/artists_liste_2025.jsonl"),
+}
 
 DEFAULT_TOP_K = 5
 DEFAULT_MODEL = "gpt-5-mini"
 DEFAULT_MAX_ANSWER_CHARS = 1200
 EVIDENCE_REQUIRED_KEYS = ("source_url", "record_id", "score", "excerpt")
+DEFAULT_EXCERPT_FALLBACK_CHARS = 260
+DEFAULT_HEADLINE_FALLBACK_CHARS = 80
 
 
 def utc_now_iso() -> str:
@@ -32,8 +39,29 @@ def write_json(path: Path, payload: dict[str, Any]) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def read_jsonl(path: Path) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    with path.open("r", encoding="utf-8") as handle:
+        for line in handle:
+            raw = line.strip()
+            if not raw:
+                continue
+            try:
+                obj = json.loads(raw)
+            except json.JSONDecodeError:
+                continue
+            if isinstance(obj, dict):
+                rows.append(obj)
+    return rows
+
+
 def normalize_whitespace(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
+
+
+def build_record_id(fair_slug: str, source_url: str, text_hash: str) -> str:
+    payload = f"{fair_slug.strip()}\n{source_url.strip()}\n{text_hash.strip()}"
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
 def parse_output_path(stdout: str, marker: str) -> Path | None:
@@ -101,6 +129,41 @@ def sort_context_items_by_rank(context_items: list[dict[str, Any]]) -> list[dict
         context_items,
         key=lambda item: int(item.get("rank", 10**9)),
     )
+
+
+def load_artists_raw_indices() -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, Any]], list[str]]:
+    by_record_id: dict[str, dict[str, Any]] = {}
+    by_source_url: dict[str, dict[str, Any]] = {}
+    warnings: list[str] = []
+
+    for fair_slug, raw_path in RAW_INPUT_PATHS.items():
+        if not raw_path.exists():
+            warnings.append(f"artists_raw_missing_for_fallback:{fair_slug}:{raw_path}")
+            continue
+        for row in read_jsonl(raw_path):
+            source_url = normalize_whitespace(str(row.get("source_url") or ""))
+            if source_url and source_url not in by_source_url:
+                by_source_url[source_url] = row
+
+            text_hash = normalize_whitespace(str(row.get("text_hash") or ""))
+            fair_slug_value = normalize_whitespace(str(row.get("fair_slug") or fair_slug))
+            if not source_url or not text_hash or not fair_slug_value:
+                continue
+            record_id = build_record_id(
+                fair_slug=fair_slug_value,
+                source_url=source_url,
+                text_hash=text_hash,
+            )
+            if record_id not in by_record_id:
+                by_record_id[record_id] = row
+    return by_record_id, by_source_url, warnings
+
+
+def truncate_for_fallback(text: str, max_chars: int) -> str:
+    normalized = normalize_whitespace(text)
+    if len(normalized) <= max_chars:
+        return normalized
+    return normalized[:max_chars].rstrip()
 
 
 def build_context_blocks(context_items: list[dict[str, Any]]) -> str:
@@ -267,18 +330,75 @@ def main() -> int:
     if not query:
         query = "context_fixed_mode"
 
+    warnings: list[str] = []
+    raw_by_record_id, raw_by_source_url, raw_index_warnings = load_artists_raw_indices()
+    warnings.extend(raw_index_warnings)
+
+    evidence_fallback_excerpt_count = 0
+    evidence_fallback_headline_count = 0
+    evidence_source_row_missing_count = 0
+
     evidence: list[dict[str, Any]] = []
     for item in context_items:
+        source_url = normalize_whitespace(str(item.get("source_url", "")))
+        record_id = normalize_whitespace(str(item.get("record_id", "")))
+        raw_row = None
+        if record_id:
+            raw_row = raw_by_record_id.get(record_id)
+        if raw_row is None and source_url:
+            raw_row = raw_by_source_url.get(source_url)
+        if raw_row is None:
+            evidence_source_row_missing_count += 1
+
+        headline_ja = normalize_whitespace(str(item.get("headline_ja", "")))
+        excerpt = normalize_whitespace(str(item.get("excerpt", "")))
+        excerpt_fallback_used = False
+        headline_fallback_used = False
+
+        if not excerpt:
+            if headline_ja:
+                excerpt = truncate_for_fallback(
+                    headline_ja, max_chars=DEFAULT_EXCERPT_FALLBACK_CHARS
+                )
+                excerpt_fallback_used = bool(excerpt)
+            if not excerpt and raw_row is not None:
+                raw_text = normalize_whitespace(str(raw_row.get("text", "")))
+                if raw_text:
+                    excerpt = truncate_for_fallback(
+                        raw_text, max_chars=DEFAULT_EXCERPT_FALLBACK_CHARS
+                    )
+                    excerpt_fallback_used = bool(excerpt)
+
+        if not headline_ja and raw_row is not None:
+            raw_headline = normalize_whitespace(str(raw_row.get("headline_ja", "")))
+            if raw_headline:
+                headline_ja = truncate_for_fallback(
+                    raw_headline, max_chars=DEFAULT_HEADLINE_FALLBACK_CHARS
+                )
+                headline_fallback_used = bool(headline_ja)
+        if not headline_ja and excerpt:
+            headline_ja = truncate_for_fallback(
+                excerpt, max_chars=DEFAULT_HEADLINE_FALLBACK_CHARS
+            )
+            headline_fallback_used = bool(headline_ja)
+
+        if excerpt_fallback_used:
+            evidence_fallback_excerpt_count += 1
+        if headline_fallback_used:
+            evidence_fallback_headline_count += 1
+
         evidence.append(
             {
                 "rank": int(item.get("rank", -1)),
-                "source_url": str(item.get("source_url", "")),
-                "record_id": str(item.get("record_id", "")),
+                "source_url": source_url,
+                "record_id": record_id,
                 "score": float(item.get("score", 0.0)),
-                "excerpt": str(item.get("excerpt", "")),
-                "headline_ja": str(item.get("headline_ja", "")),
+                "excerpt": excerpt,
+                "headline_ja": headline_ja,
                 "vector_index": int(item.get("vector_index", -1)),
                 "fair_slug": str(item.get("fair_slug", "")),
+                "excerpt_fallback_used": excerpt_fallback_used,
+                "headline_fallback_used": headline_fallback_used,
             }
         )
 
@@ -287,7 +407,6 @@ def main() -> int:
     model = os.getenv("ARTISTS_ANSWER_MODEL", DEFAULT_MODEL)
     max_answer_chars = parse_max_answer_chars()
     answer_status = "ok"
-    warnings: list[str] = []
 
     if not api_key:
         answer_status = "fallback"
@@ -333,6 +452,9 @@ def main() -> int:
         "context_path": str(context_path),
         "context_summary_path": str(context_summary_path),
         "evidence": evidence,
+        "evidence_fallback_excerpt_count": evidence_fallback_excerpt_count,
+        "evidence_fallback_headline_count": evidence_fallback_headline_count,
+        "evidence_source_row_missing_count": evidence_source_row_missing_count,
         "output_valid": output_valid,
         "invalid_reasons": invalid_reasons,
         "warnings": warnings,
@@ -352,6 +474,9 @@ def main() -> int:
         "k_returned": len(evidence),
         "answer_status": answer_status,
         "answer_chars": len(answer_text),
+        "evidence_fallback_excerpt_count": evidence_fallback_excerpt_count,
+        "evidence_fallback_headline_count": evidence_fallback_headline_count,
+        "evidence_source_row_missing_count": evidence_source_row_missing_count,
         "output_valid": output_valid,
         "invalid_reasons": invalid_reasons,
         "fail_on_invalid_output": bool(args.fail_on_invalid_output),
