@@ -131,6 +131,53 @@ def sort_context_items_by_rank(context_items: list[dict[str, Any]]) -> list[dict
     )
 
 
+def safe_float(value: Any, default: float = 0.0) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def safe_int(value: Any, default: int = 10**9) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def sort_evidence_items(evidence: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return sorted(
+        evidence,
+        key=lambda item: (
+            -safe_float(item.get("score", 0.0)),
+            safe_int(item.get("rank", 10**9)),
+            normalize_whitespace(str(item.get("source_url", ""))),
+            normalize_whitespace(str(item.get("record_id", ""))),
+            safe_int(item.get("vector_index", 10**9)),
+        ),
+    )
+
+
+def dedup_evidence_by_source_record(
+    evidence: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], int]:
+    deduped: list[dict[str, Any]] = []
+    seen_keys: set[tuple[str, str]] = set()
+    removed = 0
+
+    for item in evidence:
+        source_url = normalize_whitespace(str(item.get("source_url", "")))
+        record_id = normalize_whitespace(str(item.get("record_id", "")))
+        if source_url and record_id:
+            dedup_key = (source_url, record_id)
+            if dedup_key in seen_keys:
+                removed += 1
+                continue
+            seen_keys.add(dedup_key)
+        deduped.append(item)
+    return deduped, removed
+
+
 def load_artists_raw_indices() -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, Any]], list[str]]:
     by_record_id: dict[str, dict[str, Any]] = {}
     by_source_url: dict[str, dict[str, Any]] = {}
@@ -334,10 +381,6 @@ def main() -> int:
     raw_by_record_id, raw_by_source_url, raw_index_warnings = load_artists_raw_indices()
     warnings.extend(raw_index_warnings)
 
-    evidence_fallback_excerpt_count = 0
-    evidence_fallback_headline_count = 0
-    evidence_source_row_missing_count = 0
-
     evidence: list[dict[str, Any]] = []
     for item in context_items:
         source_url = normalize_whitespace(str(item.get("source_url", "")))
@@ -347,8 +390,7 @@ def main() -> int:
             raw_row = raw_by_record_id.get(record_id)
         if raw_row is None and source_url:
             raw_row = raw_by_source_url.get(source_url)
-        if raw_row is None:
-            evidence_source_row_missing_count += 1
+        source_row_missing = raw_row is None
 
         headline_ja = normalize_whitespace(str(item.get("headline_ja", "")))
         excerpt = normalize_whitespace(str(item.get("excerpt", "")))
@@ -382,11 +424,6 @@ def main() -> int:
             )
             headline_fallback_used = bool(headline_ja)
 
-        if excerpt_fallback_used:
-            evidence_fallback_excerpt_count += 1
-        if headline_fallback_used:
-            evidence_fallback_headline_count += 1
-
         evidence.append(
             {
                 "rank": int(item.get("rank", -1)),
@@ -399,8 +436,23 @@ def main() -> int:
                 "fair_slug": str(item.get("fair_slug", "")),
                 "excerpt_fallback_used": excerpt_fallback_used,
                 "headline_fallback_used": headline_fallback_used,
+                "source_row_missing": source_row_missing,
             }
         )
+
+    evidence = sort_evidence_items(evidence)
+    evidence, evidence_dedup_removed_count = dedup_evidence_by_source_record(evidence)
+    evidence_sorted = True
+
+    evidence_fallback_excerpt_count = sum(
+        1 for item in evidence if bool(item.get("excerpt_fallback_used"))
+    )
+    evidence_fallback_headline_count = sum(
+        1 for item in evidence if bool(item.get("headline_fallback_used"))
+    )
+    evidence_source_row_missing_count = sum(
+        1 for item in evidence if bool(item.get("source_row_missing"))
+    )
 
     load_dotenv()
     api_key = os.getenv("OPENAI_API_KEY")
@@ -455,6 +507,8 @@ def main() -> int:
         "evidence_fallback_excerpt_count": evidence_fallback_excerpt_count,
         "evidence_fallback_headline_count": evidence_fallback_headline_count,
         "evidence_source_row_missing_count": evidence_source_row_missing_count,
+        "evidence_dedup_removed_count": evidence_dedup_removed_count,
+        "evidence_sorted": evidence_sorted,
         "output_valid": output_valid,
         "invalid_reasons": invalid_reasons,
         "warnings": warnings,
@@ -477,6 +531,8 @@ def main() -> int:
         "evidence_fallback_excerpt_count": evidence_fallback_excerpt_count,
         "evidence_fallback_headline_count": evidence_fallback_headline_count,
         "evidence_source_row_missing_count": evidence_source_row_missing_count,
+        "evidence_dedup_removed_count": evidence_dedup_removed_count,
+        "evidence_sorted": evidence_sorted,
         "output_valid": output_valid,
         "invalid_reasons": invalid_reasons,
         "fail_on_invalid_output": bool(args.fail_on_invalid_output),

@@ -1,0 +1,84 @@
+{
+  "started_at": "2026-02-24T13:30:37Z",
+  "completed_at": "2026-02-24T13:31:36Z",
+  "source_cli": "run_artists_answer_qa_smoke.py",
+  "question": "この検索結果から注目作家の傾向を教えて",
+  "query": "contemporary painting",
+  "query_effective": "contemporary painting",
+  "qa_input_mode": "query_rebuild",
+  "context_path_effective": "data/phase1_seed10/derived/context/artists_text_context_20260224T133040Z.json",
+  "context_summary_path_effective": "data/phase1_seed10/derived/context/artists_text_context_summary_20260224T133040Z.json",
+  "k_requested": 5,
+  "fail_on_regression": false,
+  "all_passed": true,
+  "wrapper_exit_code": 0,
+  "steps": [
+    {
+      "name": "context_build",
+      "command": [
+        "/home/syatk/my_projects/art_pulse_editor/.venv_art_pulse_editor/bin/python",
+        "run_build_artists_context_seed10.py",
+        "--query",
+        "contemporary painting",
+        "--k",
+        "5"
+      ],
+      "exit_code": 0,
+      "status": "ok",
+      "output_paths": {
+        "context_path": "data/phase1_seed10/derived/context/artists_text_context_20260224T133040Z.json",
+        "context_summary_path": "data/phase1_seed10/derived/context/artists_text_context_summary_20260224T133040Z.json"
+      },
+      "stdout_tail": "[START] artists_text context build at 2026-02-24T13:30:37Z\n[DONE] artists_text context build complete. k_returned=5 empty_excerpt=0\n[DONE] context=data/phase1_seed10/derived/context/artists_text_context_20260224T133040Z.json\n[DONE] summary=data/phase1_seed10/derived/context/artists_text_context_summary_20260224T133040Z.json\n",
+      "stderr_tail": ""
+    },
+    {
+      "name": "answer_generate",
+      "command": [
+        "/home/syatk/my_projects/art_pulse_editor/.venv_art_pulse_editor/bin/python",
+        "run_answer_artists_seed10.py",
+        "--question",
+        "この検索結果から注目作家の傾向を教えて",
+        "--context-path",
+        "data/phase1_seed10/derived/context/artists_text_context_20260224T133040Z.json",
+        "--k",
+        "5",
+        "--fail-on-invalid-output"
+      ],
+      "exit_code": 0,
+      "status": "ok",
+      "output_paths": {
+        "answer_output_path": "data/phase1_seed10/derived/answer/artists_text_answer_20260224T133055Z.json",
+        "answer_summary_path": "data/phase1_seed10/derived/answer/artists_text_answer_summary_20260224T133055Z.json"
+      },
+      "stdout_tail": "[START] artists_text answer at 2026-02-24T13:30:41Z\n[DONE] artists_text answer complete. answer_status=ok k_returned=5 output_valid=True\n[DONE] output=data/phase1_seed10/derived/answer/artists_text_answer_20260224T133055Z.json\n[DONE] summary=data/phase1_seed10/derived/answer/artists_text_answer_summary_20260224T133055Z.json\n",
+      "stderr_tail": ""
+    },
+    {
+      "name": "answer_compare",
+      "command": [
+        "/home/syatk/my_projects/art_pulse_editor/.venv_art_pulse_editor/bin/python",
+        "run_compare_artists_answers.py",
+        "--question",
+        "この検索結果から注目作家の傾向を教えて",
+        "--query",
+        "contemporary painting",
+        "--context-path",
+        "data/phase1_seed10/derived/context/artists_text_context_20260224T133040Z.json",
+        "--k",
+        "5"
+      ],
+      "exit_code": 0,
+      "status": "ok",
+      "output_paths": {
+        "compare_summary_path": "data/phase1_seed10/derived/answer/artists_text_answer_compare_20260224T133136Z.json"
+      },
+      "stdout_tail": "[START] artists answer compare at 2026-02-24T13:30:55Z\n[DONE] artists answer compare complete. query_chars=644 fixed_chars=673\n[DONE] mismatch_fields=['answer_chars']\n[DONE] guard_passed=True regression_reasons=[]\n[DONE] summary=data/phase1_seed10/derived/answer/artists_text_answer_compare_20260224T133136Z.json\n",
+      "stderr_tail": ""
+    }
+  ],
+  "warnings": [],
+  "output_paths": {
+    "qa_summary_json": "data/phase1_seed10/derived/answer/artists_answer_qa_smoke_summary_20260224T133037Z_contemporary_painting.json"
+  }
+}

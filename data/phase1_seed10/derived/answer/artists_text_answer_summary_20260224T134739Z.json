@@ -1,0 +1,29 @@
+{
+  "started_at": "2026-02-24T13:47:38Z",
+  "completed_at": "2026-02-24T13:47:39Z",
+  "source_cli": "run_answer_artists_seed10.py",
+  "question": "重複整形確認",
+  "query": "contemporary painting",
+  "context_input_mode": "fixed_context",
+  "context_path": "/tmp/artists_context_task68_dedup.json",
+  "context_summary_path": "/tmp/artists_context_task68_dedup.json",
+  "k_requested": 5,
+  "k_returned": 5,
+  "answer_status": "fallback",
+  "answer_chars": 45,
+  "evidence_fallback_excerpt_count": 0,
+  "evidence_fallback_headline_count": 0,
+  "evidence_source_row_missing_count": 0,
+  "evidence_dedup_removed_count": 1,
+  "evidence_sorted": true,
+  "output_valid": true,
+  "invalid_reasons": [],
+  "fail_on_invalid_output": true,
+  "output_paths": {
+    "answer_json": "data/phase1_seed10/derived/answer/artists_text_answer_20260224T134739Z.json",
+    "summary_json": "data/phase1_seed10/derived/answer/artists_text_answer_summary_20260224T134739Z.json"
+  },
+  "warnings": [
+    "llm_generation_failed:Connection error."
+  ]
+}

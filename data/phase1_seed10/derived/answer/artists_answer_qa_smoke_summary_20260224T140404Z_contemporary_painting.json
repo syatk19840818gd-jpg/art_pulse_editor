@@ -1,0 +1,59 @@
+{
+  "started_at": "2026-02-24T14:04:04Z",
+  "completed_at": "2026-02-24T14:04:06Z",
+  "source_cli": "run_artists_answer_qa_smoke.py",
+  "question": "この検索結果から注目作家の傾向を教えて",
+  "query": "contemporary painting",
+  "query_effective": "contemporary painting",
+  "qa_input_mode": "query_rebuild",
+  "context_path_effective": null,
+  "context_summary_path_effective": null,
+  "k_requested": 5,
+  "fail_on_regression": false,
+  "all_passed": false,
+  "wrapper_exit_code": 1,
+  "steps": [
+    {
+      "name": "context_build",
+      "command": [
+        "/home/syatk/my_projects/art_pulse_editor/.venv_art_pulse_editor/bin/python",
+        "run_build_artists_context_seed10.py",
+        "--query",
+        "contemporary painting",
+        "--k",
+        "5"
+      ],
+      "exit_code": 1,
+      "status": "failed",
+      "output_paths": {},
+      "stdout_tail": "[START] artists_text context build at 2026-02-24T14:04:04Z\n",
+      "stderr_tail": "  File \"/home/syatk/my_projects/art_pulse_editor/.venv_art_pulse_editor/lib/python3.12/site-packages/httpx/_client.py\", line 914, in send\n    response = self._send_handling_auth(\n               ^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/syatk/my_projects/art_pulse_editor/.venv_art_pulse_editor/lib/python3.12/site-packages/httpx/_client.py\", line 942, in _send_handling_auth\n    response = self._send_handling_redirects(\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/syatk/my_projects/art_pulse_editor/.venv_art_pulse_editor/lib/python3.12/site-packages/httpx/_client.py\", line 979, in _send_handling_redirects\n    response = self._send_single_request(request)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/syatk/my_projects/art_pulse_editor/.venv_art_pulse_editor/lib/python3.12/site-packages/httpx/_client.py\", line 1014, in _send_single_request\n    response = transport.handle_request(request)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/syatk/my_projects/art_pulse_editor/.venv_art_pulse_editor/lib/python3.12/site-packages/httpx/_transports/default.py\", line 249, in handle_request\n    with map_httpcore_exceptions():\n  File \"/usr/lib/python3.12/contextlib.py\", line 158, in __exit__\n    self.gen.throw(value)\n  File \"/home/syatk/my_projects/art_pulse_editor/.venv_art_pulse_editor/lib/python3.12/site-packages/httpx/_transports/default.py\", line 118, in map_httpcore_exceptions\n    raise mapped_exc(message) from exc\nhttpx.ConnectError: [Errno -3] Temporary failure in name resolution\n"
+    },
+    {
+      "name": "answer_generate",
+      "command": [],
+      "exit_code": 0,
+      "status": "skipped",
+      "output_paths": {},
+      "stdout_tail": "",
+      "stderr_tail": "",
+      "skip_reason": "context_build_failed_or_missing_output"
+    },
+    {
+      "name": "answer_compare",
+      "command": [],
+      "exit_code": 0,
+      "status": "skipped",
+      "output_paths": {},
+      "stdout_tail": "",
+      "stderr_tail": "",
+      "skip_reason": "context_build_failed_or_missing_output"
+    }
+  ],
+  "warnings": [
+    "context_build_output_missing"
+  ],
+  "output_paths": {
+    "qa_summary_json": "data/phase1_seed10/derived/answer/artists_answer_qa_smoke_summary_20260224T140404Z_contemporary_painting.json"
+  }
+}

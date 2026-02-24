@@ -1,0 +1,25 @@
+{
+  "started_at": "2026-02-24T13:31:39Z",
+  "completed_at": "2026-02-24T13:31:55Z",
+  "source_cli": "run_answer_artists_seed10.py",
+  "question": "この検索結果から注目作家の傾向を教えて",
+  "query": "abstract art",
+  "context_input_mode": "fixed_context",
+  "context_path": "data/phase1_seed10/derived/context/artists_text_context_20260224T133138Z.json",
+  "context_summary_path": "data/phase1_seed10/derived/context/artists_text_context_summary_20260224T133138Z.json",
+  "k_requested": 5,
+  "k_returned": 5,
+  "answer_status": "ok",
+  "answer_chars": 544,
+  "evidence_fallback_excerpt_count": 0,
+  "evidence_fallback_headline_count": 0,
+  "evidence_source_row_missing_count": 0,
+  "output_valid": true,
+  "invalid_reasons": [],
+  "fail_on_invalid_output": true,
+  "output_paths": {
+    "answer_json": "data/phase1_seed10/derived/answer/artists_text_answer_20260224T133155Z.json",
+    "summary_json": "data/phase1_seed10/derived/answer/artists_text_answer_summary_20260224T133155Z.json"
+  },
+  "warnings": []
+}

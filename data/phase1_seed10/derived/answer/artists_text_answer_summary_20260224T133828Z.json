@@ -1,0 +1,27 @@
+{
+  "started_at": "2026-02-24T13:38:27Z",
+  "completed_at": "2026-02-24T13:38:28Z",
+  "source_cli": "run_answer_artists_seed10.py",
+  "question": "この検索結果から注目作家の傾向を教えて",
+  "query": "contemporary painting",
+  "context_input_mode": "fixed_context",
+  "context_path": "data/phase1_seed10/derived/context/artists_text_context_20260224T131736Z.json",
+  "context_summary_path": "data/phase1_seed10/derived/context/artists_text_context_summary_20260224T131736Z.json",
+  "k_requested": 5,
+  "k_returned": 5,
+  "answer_status": "fallback",
+  "answer_chars": 45,
+  "evidence_fallback_excerpt_count": 0,
+  "evidence_fallback_headline_count": 0,
+  "evidence_source_row_missing_count": 0,
+  "output_valid": true,
+  "invalid_reasons": [],
+  "fail_on_invalid_output": true,
+  "output_paths": {
+    "answer_json": "data/phase1_seed10/derived/answer/artists_text_answer_20260224T133828Z.json",
+    "summary_json": "data/phase1_seed10/derived/answer/artists_text_answer_summary_20260224T133828Z.json"
+  },
+  "warnings": [
+    "llm_generation_failed:Connection error."
+  ]
+}

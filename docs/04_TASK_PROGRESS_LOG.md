@@ -1,6 +1,6 @@
 # 04_TASK_PROGRESS_LOG.md
 
-最終更新: 2026-02-24 21:09 JST  
+最終更新: 2026-02-24 23:05 JST  
 対象プロジェクト: ART_PULSE_EDITOR（Phase1 seed10 / Guard運用整備）  
 位置づけ: 実装進捗ログ（01=SSOT、02=索引、03=現行運用タスクの補助ログ）
 
@@ -29,8 +29,8 @@
 
 ## 2. 全体の進捗サマリ（現時点）
 
-- 完了: **TASK 1 ～ TASK 65**
-- 次の予定: **TASK 66**
+- 完了: **TASK 1 ～ TASK 69**
+- 次の予定: **TASK 70**
 - 直近の重点:
   - TarutaniRAG 側で比較/guard の「型」を作成 → Phase1本体（Exhibitions/Artists）へ横展開
   - Phase1 guard 本体 / history 比較 / fixture / matrix / schema文書化 / category文脈まで整備
@@ -463,17 +463,17 @@
 
 ---
 
-## 10. 現在の次タスク（TASK66）
+## 10. 現在の次タスク（TASK70）
 
-[ ] 66) artists回答QA統合CLIにcontext固定再現モードを追加し、日次runと再現runの入口を一本化する（本体前進）
+[ ] 70) artists回答QA統合CLIのbatch実行結果を集約JSONL化し、日次確認対象を1ファイルで追えるようにする（本体前進）
 - 目的：
-  - query再生成とcontext固定再現を同一CLIで運用し、日次確認と再現確認の導線を一本化する
+  - batch summary JSONに加えて、1行1caseの集約JSONLを出力し、日次確認対象（question/query/context/exit/summary_path）を追跡しやすくする
 - 制約：
   - 取得ループ内LLM加工は追加しない（Post-fetch分離）
   - 既存Exhibitions/Tarutani/guard/history/lint/matrixの既存処理を壊さない
 - 成立条件：
-  - `run_artists_answer_qa_smoke.py` で `--query` / `--context-path` を排他で扱える
-  - summaryへ `qa_input_mode` / `context_path_effective` / `steps[].exit_code` を保存できる
+  - batch実行時に `artists_answer_qa_batch_cases_*.jsonl`（例）を保存できる
+  - JSONLに `case_id/question/query/context_path/exit_code/guard_passed/summary_path` を保存できる
   - 03 / 04 のログ更新に反映できる
 
 ---
@@ -1022,3 +1022,142 @@
 - 生成物：
   - `data/phase1_seed10/derived/answer/artists_text_answer_summary_20260224T120624Z.json`
   - `data/phase1_seed10/derived/answer/artists_text_answer_summary_20260224T120844Z.json`
+
+## 36. TASK66 実行ログ（artists QA統合CLIのcontext固定再現モード）
+
+[x] 66) artists回答QA統合CLIにcontext固定再現モードを追加し、日次runと再現runの入口を一本化する（本体前進）
+- 変更ファイル：
+  - `run_artists_answer_qa_smoke.py`
+  - `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md`
+  - `docs/04_TASK_PROGRESS_LOG.md`
+- 実装内容：
+  - `run_artists_answer_qa_smoke.py` に `--context-path` を追加し、`--query` と排他制御を実装
+    - 両方指定 / 両方未指定は非0終了（exit 1）+ エラーsummary保存
+  - 実行モードを追加
+    - `qa_input_mode=query_rebuild`：context build -> answer -> compare（既存互換）
+    - `qa_input_mode=fixed_context`：context build/compare を `skipped`、answerのみ実行
+  - fixed_context + `--fail-on-regression` は warning-only で継続
+    - `fail_on_regression_ignored_without_query`
+  - summary拡張：
+    - `qa_input_mode`
+    - `context_path_effective`
+    - `query_effective`
+    - `steps[].status`（`ok/failed/skipped`）
+    - `errors`（引数エラー時）
+- 動作確認（2026-02-24）：
+  - queryモード：
+    - `python run_artists_answer_qa_smoke.py --question "この検索結果から注目作家の傾向を教えて" --query "contemporary painting"` → exit 0
+    - `python run_artists_answer_qa_smoke.py --question "この検索結果から注目作家の傾向を教えて" --query "contemporary painting" --fail-on-regression` → exit 0
+  - fixed_contextモード：
+    - `python run_artists_answer_qa_smoke.py --question "この検索結果から注目作家の傾向を教えて" --context-path "data/phase1_seed10/derived/context/artists_text_context_20260224T131736Z.json"` → exit 0
+    - `python run_artists_answer_qa_smoke.py --question "この検索結果から注目作家の傾向を教えて" --context-path "data/phase1_seed10/derived/context/artists_text_context_20260224T131736Z.json" --fail-on-regression` → exit 0（warning-only）
+  - 引数エラー：
+    - `python run_artists_answer_qa_smoke.py --question "test" --query "contemporary painting" --context-path "data/phase1_seed10/derived/context/artists_text_context_20260224T131736Z.json"` → exit 1
+    - `python run_artists_answer_qa_smoke.py --question "test"` → exit 1
+  - 既存互換：
+    - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+- 生成物：
+  - `data/phase1_seed10/derived/answer/artists_answer_qa_smoke_summary_20260224T131612Z.json`
+  - `data/phase1_seed10/derived/answer/artists_answer_qa_smoke_summary_20260224T131713Z.json`
+  - `data/phase1_seed10/derived/answer/artists_answer_qa_smoke_summary_20260224T131835Z.json`
+  - `data/phase1_seed10/derived/answer/artists_answer_qa_smoke_summary_20260224T132100Z.json`
+  - `data/phase1_seed10/derived/answer/artists_answer_qa_smoke_summary_20260224T132130Z.json`
+  - `data/phase1_seed10/derived/answer/artists_answer_qa_smoke_summary_20260224T132137Z.json`
+
+## 37. TASK67 実行ログ（artists QA統合CLIのbatch実行入口）
+
+[x] 67) artists回答QA統合CLIに複数query一括実行モードを追加し、日次確認を1コマンド化する（本体前進）
+- 変更ファイル：
+  - `run_artists_answer_qa_smoke.py`
+  - `data/phase1_seed10/derived/answer/artists_answer_qa_batch_manifest_sample.json`
+  - `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md`
+  - `docs/04_TASK_PROGRESS_LOG.md`
+- 実装内容：
+  - `run_artists_answer_qa_smoke.py` に `--batch-manifest` を追加（`.json` / `.jsonl`）
+  - batchケースごとに同CLIの単発モードをsubprocess実行し、既存ロジックを再利用
+  - batch summary へ以下を保存
+    - `total_cases` / `passed_cases` / `failed_cases`
+    - `cases[].summary_path` / `cases[].exit_code`
+    - `cases[].status` / `cases[].stdout_tail` / `cases[].stderr_tail`
+  - 単発モード（`--query` / `--context-path`）の挙動は後方互換を維持
+- 動作確認（2026-02-24）：
+  - 要件コマンド（query再生成）：
+    - `python run_artists_answer_qa_smoke.py --question "この検索結果から注目作家の傾向を教えて" --query "contemporary painting" --output-json "data/phase1_seed10/derived/answer/artists_answer_qa_smoke_summary_task67_query_required.json"` → exit 1（DNS: `Temporary failure in name resolution`）
+    - `python run_artists_answer_qa_smoke.py --batch-manifest "data/phase1_seed10/derived/answer/artists_answer_qa_batch_manifest_sample.json" --output-json "data/phase1_seed10/derived/answer/artists_answer_qa_smoke_summary_task67_batch_required.json"` → exit 1（同上）
+  - 機能成立確認（fixed_context）：
+    - `python run_artists_answer_qa_smoke.py --question "この検索結果から注目作家の傾向を教えて" --context-path "data/phase1_seed10/derived/context/artists_text_context_20260224T131736Z.json" --output-json "data/phase1_seed10/derived/answer/artists_answer_qa_smoke_summary_task67_fixed_context.json"` → exit 0
+    - `python run_artists_answer_qa_smoke.py --batch-manifest "/tmp/artists_answer_qa_batch_manifest_task67_fixed.json" --output-json "data/phase1_seed10/derived/answer/artists_answer_qa_smoke_summary_task67_batch_fixed.json"` → exit 0（`total_cases=2`, `passed_cases=2`）
+  - 既存互換：
+    - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+- 生成物：
+  - `data/phase1_seed10/derived/answer/artists_answer_qa_batch_manifest_sample.json`
+  - `data/phase1_seed10/derived/answer/artists_answer_qa_smoke_summary_task67_query_required.json`
+  - `data/phase1_seed10/derived/answer/artists_answer_qa_smoke_summary_task67_batch_required.json`
+  - `data/phase1_seed10/derived/answer/artists_answer_qa_smoke_summary_task67_fixed_context.json`
+  - `data/phase1_seed10/derived/answer/artists_answer_qa_smoke_summary_task67_batch_fixed.json`
+
+## 38. TASK68 実行ログ（artists evidence重複統合 + 表示順安定化）
+
+[x] 68) artists回答の根拠整形を最小強化し、重複source統合と表示順の安定化を行う（本体前進）
+- 変更ファイル：
+  - `run_answer_artists_seed10.py`
+  - `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md`
+  - `docs/04_TASK_PROGRESS_LOG.md`
+- 実装内容：
+  - `run_answer_artists_seed10.py` の evidence 生成後に、安定ソートと重複統合を追加
+    - 安定ソート：`score` 降順 + tie-break（`rank` / `source_url` / `record_id` / `vector_index`）
+    - 重複統合：`source_url + record_id` 同一を1件に統合（先頭採用）
+  - summary/payload に以下を追加
+    - `evidence_dedup_removed_count`
+    - `evidence_sorted`
+  - `--fail-on-invalid-output` の既存終了規約は維持
+- 動作確認（2026-02-24）：
+  - 指定コマンド（query系）：
+    - `python run_build_artists_context_seed10.py --query "contemporary painting"` → exit 1（DNS: `Temporary failure in name resolution`）
+    - `python run_answer_artists_seed10.py --question "この検索結果から注目作家の傾向を教えて" --query "contemporary painting" --fail-on-invalid-output` → exit 1（同上）
+    - `python run_compare_artists_answers.py --question "この検索結果から注目作家の傾向を教えて" --query "contemporary painting" --context-path "data/phase1_seed10/derived/context/artists_text_context_20260224T131736Z.json"` → exit 1（query再生成側がDNS失敗）
+  - 機能成立確認（fixed_context）：
+    - `python run_answer_artists_seed10.py --question "この検索結果から注目作家の傾向を教えて" --context-path "data/phase1_seed10/derived/context/artists_text_context_20260224T131736Z.json" --fail-on-invalid-output` → exit 0
+      - `evidence_sorted=true`
+      - `evidence_dedup_removed_count=0`
+    - 重複再現（/tmp一時context）
+      - `python run_answer_artists_seed10.py --question "重複整形確認" --context-path /tmp/artists_context_task68_dedup.json --fail-on-invalid-output` → exit 0
+      - `evidence_dedup_removed_count=1`
+  - 既存互換：
+    - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+- 生成物：
+  - `data/phase1_seed10/derived/answer/artists_text_answer_summary_20260224T134716Z.json`
+  - `data/phase1_seed10/derived/answer/artists_text_answer_summary_20260224T134739Z.json`
+
+## 39. TASK69 実行ログ（artists QA batch case単位回帰ガード適用）
+
+[x] 69) artists回答QA統合CLIのbatch caseごとに回帰ガード適用を追加し、失敗検知をケース単位で固定化する（本体前進）
+- 変更ファイル：
+  - `run_artists_answer_qa_smoke.py`
+  - `data/phase1_seed10/derived/answer/artists_answer_qa_batch_manifest_sample.json`
+  - `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md`
+  - `docs/04_TASK_PROGRESS_LOG.md`
+- 実装内容：
+  - batch case summary を拡張
+    - `fail_on_regression_effective`
+    - `guard_passed`（compare summary取得時）
+    - `compare_summary_path` / `compare_exit_code`
+    - `regression_reasons`
+    - `case_failure_kind`
+  - manifest defaults 反映を明示
+    - `fail_on_regression_default` は manifest の defaults を優先して保存
+  - caseの失敗理由を分類して summary から追跡可能化
+    - `regression_guard_failed` / `query_rebuild_failed` / `fixed_context_failed` / `invalid_case_config` / `none`
+- 動作確認（2026-02-24）：
+  - `python run_artists_answer_qa_smoke.py --batch-manifest "data/phase1_seed10/derived/answer/artists_answer_qa_batch_manifest_sample.json"` → exit 1
+    - DNS制約で queryケース2件とも失敗（`case_failure_kind=query_rebuild_failed`）
+    - case2は manifest override で `fail_on_regression_effective=true` を確認
+  - `python run_artists_answer_qa_smoke.py --batch-manifest "/tmp/artists_answer_qa_batch_manifest_task69_regression.json"` → exit 1
+    - `fixed_context_pass` は exit 0
+    - `query_rebuild_regression_check` は DNS制約で exit 1
+    - case単位で pass/fail を切り分けて保存されることを確認
+  - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+- 生成物：
+  - `data/phase1_seed10/derived/answer/artists_answer_qa_smoke_summary_20260224T140420Z.json`
+  - `data/phase1_seed10/derived/answer/artists_answer_qa_smoke_summary_20260224T140432Z.json`
+  - `/tmp/artists_answer_qa_batch_manifest_task69_regression.json`
