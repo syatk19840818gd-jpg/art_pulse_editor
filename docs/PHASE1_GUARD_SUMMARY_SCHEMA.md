@@ -53,6 +53,10 @@ Typical file:
 - `guard_schema_version`
 - `target_year`
 - `category`
+- `category_required_files_profile`
+- `required_input_files_effective`
+- `category_support_mode`
+- `category_warnings`
 - `logs_dir`
 - `fail_on_mismatch`
 - `guard_passed`
@@ -70,6 +74,16 @@ Typical file:
 - `guard_passed`: final pass/fail boolean for this run
 - `mismatch_fields`: mismatch identifiers (primary root cause list)
 - `mismatches`: count of `mismatch_fields`
+
+Category notes:
+
+- `--category` default is `exhibitions_text` (backward-compatible default).
+- unknown category values fall back to `exhibitions_text` and are recorded in `category_warnings`.
+- `category_required_files_profile` is the effective required-files profile used for this run.
+- `required_input_files_effective` shows which required inputs were actually resolved.
+- current support modes:
+  - `active`: `exhibitions_text`
+  - `reserved_minimal`: `artists_text` (entry-only; full category-specific guard logic is not enabled yet)
 
 ### 3.3 Existing check groups (`check_results`)
 

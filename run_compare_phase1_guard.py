@@ -9,7 +9,15 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from phase1_guard_common import GUARD_SCHEMA_VERSION, resolve_logs_dir, utc_now_iso, utc_timestamp_compact, write_summary_json
+from phase1_guard_common import (
+    DEFAULT_GUARD_CATEGORY,
+    GUARD_CATEGORY_PROFILES,
+    GUARD_SCHEMA_VERSION,
+    resolve_logs_dir,
+    utc_now_iso,
+    utc_timestamp_compact,
+    write_summary_json,
+)
 
 DEFAULT_LOGS_DIR = Path("data/phase1_seed10/logs")
 DEFAULT_RUN_SUMMARY_TEMPLATE = "run_summary_seed10_{target_year}.json"
@@ -18,7 +26,7 @@ DEFAULT_FAILED_TEMPLATE = "failed_fetches_seed10_{target_year}.json"
 OUTPUT_TEMPLATE = "phase1_guard_summary_{target_year}_{timestamp}.json"
 GENERATED_BY = "run_compare_phase1_guard.py"
 
-REQUIRED_SUMMARY_KEYS = {
+BASE_REQUIRED_SUMMARY_KEYS = {
     "target_year",
     "records_saved_total",
     "existing_records_total",
@@ -75,8 +83,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--manifest-path", default="", help="optional artifact_manifest path")
     parser.add_argument(
         "--category",
-        default="exhibitions_text",
-        help="guard category metadata (default: exhibitions_text)",
+        default=DEFAULT_GUARD_CATEGORY,
+        help=f"guard category metadata (default: {DEFAULT_GUARD_CATEGORY})",
     )
     parser.add_argument(
         "--fail-on-mismatch",
@@ -262,6 +270,30 @@ def dedupe_strings(values: list[str]) -> list[str]:
     return deduped
 
 
+def resolve_category_profile(requested_category: str) -> tuple[str, dict[str, Any], list[str]]:
+    category = requested_category.strip() if isinstance(requested_category, str) else ""
+    if not category:
+        category = DEFAULT_GUARD_CATEGORY
+
+    profile = GUARD_CATEGORY_PROFILES.get(category)
+    warnings: list[str] = []
+    if profile is None:
+        category = DEFAULT_GUARD_CATEGORY
+        profile = GUARD_CATEGORY_PROFILES[category]
+        warnings.append(f"unknown_category_fallback:{requested_category}->{category}")
+    return category, dict(profile), warnings
+
+
+def resolve_required_summary_keys(category_profile: dict[str, Any]) -> set[str]:
+    required = set(BASE_REQUIRED_SUMMARY_KEYS)
+    drop_keys_raw = category_profile.get("required_summary_keys_drop")
+    if isinstance(drop_keys_raw, list):
+        for key in drop_keys_raw:
+            if isinstance(key, str) and key:
+                required.discard(key)
+    return required
+
+
 def pick_latest_by_mtime(paths: list[Path]) -> Path | None:
     if not paths:
         return None
@@ -396,6 +428,16 @@ def main() -> int:
     started_at = utc_now_iso()
     print(f"[START] Phase1 guard compare at {started_at}")
 
+    effective_category, category_profile, category_warnings = resolve_category_profile(args.category)
+    category_required_inputs_raw = category_profile.get("required_input_files")
+    category_required_inputs = (
+        [x for x in category_required_inputs_raw if isinstance(x, str) and x]
+        if isinstance(category_required_inputs_raw, list)
+        else ["run_summary_path", "visited_pages_path", "failed_fetches_path", "output_files"]
+    )
+    category_support_mode = str(category_profile.get("support_mode") or "active")
+    category_required_summary_keys = resolve_required_summary_keys(category_profile)
+
     logs_dir = resolve_logs_dir(args.logs_dir)
     timestamp = utc_timestamp_compact()
 
@@ -442,15 +484,27 @@ def main() -> int:
 
     assert isinstance(summary_obj, dict)
 
-    missing_summary_keys = sorted(REQUIRED_SUMMARY_KEYS - set(summary_obj.keys()))
+    missing_summary_keys = sorted(category_required_summary_keys - set(summary_obj.keys()))
     required_keys_passed = len(missing_summary_keys) == 0
     check_results["required_summary_keys"] = {
         "passed": required_keys_passed,
         "missing_keys": missing_summary_keys,
-        "required_keys": sorted(REQUIRED_SUMMARY_KEYS),
+        "required_keys": sorted(category_required_summary_keys),
     }
     if not required_keys_passed:
         mismatch_fields.append("required_summary_keys_missing")
+
+    if category_support_mode != "active":
+        category_warnings.append(f"category_support_mode:{category_support_mode}")
+    check_results["category_profile"] = {
+        "passed": True,
+        "requested_category": args.category,
+        "effective_category": effective_category,
+        "support_mode": category_support_mode,
+        "required_input_files": category_required_inputs,
+        "required_summary_keys": sorted(category_required_summary_keys),
+        "warnings": category_warnings,
+    }
 
     # Input paths (summary values can be overridden by CLI args).
     visited_path = resolve_path(args.visited_path, summary_obj.get("visited_pages_path"))
@@ -474,6 +528,7 @@ def main() -> int:
     output_file_paths: dict[str, Path] = {}
     output_file_errors: list[str] = []
     output_files_resolution = "from_summary"
+    output_files_required = "output_files" in category_required_inputs
     if isinstance(output_files, dict):
         for fair_slug, value in output_files.items():
             if not (isinstance(fair_slug, str) and isinstance(value, str) and value):
@@ -493,7 +548,7 @@ def main() -> int:
                 output_file_errors.append("output_files_not_dict")
             output_files_resolution = "missing"
 
-    if output_file_errors:
+    if output_file_errors and output_files_required:
         mismatch_fields.append("output_files_invalid")
 
     output_file_checks: dict[str, Any] = {}
@@ -503,7 +558,8 @@ def main() -> int:
         exists = path.exists()
         if not exists:
             output_file_paths_exist = False
-            mismatch_fields.append(f"output_file_missing:{fair_slug}")
+            if output_files_required:
+                mismatch_fields.append(f"output_file_missing:{fair_slug}")
         output_file_checks[fair_slug] = {
             "path": str(path),
             "exists": exists,
@@ -511,8 +567,14 @@ def main() -> int:
             "record_count_error": record_error,
         }
 
+    output_files_check_passed = output_file_paths_exist and not output_file_errors
+    if not output_files_required:
+        output_files_check_passed = True
+
     check_results["output_files"] = {
-        "passed": output_file_paths_exist and not output_file_errors,
+        "passed": output_files_check_passed,
+        "required_by_category": output_files_required,
+        "checked_as": "required" if output_files_required else "optional_reserved",
         "resolution_mode": output_files_resolution,
         "errors": output_file_errors,
         "items": output_file_checks,
@@ -879,12 +941,59 @@ def main() -> int:
 
     guard_passed = len(deduped_mismatches) == 0
 
+    required_input_files_effective: list[dict[str, Any]] = []
+    for required_name in category_required_inputs:
+        if required_name == "run_summary_path":
+            required_input_files_effective.append(
+                {
+                    "name": required_name,
+                    "path": str(run_summary_path),
+                    "exists": run_summary_path.exists(),
+                }
+            )
+        elif required_name == "visited_pages_path":
+            required_input_files_effective.append(
+                {
+                    "name": required_name,
+                    "path": str(visited_path) if visited_path else None,
+                    "exists": bool(visited_path and visited_path.exists()),
+                }
+            )
+        elif required_name == "failed_fetches_path":
+            required_input_files_effective.append(
+                {
+                    "name": required_name,
+                    "path": str(failed_path) if failed_path else None,
+                    "exists": bool(failed_path and failed_path.exists()),
+                }
+            )
+        elif required_name == "output_files":
+            required_input_files_effective.append(
+                {
+                    "name": required_name,
+                    "count": len(output_file_paths),
+                    "all_exist": output_file_paths_exist,
+                    "items": {fair_slug: str(path) for fair_slug, path in sorted(output_file_paths.items())},
+                }
+            )
+        else:
+            required_input_files_effective.append(
+                {
+                    "name": required_name,
+                    "status": "unknown_required_input_key",
+                }
+            )
+
     summary_payload = {
         "started_at": started_at,
         "completed_at": utc_now_iso(),
         "generated_by": GENERATED_BY,
         "guard_schema_version": GUARD_SCHEMA_VERSION,
         "category": args.category,
+        "category_required_files_profile": effective_category,
+        "required_input_files_effective": required_input_files_effective,
+        "category_support_mode": category_support_mode,
+        "category_warnings": category_warnings,
         "logs_dir": str(logs_dir),
         "target_year": args.target_year,
         "fail_on_mismatch": bool(args.fail_on_mismatch),
