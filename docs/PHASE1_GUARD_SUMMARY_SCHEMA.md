@@ -53,9 +53,14 @@ Typical file:
 - `guard_schema_version`
 - `target_year`
 - `category`
+- `category_profile_version`
 - `category_required_files_profile`
 - `required_input_files_effective`
+- `required_summary_keys_effective`
 - `category_support_mode`
+- `category_support_mode_configured`
+- `category_activation_conditions`
+- `category_data_presence`
 - `category_warnings`
 - `logs_dir`
 - `fail_on_mismatch`
@@ -81,9 +86,15 @@ Category notes:
 - unknown category values fall back to `exhibitions_text` and are recorded in `category_warnings`.
 - `category_required_files_profile` is the effective required-files profile used for this run.
 - `required_input_files_effective` shows which required inputs were actually resolved.
+- `required_summary_keys_effective` shows category-specific required summary keys used in this run.
 - current support modes:
   - `active`: `exhibitions_text`
-  - `reserved_minimal`: `artists_text` (entry-only; full category-specific guard logic is not enabled yet)
+  - `reserved_minimal`: `artists_text` (no artists data detected; activation conditions remain)
+  - `provisional_minimal`: `artists_text` (artists data detected; still minimal profile)
+- `category_activation_conditions` lists what must be satisfied to move beyond reserved mode.
+- `category_data_presence` records artists-data detection signals (`raw_candidate_count`, etc.).
+- `category_support_mode_configured` is the mode from profile definition, while
+  `category_support_mode` is the effective mode after runtime detection.
 
 ### 3.3 Existing check groups (`check_results`)
 

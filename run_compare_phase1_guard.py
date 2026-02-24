@@ -11,6 +11,7 @@ from typing import Any
 
 from phase1_guard_common import (
     DEFAULT_GUARD_CATEGORY,
+    GUARD_CATEGORY_PROFILE_VERSION,
     GUARD_CATEGORY_PROFILES,
     GUARD_SCHEMA_VERSION,
     resolve_logs_dir,
@@ -285,12 +286,26 @@ def resolve_category_profile(requested_category: str) -> tuple[str, dict[str, An
 
 
 def resolve_required_summary_keys(category_profile: dict[str, Any]) -> set[str]:
+    explicit_required_raw = category_profile.get("required_summary_keys")
+    if isinstance(explicit_required_raw, list):
+        explicit_required: set[str] = set()
+        for key in explicit_required_raw:
+            if isinstance(key, str) and key:
+                explicit_required.add(key)
+        if explicit_required:
+            return explicit_required
+
     required = set(BASE_REQUIRED_SUMMARY_KEYS)
     drop_keys_raw = category_profile.get("required_summary_keys_drop")
     if isinstance(drop_keys_raw, list):
         for key in drop_keys_raw:
             if isinstance(key, str) and key:
                 required.discard(key)
+    add_keys_raw = category_profile.get("required_summary_keys_add")
+    if isinstance(add_keys_raw, list):
+        for key in add_keys_raw:
+            if isinstance(key, str) and key:
+                required.add(key)
     return required
 
 
@@ -337,6 +352,31 @@ def infer_output_files_from_raw(logs_dir: Path, target_year: int) -> tuple[dict[
     if output_file_paths:
         return output_file_paths, "from_logs_dir_raw_glob"
     return {}, "missing"
+
+
+def detect_artists_data_presence(logs_dir: Path, target_year: int, summary_obj: dict[str, Any]) -> dict[str, Any]:
+    raw_dir = logs_dir.parent / "raw"
+    raw_candidates = sorted(raw_dir.glob(f"artists_*_{target_year}.jsonl"))
+    raw_candidate_paths = [str(path) for path in raw_candidates]
+
+    summary_output_keys: list[str] = []
+    output_files = summary_obj.get("output_files")
+    if isinstance(output_files, dict):
+        for key in output_files.keys():
+            if not isinstance(key, str):
+                continue
+            lowered = key.lower()
+            if lowered.startswith("artists_") or lowered.startswith("artist_") or "artist" in lowered:
+                summary_output_keys.append(key)
+
+    has_artists_data = bool(raw_candidate_paths or summary_output_keys)
+    return {
+        "has_artists_data": has_artists_data,
+        "raw_dir": str(raw_dir),
+        "raw_candidate_count": len(raw_candidate_paths),
+        "raw_candidate_paths": raw_candidate_paths,
+        "summary_output_file_artist_keys": summary_output_keys,
+    }
 
 
 def load_manifest_check(path: Path | None, target_year: int) -> dict[str, Any]:
@@ -435,8 +475,18 @@ def main() -> int:
         if isinstance(category_required_inputs_raw, list)
         else ["run_summary_path", "visited_pages_path", "failed_fetches_path", "output_files"]
     )
-    category_support_mode = str(category_profile.get("support_mode") or "active")
+    category_support_mode_configured = str(category_profile.get("support_mode") or "active")
+    category_support_mode_effective = category_support_mode_configured
     category_required_summary_keys = resolve_required_summary_keys(category_profile)
+    category_activation_conditions_raw = category_profile.get("activation_conditions")
+    category_activation_conditions = (
+        [x for x in category_activation_conditions_raw if isinstance(x, str) and x]
+        if isinstance(category_activation_conditions_raw, list)
+        else []
+    )
+    category_reserved_reason = str(category_profile.get("reserved_reason") or "")
+    category_profile_version = str(category_profile.get("profile_version") or GUARD_CATEGORY_PROFILE_VERSION)
+    category_data_presence: dict[str, Any] | None = None
 
     logs_dir = resolve_logs_dir(args.logs_dir)
     timestamp = utc_timestamp_compact()
@@ -494,16 +544,39 @@ def main() -> int:
     if not required_keys_passed:
         mismatch_fields.append("required_summary_keys_missing")
 
-    if category_support_mode != "active":
-        category_warnings.append(f"category_support_mode:{category_support_mode}")
+    if effective_category == "artists_text":
+        category_data_presence = detect_artists_data_presence(logs_dir, args.target_year, summary_obj)
+        if (
+            category_support_mode_configured == "reserved_minimal"
+            and category_data_presence.get("has_artists_data") is True
+        ):
+            category_support_mode_effective = "provisional_minimal"
+            category_warnings.append(
+                "artists_data_detected:support_mode_promoted:reserved_minimal->provisional_minimal"
+            )
+        elif category_support_mode_configured == "reserved_minimal":
+            category_warnings.append("artists_data_not_found:keep_support_mode_reserved_minimal")
+
+    if category_support_mode_effective != "active":
+        category_warnings.append(f"category_support_mode:{category_support_mode_effective}")
+    if category_reserved_reason and category_support_mode_effective.startswith("reserved"):
+        category_warnings.append(f"category_reserved_reason:{category_reserved_reason}")
+    category_warnings = dedupe_strings(category_warnings)
+
     check_results["category_profile"] = {
         "passed": True,
         "requested_category": args.category,
         "effective_category": effective_category,
-        "support_mode": category_support_mode,
+        "profile_version": category_profile_version,
+        "support_mode_configured": category_support_mode_configured,
+        "support_mode_effective": category_support_mode_effective,
         "required_input_files": category_required_inputs,
         "required_summary_keys": sorted(category_required_summary_keys),
+        "required_summary_keys_effective": sorted(category_required_summary_keys),
+        "activation_conditions": category_activation_conditions,
+        "activation_ready": category_support_mode_effective in {"active", "provisional_minimal", "active_minimal"},
         "warnings": category_warnings,
+        "data_presence": category_data_presence,
     }
 
     # Input paths (summary values can be overridden by CLI args).
@@ -990,10 +1063,15 @@ def main() -> int:
         "generated_by": GENERATED_BY,
         "guard_schema_version": GUARD_SCHEMA_VERSION,
         "category": args.category,
+        "category_profile_version": category_profile_version,
         "category_required_files_profile": effective_category,
         "required_input_files_effective": required_input_files_effective,
-        "category_support_mode": category_support_mode,
+        "required_summary_keys_effective": sorted(category_required_summary_keys),
+        "category_support_mode": category_support_mode_effective,
+        "category_support_mode_configured": category_support_mode_configured,
         "category_warnings": category_warnings,
+        "category_activation_conditions": category_activation_conditions,
+        "category_data_presence": category_data_presence,
         "logs_dir": str(logs_dir),
         "target_year": args.target_year,
         "fail_on_mismatch": bool(args.fail_on_mismatch),

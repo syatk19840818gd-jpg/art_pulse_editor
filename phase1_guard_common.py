@@ -11,16 +11,26 @@ INCOMPATIBLE_EXIT_CODE = 3
 GUARD_SCHEMA_VERSION = "1.0"
 GUARD_SCHEMA_VERSION_POLICY = "both_present_must_match;missing_allowed_with_warning"
 DEFAULT_GUARD_CATEGORY = "exhibitions_text"
+GUARD_CATEGORY_PROFILE_VERSION = "1.1"
 GUARD_CATEGORY_PROFILES: dict[str, dict[str, Any]] = {
     "exhibitions_text": {
         "required_input_files": ["run_summary_path", "visited_pages_path", "failed_fetches_path", "output_files"],
         "required_summary_keys_drop": [],
         "support_mode": "active",
+        "activation_conditions": [],
+        "reserved_reason": "",
     },
     "artists_text": {
         "required_input_files": ["run_summary_path", "visited_pages_path", "failed_fetches_path"],
         "required_summary_keys_drop": ["output_files"],
+        "required_summary_keys_add": [],
         "support_mode": "reserved_minimal",
+        "activation_conditions": [
+            "artists_raw_files_pattern_confirmed_under_<logs-dir>/../raw",
+            "artists_run_summary_and_ledgers_exist_for_target_year",
+            "at_least_one_artists_guard_run_verified_and_saved",
+        ],
+        "reserved_reason": "artists_summary_and_raw_conventions_not_finalized",
     },
 }
 GUARD_CATEGORY_COMPATIBILITY_POLICY = "both_present_must_match;missing_allowed_with_warning;strict_mismatch_incompatible"
