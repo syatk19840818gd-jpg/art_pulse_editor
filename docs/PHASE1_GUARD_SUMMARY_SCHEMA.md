@@ -614,6 +614,7 @@ Use one-command report fixture matrix:
 
 ```bash
 python run_phase1_guard_all_matrices_report_fixture_matrix.py
+python run_phase1_guard_all_matrices_report_fixture_matrix.py --manifest-path tests/fixtures/phase1_guard/report_fixture_manifest_negative_policy.json
 ```
 
 Matrix summary file:
@@ -654,6 +655,11 @@ TASK48 policy guard note:
 - summary top-level keeps `policy_check_mode` (default `enforce_when_available`)
 - when `policy_actual` exists and `policy_match=false`, matrix case becomes fail
 - when `policy_actual` is unavailable (missing/bad_json), keep warning-only backward compatibility
+
+TASK49 negative fixture note:
+
+- negative manifest: `tests/fixtures/phase1_guard/report_fixture_manifest_negative_policy.json`
+- expected wrapper result for this manifest: `exit 1` (policy guard failure is intentional)
 
 ## 8. Backward Compatibility Notes (TASK26/27)
 

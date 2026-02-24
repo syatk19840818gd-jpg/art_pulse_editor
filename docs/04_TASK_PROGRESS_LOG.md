@@ -1,6 +1,6 @@
 # 04_TASK_PROGRESS_LOG.md
 
-最終更新: 2026-02-24 17:22 JST  
+最終更新: 2026-02-24 18:10 JST  
 対象プロジェクト: ART_PULSE_EDITOR（Phase1 seed10 / Guard運用整備）  
 位置づけ: 実装進捗ログ（01=SSOT、02=索引、03=現行運用タスクの補助ログ）
 
@@ -29,8 +29,8 @@
 
 ## 2. 全体の進捗サマリ（現時点）
 
-- 完了: **TASK 1 ～ TASK 46**
-- 次の予定: **TASK 47**
+- 完了: **TASK 1 ～ TASK 49**
+- 次の予定: **TASK 50**
 - 直近の重点:
   - TarutaniRAG 側で比較/guard の「型」を作成 → Phase1本体（Exhibitions/Artists）へ横展開
   - Phase1 guard 本体 / history 比較 / fixture / matrix / schema文書化 / category文脈まで整備
@@ -463,15 +463,17 @@
 
 ---
 
-## 10. 現在の次タスク（TASK47）
+## 10. 現在の次タスク（TASK50）
 
-[ ] 47) report fixture matrixに終了ポリシー可視化キーを追加し、CIログ読解を固定化する（安全側）
+[ ] 50) Phase1本体へ復帰：`run_phase1_seed10.py` に artists_text の最小取得入口を追加し、Exhibitionsと並走できる状態にする（安全側）
 - 目的：
-  - report fixture matrix の `cases[]` で default/strict ポリシー差（`--fail-on-failed-matrix`）を明示保存し、CIログ読解をブレなくする
+  - 検証層（TASK49）を締めたので、本体前進として artists_text の最小取得入口を追加する
 - 制約：
-  - guard/history/lint/各matrix本体ロジックは変更しない（report fixture matrix可視化のみ）
+  - 取得ループ内でLLM加工をしない
+  - 既存Exhibitions挙動を壊さない（デフォルト互換）
 - 成立条件：
-  - `fail_on_failed_matrix` / `policy_expected` / `policy_actual` / `policy_match` 相当を summary に保存
+  - `run_phase1_seed10.py` で artists_text の最小保存（raw/logs）が実行可能
+  - 既存の台帳/summary整合と guard前提キーを維持
   - 03 の CHANGELOG に反映
 
 ---
@@ -580,3 +582,52 @@
     - strict指定 exit 1
   - `--summary-path /tmp/not_found.json --fail-on-failed-matrix` で exit 1
   - `run_phase1_guard_all_matrices_report_fixture_matrix.py` で exit 0（5ケース）
+
+## 17. TASK47 実行ログ（report fixture policy可視化）
+
+[x] 47) report fixture matrixに終了ポリシー可視化キーを追加し、CIログ読解を固定化した（安全側）
+- 変更ファイル：
+  - `run_phase1_guard_all_matrices_report_fixture_matrix.py`
+  - `tests/fixtures/phase1_guard/report_fixture_manifest.json`
+  - `tests/fixtures/phase1_guard/README.md`
+  - `docs/PHASE1_GUARD_SUMMARY_SCHEMA.md`
+- 実装内容：
+  - `cases[]` に `policy_expected` / `policy_actual` / `policy_match` を追加
+  - `policy_expected` は manifest未指定時 `fail_on_failed_matrix` から導出
+  - strict/default の policy 差を固定可視化
+- 動作確認：
+  - report fixture matrix（5ケース）exit 0
+  - failed summary の default: exit 0 / strict: exit 1
+
+## 18. TASK48 実行ログ（policy_match guard反映）
+
+[x] 48) report fixture matrixに `policy_match` guard を追加し、終了ポリシー齟齬をwrapper失敗として検知できるようにした（安全側）
+- 変更ファイル：
+  - `run_phase1_guard_all_matrices_report_fixture_matrix.py`
+  - `tests/fixtures/phase1_guard/README.md`
+  - `docs/PHASE1_GUARD_SUMMARY_SCHEMA.md`
+- 実装内容：
+  - `policy_check_mode=enforce_when_available` を追加
+  - `policy_actual` 取得時は `policy_match=false` を fail 条件へ反映
+  - `policy_actual` 未取得（missing/bad_json）は warning-only 維持
+  - summary に `policy_guard_applied` / `policy_guard_passed` / `policy_guard_reason` を保存
+- 動作確認：
+  - 通常manifestは exit 0
+  - `/tmp` 一時manifestで mismatch を作ると exit 1
+
+## 19. TASK49 実行ログ（negative fixture常設化）
+
+[x] 49) report fixture matrixにpolicy mismatch専用negative fixtureを追加し、policy_guard失敗経路を固定再現した（安全側）
+- 追加ファイル：
+  - `tests/fixtures/phase1_guard/report_fixture_manifest_negative_policy.json`
+- 変更ファイル：
+  - `tests/fixtures/phase1_guard/README.md`
+  - `docs/PHASE1_GUARD_SUMMARY_SCHEMA.md`
+- 実装内容：
+  - green manifest とは分離した negative manifest を常設
+  - strictケースで `policy_expected` を意図的に不一致化し、`policy_match=false` を固定再現
+  - report CLI本体ロジックは未変更
+- 動作確認：
+  - `python run_phase1_guard_all_matrices_report_fixture_matrix.py` → exit 0（green）
+  - `python run_phase1_guard_all_matrices_report_fixture_matrix.py --manifest-path "tests/fixtures/phase1_guard/report_fixture_manifest_negative_policy.json"` → exit 1（negative）
+  - negative summary で `policy_match=false` / `policy_guard_passed=false` / `policy_guard_reason=policy_mismatch_enforced` を確認

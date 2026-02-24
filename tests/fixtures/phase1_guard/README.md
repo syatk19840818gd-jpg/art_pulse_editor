@@ -133,6 +133,12 @@ Run fixed report fixtures (valid/missing/bad_json) in one command:
 python run_phase1_guard_all_matrices_report_fixture_matrix.py
 ```
 
+Run policy-mismatch negative fixture (expected wrapper fail):
+
+```bash
+python run_phase1_guard_all_matrices_report_fixture_matrix.py --manifest-path tests/fixtures/phase1_guard/report_fixture_manifest_negative_policy.json
+```
+
 Cases:
 
 - `report_valid_summary` -> expected exit `0`
@@ -145,6 +151,7 @@ Matrix wrapper exit codes:
 
 - `0`: all fixture cases matched expected result
 - `1`: at least one fixture case mismatch
+- negative policy manifest is expected to return wrapper exit `1` (failure is the expected result)
 
 Policy-visibility keys in matrix `cases[]` (TASK47):
 
