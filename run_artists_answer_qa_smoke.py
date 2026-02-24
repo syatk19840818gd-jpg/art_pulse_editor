@@ -32,6 +32,13 @@ def write_json(path: Path, payload: dict[str, Any]) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def write_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8") as handle:
+        for row in rows:
+            handle.write(json.dumps(row, ensure_ascii=False) + "\n")
+
+
 def load_json(path: Path) -> dict[str, Any]:
     obj = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(obj, dict):
@@ -378,7 +385,6 @@ def main() -> int:
 
         passed_cases = sum(1 for case in batch_case_results if case.get("exit_code") == 0)
         failed_cases = len(batch_case_results) - passed_cases
-        wrapper_exit_code = 0 if not errors and failed_cases == 0 else 1
 
         raw_manifest_fail_on_regression_default = manifest_defaults.get(
             "fail_on_regression", args.fail_on_regression
@@ -389,6 +395,49 @@ def main() -> int:
             manifest_k_default = int(raw_manifest_k_default)
         except (TypeError, ValueError):
             manifest_k_default = args.k
+
+        batch_cases_jsonl_path = summary_path.parent / f"{summary_path.stem}_cases.jsonl"
+        batch_cases_jsonl_rows: list[dict[str, Any]] = []
+        for case in batch_case_results:
+            has_query = bool(case.get("query"))
+            has_context_path = bool(case.get("context_path"))
+            if has_query and not has_context_path:
+                qa_input_mode = "query_rebuild"
+            elif has_context_path and not has_query:
+                qa_input_mode = "fixed_context"
+            else:
+                qa_input_mode = "unknown"
+
+            batch_cases_jsonl_rows.append(
+                {
+                    "batch_run_timestamp": timestamp,
+                    "case_id": case.get("case_id"),
+                    "question": case.get("question"),
+                    "query": case.get("query"),
+                    "context_path": case.get("context_path"),
+                    "qa_input_mode": qa_input_mode,
+                    "exit_code": case.get("exit_code"),
+                    "guard_passed": case.get("guard_passed"),
+                    "summary_path": case.get("summary_path"),
+                    "fail_on_regression_effective": case.get("fail_on_regression_effective"),
+                    "case_failure_kind": case.get("case_failure_kind"),
+                    "compare_exit_code": case.get("compare_exit_code"),
+                    "compare_summary_path": case.get("compare_summary_path"),
+                    "regression_reasons": case.get("regression_reasons"),
+                }
+            )
+
+        batch_cases_jsonl_written = False
+        batch_cases_jsonl_error = None
+        try:
+            write_jsonl(batch_cases_jsonl_path, batch_cases_jsonl_rows)
+            batch_cases_jsonl_written = True
+        except Exception as exc:  # noqa: BLE001
+            batch_cases_jsonl_error = f"batch_cases_jsonl_write_failed:{exc}"
+            errors.append(batch_cases_jsonl_error)
+
+        batch_cases_jsonl_count = len(batch_cases_jsonl_rows) if batch_cases_jsonl_written else 0
+        wrapper_exit_code = 0 if not errors and failed_cases == 0 and batch_cases_jsonl_written else 1
 
         batch_summary = {
             "started_at": started_at,
@@ -404,11 +453,16 @@ def main() -> int:
             "all_passed": wrapper_exit_code == 0,
             "wrapper_exit_code": wrapper_exit_code,
             "cases": batch_case_results,
+            "batch_cases_jsonl_path": str(batch_cases_jsonl_path),
+            "batch_cases_jsonl_written": batch_cases_jsonl_written,
+            "batch_cases_jsonl_count": batch_cases_jsonl_count,
+            "batch_cases_jsonl_error": batch_cases_jsonl_error,
             "steps": steps,
             "warnings": warnings,
             "errors": errors,
             "output_paths": {
                 "qa_summary_json": str(summary_path),
+                "batch_cases_jsonl_path": str(batch_cases_jsonl_path),
             },
         }
         write_json(summary_path, batch_summary)
@@ -417,6 +471,7 @@ def main() -> int:
             f"all_passed={batch_summary['all_passed']} total_cases={batch_summary['total_cases']}"
         )
         print(f"[DONE] summary={summary_path}")
+        print(f"[DONE] batch_cases_jsonl={batch_cases_jsonl_path}")
         return wrapper_exit_code
 
     query_value = (args.query or "").strip()

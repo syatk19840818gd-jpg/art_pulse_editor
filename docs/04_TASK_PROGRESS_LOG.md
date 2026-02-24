@@ -1,6 +1,6 @@
 # 04_TASK_PROGRESS_LOG.md
 
-最終更新: 2026-02-24 23:05 JST  
+最終更新: 2026-02-24 23:45 JST  
 対象プロジェクト: ART_PULSE_EDITOR（Phase1 seed10 / Guard運用整備）  
 位置づけ: 実装進捗ログ（01=SSOT、02=索引、03=現行運用タスクの補助ログ）
 
@@ -29,8 +29,8 @@
 
 ## 2. 全体の進捗サマリ（現時点）
 
-- 完了: **TASK 1 ～ TASK 69**
-- 次の予定: **TASK 70**
+- 完了: **TASK 1 ～ TASK 72**
+- 次の予定: **TASK 73**
 - 直近の重点:
   - TarutaniRAG 側で比較/guard の「型」を作成 → Phase1本体（Exhibitions/Artists）へ横展開
   - Phase1 guard 本体 / history 比較 / fixture / matrix / schema文書化 / category文脈まで整備
@@ -463,17 +463,18 @@
 
 ---
 
-## 10. 現在の次タスク（TASK70）
+## 10. 現在の次タスク（TASK73）
 
-[ ] 70) artists回答QA統合CLIのbatch実行結果を集約JSONL化し、日次確認対象を1ファイルで追えるようにする（本体前進）
+[ ] 73) artists回答QA retry manifest をそのまま実行するワンショットCLIを追加し、失敗case復旧を1コマンド化する（本体前進）
 - 目的：
-  - batch summary JSONに加えて、1行1caseの集約JSONLを出力し、日次確認対象（question/query/context/exit/summary_path）を追跡しやすくする
+  - TASK72で生成した `*_retry_manifest.json` を直接実行し、抽出→再実行の手順分断をなくす
 - 制約：
   - 取得ループ内LLM加工は追加しない（Post-fetch分離）
   - 既存Exhibitions/Tarutani/guard/history/lint/matrixの既存処理を壊さない
 - 成立条件：
-  - batch実行時に `artists_answer_qa_batch_cases_*.jsonl`（例）を保存できる
-  - JSONLに `case_id/question/query/context_path/exit_code/guard_passed/summary_path` を保存できる
+  - `python run_artists_answer_qa_retry_run.py --retry-manifest "..."` でretry実行を開始できる
+  - `--latest` で最新 `*_retry_manifest.json` を自動解決できる
+  - 失敗0件manifestでは no-op/skip を明示して成功終了できる
   - 03 / 04 のログ更新に反映できる
 
 ---
@@ -1161,3 +1162,90 @@
   - `data/phase1_seed10/derived/answer/artists_answer_qa_smoke_summary_20260224T140420Z.json`
   - `data/phase1_seed10/derived/answer/artists_answer_qa_smoke_summary_20260224T140432Z.json`
   - `/tmp/artists_answer_qa_batch_manifest_task69_regression.json`
+
+## 40. TASK70 実行ログ（artists QA batch結果の集約JSONL出力）
+
+[x] 70) artists回答QA統合CLIのbatch実行結果を集約JSONL化し、日次確認対象を1ファイルで追えるようにする（本体前進）
+- 変更ファイル：
+  - `run_artists_answer_qa_smoke.py`
+  - `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md`
+  - `docs/04_TASK_PROGRESS_LOG.md`
+- 実装内容：
+  - batch実行時に `summary_path` と同じディレクトリへ `"{summary_stem}_cases.jsonl"` を出力
+  - JSONL 1行1caseで以下を保存（最低限）
+    - `case_id` / `question` / `query` / `context_path` / `exit_code` / `guard_passed` / `summary_path`
+  - 追加の補助項目：
+    - `qa_input_mode` / `fail_on_regression_effective` / `case_failure_kind` / `compare_exit_code` / `compare_summary_path` / `regression_reasons`
+  - batch summary JSONに以下を追加：
+    - `batch_cases_jsonl_path`
+    - `batch_cases_jsonl_written`
+    - `batch_cases_jsonl_count`
+- 動作確認（2026-02-24）：
+  - 単発後方互換（fixed_context）：
+    - `python run_artists_answer_qa_smoke.py --question "この検索結果から注目作家の傾向を教えて" --context-path "data/phase1_seed10/derived/context/artists_text_context_20260224T131736Z.json" --output-json "data/phase1_seed10/derived/answer/artists_answer_qa_smoke_summary_task70_fixed_context.json"` → exit 0
+    - 単発モードでは `*_cases.jsonl` 未生成を確認
+  - batch green（fixed_context 2件）：
+    - `python run_artists_answer_qa_smoke.py --batch-manifest "/tmp/artists_answer_qa_batch_manifest_task67_fixed.json" --output-json "data/phase1_seed10/derived/answer/artists_answer_qa_smoke_summary_task70_batch_fixed.json"` → exit 0
+    - `batch_cases_jsonl_written=true`, `batch_cases_jsonl_count=2`
+  - batch失敗混在（sample manifest）：
+    - `python run_artists_answer_qa_smoke.py --batch-manifest "data/phase1_seed10/derived/answer/artists_answer_qa_batch_manifest_sample.json"` → exit 1
+    - DNS制約で queryケースが `query_rebuild_failed` だが、JSONL出力は維持
+  - 既存互換：
+    - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+- 生成物：
+  - `data/phase1_seed10/derived/answer/artists_answer_qa_smoke_summary_task70_fixed_context.json`
+  - `data/phase1_seed10/derived/answer/artists_answer_qa_smoke_summary_task70_batch_fixed.json`
+  - `data/phase1_seed10/derived/answer/artists_answer_qa_smoke_summary_task70_batch_fixed_cases.jsonl`
+  - `data/phase1_seed10/derived/answer/artists_answer_qa_smoke_summary_20260224T142921Z.json`
+  - `data/phase1_seed10/derived/answer/artists_answer_qa_smoke_summary_20260224T142921Z_cases.jsonl`
+  - `data/phase1_seed10/logs/phase1_guard_summary_2025_20260224T142932Z.json`
+
+## 41. TASK71 実行ログ（artists QA batch JSONL軽量レポートCLI）
+
+[x] 71) artists回答QA batch集約JSONLの軽量レポートCLIを追加し、失敗case一覧と子summary参照を1コマンドで確認できるようにする（本体前進）
+- 変更ファイル：
+  - `run_artists_answer_qa_batch_report.py`
+  - `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md`
+  - `docs/04_TASK_PROGRESS_LOG.md`
+- 実装内容：
+  - `run_artists_answer_qa_batch_report.py` を新規追加
+    - `--cases-jsonl` で対象JSONLを明示読み込み
+    - `--latest` で最新 `artists_answer_qa_smoke_summary_*_cases.jsonl` を自動解決
+    - レポートへ `total_cases` / `failed_cases` / `failed_case_ids` / `summary_paths_to_check` を保存
+    - 既定で `{cases_stem}_report.json` を出力
+- 動作確認（2026-02-24）：
+  - `python run_artists_answer_qa_smoke.py --batch-manifest "/tmp/artists_answer_qa_batch_manifest_task67_fixed.json" --output-json "data/phase1_seed10/derived/answer/artists_answer_qa_smoke_summary_task71_batch_fixed.json"` → exit 0
+  - `python run_artists_answer_qa_batch_report.py --cases-jsonl "data/phase1_seed10/derived/answer/artists_answer_qa_smoke_summary_task71_batch_fixed_cases.jsonl"` → exit 0
+  - `python run_artists_answer_qa_batch_report.py --latest` → exit 0
+  - `python run_artists_answer_qa_batch_report.py --cases-jsonl "data/phase1_seed10/derived/answer/artists_answer_qa_smoke_summary_20260224T142921Z_cases.jsonl"` → exit 0（`failed_case_ids=['contemporary_painting','abstract_art']` を確認）
+  - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+- 生成物：
+  - `data/phase1_seed10/derived/answer/artists_answer_qa_smoke_summary_task71_batch_fixed.json`
+  - `data/phase1_seed10/derived/answer/artists_answer_qa_smoke_summary_task71_batch_fixed_cases.jsonl`
+  - `data/phase1_seed10/derived/answer/artists_answer_qa_smoke_summary_task71_batch_fixed_cases_report.json`
+  - `data/phase1_seed10/logs/phase1_guard_summary_2025_20260224T143834Z.json`
+
+## 42. TASK72 実行ログ（artists QA失敗case再実行manifest生成CLI）
+
+[x] 72) artists回答QA batch集約JSONLから失敗case再実行manifestを生成するCLIを追加し、日次復旧導線を短縮する（本体前進）
+- 変更ファイル：
+  - `run_artists_answer_qa_retry_manifest.py`
+  - `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md`
+  - `docs/04_TASK_PROGRESS_LOG.md`
+- 実装内容：
+  - `run_artists_answer_qa_retry_manifest.py` を新規追加
+    - `--cases-jsonl` で対象JSONLを明示読み込み
+    - `--latest` で最新 `artists_answer_qa_smoke_summary_*_cases.jsonl` を自動解決
+    - 失敗case（`exit_code != 0`）のみ抽出し、再実行manifestを生成
+    - case項目に `case_id/question/query/context_path/fail_on_regression` を保存
+    - 失敗0件でも `cases=[]` と `notes=['no_failed_cases_found']` を保存し、exit 0で継続
+- 動作確認（2026-02-24）：
+  - `python run_artists_answer_qa_smoke.py --batch-manifest "/tmp/artists_answer_qa_batch_manifest_task67_fixed.json" --output-json "data/phase1_seed10/derived/answer/artists_answer_qa_smoke_summary_task72_batch_fixed.json"` → exit 0
+  - `python run_artists_answer_qa_retry_manifest.py --cases-jsonl "data/phase1_seed10/derived/answer/artists_answer_qa_smoke_summary_task72_batch_fixed_cases.jsonl"` → exit 0
+  - `python run_artists_answer_qa_retry_manifest.py --latest` → exit 0
+  - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+- 生成物：
+  - `data/phase1_seed10/derived/answer/artists_answer_qa_smoke_summary_task72_batch_fixed.json`
+  - `data/phase1_seed10/derived/answer/artists_answer_qa_smoke_summary_task72_batch_fixed_cases.jsonl`
+  - `data/phase1_seed10/derived/answer/artists_answer_qa_smoke_summary_task72_batch_fixed_cases_retry_manifest.json`
+  - `data/phase1_seed10/logs/phase1_guard_summary_2025_20260224T144521Z.json`
