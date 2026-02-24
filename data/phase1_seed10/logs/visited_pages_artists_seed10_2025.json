@@ -330,12 +330,11 @@
     "fair_slug": "liste",
     "gallery_name_en": "Afriart Gallery",
     "decision": "skipped",
-    "reason_code": "KNOWN_SAVED_PAGE",
+    "reason_code": "KNOWN_FAILED_URL_COOLDOWN",
     "target_year": 2025,
     "category": "artists_text",
     "first_seen": "2026-02-24T09:36:00Z",
-    "last_seen": "2026-02-24T09:39:18Z",
-    "parent_source_url": "https://afriartgallery.org/artists"
+    "last_seen": "2026-02-24T10:08:41Z"
   },
   "50e3d41c8fe40dd2534a4fe9d75f5a48dd5c4b2935d1088de8375fa44d2aa811": {
     "page_url_hash": "50e3d41c8fe40dd2534a4fe9d75f5a48dd5c4b2935d1088de8375fa44d2aa811",
@@ -495,16 +494,15 @@
   },
   "732326bb14389a47e7b652ff52a9f9fbd0d7ab8944089c06ff4a5945317293e4": {
     "page_url_hash": "732326bb14389a47e7b652ff52a9f9fbd0d7ab8944089c06ff4a5945317293e4",
-    "url": "https://arcadiamissa.com/category/artist",
+    "url": "https://arcadiamissa.com/category/artist/",
     "fair_slug": "frieze_london",
     "gallery_name_en": "Arcadia Missa",
     "decision": "skipped",
-    "reason_code": "KNOWN_SAVED_PAGE",
+    "reason_code": "KNOWN_FAILED_URL_COOLDOWN",
     "target_year": 2025,
     "category": "artists_text",
     "first_seen": "2026-02-24T09:35:37Z",
-    "last_seen": "2026-02-24T09:39:10Z",
-    "parent_source_url": "https://arcadiamissa.com/category/artist/"
+    "last_seen": "2026-02-24T10:08:41Z"
   },
   "788c0e271ffb40593db5bbce89375c10fb3422d51c5863f5c91e2653a9748252": {
     "page_url_hash": "788c0e271ffb40593db5bbce89375c10fb3422d51c5863f5c91e2653a9748252",
@@ -560,29 +558,27 @@
   },
   "906adf81f251c8c7bbd34fcf3baf0a52802643d14d030b593f581a56abf903a5": {
     "page_url_hash": "906adf81f251c8c7bbd34fcf3baf0a52802643d14d030b593f581a56abf903a5",
-    "url": "https://aplusart.asia/artists",
+    "url": "https://aplusart.asia/artists/",
     "fair_slug": "liste",
     "gallery_name_en": "A+ Works of Art",
     "decision": "skipped",
-    "reason_code": "KNOWN_SAVED_PAGE",
+    "reason_code": "KNOWN_FAILED_URL_COOLDOWN",
     "target_year": 2025,
     "category": "artists_text",
     "first_seen": "2026-02-24T09:35:49Z",
-    "last_seen": "2026-02-24T09:39:15Z",
-    "parent_source_url": "https://aplusart.asia/artists/"
+    "last_seen": "2026-02-24T10:08:41Z"
   },
   "90c855ad6927417b931b0667a9c578e3da8a35f42b47ec9afbc8af6f02de9f03": {
     "page_url_hash": "90c855ad6927417b931b0667a9c578e3da8a35f42b47ec9afbc8af6f02de9f03",
-    "url": "https://gallerybaton.com/artists",
+    "url": "https://gallerybaton.com/artists/",
     "fair_slug": "frieze_london",
     "gallery_name_en": "Gallery Baton",
     "decision": "skipped",
-    "reason_code": "KNOWN_SAVED_PAGE",
+    "reason_code": "KNOWN_FAILED_URL_COOLDOWN",
     "target_year": 2025,
     "category": "artists_text",
     "first_seen": "2026-02-24T09:35:44Z",
-    "last_seen": "2026-02-24T09:39:14Z",
-    "parent_source_url": "https://gallerybaton.com/artists/"
+    "last_seen": "2026-02-24T10:08:41Z"
   },
   "9194b6840d6c7aaa0c53351cbfe0a7be8544f2d8e3ae9f94d461d1f126dada40": {
     "page_url_hash": "9194b6840d6c7aaa0c53351cbfe0a7be8544f2d8e3ae9f94d461d1f126dada40",
@@ -677,16 +673,15 @@
   },
   "a2fc4a9fbccd26833b3cde1ff2f22151cc18acc683209d0c090a7c6af8b7b287": {
     "page_url_hash": "a2fc4a9fbccd26833b3cde1ff2f22151cc18acc683209d0c090a7c6af8b7b287",
-    "url": "https://athrart.com/artists",
+    "url": "https://athrart.com/artists/",
     "fair_slug": "frieze_london",
     "gallery_name_en": "Athr",
     "decision": "skipped",
-    "reason_code": "KNOWN_SAVED_PAGE",
+    "reason_code": "KNOWN_FAILED_URL_COOLDOWN",
     "target_year": 2025,
     "category": "artists_text",
     "first_seen": "2026-02-24T09:35:40Z",
-    "last_seen": "2026-02-24T09:39:11Z",
-    "parent_source_url": "https://athrart.com/artists/"
+    "last_seen": "2026-02-24T10:08:41Z"
   },
   "a368d668f45d60b36f6ff07eca894f2e047a98b312306ca6b2b7b003756feb29": {
     "page_url_hash": "a368d668f45d60b36f6ff07eca894f2e047a98b312306ca6b2b7b003756feb29",
@@ -720,12 +715,11 @@
     "fair_slug": "frieze_london",
     "gallery_name_en": "Adams and Ollman",
     "decision": "skipped",
-    "reason_code": "KNOWN_SAVED_PAGE",
+    "reason_code": "KNOWN_FAILED_URL_COOLDOWN",
     "target_year": 2025,
     "category": "artists_text",
     "first_seen": "2026-02-24T09:35:28Z",
-    "last_seen": "2026-02-24T09:39:07Z",
-    "parent_source_url": "https://adamsandollman.com/List-of-Artists"
+    "last_seen": "2026-02-24T10:08:41Z"
   },
   "a60e49f3e35b9e932a72ec9ad1909f81f4dce1b0e21fc2e1597a610a0aff1f7e": {
     "page_url_hash": "a60e49f3e35b9e932a72ec9ad1909f81f4dce1b0e21fc2e1597a610a0aff1f7e",
@@ -833,16 +827,15 @@
   },
   "be2d69f2a9158731d9e5a1453986cc7ec90f29e5d9c69bbee2bc59ed40c3277d": {
     "page_url_hash": "be2d69f2a9158731d9e5a1453986cc7ec90f29e5d9c69bbee2bc59ed40c3277d",
-    "url": "https://addisfineart.com/artists",
+    "url": "https://addisfineart.com/artists/",
     "fair_slug": "liste",
     "gallery_name_en": "Addis Fine Art",
     "decision": "skipped",
-    "reason_code": "KNOWN_SAVED_PAGE",
+    "reason_code": "KNOWN_FAILED_URL_COOLDOWN",
     "target_year": 2025,
     "category": "artists_text",
     "first_seen": "2026-02-24T09:35:55Z",
-    "last_seen": "2026-02-24T09:39:17Z",
-    "parent_source_url": "https://addisfineart.com/artists/"
+    "last_seen": "2026-02-24T10:08:41Z"
   },
   "c0a205af56d61b5c3540d654f010083da4220219473a0e9b77675eaf182f72c9": {
     "page_url_hash": "c0a205af56d61b5c3540d654f010083da4220219473a0e9b77675eaf182f72c9",
@@ -915,25 +908,23 @@
     "fair_slug": "frieze_london",
     "gallery_name_en": "The Approach",
     "decision": "skipped",
-    "reason_code": "KNOWN_SAVED_PAGE",
+    "reason_code": "KNOWN_FAILED_URL_COOLDOWN",
     "target_year": 2025,
     "category": "artists_text",
     "first_seen": "2026-02-24T09:35:30Z",
-    "last_seen": "2026-02-24T09:39:08Z",
-    "parent_source_url": "https://www.theapproach.co.uk/artists/"
+    "last_seen": "2026-02-24T10:08:41Z"
   },
   "da396c53c0a3979b17a06462e41927e909326caeb44461010fc7c36d8f965929": {
     "page_url_hash": "da396c53c0a3979b17a06462e41927e909326caeb44461010fc7c36d8f965929",
-    "url": "https://www.ancapoterasu.com/the-artists",
+    "url": "https://www.ancapoterasu.com/the-artists/",
     "fair_slug": "liste",
     "gallery_name_en": "Anca Poteraşu Gallery",
     "decision": "skipped",
-    "reason_code": "KNOWN_SAVED_PAGE",
+    "reason_code": "KNOWN_FAILED_URL_COOLDOWN",
     "target_year": 2025,
     "category": "artists_text",
     "first_seen": "2026-02-24T09:36:10Z",
-    "last_seen": "2026-02-24T09:39:19Z",
-    "parent_source_url": "https://www.ancapoterasu.com/the-artists/"
+    "last_seen": "2026-02-24T10:08:41Z"
   },
   "daeaa9be8b563b90469d392bb2affbabd12a3d1aac37930d110590446e9c8bce": {
     "page_url_hash": "daeaa9be8b563b90469d392bb2affbabd12a3d1aac37930d110590446e9c8bce",
@@ -1058,12 +1049,11 @@
     "fair_slug": "liste",
     "gallery_name_en": "Amanita",
     "decision": "skipped",
-    "reason_code": "KNOWN_SAVED_PAGE",
+    "reason_code": "KNOWN_FAILED_URL_COOLDOWN",
     "target_year": 2025,
     "category": "artists_text",
     "first_seen": "2026-02-24T09:36:05Z",
-    "last_seen": "2026-02-24T09:39:18Z",
-    "parent_source_url": "https://spazioamanita.com/Artists"
+    "last_seen": "2026-02-24T10:08:41Z"
   },
   "fcedfe155d781419e370cfb6463aed1b021f2f7962ff98fd8fb59cc67bbb21af": {
     "page_url_hash": "fcedfe155d781419e370cfb6463aed1b021f2f7962ff98fd8fb59cc67bbb21af",

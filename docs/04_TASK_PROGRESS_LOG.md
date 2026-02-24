@@ -1,6 +1,6 @@
 # 04_TASK_PROGRESS_LOG.md
 
-最終更新: 2026-02-24 18:40 JST  
+最終更新: 2026-02-24 19:09 JST  
 対象プロジェクト: ART_PULSE_EDITOR（Phase1 seed10 / Guard運用整備）  
 位置づけ: 実装進捗ログ（01=SSOT、02=索引、03=現行運用タスクの補助ログ）
 
@@ -29,8 +29,8 @@
 
 ## 2. 全体の進捗サマリ（現時点）
 
-- 完了: **TASK 1 ～ TASK 53**
-- 次の予定: **TASK 54**
+- 完了: **TASK 1 ～ TASK 56**
+- 次の予定: **TASK 57**
 - 直近の重点:
   - TarutaniRAG 側で比較/guard の「型」を作成 → Phase1本体（Exhibitions/Artists）へ横展開
   - Phase1 guard 本体 / history 比較 / fixture / matrix / schema文書化 / category文脈まで整備
@@ -463,17 +463,17 @@
 
 ---
 
-## 10. 現在の次タスク（TASK54）
+## 10. 現在の次タスク（TASK57）
 
-[ ] 54) artists_text のPost-fetch Enrichment入口をseed10本体へ追加する（本体前進・最小）
+[ ] 57) ブロッカー解消：artists_text vectorize の外向き接続を回復し、`embedded_total>0` を再確認する（本体前進）
 - 目的：
-  - TASK52/53で取得できた artists_text raw を、取得ループ外の事後バッチへ接続する
+  - TASK56で追加した vectorize入口を接続回復後に再実行し、実埋め込み生成を確認する
 - 制約：
-  - 取得ループ内LLM加工は追加しない
-  - 既存Exhibitions Enrichment挙動を壊さない
+  - 取得ループ内LLM加工は追加しない（Post-fetch分離）
+  - 既存Exhibitions/Tarutaniの既存処理を壊さない
 - 成立条件：
-  - artists向け enrichment requests の最小生成ができる
-  - summary に artists_enrichment 対象件数と出力パスを残せる
+  - 通信確認（curl/socket）が通る
+  - `run_vectorize_artists_seed10.py` で `embedded_total > 0` を確認
   - 03 の CHANGELOG に反映
 
 ---
@@ -706,4 +706,88 @@
     - `python -c "import socket; print(socket.gethostbyname('example.com'))"` → 104.18.26.120
   - artists cooldown影響除外：
     - `failed_fetches_artists_seed10_2025.json` をバックアップ後に空dictへ初期化
-  - 再実行で `new_saved>0` を確認し、TASK52完了条件を満たした
+- 再実行で `new_saved>0` を確認し、TASK52完了条件を満たした
+
+## 24. TASK54 実行ログ（artists Post-fetch Enrichment入口）
+
+[x] 54) artists_text のPost-fetch Enrichment入口をseed10本体へ追加した（本体前進・最小）
+- 変更ファイル：
+  - `run_phase1_seed10.py`
+  - `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md`
+  - `docs/04_TASK_PROGRESS_LOG.md`
+- 実装内容：
+  - `run_phase1_seed10.py` に artists raw から未付与候補を抽出する Post-fetch 処理を追加
+  - 生成物（上書き生成）：
+    - `data/phase1_seed10/derived/artists_enrichment_requests_2025.jsonl`
+  - run summary に artists enrichment メタを追加：
+    - `artists_enrichment_mode`
+    - `artists_enrichment_candidates_total`
+    - `artists_enrichment_requests_created`
+    - `artists_enrichment_requests_output_path`
+    - `artists_enrichment_raw_records_total`
+    - `artists_enrichment_raw_records_by_fair`
+    - `artists_enrichment_counters`
+    - `artists_enrichment_warnings`
+  - 取得ループ内LLM加工は追加せず、Post-fetch分離を維持
+- 動作確認（2026-02-24）：
+  - `python run_phase1_seed10.py` → exit 0（既存互換）
+  - `python run_phase1_seed10.py --include-artists-text` → exit 0
+  - `python run_phase1_seed10.py --include-artists-text` → exit 0（再実行）
+  - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+  - summary確認：
+    - `artists_enrichment_mode=post_fetch_requests_only`
+    - `artists_enrichment_candidates_total=81`
+    - `artists_enrichment_requests_created=81`
+    - `artists_enrichment_requests_output_path=data/phase1_seed10/derived/artists_enrichment_requests_2025.jsonl`
+    - `artists_enrichment_raw_records_total=81`
+
+## 25. TASK55 実行ログ（artists Enrichment apply）
+
+[x] 55) artists_text のEnrichment applyバッチを追加し、requestsから `headline_ja` をrawへ反映（本体前進）
+- 変更ファイル：
+  - `run_enrichment_artists_seed10_apply.py`（新規）
+  - `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md`
+  - `docs/04_TASK_PROGRESS_LOG.md`
+- 実装内容：
+  - artists requests（`data/phase1_seed10/derived/artists_enrichment_requests_2025.jsonl`）を読み込み、
+    `artists_frieze_london_2025.jsonl` / `artists_liste_2025.jsonl` の `headline_ja` を更新する applyバッチを追加
+  - apply結果の output/summary を `data/phase1_seed10/derived/` に保存
+  - 接続失敗時に処理停止しないよう、Post-fetch範囲で見出しフォールバック生成を実装（取得ループ内LLM加工はなし）
+- 動作確認（2026-02-24）：
+  - `python run_phase1_seed10.py --include-artists-text` → exit 0
+  - `python run_enrichment_artists_seed10_apply.py` → exit 0（`updated=81`）
+  - `python run_enrichment_artists_seed10_apply.py` → exit 0（`updated=0`、冪等）
+  - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+- 生成物：
+  - `data/phase1_seed10/derived/artists_enrichment_apply_output_2025_20260224T100342Z.jsonl`
+  - `data/phase1_seed10/derived/artists_enrichment_apply_summary_2025_20260224T100342Z.json`
+  - `data/phase1_seed10/derived/artists_enrichment_apply_output_2025_20260224T100355Z.jsonl`
+  - `data/phase1_seed10/derived/artists_enrichment_apply_summary_2025_20260224T100355Z.json`
+
+## 26. TASK56 実行ログ（artists Embedding/Index入口）
+
+[x] 56) artists_text のEmbedding/Index入口を追加し、検索用生成物をseed10派生データとして保存（本体前進）
+- 変更ファイル：
+  - `run_vectorize_artists_seed10.py`（新規）
+  - `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md`
+  - `docs/04_TASK_PROGRESS_LOG.md`
+- 実装内容：
+  - artists raw（frieze/liste）を入力に、Post-fetchベクトル化CLIを追加
+  - 生成物：
+    - `data/phase1_seed10/derived/vector/artists_text_index_2025.npy`
+    - `data/phase1_seed10/derived/vector/artists_text_meta_2025.jsonl`
+    - `data/phase1_seed10/derived/vector/artists_text_vectorize_failed_2025.jsonl`
+    - `data/phase1_seed10/derived/vector/artists_text_vectorize_summary_2025.json`
+    - `data/phase1_seed10/derived/vector/artists_text_artifact_manifest_2025.json`
+  - summaryに `input_total / embedded_total / skipped_total / output_paths` を保存
+  - 既存guard/history/lintロジックには変更なし
+- 動作確認（2026-02-24）：
+  - `python run_phase1_seed10.py --include-artists-text` → exit 0
+  - `python run_enrichment_artists_seed10_apply.py` → exit 0
+  - `python run_vectorize_artists_seed10.py` → exit 0
+  - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+- 実行結果：
+  - `input_total=81`
+  - `embedded_total=0`
+  - `skipped_total=0`
+  - `failed_total=81`（接続失敗）

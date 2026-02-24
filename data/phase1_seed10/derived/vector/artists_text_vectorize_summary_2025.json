@@ -1,0 +1,33 @@
+{
+  "started_at": "2026-02-24T10:08:56Z",
+  "completed_at": "2026-02-24T10:08:56Z",
+  "target_year": 2025,
+  "rag_category": "artists_text",
+  "raw_input_paths": {
+    "frieze_london": "data/phase1_seed10/raw/artists_frieze_london_2025.jsonl",
+    "liste": "data/phase1_seed10/raw/artists_liste_2025.jsonl"
+  },
+  "raw_rows_total": 81,
+  "input_total": 81,
+  "embedded_total": 0,
+  "skipped_total": 0,
+  "failed_total": 81,
+  "embedding_model": "gemini-embedding-001",
+  "embedding_task_type": "RETRIEVAL_DOCUMENT",
+  "embedding_dim": 1536,
+  "embed_input_max_chars": 2000,
+  "output_paths": {
+    "index": "data/phase1_seed10/derived/vector/artists_text_index_2025.npy",
+    "meta": "data/phase1_seed10/derived/vector/artists_text_meta_2025.jsonl",
+    "failed": "data/phase1_seed10/derived/vector/artists_text_vectorize_failed_2025.jsonl",
+    "summary": "data/phase1_seed10/derived/vector/artists_text_vectorize_summary_2025.json",
+    "manifest": "data/phase1_seed10/derived/vector/artists_text_artifact_manifest_2025.json"
+  },
+  "counters": {
+    "embedding_input_truncated": 40,
+    "input_total": 81,
+    "raw_rows_total": 81,
+    "batch_level_failures": 11,
+    "failed_embedding_generation": 81
+  }
+}

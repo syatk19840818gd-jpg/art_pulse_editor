@@ -1,6 +1,6 @@
 {
-  "started_at": "2026-02-24T09:39:05Z",
-  "completed_at": "2026-02-24T09:39:19Z",
+  "started_at": "2026-02-24T10:08:41Z",
+  "completed_at": "2026-02-24T10:08:41Z",
   "target_year": 2025,
   "seed_per_fair": 5,
   "max_exhibition_links_per_gallery": 10,
@@ -14,18 +14,16 @@
     "frieze_london": 0,
     "liste": 0
   },
-  "failed_fetches_new_in_run": 0,
+  "failed_fetches_new_in_run": 10,
   "failed_fetches_total_ledger": 10,
   "failed_fetches_reason_counts": {
     "DNS_ERROR": 10
   },
   "visited_pages_total_ledger": 78,
-  "skipped_total": 10,
+  "skipped_total": 0,
   "skipped_known_saved_page": 0,
   "skipped_out_of_year": 0,
-  "skipped_by_reason": {
-    "KNOWN_FAILED_URL_COOLDOWN": 10
-  },
+  "skipped_by_reason": {},
   "existing_text_hashes_by_fair": {
     "frieze_london": 28,
     "liste": 36
@@ -45,16 +43,15 @@
     "liste": 0
   },
   "artists_failed_fetches_new_in_run": 0,
-  "artists_failed_fetches_total_ledger": 1,
+  "artists_failed_fetches_total_ledger": 11,
   "artists_failed_fetches_reason_counts": {
+    "DNS_ERROR": 10,
     "CONNECTION_ERROR": 1
   },
   "artists_visited_pages_total_ledger": 84,
-  "artists_skipped_total": 82,
+  "artists_skipped_total": 10,
   "artists_skipped_by_reason": {
-    "KNOWN_SAVED_PAGE": 79,
-    "DUPLICATE_TEXT_HASH_EXISTING": 2,
-    "KNOWN_FAILED_URL_COOLDOWN": 1
+    "KNOWN_FAILED_URL_COOLDOWN": 10
   },
   "artists_list_source_counts": {
     "artists_url": 10
@@ -78,5 +75,18 @@
     "liste": "data/phase1_seed10/raw/artists_liste_2025.jsonl"
   },
   "artists_failed_fetches_path": "data/phase1_seed10/logs/failed_fetches_artists_seed10_2025.json",
-  "artists_visited_pages_path": "data/phase1_seed10/logs/visited_pages_artists_seed10_2025.json"
+  "artists_visited_pages_path": "data/phase1_seed10/logs/visited_pages_artists_seed10_2025.json",
+  "artists_enrichment_mode": "post_fetch_requests_only",
+  "artists_enrichment_candidates_total": 81,
+  "artists_enrichment_requests_created": 81,
+  "artists_enrichment_requests_output_path": "data/phase1_seed10/derived/artists_enrichment_requests_2025.jsonl",
+  "artists_enrichment_raw_records_total": 81,
+  "artists_enrichment_raw_records_by_fair": {
+    "frieze_london": 32,
+    "liste": 49
+  },
+  "artists_enrichment_counters": {
+    "candidates_new": 81
+  },
+  "artists_enrichment_warnings": []
 }
