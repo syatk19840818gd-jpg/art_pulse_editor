@@ -48,6 +48,30 @@ Important: this runner executes `run_compare_phase1_guard.py` (guard本体) and 
 - expected exit code
 - expected summary keys/values (`summary_checks_passed`)
 
+## One-command matrix runner (category profile lint)
+
+Run lint fixtures from `lint_fixture_manifest.json`:
+
+```bash
+python run_phase1_guard_lint_fixture_matrix.py
+```
+
+Optional fail-fast mode:
+
+```bash
+python run_phase1_guard_lint_fixture_matrix.py --fail-fast
+```
+
+Wrapper exit code meanings:
+
+- `0`: matrix pass (all lint cases matched expected exit codes and summary checks)
+- `1`: matrix fail
+
+Important: this runner executes `run_phase1_guard_category_profile_lint.py` (lint本体) and validates both:
+
+- expected exit code (`0/1`)
+- expected lint summary keys/values (`summary_checks_passed`)
+
 ## Cases
 
 - `pass`: compatible comparison, no regression, expected exit code `0`
@@ -62,6 +86,7 @@ Important: this runner executes `run_compare_phase1_guard.py` (guard本体) and 
 Fixture metadata is defined in `fixture_manifest.json`.
 
 Guard category fixture metadata is defined in `category_fixture_manifest.json`.
+Lint fixture metadata is defined in `lint_fixture_manifest.json`.
 
 ## Recommended order
 
@@ -151,7 +176,7 @@ Expected exit code (artists vs exhibitions strict): `3`
 
 ## Category profile fixtures (guard CLI)
 
-Category profile fixtures are under `tests/fixtures/phase1_guard/category_profile/`:
+Category profile fixtures are under `tests/fixtures/phase1_guard/category/`:
 
 - `artists_reserved_warning`: no `artists_*_<year>.jsonl` in fixture raw dir
   - expected: `category_support_mode=reserved_minimal`
@@ -163,8 +188,8 @@ Category profile fixtures are under `tests/fixtures/phase1_guard/category_profil
 Individual commands:
 
 ```bash
-python run_compare_phase1_guard.py --target-year 2025 --category artists_text --logs-dir tests/fixtures/phase1_guard/category_profile/artists_reserved_warning/logs
-python run_compare_phase1_guard.py --target-year 2025 --category artists_text --logs-dir tests/fixtures/phase1_guard/category_profile/artists_provisional_pass/logs
+python run_compare_phase1_guard.py --target-year 2025 --category artists_text --logs-dir tests/fixtures/phase1_guard/category/artists_reserved_warning/logs
+python run_compare_phase1_guard.py --target-year 2025 --category artists_text --logs-dir tests/fixtures/phase1_guard/category/artists_provisional_pass/logs
 ```
 
 Summary keys to read:
@@ -175,6 +200,42 @@ Summary keys to read:
 - `category_activation_conditions`
 - `category_data_presence`
 - `category_warnings`
+
+Category fixture matrix checks (TASK41):
+
+- reserved case:
+  - `category_support_mode=reserved_minimal`
+  - `category_activation_conditions` non-empty
+  - `category_data_presence` exists and `has_artists_data=false`
+- provisional case:
+  - `category_support_mode=provisional_minimal`
+  - `category_activation_conditions` non-empty
+  - `category_data_presence` exists and `has_artists_data=true`
+
+## Category profile lint fixtures
+
+Lint fixture files are under `tests/fixtures/phase1_guard/lint/`:
+
+- `valid/phase1_guard_category_profiles_valid.json`
+- `bad_json/phase1_guard_bad_config.json`
+- `bad_schema/phase1_guard_bad_schema_config.json`
+- `missing/phase1_guard_missing_config.json` (intentionally absent)
+
+Individual commands:
+
+```bash
+python run_phase1_guard_category_profile_lint.py --config-path tests/fixtures/phase1_guard/lint/valid/phase1_guard_category_profiles_valid.json
+python run_phase1_guard_category_profile_lint.py --config-path tests/fixtures/phase1_guard/lint/missing/phase1_guard_missing_config.json
+python run_phase1_guard_category_profile_lint.py --config-path tests/fixtures/phase1_guard/lint/bad_json/phase1_guard_bad_config.json
+python run_phase1_guard_category_profile_lint.py --config-path tests/fixtures/phase1_guard/lint/bad_schema/phase1_guard_bad_schema_config.json
+```
+
+Expected lint exit codes:
+
+- valid: `0`
+- missing: `1` (`config_missing:*`)
+- bad json: `1` (`config_json_decode_error:*`)
+- bad schema: `1` (`config_schema_error:*`)
 
 ## Schema version check (guard_schema_version)
 

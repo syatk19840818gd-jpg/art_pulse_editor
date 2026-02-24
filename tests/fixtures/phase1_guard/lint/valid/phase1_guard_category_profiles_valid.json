@@ -1,0 +1,38 @@
+{
+  "category_profile_config_version": "1.0",
+  "categories": {
+    "exhibitions_text": {
+      "profile_version": "1.1",
+      "required_input_files": [
+        "run_summary_path",
+        "visited_pages_path",
+        "failed_fetches_path",
+        "output_files"
+      ],
+      "required_summary_keys_drop": [],
+      "support_mode": "active",
+      "activation_conditions": [],
+      "reserved_reason": ""
+    },
+    "artists_text": {
+      "profile_version": "1.1",
+      "required_input_files": [
+        "run_summary_path",
+        "visited_pages_path",
+        "failed_fetches_path"
+      ],
+      "required_summary_keys_drop": [
+        "output_files"
+      ],
+      "required_summary_keys_add": [],
+      "support_mode": "reserved_minimal",
+      "activation_conditions": [
+        "artists_raw_files_pattern_confirmed_under_<logs-dir>/../raw",
+        "artists_run_summary_and_ledgers_exist_for_target_year",
+        "at_least_one_artists_guard_run_verified_and_saved"
+      ],
+      "reserved_reason": "artists_summary_and_raw_conventions_not_finalized"
+    }
+  }
+}
+

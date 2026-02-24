@@ -469,6 +469,69 @@ Minimum keys to read:
 - `cases[].summary_checks_passed`
 - `cases[].summary_check_failures`
 - `cases[].output_summary_path`
+- activation-focused checks:
+  - reserved: `category_support_mode=reserved_minimal`
+  - provisional: `category_support_mode=provisional_minimal`
+  - both: `category_activation_conditions` non-empty and `category_data_presence` present
+
+### 7.3 Category profile config lint summary
+
+Use config-only lint before guard runs:
+
+```bash
+python run_phase1_guard_category_profile_lint.py --config-path "config/phase1_guard_category_profiles.json"
+```
+
+Lint summary file:
+
+- `data/phase1_seed10/logs/phase1_guard_category_profile_lint_YYYYMMDDTHHMMSSZ.json`
+
+Minimum keys to read:
+
+- `checked_at`
+- `source_cli`
+- `config_path`
+- `config_exists`
+- `config_valid`
+- `config_error_code`
+- `config_error_detail`
+- `category_profile_source` (`external_config` / `builtin_fallback`)
+- `category_profile_config_loaded`
+- `category_profile_config_version_effective`
+- `exit_code` (`0=lint_pass`, `1=lint_fail`)
+
+Error code families (aligned with guard config loader):
+
+- `config_missing:*`
+- `config_json_decode_error:*`
+- `config_schema_error:*`
+
+### 7.4 Category profile lint fixture matrix summary
+
+Use one-command lint matrix execution:
+
+```bash
+python run_phase1_guard_lint_fixture_matrix.py
+```
+
+Matrix summary file:
+
+- `data/phase1_seed10/logs/phase1_guard_lint_fixture_matrix_YYYYMMDDTHHMMSSZ.json`
+
+Minimum keys to read:
+
+- `all_cases_passed`
+- `total_cases`
+- `passed_cases`
+- `failed_cases`
+- `cases[]`
+  - `case_name`
+  - `expected_exit_code` (lint expectation: `0/1`)
+  - `actual_exit_code`
+  - `summary_checks_passed`
+  - `summary_check_failures`
+  - `output_summary_path`
+- `wrapper_exit_code` (`0=matrix_pass`, `1=matrix_fail`)
 
 ## 8. Backward Compatibility Notes (TASK26/27)
 

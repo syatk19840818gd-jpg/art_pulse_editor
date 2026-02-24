@@ -1,0 +1,22 @@
+{
+  "checked_at": "2026-02-24T07:44:57Z",
+  "source_cli": "run_phase1_guard_category_profile_lint.py",
+  "config_path": "/home/syatk/my_projects/art_pulse_editor/config/phase1_guard_category_profiles.json",
+  "config_exists": true,
+  "config_valid": true,
+  "config_error_code": null,
+  "config_error_detail": null,
+  "category_profile_source": "external_config",
+  "category_profile_config_loaded": true,
+  "category_profile_config_version_effective": "1.0",
+  "categories_effective": [
+    "artists_text",
+    "exhibitions_text"
+  ],
+  "output_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_guard_category_profile_lint_20260224T074457Z.json",
+  "exit_code": 0,
+  "exit_code_meaning": {
+    "0": "lint_pass",
+    "1": "lint_fail"
+  }
+}
