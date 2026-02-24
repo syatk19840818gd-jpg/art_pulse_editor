@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import argparse
 import csv
 import hashlib
 import json
@@ -17,6 +18,7 @@ from bs4 import BeautifulSoup
 
 TARGET_YEAR = 2025
 RAG_CATEGORY = "exhibitions_text"
+RAG_CATEGORY_ARTISTS = "artists_text"
 SEED_PER_FAIR = 5
 MAX_EXHIBITION_LINKS_PER_GALLERY = 10
 REQUEST_TIMEOUT_SECONDS = 12
@@ -56,6 +58,15 @@ LINK_KEYWORDS = (
     "viewing-room",
 )
 
+ARTIST_LINK_KEYWORDS = (
+    "artist",
+    "artists",
+    "roster",
+    "team",
+    "bio",
+    "biography",
+)
+
 
 @dataclass
 class GallerySeed:
@@ -64,6 +75,17 @@ class GallerySeed:
     gallery_name_en: str
     gallery_name_kana: str
     exhibitions_url: str
+    artists_url: str = ""
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Phase1 seed10 fetch runner")
+    parser.add_argument(
+        "--include-artists-text",
+        action="store_true",
+        help="include artists_text minimal fetch loop (default: exhibitions_text only)",
+    )
+    return parser.parse_args()
 
 
 def utc_now_iso() -> str:
@@ -93,6 +115,7 @@ def load_seed_galleries(csv_path: Path, fair_slug: str, limit: int) -> list[Gall
             exhibitions_url = row[1].strip()
             if not exhibitions_url:
                 continue
+            artists_url = row[2].strip() if len(row) >= 3 else ""
             gallery_name_en, gallery_name_kana = parse_gallery_name(gallery_name_raw)
             galleries.append(
                 GallerySeed(
@@ -101,11 +124,18 @@ def load_seed_galleries(csv_path: Path, fair_slug: str, limit: int) -> list[Gall
                     gallery_name_en=gallery_name_en,
                     gallery_name_kana=gallery_name_kana,
                     exhibitions_url=exhibitions_url,
+                    artists_url=artists_url,
                 )
             )
             if len(galleries) >= limit:
                 break
     return galleries
+
+
+def resolve_artists_list_url(gallery: GallerySeed) -> tuple[str, str]:
+    if gallery.artists_url:
+        return gallery.artists_url, "artists_url"
+    return gallery.exhibitions_url, "exhibitions_url_fallback"
 
 
 def _normalized_host(parsed: ParseResult) -> str:
@@ -146,6 +176,42 @@ def extract_candidate_exhibition_urls(list_page_url: str, list_page_html: str) -
             continue
         anchor_text = anchor.get_text(" ", strip=True)
         if not _looks_like_exhibition_link(absolute_url, anchor_text):
+            continue
+        normalized = f"{parsed.scheme}://{parsed.netloc}{parsed.path}".rstrip("/")
+        if parsed.query:
+            normalized = f"{normalized}?{parsed.query}"
+        if normalized in seen:
+            continue
+        seen.add(normalized)
+        candidates.append(normalized)
+        if len(candidates) >= MAX_EXHIBITION_LINKS_PER_GALLERY:
+            break
+
+    if not candidates:
+        return [list_page_url]
+    return candidates
+
+
+def extract_candidate_artist_urls(list_page_url: str, list_page_html: str) -> list[str]:
+    soup = BeautifulSoup(list_page_html, "lxml")
+    candidates: list[str] = []
+    seen: set[str] = set()
+
+    for anchor in soup.find_all("a", href=True):
+        href = (anchor.get("href") or "").strip()
+        if not href:
+            continue
+        if href.startswith(("mailto:", "tel:", "javascript:")):
+            continue
+        absolute_url = urljoin(list_page_url, href)
+        parsed = urlparse(absolute_url)
+        if parsed.scheme not in ("http", "https"):
+            continue
+        if not _same_domain(absolute_url, list_page_url):
+            continue
+        anchor_text = anchor.get_text(" ", strip=True).lower()
+        target = f"{absolute_url.lower()} {anchor_text}"
+        if not any(keyword in target for keyword in ARTIST_LINK_KEYWORDS):
             continue
         normalized = f"{parsed.scheme}://{parsed.netloc}{parsed.path}".rstrip("/")
         if parsed.query:
@@ -258,12 +324,12 @@ def normalize_url_for_hash(url: str) -> str:
     return normalized.rstrip("/")
 
 
-def compute_text_hash(text: str, source_url: str) -> str:
+def compute_text_hash(text: str, source_url: str, rag_category: str = RAG_CATEGORY) -> str:
     normalized_text = normalize_text_for_hash(text)
     if normalized_text:
-        payload = f"{RAG_CATEGORY}\n{normalized_text}"
+        payload = f"{rag_category}\n{normalized_text}"
     else:
-        payload = f"{RAG_CATEGORY}\n{normalize_url_for_hash(source_url)}"
+        payload = f"{rag_category}\n{normalize_url_for_hash(source_url)}"
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
@@ -416,6 +482,7 @@ def upsert_visited_page(
     decision: str,
     reason_code: str,
     parent_source_url: str | None = None,
+    category: str = RAG_CATEGORY,
 ) -> dict[str, Any]:
     now = utc_now_iso()
     page_url_hash = compute_page_url_hash(url)
@@ -428,6 +495,7 @@ def upsert_visited_page(
         "decision": decision,
         "reason_code": reason_code,
         "target_year": TARGET_YEAR,
+        "category": category,
         "first_seen": prev.get("first_seen", now),
         "last_seen": now,
     }
@@ -446,6 +514,7 @@ def upsert_failed_fetch(
     last_error: str,
     http_status: int | None,
     reason_code: str,
+    category: str = RAG_CATEGORY,
 ) -> dict[str, Any]:
     now = utc_now_iso()
     fail_hash = compute_page_url_hash(raw_url)
@@ -465,18 +534,22 @@ def upsert_failed_fetch(
         "last_failed_at": now,
         "reason_code": reason_code,
         "target_year": TARGET_YEAR,
-        "category": RAG_CATEGORY,
+        "category": category,
     }
     ledger[fail_hash] = record
     return record
 
 
 def main() -> int:
+    args = parse_args()
+    include_artists_text = bool(args.include_artists_text)
+
     RAW_DIR.mkdir(parents=True, exist_ok=True)
     LOG_DIR.mkdir(parents=True, exist_ok=True)
 
     started_at = utc_now_iso()
-    print(f"[START] Phase1 seed10 fetch ({RAG_CATEGORY}) at {started_at}")
+    categories = [RAG_CATEGORY] + ([RAG_CATEGORY_ARTISTS] if include_artists_text else [])
+    print(f"[START] Phase1 seed10 fetch ({'+'.join(categories)}) at {started_at}")
 
     seed_galleries: list[GallerySeed] = []
     for fair_slug, csv_path in CSV_PATHS.items():
@@ -520,6 +593,37 @@ def main() -> int:
         f"failed={len(failed_fetches_ledger)} "
         f"existing_text_hashes={sum(len(v) for v in existing_text_hashes_by_fair.values())}"
     )
+
+    # artists_text は既存Exhibitions台帳を壊さないため、専用台帳を使う（最小差分）。
+    artists_output_paths_by_fair = {
+        fair_slug: RAW_DIR / f"artists_{fair_slug}_{TARGET_YEAR}.jsonl"
+        for fair_slug in CSV_PATHS
+    }
+    artists_visited_pages_path = LOG_DIR / f"visited_pages_artists_seed10_{TARGET_YEAR}.json"
+    artists_failed_fetches_path = LOG_DIR / f"failed_fetches_artists_seed10_{TARGET_YEAR}.json"
+    artists_visited_pages_ledger = load_visited_pages_ledger(artists_visited_pages_path)
+    artists_failed_fetches_ledger = load_failed_fetches_ledger(artists_failed_fetches_path)
+    artists_existing_text_hashes_by_fair = {
+        fair_slug: load_existing_text_hashes(output_path)
+        for fair_slug, output_path in artists_output_paths_by_fair.items()
+    }
+    artists_records_by_fair: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    artists_seen_hashes_by_fair: dict[str, set[str]] = {
+        fair_slug: set(artists_existing_text_hashes_by_fair.get(fair_slug, set()))
+        for fair_slug in CSV_PATHS
+    }
+    artists_skip_reason_counter: Counter[str] = Counter()
+    artists_failed_fetches_in_run: list[dict[str, Any]] = []
+    artists_list_source_counter: Counter[str] = Counter()
+    artists_list_source_counter_by_fair: dict[str, Counter[str]] = {
+        fair_slug: Counter() for fair_slug in CSV_PATHS
+    }
+    if include_artists_text:
+        print(
+            f"[INFO] Artists ledgers: visited={len(artists_visited_pages_ledger)} "
+            f"failed={len(artists_failed_fetches_ledger)} "
+            f"existing_text_hashes={sum(len(v) for v in artists_existing_text_hashes_by_fair.values())}"
+        )
 
     session = requests.Session()
     session.headers.update({"User-Agent": USER_AGENT})
@@ -719,11 +823,215 @@ def main() -> int:
                 parent_source_url=list_page_url,
             )
 
+    if include_artists_text:
+        for gallery in seed_galleries:
+            artists_list_url, artists_list_source = resolve_artists_list_url(gallery)
+            artists_list_source_counter[artists_list_source] += 1
+            artists_list_source_counter_by_fair[gallery.fair_slug][artists_list_source] += 1
+            list_url_hash = compute_page_url_hash(artists_list_url)
+            failed_list_entry = artists_failed_fetches_ledger.get(list_url_hash)
+            now = datetime.now(timezone.utc)
+            if failed_list_entry is not None:
+                should_skip, skip_reason = should_skip_failed_url(failed_list_entry, now)
+                if should_skip:
+                    upsert_visited_page(
+                        artists_visited_pages_ledger,
+                        url=artists_list_url,
+                        fair_slug=gallery.fair_slug,
+                        gallery_name_en=gallery.gallery_name_en,
+                        decision="skipped",
+                        reason_code=skip_reason,
+                        category=RAG_CATEGORY_ARTISTS,
+                    )
+                    artists_skip_reason_counter[skip_reason] += 1
+                    continue
+
+            list_result = fetch_html(session, artists_list_url)
+            if not list_result["ok"]:
+                list_reason_code = str(list_result.get("reason_code") or "LIST_FETCH_FAILED")
+                artists_failed_fetches_in_run.append(
+                    upsert_failed_fetch(
+                        artists_failed_fetches_ledger,
+                        kind="page",
+                        raw_url=artists_list_url,
+                        parent_source_url=None,
+                        last_error=list_result["error"] or "LIST_FETCH_FAILED",
+                        http_status=list_result["status_code"],
+                        reason_code=list_reason_code,
+                        category=RAG_CATEGORY_ARTISTS,
+                    )
+                )
+                upsert_visited_page(
+                    artists_visited_pages_ledger,
+                    url=artists_list_url,
+                    fair_slug=gallery.fair_slug,
+                    gallery_name_en=gallery.gallery_name_en,
+                    decision="failed",
+                    reason_code=list_reason_code,
+                    category=RAG_CATEGORY_ARTISTS,
+                )
+                continue
+            clear_failed_fetch(artists_failed_fetches_ledger, artists_list_url)
+
+            list_page_url = list_result["final_url"]
+            candidate_urls = extract_candidate_artist_urls(
+                list_page_url=list_page_url,
+                list_page_html=list_result["html"],
+            )
+
+            for page_url in candidate_urls:
+                page_url_hash = compute_page_url_hash(page_url)
+                failed_page_entry = artists_failed_fetches_ledger.get(page_url_hash)
+                now = datetime.now(timezone.utc)
+                if failed_page_entry is not None:
+                    should_skip, skip_reason = should_skip_failed_url(failed_page_entry, now)
+                    if should_skip:
+                        upsert_visited_page(
+                            artists_visited_pages_ledger,
+                            url=page_url,
+                            fair_slug=gallery.fair_slug,
+                            gallery_name_en=gallery.gallery_name_en,
+                            decision="skipped",
+                            reason_code=skip_reason,
+                            parent_source_url=list_page_url,
+                            category=RAG_CATEGORY_ARTISTS,
+                        )
+                        artists_skip_reason_counter[skip_reason] += 1
+                        continue
+
+                previous_visit = artists_visited_pages_ledger.get(page_url_hash)
+                if previous_visit and previous_visit.get("decision") == "saved":
+                    upsert_visited_page(
+                        artists_visited_pages_ledger,
+                        url=page_url,
+                        fair_slug=gallery.fair_slug,
+                        gallery_name_en=gallery.gallery_name_en,
+                        decision="skipped",
+                        reason_code="KNOWN_SAVED_PAGE",
+                        parent_source_url=list_page_url,
+                        category=RAG_CATEGORY_ARTISTS,
+                    )
+                    artists_skip_reason_counter["KNOWN_SAVED_PAGE"] += 1
+                    continue
+
+                page_result = fetch_html(session, page_url)
+                if not page_result["ok"]:
+                    page_reason_code = str(page_result.get("reason_code") or "PAGE_FETCH_FAILED")
+                    artists_failed_fetches_in_run.append(
+                        upsert_failed_fetch(
+                            artists_failed_fetches_ledger,
+                            kind="page",
+                            raw_url=page_url,
+                            parent_source_url=list_page_url,
+                            last_error=page_result["error"] or "PAGE_FETCH_FAILED",
+                            http_status=page_result["status_code"],
+                            reason_code=page_reason_code,
+                            category=RAG_CATEGORY_ARTISTS,
+                        )
+                    )
+                    upsert_visited_page(
+                        artists_visited_pages_ledger,
+                        url=page_url,
+                        fair_slug=gallery.fair_slug,
+                        gallery_name_en=gallery.gallery_name_en,
+                        decision="failed",
+                        reason_code=page_reason_code,
+                        parent_source_url=list_page_url,
+                        category=RAG_CATEGORY_ARTISTS,
+                    )
+                    continue
+
+                source_url = page_result["final_url"]
+                clear_failed_fetch(artists_failed_fetches_ledger, page_url)
+                clear_failed_fetch(artists_failed_fetches_ledger, source_url)
+                text = extract_text(page_result["html"])
+                if not text:
+                    artists_failed_fetches_in_run.append(
+                        upsert_failed_fetch(
+                            artists_failed_fetches_ledger,
+                            kind="page",
+                            raw_url=source_url,
+                            parent_source_url=list_page_url,
+                            last_error="EMPTY_TEXT",
+                            http_status=page_result["status_code"],
+                            reason_code="EMPTY_TEXT",
+                            category=RAG_CATEGORY_ARTISTS,
+                        )
+                    )
+                    upsert_visited_page(
+                        artists_visited_pages_ledger,
+                        url=source_url,
+                        fair_slug=gallery.fair_slug,
+                        gallery_name_en=gallery.gallery_name_en,
+                        decision="failed",
+                        reason_code="EMPTY_TEXT",
+                        parent_source_url=list_page_url,
+                        category=RAG_CATEGORY_ARTISTS,
+                    )
+                    continue
+
+                text_hash = compute_text_hash(
+                    text=text,
+                    source_url=source_url,
+                    rag_category=RAG_CATEGORY_ARTISTS,
+                )
+                if text_hash in artists_seen_hashes_by_fair[gallery.fair_slug]:
+                    duplicate_reason = (
+                        "DUPLICATE_TEXT_HASH_EXISTING"
+                        if text_hash in artists_existing_text_hashes_by_fair.get(gallery.fair_slug, set())
+                        else "DUPLICATE_TEXT_HASH_IN_RUN"
+                    )
+                    upsert_visited_page(
+                        artists_visited_pages_ledger,
+                        url=source_url,
+                        fair_slug=gallery.fair_slug,
+                        gallery_name_en=gallery.gallery_name_en,
+                        decision="skipped",
+                        reason_code=duplicate_reason,
+                        parent_source_url=list_page_url,
+                        category=RAG_CATEGORY_ARTISTS,
+                    )
+                    artists_skip_reason_counter[duplicate_reason] += 1
+                    continue
+
+                artists_seen_hashes_by_fair[gallery.fair_slug].add(text_hash)
+                record = {
+                    "gallery_name_en": gallery.gallery_name_en,
+                    "gallery_name_kana": gallery.gallery_name_kana,
+                    "source_url": source_url,
+                    "text": text,
+                    "text_hash": text_hash,
+                    "headline_ja": "",
+                    "summary_ja": "",
+                    "extracted_at": utc_now_iso(),
+                    "target_year": TARGET_YEAR,
+                    "fair_slug": gallery.fair_slug,
+                    "rag_category": RAG_CATEGORY_ARTISTS,
+                }
+                artists_records_by_fair[gallery.fair_slug].append(record)
+                upsert_visited_page(
+                    artists_visited_pages_ledger,
+                    url=source_url,
+                    fair_slug=gallery.fair_slug,
+                    gallery_name_en=gallery.gallery_name_en,
+                    decision="saved",
+                    reason_code="OK",
+                    parent_source_url=list_page_url,
+                    category=RAG_CATEGORY_ARTISTS,
+                )
+
     output_files: dict[str, str] = {}
     for fair_slug in CSV_PATHS:
         output_path = output_paths_by_fair[fair_slug]
         append_jsonl(output_path, records_by_fair.get(fair_slug, []))
         output_files[fair_slug] = str(output_path)
+
+    artists_output_files: dict[str, str] = {}
+    if include_artists_text:
+        for fair_slug in CSV_PATHS:
+            output_path = artists_output_paths_by_fair[fair_slug]
+            append_jsonl(output_path, artists_records_by_fair.get(fair_slug, []))
+            artists_output_files[fair_slug] = str(output_path)
 
     # SSOT 4-0-A に合わせ、台帳は hash をキーにした dict で保存する。
     failed_fetches_for_save = {
@@ -744,6 +1052,24 @@ def main() -> int:
         visited_pages_for_save,
     )
 
+    artists_failed_fetches_for_save = {
+        fail_hash: artists_failed_fetches_ledger[fail_hash]
+        for fail_hash in sorted(artists_failed_fetches_ledger)
+    }
+    artists_visited_pages_for_save = {
+        page_url_hash: artists_visited_pages_ledger[page_url_hash]
+        for page_url_hash in sorted(artists_visited_pages_ledger)
+    }
+    if include_artists_text:
+        write_json(
+            artists_failed_fetches_path,
+            artists_failed_fetches_for_save,
+        )
+        write_json(
+            artists_visited_pages_path,
+            artists_visited_pages_for_save,
+        )
+
     completed_at = utc_now_iso()
     existing_records_total = sum(len(existing_text_hashes_by_fair.get(fair_slug, set())) for fair_slug in CSV_PATHS)
     new_records_saved_total = sum(len(v) for v in records_by_fair.values())
@@ -752,6 +1078,11 @@ def main() -> int:
         skip_reason_counter.get("DUPLICATE_TEXT_HASH_EXISTING", 0)
     )
     skipped_out_of_year = int(skip_reason_counter.get("OUT_OF_YEAR", 0))
+    artists_existing_records_total = sum(
+        len(artists_existing_text_hashes_by_fair.get(fair_slug, set()))
+        for fair_slug in CSV_PATHS
+    )
+    artists_new_records_saved_total = sum(len(v) for v in artists_records_by_fair.values())
 
     summary = {
         "started_at": started_at,
@@ -781,6 +1112,38 @@ def main() -> int:
         "output_files": output_files,
         "failed_fetches_path": str(failed_fetches_path),
         "visited_pages_path": str(visited_pages_path),
+        "artists_enabled": include_artists_text,
+        "artists_records_saved_total": artists_new_records_saved_total,
+        "artists_existing_records_total": artists_existing_records_total,
+        "artists_records_total_after_run": artists_existing_records_total + artists_new_records_saved_total,
+        "artists_records_saved_by_fair": {
+            fair_slug: len(artists_records_by_fair.get(fair_slug, []))
+            for fair_slug in CSV_PATHS
+        },
+        "artists_failed_fetches_new_in_run": len(artists_failed_fetches_in_run),
+        "artists_failed_fetches_total_ledger": len(artists_failed_fetches_ledger),
+        "artists_failed_fetches_reason_counts": dict(
+            Counter(x.get("reason_code", "UNKNOWN") for x in artists_failed_fetches_ledger.values())
+        ),
+        "artists_visited_pages_total_ledger": len(artists_visited_pages_ledger),
+        "artists_skipped_total": sum(artists_skip_reason_counter.values()),
+        "artists_skipped_by_reason": dict(artists_skip_reason_counter),
+        "artists_list_source_counts": dict(artists_list_source_counter),
+        "artists_list_source_counts_by_fair": {
+            fair_slug: dict(artists_list_source_counter_by_fair.get(fair_slug, Counter()))
+            for fair_slug in CSV_PATHS
+        },
+        "artists_list_url_artists_url_used": int(artists_list_source_counter.get("artists_url", 0)),
+        "artists_list_url_exhibitions_fallback_used": int(
+            artists_list_source_counter.get("exhibitions_url_fallback", 0)
+        ),
+        "artists_existing_text_hashes_by_fair": {
+            fair_slug: len(artists_existing_text_hashes_by_fair.get(fair_slug, set()))
+            for fair_slug in CSV_PATHS
+        },
+        "artists_output_files": artists_output_files,
+        "artists_failed_fetches_path": str(artists_failed_fetches_path) if include_artists_text else "",
+        "artists_visited_pages_path": str(artists_visited_pages_path) if include_artists_text else "",
     }
     summary_path = LOG_DIR / f"run_summary_seed10_{TARGET_YEAR}.json"
     write_json(summary_path, summary)
@@ -800,6 +1163,23 @@ def main() -> int:
     if summary["skipped_by_reason"]:
         reason_parts = [f"{key}={value}" for key, value in sorted(summary["skipped_by_reason"].items())]
         print(f"[DONE] skip_breakdown: {' '.join(reason_parts)}")
+    if include_artists_text:
+        print(
+            "[DONE][artists] "
+            f"saved={summary['artists_records_saved_total']} "
+            f"failed_new={summary['artists_failed_fetches_new_in_run']} "
+            f"skipped={summary['artists_skipped_total']}"
+        )
+        if summary["artists_skipped_by_reason"]:
+            artists_reason_parts = [
+                f"{key}={value}" for key, value in sorted(summary["artists_skipped_by_reason"].items())
+            ]
+            print(f"[DONE][artists] skip_breakdown: {' '.join(artists_reason_parts)}")
+        print(
+            "[DONE][artists] "
+            f"artists_url_used={summary['artists_list_url_artists_url_used']} "
+            f"exhibitions_fallback_used={summary['artists_list_url_exhibitions_fallback_used']}"
+        )
     print(f"[DONE] summary={summary_path}")
     return 0
 

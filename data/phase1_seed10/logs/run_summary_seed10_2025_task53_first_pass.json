@@ -1,6 +1,6 @@
 {
-  "started_at": "2026-02-24T09:39:05Z",
-  "completed_at": "2026-02-24T09:39:19Z",
+  "started_at": "2026-02-24T09:35:27Z",
+  "completed_at": "2026-02-24T09:36:18Z",
   "target_year": 2025,
   "seed_per_fair": 5,
   "max_exhibition_links_per_gallery": 10,
@@ -37,25 +37,21 @@
   "failed_fetches_path": "data/phase1_seed10/logs/failed_fetches_seed10_2025.json",
   "visited_pages_path": "data/phase1_seed10/logs/visited_pages_seed10_2025.json",
   "artists_enabled": true,
-  "artists_records_saved_total": 0,
-  "artists_existing_records_total": 81,
+  "artists_records_saved_total": 81,
+  "artists_existing_records_total": 0,
   "artists_records_total_after_run": 81,
   "artists_records_saved_by_fair": {
-    "frieze_london": 0,
-    "liste": 0
+    "frieze_london": 32,
+    "liste": 49
   },
-  "artists_failed_fetches_new_in_run": 0,
+  "artists_failed_fetches_new_in_run": 1,
   "artists_failed_fetches_total_ledger": 1,
   "artists_failed_fetches_reason_counts": {
     "CONNECTION_ERROR": 1
   },
-  "artists_visited_pages_total_ledger": 84,
-  "artists_skipped_total": 82,
-  "artists_skipped_by_reason": {
-    "KNOWN_SAVED_PAGE": 79,
-    "DUPLICATE_TEXT_HASH_EXISTING": 2,
-    "KNOWN_FAILED_URL_COOLDOWN": 1
-  },
+  "artists_visited_pages_total_ledger": 82,
+  "artists_skipped_total": 0,
+  "artists_skipped_by_reason": {},
   "artists_list_source_counts": {
     "artists_url": 10
   },
@@ -70,8 +66,8 @@
   "artists_list_url_artists_url_used": 10,
   "artists_list_url_exhibitions_fallback_used": 0,
   "artists_existing_text_hashes_by_fair": {
-    "frieze_london": 32,
-    "liste": 49
+    "frieze_london": 0,
+    "liste": 0
   },
   "artists_output_files": {
     "frieze_london": "data/phase1_seed10/raw/artists_frieze_london_2025.jsonl",

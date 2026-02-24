@@ -1,6 +1,6 @@
 # 04_TASK_PROGRESS_LOG.md
 
-最終更新: 2026-02-24 18:10 JST  
+最終更新: 2026-02-24 18:40 JST  
 対象プロジェクト: ART_PULSE_EDITOR（Phase1 seed10 / Guard運用整備）  
 位置づけ: 実装進捗ログ（01=SSOT、02=索引、03=現行運用タスクの補助ログ）
 
@@ -29,8 +29,8 @@
 
 ## 2. 全体の進捗サマリ（現時点）
 
-- 完了: **TASK 1 ～ TASK 49**
-- 次の予定: **TASK 50**
+- 完了: **TASK 1 ～ TASK 53**
+- 次の予定: **TASK 54**
 - 直近の重点:
   - TarutaniRAG 側で比較/guard の「型」を作成 → Phase1本体（Exhibitions/Artists）へ横展開
   - Phase1 guard 本体 / history 比較 / fixture / matrix / schema文書化 / category文脈まで整備
@@ -463,17 +463,17 @@
 
 ---
 
-## 10. 現在の次タスク（TASK50）
+## 10. 現在の次タスク（TASK54）
 
-[ ] 50) Phase1本体へ復帰：`run_phase1_seed10.py` に artists_text の最小取得入口を追加し、Exhibitionsと並走できる状態にする（安全側）
+[ ] 54) artists_text のPost-fetch Enrichment入口をseed10本体へ追加する（本体前進・最小）
 - 目的：
-  - 検証層（TASK49）を締めたので、本体前進として artists_text の最小取得入口を追加する
+  - TASK52/53で取得できた artists_text raw を、取得ループ外の事後バッチへ接続する
 - 制約：
-  - 取得ループ内でLLM加工をしない
-  - 既存Exhibitions挙動を壊さない（デフォルト互換）
+  - 取得ループ内LLM加工は追加しない
+  - 既存Exhibitions Enrichment挙動を壊さない
 - 成立条件：
-  - `run_phase1_seed10.py` で artists_text の最小保存（raw/logs）が実行可能
-  - 既存の台帳/summary整合と guard前提キーを維持
+  - artists向け enrichment requests の最小生成ができる
+  - summary に artists_enrichment 対象件数と出力パスを残せる
   - 03 の CHANGELOG に反映
 
 ---
@@ -631,3 +631,79 @@
   - `python run_phase1_guard_all_matrices_report_fixture_matrix.py` → exit 0（green）
   - `python run_phase1_guard_all_matrices_report_fixture_matrix.py --manifest-path "tests/fixtures/phase1_guard/report_fixture_manifest_negative_policy.json"` → exit 1（negative）
   - negative summary で `policy_match=false` / `policy_guard_passed=false` / `policy_guard_reason=policy_mismatch_enforced` を確認
+
+## 20. TASK50 実行ログ（Phase1本体へ復帰：artists_text最小入口）
+
+[x] 50) `run_phase1_seed10.py` に artists_text の最小取得入口を追加し、Exhibitionsと並走できる状態にした（安全側）
+- 変更ファイル：
+  - `run_phase1_seed10.py`
+  - `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md`
+  - `docs/04_TASK_PROGRESS_LOG.md`
+- 実装内容：
+  - `--include-artists-text` を追加（未指定時は従来どおり exhibitions_text のみ）
+  - artists_text 専用の raw 出力と台帳を追加
+    - `data/phase1_seed10/raw/artists_frieze_london_2025.jsonl`
+    - `data/phase1_seed10/raw/artists_liste_2025.jsonl`
+    - `data/phase1_seed10/logs/visited_pages_artists_seed10_2025.json`
+    - `data/phase1_seed10/logs/failed_fetches_artists_seed10_2025.json`
+  - run summary に artists 系メタ（saved/skipped/failed/path）を追加
+  - 取得ループ内LLM加工は追加せず（Post-fetch分離を維持）
+- 動作確認：
+  - `python run_phase1_seed10.py` → exit 0（既存互換）
+  - `python run_phase1_seed10.py --include-artists-text` → exit 0（並走）
+  - `python run_phase1_seed10.py --include-artists-text` → exit 0（再実行の台帳スキップ）
+  - `python run_compare_phase1_guard.py --target-year 2025` → exit 0（guard側の既存互換）
+
+## 21. TASK51 実行ログ（artists_url CSV拡張）
+
+[x] 51) artists_text の入力ソースをCSV拡張で分離し、seed10取得率の改善余地を作った（本体前進・最小）
+- 変更ファイル：
+  - `run_phase1_seed10.py`
+  - `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md`
+  - `docs/04_TASK_PROGRESS_LOG.md`
+- 実装内容：
+  - `GallerySeed` に `artists_url`（任意）を追加し、CSV 3列目を読込（2列CSVはそのまま有効）
+  - `resolve_artists_list_url(...)` を追加し、artists入口URL解決を以下に固定
+    - 優先: `artists_url`
+    - fallback: `exhibitions_url`
+  - artists取得ループの list fetch/台帳キーを `artists_list_url` 基準へ切替
+  - run summary に artists入口URL解決メタを追加
+    - `artists_list_source_counts`
+    - `artists_list_source_counts_by_fair`
+    - `artists_list_url_artists_url_used`
+    - `artists_list_url_exhibitions_fallback_used`
+- 動作確認：
+  - `python run_phase1_seed10.py` → exit 0（既存互換）
+  - `python run_phase1_seed10.py --include-artists-text` → exit 0
+  - `python run_phase1_seed10.py --include-artists-text` → exit 0（再実行）
+  - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+  - summary確認:
+    - `artists_list_source_counts={'artists_url': 10}`
+    - `artists_list_url_artists_url_used=10`
+    - `artists_list_url_exhibitions_fallback_used=0`
+
+## 22. TASK52 実行ログ（artists_url実データ拡充）
+
+[x] 52) artists_text のCSV入力（artists_url列）を実データ拡充し、seed10で new_saved 発生を確認した（本体前進）
+- 実施内容：
+  - seed10対象10行（frieze/liste 各先頭5行）の `artists_url` 補完済みを確認
+  - 通信回復後に artists 台帳を初期化して再取得を実行
+- 実行結果：
+  - 1回目: artists `saved=81 failed_new=1 skipped=0`
+  - 2回目: artists `saved=0 failed_new=0 skipped=82`
+  - summary退避: `data/phase1_seed10/logs/run_summary_seed10_2025_task53_first_pass.json`
+    - `artists_records_saved_total=81`（`new_saved>0` 達成）
+    - `artists_list_url_artists_url_used=10`
+    - `artists_list_url_exhibitions_fallback_used=0`
+  - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+
+## 23. TASK53 実行ログ（通信ブロッカー解消）
+
+[x] 53) ブロッカー解消：外向き通信回復後に artists_text の `new_saved>0` を再検証し、TASK52を完了
+- 実施内容：
+  - 通信確認（sandbox外）：
+    - `curl -I https://example.com` → HTTP/2 200
+    - `python -c "import socket; print(socket.gethostbyname('example.com'))"` → 104.18.26.120
+  - artists cooldown影響除外：
+    - `failed_fetches_artists_seed10_2025.json` をバックアップ後に空dictへ初期化
+  - 再実行で `new_saved>0` を確認し、TASK52完了条件を満たした

@@ -1,0 +1,18 @@
+{
+  "6ee81ecf5dcca6daaf9d827c651916090ec9bceee59bfb4855321385710a05c3": {
+    "fail_hash": "6ee81ecf5dcca6daaf9d827c651916090ec9bceee59bfb4855321385710a05c3",
+    "kind": "page",
+    "raw_url": "https://addisfineart.com/artists/109-selome-muleta/works",
+    "parent_source_url": "https://addisfineart.com/artists/",
+    "last_error": "('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))",
+    "http_status": null,
+    "retry_count": 1,
+    "attempt_count": 1,
+    "last_attempt_at": "2026-02-24T09:35:58Z",
+    "first_failed_at": "2026-02-24T09:35:58Z",
+    "last_failed_at": "2026-02-24T09:35:58Z",
+    "reason_code": "CONNECTION_ERROR",
+    "target_year": 2025,
+    "category": "artists_text"
+  }
+}

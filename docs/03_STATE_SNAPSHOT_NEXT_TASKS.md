@@ -13,7 +13,7 @@ STREAMLIT_ENTRYPOINT（固定）
 - Local run: streamlit run app.py
 
 SOURCE_SSOT: 01_PROJECT_SPEC_CURRENT_FULL.docx
-LAST_UPDATED: 2026-02-24 18:10 JST
+LAST_UPDATED: 2026-02-24 18:40 JST
 
 
 ========================
@@ -68,7 +68,7 @@ STATE_SNAPSHOT（現在地）
 ========================
 ■いまの最優先フェーズ（Codexが随時更新する）
 - Phase 1：RAG抽出パイプライン成立（seed10で安定稼働させる）
-  - 直近の到達目標：Phase1本体へ復帰し、artists_textの最小取得入口をseed10へ追加する（TASK 50）
+  - 直近の到達目標：artists_text の取得結果を Post-fetch Enrichment へ接続し、Phase2接続の土台を作る（TASK 54）
   - 次の到達目標：Phase2（検索/表示）へ接続する
   - その次：検索品質と表示品質の改善サイクルに入る
 
@@ -1100,12 +1100,98 @@ NEXT_TASKS（次回やること）
         - `python run_phase1_guard_all_matrices_report_fixture_matrix.py --manifest-path "tests/fixtures/phase1_guard/report_fixture_manifest_negative_policy.json"` → exit 1（negative）
         - negative summary（`...20260224T085257Z.json`）で `policy_match=false` / `policy_guard_passed=false` / `policy_guard_reason=policy_mismatch_enforced` を確認
 
-[ ] 50) Phase1本体へ復帰：`run_phase1_seed10.py` に artists_text の最小取得入口を追加し、Exhibitionsと並走できる状態にする（安全側）
+[x] 50) Phase1本体へ復帰：`run_phase1_seed10.py` に artists_text の最小取得入口を追加し、Exhibitionsと並走できる状態にする（安全側）
     - 目的：検証層（TASK49）を締めたので、本体前進として artists_text の最小取得入口を seed10 実行へ追加する
     - 制約：取得ループ内LLM加工は禁止（Post-fetch分離を維持）、既存Exhibitions挙動/台帳/終了コード規約を壊さない
     - 成立条件：
       - `run_phase1_seed10.py` で artists_text の最小 raw 保存と summary反映が実行できる
       - 既存 `exhibitions_text` 実行結果（saved/skipped/failedログ）は後方互換を維持する
+      - 03のCHANGELOGに反映される
+    - 実行メモ：
+      - 変更ファイル：
+        - `run_phase1_seed10.py`
+      - 主要実装：
+        - `--include-artists-text` を追加（既定は exhibitions_text のみで後方互換維持）
+        - artists_text 専用の raw出力・台帳を追加
+          - `data/phase1_seed10/raw/artists_{fair}_{year}.jsonl`
+          - `data/phase1_seed10/logs/visited_pages_artists_seed10_{year}.json`
+          - `data/phase1_seed10/logs/failed_fetches_artists_seed10_{year}.json`
+        - run summary に artists系メタ（saved/skipped/failed/path）を追加（既存キーの意味は維持）
+      - 動作確認：
+        - `python run_phase1_seed10.py` → exit 0（既存互換）
+        - `python run_phase1_seed10.py --include-artists-text` → exit 0（並走）
+        - `python run_phase1_seed10.py --include-artists-text`（再実行）→ exit 0（artists側も台帳スキップ確認）
+        - `python run_compare_phase1_guard.py --target-year 2025` → exit 0（既存guard互換）
+
+[x] 51) artists_text の入力ソースをCSV拡張で分離し、seed10取得率の改善余地を作る（本体前進・最小）
+    - 目的：artists_text が exhibitions_url に依存しすぎる状態を避けるため、CSVに artists用URL（任意）を追加できる入口を作る
+    - 制約：既存CSV（2列）との後方互換を維持し、未指定時は従来どおり exhibitions_url をフォールバック利用する
+    - 成立条件：
+      - `run_phase1_seed10.py` が CSV 3列目（artists_url 任意）を読める
+      - `--include-artists-text` 実行時に artists_url 優先、未指定時は exhibitions_url fallback で動作
+      - 03のCHANGELOGに反映される
+    - 実行メモ：
+      - 変更ファイル：
+        - `run_phase1_seed10.py`
+      - 主要実装：
+        - `GallerySeed` に `artists_url`（任意）を追加し、CSV 3列目を読込（2列CSVは後方互換維持）
+        - `resolve_artists_list_url(...)` を追加し、artists入口URLを `artists_url` 優先 / `exhibitions_url` fallback で解決
+        - artists取得ループの list fetch/台帳更新を `artists_list_url` 基準へ切替
+        - run summary に artists入口URL解決メタを追加：
+          - `artists_list_source_counts`
+          - `artists_list_source_counts_by_fair`
+          - `artists_list_url_artists_url_used`
+          - `artists_list_url_exhibitions_fallback_used`
+      - 動作確認：
+        - `python run_phase1_seed10.py` → exit 0（既存互換）
+        - `python run_phase1_seed10.py --include-artists-text` → exit 0（並走）
+        - `python run_phase1_seed10.py --include-artists-text`（再実行）→ exit 0（台帳スキップ）
+        - `python run_compare_phase1_guard.py --target-year 2025` → exit 0（既存guard互換）
+        - summary確認：
+          - `artists_list_source_counts={'artists_url': 10}`
+          - `artists_list_url_artists_url_used=10`
+          - `artists_list_url_exhibitions_fallback_used=0`
+
+[x] 52) artists_text のCSV入力（artists_url列）を実データ拡充し、seed10で new_saved 発生を確認する（本体前進）
+    - 目的：TASK51で作った artists_url 優先導線を実データで活かし、seed10で artists_text の新規保存を実際に発生させる
+    - 制約：既存Exhibitions挙動・2列CSV後方互換を壊さない、取得ループ内LLM加工は入れない
+    - 成立条件：
+      - gallery CSV の対象行で `artists_url` を補完できる（空欄許容）
+      - `--include-artists-text` 実行で artists の `new_saved>0` を1件以上確認
+      - 03のCHANGELOGに反映される
+    - 実行メモ：
+      - seed10対象10行は既に `artists_url` 補完済み（CSV 3列目あり）
+      - 実行結果（通信回復後・cooldown影響除外）：
+        - `python run_phase1_seed10.py --include-artists-text` 1回目: artists `saved=81 failed_new=1 skipped=0`
+        - `python run_phase1_seed10.py --include-artists-text` 2回目: artists `saved=0 failed_new=0 skipped=82`
+      - summary確認：
+        - `data/phase1_seed10/logs/run_summary_seed10_2025_task53_first_pass.json`
+        - `artists_records_saved_total=81`（`new_saved>0` 達成）
+        - `artists_list_url_artists_url_used=10`
+        - `artists_list_url_exhibitions_fallback_used=0`
+
+[x] 53) ブロッカー解消：外向き通信回復後に artists_text の `new_saved>0` を再検証し、TASK52を完了させる
+    - 目的：TASK52未達要因（DNS/外向き通信不可）を解消した状態で、artists_text の `new_saved>0` を確認して本体前進を再開する
+    - 制約：取得ループ内LLM加工なし、既存Exhibitions処理を壊さない、ドメイン専用ハードコードを増やさない
+    - 成立条件：
+      - 外向き通信確認（curl/socket）が通る
+      - artists台帳のcooldown影響を除外した再実行ができる
+      - run summary で `artists_records_saved_total > 0` を1回確認し、03のTASK52を [x] に更新できる
+    - 実行メモ：
+      - 通信確認（sandbox外実行）：
+        - `curl -I https://example.com` → HTTP/2 200
+        - `python -c "import socket; print(socket.gethostbyname('example.com'))"` → 104.18.26.120
+      - cooldown影響除外：
+        - `failed_fetches_artists_seed10_2025.json` をバックアップ後に空dictへ初期化
+      - guard互換：
+        - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+
+[ ] 54) artists_text のPost-fetch Enrichment入口をseed10本体へ追加する（本体前進・最小）
+    - 目的：TASK52/53で取得できた artists_text raw を、取得ループ外の事後バッチへ接続し、Phase2連携の土台を作る
+    - 制約：取得ループ内LLM加工は追加しない、既存Exhibitions Enrichment挙動を壊さない
+    - 成立条件：
+      - artists raw を対象に未付与候補の enrichment requests を生成できる
+      - summary に artists_enrichment 対象件数と出力パスを残せる
       - 03のCHANGELOGに反映される
 
 ========================
@@ -2846,6 +2932,139 @@ TASK 50) Phase1本体へ復帰：run_phase1_seed10.py に artists_text の最小
 - （WSL）python run_phase1_seed10.py
 - （WSL）python run_compare_phase1_guard.py --target-year 2025
 
+------------------------------------------------------------
+TASK 51) artists_text の入力ソースをCSV拡張で分離し、seed10取得率の改善余地を作る（本体前進・最小）
+------------------------------------------------------------
+目的：
+- `run_phase1_seed10.py --include-artists-text` で、artists取得元を `exhibitions_url` 依存から緩和し、CSVの任意3列目 `artists_url` を優先利用できるようにする。
+- 既存CSV（2列）の後方互換を維持しつつ、Artists入口の取得率改善導線を最小差分で作る。
+
+参照ファイル：
+- 01（SSOT）4-0共通 / 4-1 Exhibitions / 4-3 Artists
+- 02（索引）CARD_ID: 14_CATEGORY_4_0_COMMON / CARD_ID: 15_CATEGORY_4_1_EXHIBITIONS_TEXT
+- run_phase1_seed10.py
+- data/gallery_lists/gallery_list_frieze_london.csv
+- data/gallery_lists/gallery_list_liste.csv
+- docs/03_STATE_SNAPSHOT_NEXT_TASKS.md
+
+制約：
+- 取得ループ内でLLM加工をしない（Post-fetch分離）
+- 既存Exhibitions挙動・既存CSV（2列）を壊さない
+- artists_url未指定時は `exhibitions_url` をフォールバック利用する
+- ドメイン専用ハードコードを増やさない
+
+完了条件：
+- CSV読込で `artists_url`（任意）を扱える（列が無い/空でもクラッシュしない）
+- `--include-artists-text` 実行時、artists入口URLは `artists_url` 優先、未指定時は `exhibitions_url` fallback で動作する
+- run summary に artists入口URLの解決結果サマリ（例: artists_url_used / fallback_used）を追加できる
+- 既存コマンド `python run_phase1_seed10.py` は後方互換で成功する
+- 03 の NEXT_TASKS の 51) を [x]、CHANGELOG追記
+- 次の最優先タスク（TASK52）のプロンプト全文を提示する
+
+動作確認コマンド：
+- （WSL）python run_phase1_seed10.py
+- （WSL）python run_phase1_seed10.py --include-artists-text
+- （WSL）python run_phase1_seed10.py --include-artists-text
+- （WSL）python run_compare_phase1_guard.py --target-year 2025
+
+------------------------------------------------------------
+TASK 52) artists_text のCSV入力（artists_url列）を実データ拡充し、seed10で new_saved 発生を確認する（本体前進）
+------------------------------------------------------------
+目的：
+- TASK51で追加した `artists_url` 優先導線を実データで活かし、seed10で artists_text の `new_saved>0` を1件以上発生させる。
+- 取得率改善のための最小データ整備（CSV 3列目補完）を行い、並走実行で効果を確認する。
+
+参照ファイル：
+- 01（SSOT）4-0共通 / 4-3 Artists
+- 02（索引）CARD_ID: 14_CATEGORY_4_0_COMMON
+- run_phase1_seed10.py
+- data/gallery_lists/gallery_list_frieze_london.csv
+- data/gallery_lists/gallery_list_liste.csv
+- docs/03_STATE_SNAPSHOT_NEXT_TASKS.md
+
+制約：
+- 既存CSV（2列）互換を壊さない（3列目は任意）
+- 取得ループ内でLLM加工しない（Post-fetch分離）
+- ドメイン専用ハードコードを増やさない
+- 既存Exhibitions処理は変更しない
+
+完了条件：
+- seed10対象（frieze/liste 各先頭5行）のうち、可能な行に `artists_url` を補完できる
+- `python run_phase1_seed10.py --include-artists-text` で artists側 `new_saved>0` を確認できる
+- run summary で `artists_list_url_artists_url_used` / `artists_list_url_exhibitions_fallback_used` を確認できる
+- 03 の NEXT_TASKS の 52) を [x]、CHANGELOG追記
+- 次の最優先タスク（TASK53）のプロンプト全文を提示する
+
+動作確認コマンド：
+- （WSL）python run_phase1_seed10.py --include-artists-text
+- （WSL）python run_phase1_seed10.py --include-artists-text
+- （WSL）python run_compare_phase1_guard.py --target-year 2025
+
+------------------------------------------------------------
+TASK 53) ブロッカー解消：外向き通信回復後に artists_text の new_saved>0 を再検証し、TASK52を完了させる
+------------------------------------------------------------------------------------------------
+目的：
+- TASK52の未達要因（DNS/外向き通信不可）を解消した状態で、artists_text の `new_saved>0` を確認して本体前進を再開する。
+
+参照ファイル：
+- run_phase1_seed10.py
+- data/phase1_seed10/logs/failed_fetches_artists_seed10_2025.json
+- data/phase1_seed10/logs/visited_pages_artists_seed10_2025.json
+- data/phase1_seed10/logs/run_summary_seed10_2025.json
+- docs/03_STATE_SNAPSHOT_NEXT_TASKS.md
+
+制約：
+- 取得ループ内でLLM加工しない
+- 既存Exhibitions処理を壊さない
+- ドメイン専用ハードコードを増やさない
+
+完了条件：
+- 外向き通信確認が通る（curl/socket）
+- artists台帳のcooldown影響を除外したうえで `python run_phase1_seed10.py --include-artists-text` を再実行できる
+- run summary で `artists_records_saved_total > 0` を1回確認できる
+- 03 の TASK52 を [x] に更新し、CHANGELOG追記
+- 次の最優先タスク（TASK54）のプロンプト全文を提示
+
+動作確認コマンド：
+- （WSL）curl -I https://example.com
+- （WSL）python -c "import socket; print(socket.gethostbyname('example.com'))"
+- （WSL）python run_phase1_seed10.py --include-artists-text
+- （WSL）python run_phase1_seed10.py --include-artists-text
+- （WSL）python run_compare_phase1_guard.py --target-year 2025
+
+------------------------------------------------------------
+TASK 54) artists_text のPost-fetch Enrichment入口をseed10本体へ追加する（本体前進・最小）
+------------------------------------------------------------------------------------------------
+目的：
+- TASK52/53で保存できた artists_text raw を対象に、取得ループ外の事後バッチ（Enrichment requests生成）へ接続する。
+- Phase2接続に向け、artists_text の headline候補生成導線を最小差分で成立させる。
+
+参照ファイル：
+- 01（SSOT）Post-fetch / 4-3 Artists
+- 02（索引）CARD_ID: 14_CATEGORY_4_0_COMMON
+- run_enrichment_seed10.py
+- run_phase1_seed10.py
+- data/phase1_seed10/raw/artists_frieze_london_2025.jsonl
+- data/phase1_seed10/raw/artists_liste_2025.jsonl
+- docs/03_STATE_SNAPSHOT_NEXT_TASKS.md
+
+制約：
+- 取得ループ内でLLM加工しない（Post-fetch分離を維持）
+- 既存Exhibitions Enrichment出力を壊さない
+- artists向け追加は「入力対象追加＋summary拡張」に留める（大規模改修しない）
+
+完了条件：
+- artists raw を読み込み、未付与候補の enrichment requests を生成できる
+- summary に `artists_enrichment_candidates` / `artists_enrichment_output_paths`（同等キー）を保存できる
+- `python run_enrichment_seed10.py` で既存Exhibitionsと併存して実行できる
+- 03 の NEXT_TASKS の 54) を [x]、CHANGELOG追記
+- 次の最優先タスク（TASK55）のプロンプト全文を提示
+
+動作確認コマンド：
+- （WSL）python run_enrichment_seed10.py
+- （WSL）python run_phase1_seed10.py --include-artists-text
+- （WSL）python run_enrichment_seed10.py
+
 
 ========================
 CODEX_SNIPPETS（頻出コピペ：ここだけ使えば回る）
@@ -2963,6 +3182,11 @@ CHANGELOG（このファイルの更新履歴）
 - 2026-02-22：Tarutani R2 sync 実行確認。apply 1回目で uploaded=16 / failed=0、2回目で skipped=16 / failed=0 を確認（冪等）。TASK9メモを更新。
 - 2026-02-22：TASK 9 実施。run_enrichment_tarutani_text_apply.py を追加し、headline_ja を7件生成して tarutani_text.jsonl に反映（failed=0）。再実行で updated=0 を確認。次は TASK 10（Tarutani_TextのEmbedding/Index入口）。
 - 2026-02-22：SSOT改定。TarutaniRAGに限りPDF本文抽出を標準実装化（未実装理由の一律text空を禁止）し、TASK 9.5（PDF抽出実装＋バックフィル）をNEXT_TASKS/CODEX_TASK_PROMPTSへ追加。
+- 2026-02-24：TASK 50 実施。`run_phase1_seed10.py` に `--include-artists-text` を追加し、artists_text の最小取得入口（raw保存/専用visited・failed台帳/summary反映）を実装。既存exhibitions既定挙動は維持し、`python run_phase1_seed10.py` / `python run_phase1_seed10.py --include-artists-text` / 再実行のすべてで exit 0 を確認。
+- 2026-02-24：TASK 51 実施。`run_phase1_seed10.py` のCSV読込を任意3列目 `artists_url` 対応へ拡張し、artists取得は `artists_url` 優先 / `exhibitions_url` fallback で解決するよう変更。summaryに `artists_list_source_counts` / `artists_list_url_artists_url_used` / `artists_list_url_exhibitions_fallback_used` を追加し、既存exhibitions既定挙動と guard互換（exit 0）を維持。
+- 2026-02-24：TASK 52 着手。seed10対象行の `artists_url` 補完状況は確認済み（10/10）。ただし実行環境のDNS/外向き接続制約で artists取得は `failed_new`→`cooldown skip` となり、`new_saved>0` 検証は未達（継続中）。
+- 2026-02-24：03整備。`TASK 53` が NEXT_TASKS / CODEX_TASK_PROMPTS に未反映だったため追記し、再開時の実行手順（通信確認→artists再実行→summary確認）を固定化。
+- 2026-02-24：TASK 52/53 完了。外向き通信確認（curl/socket）通過後、artists failed台帳のcooldown影響を除外して再実行し、`run_summary_seed10_2025_task53_first_pass.json` で `artists_records_saved_total=81` を確認。2回目実行で artists `skipped=82` を確認し、guard互換（exit 0）を維持。
 - 2026-02-23：TASK 9.5 実施。run_tarutani_text_pdf_backfill.py でTarutaniRAGのPDF 9件を本文抽出してバックフィル（still_empty=0）。続けて Enrichment requests再生成（candidates=9）→ applyで headline_ja を9件更新（failed=0）。次は TASK 10（Embedding/Index入口）。
 - 2026-02-23：運用メンテ実施。`私とあなたの物語り ／水谷イズル(アーティスト),2020.pdf` のレコードを削除済みPDFから新規DOCX（`私とあなたの物語り_水谷イズル_2020.docx`）へ差し替え、text再抽出（1477文字）と headline_ja 再生成（updated=1）を反映。
 - 2026-02-23：SSOT改定。TarutaniRAGのEmbedding方針を更新し、「先頭2000字1本」ではなく「1000字チャンク＋200字オーバーラップで複数埋め込み」を5-9へ追記。
