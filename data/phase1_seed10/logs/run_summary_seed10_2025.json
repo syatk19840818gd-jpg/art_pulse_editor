@@ -1,6 +1,6 @@
 {
-  "started_at": "2026-02-24T10:08:41Z",
-  "completed_at": "2026-02-24T10:08:41Z",
+  "started_at": "2026-02-24T10:30:55Z",
+  "completed_at": "2026-02-24T10:30:55Z",
   "target_year": 2025,
   "seed_per_fair": 5,
   "max_exhibition_links_per_gallery": 10,
@@ -14,16 +14,18 @@
     "frieze_london": 0,
     "liste": 0
   },
-  "failed_fetches_new_in_run": 10,
+  "failed_fetches_new_in_run": 0,
   "failed_fetches_total_ledger": 10,
   "failed_fetches_reason_counts": {
     "DNS_ERROR": 10
   },
   "visited_pages_total_ledger": 78,
-  "skipped_total": 0,
+  "skipped_total": 10,
   "skipped_known_saved_page": 0,
   "skipped_out_of_year": 0,
-  "skipped_by_reason": {},
+  "skipped_by_reason": {
+    "KNOWN_FAILED_URL_COOLDOWN": 10
+  },
   "existing_text_hashes_by_fair": {
     "frieze_london": 28,
     "liste": 36

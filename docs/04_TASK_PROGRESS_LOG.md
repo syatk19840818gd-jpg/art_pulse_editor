@@ -1,6 +1,6 @@
 # 04_TASK_PROGRESS_LOG.md
 
-最終更新: 2026-02-24 19:09 JST  
+最終更新: 2026-02-24 19:42 JST  
 対象プロジェクト: ART_PULSE_EDITOR（Phase1 seed10 / Guard運用整備）  
 位置づけ: 実装進捗ログ（01=SSOT、02=索引、03=現行運用タスクの補助ログ）
 
@@ -29,8 +29,8 @@
 
 ## 2. 全体の進捗サマリ（現時点）
 
-- 完了: **TASK 1 ～ TASK 56**
-- 次の予定: **TASK 57**
+- 完了: **TASK 1 ～ TASK 59**
+- 次の予定: **TASK 60**
 - 直近の重点:
   - TarutaniRAG 側で比較/guard の「型」を作成 → Phase1本体（Exhibitions/Artists）へ横展開
   - Phase1 guard 本体 / history 比較 / fixture / matrix / schema文書化 / category文脈まで整備
@@ -463,17 +463,17 @@
 
 ---
 
-## 10. 現在の次タスク（TASK57）
+## 10. 現在の次タスク（TASK60）
 
-[ ] 57) ブロッカー解消：artists_text vectorize の外向き接続を回復し、`embedded_total>0` を再確認する（本体前進）
+[ ] 60) artists_text の回答スモークCLIを追加し、context JSON から根拠付き回答を出力する（本体前進）
 - 目的：
-  - TASK56で追加した vectorize入口を接続回復後に再実行し、実埋め込み生成を確認する
+  - TASK59で整形した context JSON を使い、質問→回答+根拠保存の最小導線を成立させる
 - 制約：
   - 取得ループ内LLM加工は追加しない（Post-fetch分離）
   - 既存Exhibitions/Tarutaniの既存処理を壊さない
 - 成立条件：
-  - 通信確認（curl/socket）が通る
-  - `run_vectorize_artists_seed10.py` で `embedded_total > 0` を確認
+  - `run_answer_artists_seed10.py --question ... --query ...` が実行できる
+  - answer summary（question/query/context_path/output_paths）を保存できる
   - 03 の CHANGELOG に反映
 
 ---
@@ -791,3 +791,71 @@
   - `embedded_total=0`
   - `skipped_total=0`
   - `failed_total=81`（接続失敗）
+
+## 27. TASK57 実行ログ（artists vectorize 接続ブロッカー解消）
+
+[x] 57) ブロッカー解消：artists_text vectorize の外向き接続を回復し、`embedded_total>0` を再確認（本体前進）
+- 変更ファイル：
+  - `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md`
+  - `docs/04_TASK_PROGRESS_LOG.md`
+- 実施内容：
+  - 外向き接続確認（sandbox外）：
+    - `curl -I https://example.com` → HTTP/2 200
+    - `python -c "import socket; print(socket.gethostbyname('example.com'))"` → `104.18.27.120`
+  - 指定フローを再実行：
+    - `python run_phase1_seed10.py --include-artists-text` → exit 0
+    - `python run_enrichment_artists_seed10_apply.py` → exit 0
+    - `python run_vectorize_artists_seed10.py` → exit 0
+    - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+- 実行結果：
+  - `artists_text_vectorize_summary_2025.json` で `input_total=81 / embedded_total=81 / skipped_total=0 / failed_total=0`
+  - 生成物：
+    - `data/phase1_seed10/derived/vector/artists_text_index_2025.npy`
+    - `data/phase1_seed10/derived/vector/artists_text_meta_2025.jsonl`
+    - `data/phase1_seed10/derived/vector/artists_text_vectorize_summary_2025.json`
+    - `data/phase1_seed10/derived/vector/artists_text_artifact_manifest_2025.json`
+- 補足：
+  - `run_phase1_seed10.py --include-artists-text` は artists 側 `saved=0 skipped=10`（既存failed台帳のcooldownスキップ）だったが、既存raw 81件を入力に vectorize は正常完走し `embedded_total>0` を達成。
+
+## 28. TASK58 実行ログ（artists 検索スモークCLI）
+
+[x] 58) artists_text の検索スモークCLIを追加し、vector生成物から top-k を確認（本体前進）
+- 変更ファイル：
+  - `run_search_artists_seed10.py`（新規）
+  - `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md`
+  - `docs/04_TASK_PROGRESS_LOG.md`
+- 実装内容：
+  - artists vector生成物（index/meta）を入力に、`RETRIEVAL_QUERY` で top-k 検索を行うCLIを追加
+  - 結果行に `source_url` / `record_id` / `score` / `vector_index` / `fair_slug` を保存
+  - search summary に `query` / `k_requested` / `k_returned` / `output_paths` を保存
+- 動作確認（2026-02-24）：
+  - `python run_phase1_seed10.py --include-artists-text` → exit 0
+  - `python run_enrichment_artists_seed10_apply.py` → exit 0
+  - `python run_vectorize_artists_seed10.py` → exit 0
+  - `python run_search_artists_seed10.py --query "contemporary painting"` → exit 0（`k_returned=5`）
+  - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+- 生成物：
+  - `data/phase1_seed10/derived/vector/search/artists_text_search_results_20260224T102557Z.jsonl`
+  - `data/phase1_seed10/derived/vector/search/artists_text_search_summary_20260224T102557Z.json`
+
+## 29. TASK59 実行ログ（artists context JSON整形）
+
+[x] 59) artists_text の検索結果を context JSON に整形し、Phase2接続入力を固定（本体前進）
+- 変更ファイル：
+  - `run_build_artists_context_seed10.py`（新規）
+  - `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md`
+  - `docs/04_TASK_PROGRESS_LOG.md`
+- 実装内容：
+  - `run_search_artists_seed10.py` を内部実行し、top-k 検索結果を context JSON へ整形するCLIを追加
+  - context item に `source_url` / `record_id` / `score` / `excerpt` / `headline_ja` / `vector_index` を保存
+  - context summary に `query` / `k_requested` / `k_returned` / `input_paths` / `output_paths` を保存
+- 動作確認（2026-02-24）：
+  - `python run_phase1_seed10.py --include-artists-text` → exit 0
+  - `python run_enrichment_artists_seed10_apply.py` → exit 0
+  - `python run_vectorize_artists_seed10.py` → exit 0
+  - `python run_search_artists_seed10.py --query "contemporary painting"` → exit 0
+  - `python run_build_artists_context_seed10.py --query "contemporary painting"` → exit 0（`k_returned=5`）
+  - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+- 生成物：
+  - `data/phase1_seed10/derived/context/artists_text_context_20260224T103230Z.json`
+  - `data/phase1_seed10/derived/context/artists_text_context_summary_20260224T103230Z.json`

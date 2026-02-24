@@ -40,12 +40,12 @@
     "url": "https://spazioamanita.com/exhibitions#past",
     "fair_slug": "liste",
     "gallery_name_en": "Amanita",
-    "decision": "failed",
-    "reason_code": "DNS_ERROR",
+    "decision": "skipped",
+    "reason_code": "KNOWN_FAILED_URL_COOLDOWN",
     "target_year": 2025,
     "category": "exhibitions_text",
     "first_seen": "2026-02-19T07:38:16Z",
-    "last_seen": "2026-02-24T10:08:41Z"
+    "last_seen": "2026-02-24T10:30:55Z"
   },
   "0f0ca541336dab6b054e0d230037530eb2fd414ac86158a3426ebb194f5edac2": {
     "page_url_hash": "0f0ca541336dab6b054e0d230037530eb2fd414ac86158a3426ebb194f5edac2",
@@ -208,12 +208,12 @@
     "url": "https://www.theapproach.co.uk/exhibitions/past",
     "fair_slug": "frieze_london",
     "gallery_name_en": "The Approach",
-    "decision": "failed",
-    "reason_code": "DNS_ERROR",
+    "decision": "skipped",
+    "reason_code": "KNOWN_FAILED_URL_COOLDOWN",
     "target_year": 2025,
     "category": "exhibitions_text",
     "first_seen": "2026-02-19T07:38:16Z",
-    "last_seen": "2026-02-24T10:08:41Z"
+    "last_seen": "2026-02-24T10:30:55Z"
   },
   "36f32e9c5bd648464c7d354c1b153122c983c641849767e11613d6692da42b53": {
     "page_url_hash": "36f32e9c5bd648464c7d354c1b153122c983c641849767e11613d6692da42b53",
@@ -304,12 +304,12 @@
     "url": "https://gallerybaton.com/exhibitions/",
     "fair_slug": "frieze_london",
     "gallery_name_en": "Gallery Baton",
-    "decision": "failed",
-    "reason_code": "DNS_ERROR",
+    "decision": "skipped",
+    "reason_code": "KNOWN_FAILED_URL_COOLDOWN",
     "target_year": 2025,
     "category": "exhibitions_text",
     "first_seen": "2026-02-19T07:38:16Z",
-    "last_seen": "2026-02-24T10:08:41Z"
+    "last_seen": "2026-02-24T10:30:55Z"
   },
   "4d61347baf250146c7ed5a99d0c8fc20f6ae2fe88309934c03031a1b37560f2e": {
     "page_url_hash": "4d61347baf250146c7ed5a99d0c8fc20f6ae2fe88309934c03031a1b37560f2e",
@@ -544,12 +544,12 @@
     "url": "https://athrart.com/exhibitions/past/",
     "fair_slug": "frieze_london",
     "gallery_name_en": "Athr",
-    "decision": "failed",
-    "reason_code": "DNS_ERROR",
+    "decision": "skipped",
+    "reason_code": "KNOWN_FAILED_URL_COOLDOWN",
     "target_year": 2025,
     "category": "exhibitions_text",
     "first_seen": "2026-02-19T07:38:16Z",
-    "last_seen": "2026-02-24T10:08:41Z"
+    "last_seen": "2026-02-24T10:30:55Z"
   },
   "9174ac0ff2a458e86a16e22093d888fa7ba9092ad6c30fe78c4942bbe31a0f88": {
     "page_url_hash": "9174ac0ff2a458e86a16e22093d888fa7ba9092ad6c30fe78c4942bbe31a0f88",
@@ -616,12 +616,12 @@
     "url": "https://addisfineart.com/exhibitions/",
     "fair_slug": "liste",
     "gallery_name_en": "Addis Fine Art",
-    "decision": "failed",
-    "reason_code": "DNS_ERROR",
+    "decision": "skipped",
+    "reason_code": "KNOWN_FAILED_URL_COOLDOWN",
     "target_year": 2025,
     "category": "exhibitions_text",
     "first_seen": "2026-02-19T07:38:16Z",
-    "last_seen": "2026-02-24T10:08:41Z"
+    "last_seen": "2026-02-24T10:30:55Z"
   },
   "a6127cf9e842ade245edd55b29b72952a2512a651fa9611d93d4c3a82448c9bc": {
     "page_url_hash": "a6127cf9e842ade245edd55b29b72952a2512a651fa9611d93d4c3a82448c9bc",
@@ -736,12 +736,12 @@
     "url": "https://adamsandollman.com/Past-Exhibitions",
     "fair_slug": "frieze_london",
     "gallery_name_en": "Adams and Ollman",
-    "decision": "failed",
-    "reason_code": "DNS_ERROR",
+    "decision": "skipped",
+    "reason_code": "KNOWN_FAILED_URL_COOLDOWN",
     "target_year": 2025,
     "category": "exhibitions_text",
     "first_seen": "2026-02-19T07:38:16Z",
-    "last_seen": "2026-02-24T10:08:41Z"
+    "last_seen": "2026-02-24T10:30:55Z"
   },
   "c5e74c9bcdce6c9758d3c85a6c233cedf25b443ac7afa707bdf833b78e984821": {
     "page_url_hash": "c5e74c9bcdce6c9758d3c85a6c233cedf25b443ac7afa707bdf833b78e984821",
@@ -808,12 +808,12 @@
     "url": "https://afriartgallery.org/exhibitions",
     "fair_slug": "liste",
     "gallery_name_en": "Afriart Gallery",
-    "decision": "failed",
-    "reason_code": "DNS_ERROR",
+    "decision": "skipped",
+    "reason_code": "KNOWN_FAILED_URL_COOLDOWN",
     "target_year": 2025,
     "category": "exhibitions_text",
     "first_seen": "2026-02-19T07:38:16Z",
-    "last_seen": "2026-02-24T10:08:41Z"
+    "last_seen": "2026-02-24T10:30:55Z"
   },
   "d8635d3806e96efd7ad1017b958ab7c2039d6c020a8077a7c00dfb1e09220ab3": {
     "page_url_hash": "d8635d3806e96efd7ad1017b958ab7c2039d6c020a8077a7c00dfb1e09220ab3",
@@ -832,24 +832,24 @@
     "url": "https://arcadiamissa.com/category/exhibition/",
     "fair_slug": "frieze_london",
     "gallery_name_en": "Arcadia Missa",
-    "decision": "failed",
-    "reason_code": "DNS_ERROR",
+    "decision": "skipped",
+    "reason_code": "KNOWN_FAILED_URL_COOLDOWN",
     "target_year": 2025,
     "category": "exhibitions_text",
     "first_seen": "2026-02-19T07:38:16Z",
-    "last_seen": "2026-02-24T10:08:41Z"
+    "last_seen": "2026-02-24T10:30:55Z"
   },
   "e9354bd8697db2a4faea1d3345e5da2e69dfb4f6d3af0c611f747b879045ca7e": {
     "page_url_hash": "e9354bd8697db2a4faea1d3345e5da2e69dfb4f6d3af0c611f747b879045ca7e",
     "url": "https://www.ancapoterasu.com/exhibitions/",
     "fair_slug": "liste",
     "gallery_name_en": "Anca Poteraşu Gallery",
-    "decision": "failed",
-    "reason_code": "DNS_ERROR",
+    "decision": "skipped",
+    "reason_code": "KNOWN_FAILED_URL_COOLDOWN",
     "target_year": 2025,
     "category": "exhibitions_text",
     "first_seen": "2026-02-19T07:38:16Z",
-    "last_seen": "2026-02-24T10:08:41Z"
+    "last_seen": "2026-02-24T10:30:55Z"
   },
   "f25a002f7656754f545f76464c63536f142f46513f0e9eaf675e3ab08d859652": {
     "page_url_hash": "f25a002f7656754f545f76464c63536f142f46513f0e9eaf675e3ab08d859652",
@@ -916,12 +916,12 @@
     "url": "https://aplusart.asia/exhibitions/",
     "fair_slug": "liste",
     "gallery_name_en": "A+ Works of Art",
-    "decision": "failed",
-    "reason_code": "DNS_ERROR",
+    "decision": "skipped",
+    "reason_code": "KNOWN_FAILED_URL_COOLDOWN",
     "target_year": 2025,
     "category": "exhibitions_text",
     "first_seen": "2026-02-19T07:38:16Z",
-    "last_seen": "2026-02-24T10:08:41Z"
+    "last_seen": "2026-02-24T10:30:55Z"
   },
   "ff18b390d3a964c4f84cbd1bc4940556afd6bbbce0c87fa07376114ef0f83a49": {
     "page_url_hash": "ff18b390d3a964c4f84cbd1bc4940556afd6bbbce0c87fa07376114ef0f83a49",

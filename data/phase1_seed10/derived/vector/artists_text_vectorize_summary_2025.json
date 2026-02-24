@@ -1,6 +1,6 @@
 {
-  "started_at": "2026-02-24T10:08:56Z",
-  "completed_at": "2026-02-24T10:08:56Z",
+  "started_at": "2026-02-24T10:31:18Z",
+  "completed_at": "2026-02-24T10:31:29Z",
   "target_year": 2025,
   "rag_category": "artists_text",
   "raw_input_paths": {
@@ -9,9 +9,9 @@
   },
   "raw_rows_total": 81,
   "input_total": 81,
-  "embedded_total": 0,
+  "embedded_total": 81,
   "skipped_total": 0,
-  "failed_total": 81,
+  "failed_total": 0,
   "embedding_model": "gemini-embedding-001",
   "embedding_task_type": "RETRIEVAL_DOCUMENT",
   "embedding_dim": 1536,
@@ -27,7 +27,6 @@
     "embedding_input_truncated": 40,
     "input_total": 81,
     "raw_rows_total": 81,
-    "batch_level_failures": 11,
-    "failed_embedding_generation": 81
+    "embedded_total": 81
   }
 }

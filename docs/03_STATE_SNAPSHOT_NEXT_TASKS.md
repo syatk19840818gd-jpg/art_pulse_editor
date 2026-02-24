@@ -13,7 +13,7 @@ STREAMLIT_ENTRYPOINT（固定）
 - Local run: streamlit run app.py
 
 SOURCE_SSOT: 01_PROJECT_SPEC_CURRENT_FULL.docx
-LAST_UPDATED: 2026-02-24 19:09 JST
+LAST_UPDATED: 2026-02-24 19:42 JST
 
 
 ========================
@@ -68,7 +68,7 @@ STATE_SNAPSHOT（現在地）
 ========================
 ■いまの最優先フェーズ（Codexが随時更新する）
 - Phase 1：RAG抽出パイプライン成立（seed10で安定稼働させる）
-  - 直近の到達目標：artists_text の埋め込みブロッカー（外向き接続）を解消し、`embedded_total>0` を確認する（TASK 57）
+  - 直近の到達目標：artists_text の context JSON を使う回答スモークCLIを成立させ、Phase2接続の最小往復を確認する（TASK 60）
   - 次の到達目標：Phase2（検索/表示）へ接続する
   - その次：検索品質と表示品質の改善サイクルに入る
 
@@ -1245,13 +1245,85 @@ NEXT_TASKS（次回やること）
         - `skipped_total=0`
         - `failed_total=81`（接続失敗）
 
-[ ] 57) ブロッカー解消：artists_text vectorize の外向き接続を回復し、`embedded_total>0` を再確認する（本体前進）
+[x] 57) ブロッカー解消：artists_text vectorize の外向き接続を回復し、`embedded_total>0` を再確認する（本体前進）
     - 目的：TASK56で成立した入口を使い、接続回復後に実埋め込みを生成して検索基盤を前進させる
     - 制約：取得ループ内LLM加工なし、既存Exhibitions/Tarutani処理を壊さない
     - 成立条件：
       - 外向き接続確認（curl/socket）が通る
       - `python run_vectorize_artists_seed10.py` で `embedded_total > 0` を確認
       - 03のCHANGELOGに反映される
+    - 実行メモ：
+      - 接続確認（sandbox外）:
+        - `curl -I https://example.com` → HTTP/2 200
+        - `python -c "import socket; print(socket.gethostbyname('example.com'))"` → `104.18.27.120`
+      - 実行結果：
+        - `python run_phase1_seed10.py --include-artists-text` → exit 0（artists: `saved=0 skipped=10`, cooldownスキップ）
+        - `python run_enrichment_artists_seed10_apply.py` → exit 0（updated=0）
+        - `python run_vectorize_artists_seed10.py` → exit 0（`input_total=81 embedded_total=81 skipped_total=0 failed_total=0`）
+        - `python run_compare_phase1_guard.py --target-year 2025` → exit 0（guard互換維持）
+      - 生成物確認：
+        - `data/phase1_seed10/derived/vector/artists_text_index_2025.npy`
+        - `data/phase1_seed10/derived/vector/artists_text_meta_2025.jsonl`
+        - `data/phase1_seed10/derived/vector/artists_text_vectorize_summary_2025.json`
+
+[x] 58) artists_text の検索スモークCLIを追加し、vector生成物から top-k を確認する（本体前進）
+    - 目的：TASK57で再生成した artists index/meta を使い、artists_text の最小検索入口を作って Phase2接続前の確認導線を作る
+    - 制約：取得ループ内で実行しない（Post-fetchバッチ分離）、既存Exhibitions/Tarutani処理を壊さない
+    - 成立条件：
+      - `python run_search_artists_seed10.py --query "..."`（例）が実行できる
+      - top-k の `source_url` / `record_id` / `score`（または同等）を出力できる
+      - search summary（query, k, output_paths）を保存できる
+      - 03のCHANGELOGに反映される
+      - 次タスク（TASK59）プロンプト全文を提示できる
+    - 実行メモ：
+      - 実装：
+        - `run_search_artists_seed10.py` を追加（artists index/meta を入力に RETRIEVAL_QUERY で top-k 検索）
+        - 検索結果に `source_url` / `record_id` / `score` / `vector_index` / `fair_slug` を保存
+        - summaryに `query` / `k_requested` / `k_returned` / `output_paths` を保存
+      - 動作確認：
+        - `python run_phase1_seed10.py --include-artists-text` → exit 0
+        - `python run_enrichment_artists_seed10_apply.py` → exit 0
+        - `python run_vectorize_artists_seed10.py` → exit 0（`embedded_total=81`）
+        - `python run_search_artists_seed10.py --query "contemporary painting"` → exit 0（`k_returned=5`）
+        - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+      - 生成物：
+        - `data/phase1_seed10/derived/vector/search/artists_text_search_results_20260224T102557Z.jsonl`
+        - `data/phase1_seed10/derived/vector/search/artists_text_search_summary_20260224T102557Z.json`
+
+[x] 59) artists_text の検索結果を context JSON に整形し、Phase2接続入力を固定する（本体前進）
+    - 目的：TASK58の top-k 検索結果を、後続回答層にそのまま渡せる context JSON として保存する
+    - 制約：取得ループ内で実行しない（Post-fetch分離）、既存Exhibitions/Tarutani処理を壊さない
+    - 成立条件：
+      - `python run_build_artists_context_seed10.py --query "..."`（例）が実行できる
+      - context JSON に `source_url` / `record_id` / `score` / `excerpt`（または同等）を含めて保存できる
+      - context summary（query, k, input_paths, output_paths）を保存できる
+      - 03のCHANGELOGに反映される
+      - 次タスク（TASK60）プロンプト全文を提示できる
+    - 実行メモ：
+      - 実装：
+        - `run_build_artists_context_seed10.py` を追加（`run_search_artists_seed10.py` 実行→top-k結果を context JSON へ整形）
+        - context item に `source_url` / `record_id` / `score` / `excerpt` / `headline_ja` / `vector_index` を保存
+        - context summary に `query` / `k_requested` / `k_returned` / `input_paths` / `output_paths` を保存
+      - 動作確認：
+        - `python run_phase1_seed10.py --include-artists-text` → exit 0
+        - `python run_enrichment_artists_seed10_apply.py` → exit 0
+        - `python run_vectorize_artists_seed10.py` → exit 0（`embedded_total=81`）
+        - `python run_search_artists_seed10.py --query "contemporary painting"` → exit 0（`k_returned=5`）
+        - `python run_build_artists_context_seed10.py --query "contemporary painting"` → exit 0（`k_returned=5`）
+        - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+      - 生成物：
+        - `data/phase1_seed10/derived/context/artists_text_context_20260224T103230Z.json`
+        - `data/phase1_seed10/derived/context/artists_text_context_summary_20260224T103230Z.json`
+
+[ ] 60) artists_text の回答スモークCLIを追加し、context JSON から根拠付き回答を出力する（本体前進）
+    - 目的：TASK59で整形した context JSON を入力に、Phase2接続前の最小回答導線（質問→回答+根拠）を成立させる
+    - 制約：取得ループ内で実行しない（Post-fetch分離）、既存Exhibitions/Tarutani処理を壊さない
+    - 成立条件：
+      - `python run_answer_artists_seed10.py --question "..." --query "..."`（例）が実行できる
+      - 出力JSONに `answer` と根拠（`source_url` / `record_id` / `score` / `excerpt`）を保存できる
+      - answer summary（question, query, context_path, output_paths）を保存できる
+      - 03のCHANGELOGに反映される
+      - 次タスク（TASK61）プロンプト全文を提示できる
 
 ========================
 BACKLOG（後回し/保留）
@@ -3227,6 +3299,112 @@ TASK 57) ブロッカー解消：artists_text vectorize の外向き接続を回
 - （WSL）python run_vectorize_artists_seed10.py
 - （WSL）python run_compare_phase1_guard.py --target-year 2025
 
+------------------------------------------------------------
+TASK 58) artists_text の検索スモークCLIを追加し、vector生成物から top-k を確認する（本体前進）
+------------------------------------------------------------------------------------------------
+目的：
+- TASK57で再生成した artists index/meta を使い、artists_text の検索導線（最小CLI）を成立させる。
+- Phase2接続前に「質問→top-k根拠表示」が動く状態を先に作る。
+
+参照ファイル：
+- run_vectorize_artists_seed10.py
+- data/phase1_seed10/derived/vector/artists_text_index_2025.npy
+- data/phase1_seed10/derived/vector/artists_text_meta_2025.jsonl
+- docs/03_STATE_SNAPSHOT_NEXT_TASKS.md
+- docs/04_TASK_PROGRESS_LOG.md
+
+制約：
+- 取得ループ内で実行しない（Post-fetch分離維持）
+- 既存Exhibitions/Tarutaniの既存処理を壊さない
+- ドメイン専用ハードコードを増やさない
+
+完了条件：
+- `python run_search_artists_seed10.py --query "..."`（例）が実行できる
+- top-k の `source_url` / `record_id` / `score`（または同等）を出力できる
+- search summary（`query` / `k` / `output_paths`）を保存できる
+- 03 の NEXT_TASKS の 58) を [x]、CHANGELOG追記
+- 04 に実行結果（コマンド/exit/top-k件数）を追記
+- 次の最優先タスク（TASK59）のプロンプト全文を提示
+
+動作確認コマンド：
+- （WSL）python run_phase1_seed10.py --include-artists-text
+- （WSL）python run_enrichment_artists_seed10_apply.py
+- （WSL）python run_vectorize_artists_seed10.py
+- （WSL）python run_search_artists_seed10.py --query "contemporary painting"
+- （WSL）python run_compare_phase1_guard.py --target-year 2025
+
+------------------------------------------------------------
+TASK 59) artists_text の検索結果を context JSON に整形し、Phase2接続入力を固定する（本体前進）
+------------------------------------------------------------------------------------------------
+目的：
+- TASK58の top-k 検索結果を、後続回答層へそのまま渡せる context JSON として保存する。
+- Phase2接続前に「検索結果→根拠コンテキスト」の受け渡し形式を固定する。
+
+参照ファイル：
+- run_search_artists_seed10.py
+- data/phase1_seed10/derived/vector/search/artists_text_search_results_*.jsonl
+- data/phase1_seed10/derived/vector/artists_text_meta_2025.jsonl
+- data/phase1_seed10/raw/artists_frieze_london_2025.jsonl
+- data/phase1_seed10/raw/artists_liste_2025.jsonl
+- docs/03_STATE_SNAPSHOT_NEXT_TASKS.md
+- docs/04_TASK_PROGRESS_LOG.md
+
+制約：
+- 取得ループ内で実行しない（Post-fetch分離維持）
+- 既存Exhibitions/Tarutaniの既存処理を壊さない
+- ドメイン専用ハードコードを増やさない
+
+完了条件：
+- `python run_build_artists_context_seed10.py --query "..."`（例）が実行できる
+- context JSON に `source_url` / `record_id` / `score` / `excerpt`（または同等）を含めて保存できる
+- context summary（`query` / `k` / `input_paths` / `output_paths`）を保存できる
+- 03 の NEXT_TASKS の 59) を [x]、CHANGELOG追記
+- 04 に実行結果（コマンド/exit/context件数）を追記
+- 次の最優先タスク（TASK60）のプロンプト全文を提示
+
+動作確認コマンド：
+- （WSL）python run_phase1_seed10.py --include-artists-text
+- （WSL）python run_enrichment_artists_seed10_apply.py
+- （WSL）python run_vectorize_artists_seed10.py
+- （WSL）python run_search_artists_seed10.py --query "contemporary painting"
+- （WSL）python run_build_artists_context_seed10.py --query "contemporary painting"
+- （WSL）python run_compare_phase1_guard.py --target-year 2025
+
+------------------------------------------------------------
+TASK 60) artists_text の回答スモークCLIを追加し、context JSON から根拠付き回答を出力する（本体前進）
+------------------------------------------------------------------------------------------------
+目的：
+- TASK59で整形した artists context JSON を入力に、回答本文と根拠を1コマンドで出力できる最小CLIを成立させる。
+- Phase2接続前に「質問→回答→根拠保存」の往復を固定する。
+
+参照ファイル：
+- run_build_artists_context_seed10.py
+- data/phase1_seed10/derived/context/artists_text_context_*.json
+- data/phase1_seed10/derived/context/artists_text_context_summary_*.json
+- docs/03_STATE_SNAPSHOT_NEXT_TASKS.md
+- docs/04_TASK_PROGRESS_LOG.md
+
+制約：
+- 取得ループ内で実行しない（Post-fetch分離維持）
+- 既存Exhibitions/Tarutaniの既存処理を壊さない
+- ドメイン専用ハードコードを増やさない
+
+完了条件：
+- `python run_answer_artists_seed10.py --question "..." --query "..."`（例）が実行できる
+- 出力JSONに `answer` と根拠（`source_url` / `record_id` / `score` / `excerpt`）を保存できる
+- answer summary（`question` / `query` / `context_path` / `output_paths`）を保存できる
+- 03 の NEXT_TASKS の 60) を [x]、CHANGELOG追記
+- 04 に実行結果（コマンド/exit/answer長）を追記
+- 次の最優先タスク（TASK61）のプロンプト全文を提示
+
+動作確認コマンド：
+- （WSL）python run_phase1_seed10.py --include-artists-text
+- （WSL）python run_enrichment_artists_seed10_apply.py
+- （WSL）python run_vectorize_artists_seed10.py
+- （WSL）python run_build_artists_context_seed10.py --query "contemporary painting"
+- （WSL）python run_answer_artists_seed10.py --question "contemporary paintingの要点を教えて" --query "contemporary painting"
+- （WSL）python run_compare_phase1_guard.py --target-year 2025
+
 
 ========================
 CODEX_SNIPPETS（頻出コピペ：ここだけ使えば回る）
@@ -3403,3 +3581,6 @@ CHANGELOG（このファイルの更新履歴）
 - 2026-02-24：TASK 54 実施。`run_phase1_seed10.py` に artists_text 向け Post-fetch Enrichment入口を追加し、`data/phase1_seed10/derived/artists_enrichment_requests_2025.jsonl` を上書き生成する導線を実装。run summary に `artists_enrichment_*` メタ（candidates/requests/output_path/counters/warnings）を追加し、`python run_phase1_seed10.py`（既存互換）/ `--include-artists-text`（2回）/ `run_compare_phase1_guard.py --target-year 2025` すべて exit 0 を確認。
 - 2026-02-24：TASK 55 実施。`run_enrichment_artists_seed10_apply.py` を追加し、`artists_enrichment_requests_2025.jsonl` から `artists_*.jsonl` の `headline_ja` を更新する apply導線を実装。1回目実行で `updated=81`、2回目実行で `updated=0`（冪等）を確認し、apply output/summary を `data/phase1_seed10/derived/` に保存。guard互換（`python run_compare_phase1_guard.py --target-year 2025` exit 0）も維持。
 - 2026-02-24：TASK 56 実施。`run_vectorize_artists_seed10.py` を追加し、artists raw から embedding/index/meta/failed/manifest 生成の Post-fetch 入口を実装。`input_total=81` / `embedded_total=0` / `failed_total=81`（接続失敗）を summary へ保存し、guard互換（`python run_compare_phase1_guard.py --target-year 2025` exit 0）を維持。次は TASK57 で外向き接続回復後に `embedded_total>0` を再検証。
+- 2026-02-24：TASK 57 実施。外向き接続を再確認（`curl -I https://example.com` / `socket.gethostbyname` とも成功）後、`python run_vectorize_artists_seed10.py` を再実行して `input_total=81` / `embedded_total=81` / `failed_total=0` を確認。生成物（index/meta/manifest）を更新し、`python run_compare_phase1_guard.py --target-year 2025` exit 0 で既存互換を維持。次は TASK58（artists検索スモークCLI）。
+- 2026-02-24：TASK 58 実施。`run_search_artists_seed10.py` を追加し、artists vector生成物（index/meta）から RETRIEVAL_QUERY で top-k 検索を実行可能化。`--query "contemporary painting"` で `source_url/record_id/score` を含む上位5件を出力し、`artists_text_search_results_*.jsonl` / `artists_text_search_summary_*.json`（query/k/output_paths）を保存。`python run_compare_phase1_guard.py --target-year 2025` exit 0 で既存互換を維持。次は TASK59（context JSON整形）。
+- 2026-02-24：TASK 59 実施。`run_build_artists_context_seed10.py` を追加し、artists検索結果（top-k）を context JSON へ整形する導線を実装。`--query "contemporary painting"` で `source_url/record_id/score/excerpt` を含む context（k=5）と summary（query/k/input_paths/output_paths）を保存。`python run_compare_phase1_guard.py --target-year 2025` exit 0 で既存互換を維持。次は TASK60（回答スモークCLI）。

@@ -1,6 +1,6 @@
 {
   "target_year": 2025,
-  "generated_at": "2026-02-24T10:08:56Z",
+  "generated_at": "2026-02-24T10:31:29Z",
   "rag_category": "artists_text",
   "embedding_model": "gemini-embedding-001",
   "embedding_task_type": "RETRIEVAL_DOCUMENT",
@@ -9,14 +9,14 @@
     {
       "path": "data/phase1_seed10/derived/vector/artists_text_index_2025.npy",
       "etag": "",
-      "sha256": "a993125cab06791413a76d91c5dd4f9d01735eb0a4f15f608575cc59490fbcb6",
-      "bytes": 128
+      "sha256": "1e6d646a25e40769c08c6a99e6b86c69fa81da9b5d58b5e85407ec997cd3c900",
+      "bytes": 497792
     },
     {
       "path": "data/phase1_seed10/derived/vector/artists_text_meta_2025.jsonl",
       "etag": "",
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "bytes": 0
+      "sha256": "61c2df7459f125594f6c012110f98c767f273d579e1ca4ce1f1eb6980aa986a4",
+      "bytes": 44751
     }
   ]
 }
