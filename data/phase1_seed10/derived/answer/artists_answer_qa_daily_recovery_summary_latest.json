@@ -1,6 +1,6 @@
 {
-  "started_at": "2026-02-24T16:41:00Z",
-  "completed_at": "2026-02-24T16:41:06Z",
+  "started_at": "2026-02-24T16:46:18Z",
+  "completed_at": "2026-02-24T16:46:24Z",
   "source_cli": "run_artists_answer_qa_daily_recovery.py",
   "batch_manifest_path": "/tmp/artists_answer_qa_batch_manifest_task67_fixed.json",
   "all_passed": true,
@@ -22,7 +22,7 @@
         "batch_smoke_summary_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_latest_batch_smoke_summary.json",
         "batch_cases_jsonl_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_latest_batch_smoke_summary_cases.jsonl"
       },
-      "stdout_tail": "[START] artists QA smoke at 2026-02-24T16:41:00Z\n[DONE] artists QA smoke batch complete. all_passed=True total_cases=2\n[DONE] summary=/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_latest_batch_smoke_summary.json\n[DONE] batch_cases_jsonl=/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_latest_batch_smoke_summary_cases.jsonl\n",
+      "stdout_tail": "[START] artists QA smoke at 2026-02-24T16:46:18Z\n[DONE] artists QA smoke batch complete. all_passed=True total_cases=2\n[DONE] summary=/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_latest_batch_smoke_summary.json\n[DONE] batch_cases_jsonl=/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_latest_batch_smoke_summary_cases.jsonl\n",
       "stderr_tail": ""
     },
     {

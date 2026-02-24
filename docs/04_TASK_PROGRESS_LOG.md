@@ -1,6 +1,6 @@
 # 04_TASK_PROGRESS_LOG.md
 
-最終更新: 2026-02-25 01:42 JST  
+最終更新: 2026-02-25 01:46 JST  
 対象プロジェクト: ART_PULSE_EDITOR（Phase1 seed10 / Guard運用整備）  
 位置づけ: 実装進捗ログ（01=SSOT、02=索引、03=現行運用タスクの補助ログ）
 
@@ -1329,7 +1329,7 @@
   - `python run_artists_answer_qa_daily_recovery.py --batch-manifest "/tmp/artists_answer_qa_batch_manifest_task67_fixed.json" --output-json "data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_latest.json"` → exit 0
   - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
 - 生成物：
-  - `data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_20260224T164100Z.json`
+  - `data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_20260224T164617Z.json`
   - `data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_latest.json`
   - `data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_latest_batch_smoke_summary.json`
   - `data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_latest_batch_smoke_summary_cases.jsonl`

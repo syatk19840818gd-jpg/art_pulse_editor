@@ -13,7 +13,7 @@ STREAMLIT_ENTRYPOINT（固定）
 - Local run: streamlit run app.py
 
 SOURCE_SSOT: 01_PROJECT_SPEC_CURRENT_FULL.docx
-LAST_UPDATED: 2026-02-25 01:42 JST
+LAST_UPDATED: 2026-02-25 01:46 JST
 
 
 ========================
@@ -1749,7 +1749,7 @@ NEXT_TASKS（次回やること）
         - `python run_artists_answer_qa_daily_recovery.py --batch-manifest "/tmp/artists_answer_qa_batch_manifest_task67_fixed.json" --output-json "data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_latest.json"` → exit 0
         - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
       - 生成物：
-        - `data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_20260224T164100Z.json`
+        - `data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_20260224T164617Z.json`
         - `data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_latest.json`
 
 [ ] 76) artists回答QA日次復旧ワンショットの軽量レポートCLIを追加し、daily summary から failed step と参照先summaryを1コマンドで確認できるようにする（本体前進）
@@ -4605,3 +4605,4 @@ CHANGELOG（このファイルの更新履歴）
 - 2026-02-24：TASK 58 実施。`run_search_artists_seed10.py` を追加し、artists vector生成物（index/meta）から RETRIEVAL_QUERY で top-k 検索を実行可能化。`--query "contemporary painting"` で `source_url/record_id/score` を含む上位5件を出力し、`artists_text_search_results_*.jsonl` / `artists_text_search_summary_*.json`（query/k/output_paths）を保存。`python run_compare_phase1_guard.py --target-year 2025` exit 0 で既存互換を維持。次は TASK59（context JSON整形）。
 - 2026-02-24：TASK 59 実施。`run_build_artists_context_seed10.py` を追加し、artists検索結果（top-k）を context JSON へ整形する導線を実装。`--query "contemporary painting"` で `source_url/record_id/score/excerpt` を含む context（k=5）と summary（query/k/input_paths/output_paths）を保存。`python run_compare_phase1_guard.py --target-year 2025` exit 0 で既存互換を維持。次は TASK60（回答スモークCLI）。
 - 2026-02-24：TASK 60 実施。`run_answer_artists_seed10.py` を追加し、artists context JSON から回答+根拠（`source_url/record_id/score/excerpt`）を出力する回答スモークCLIを実装。`--question "この検索結果から注目作家の傾向を教えて" --query "contemporary painting"` で `answer_status=ok` / `k_returned=5` を確認し、`artists_text_answer_*.json` と `artists_text_answer_summary_*.json` を保存。`python run_compare_phase1_guard.py --target-year 2025` exit 0 で既存互換を維持。次は TASK61（回答比較CLI）。
+- 2026-02-25：TASK 75 実施。`run_artists_answer_qa_daily_recovery.py` を追加し、`batch_smoke -> batch_report -> retry_manifest -> retry_run -> retry_run_report` を1コマンド化。`--batch-manifest "/tmp/artists_answer_qa_batch_manifest_task67_fixed.json"` と `--output-json ...daily_recovery_summary_latest.json` の2実行で exit 0、`run_compare_phase1_guard.py --target-year 2025` も exit 0 を確認。daily summary に `steps[]/all_passed/wrapper_exit_code/notes` を保存し、retry対象0件no-opも判別可能化。次タスク（TASK76: daily recovery summary 軽量レポートCLI）を追加。

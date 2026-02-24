@@ -79,7 +79,7 @@
       "stderr_tail": ""
     }
   ],
-  "batch_cases_jsonl_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_latest_batch_smoke_summary_cases.jsonl",
+  "batch_cases_jsonl_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_20260224T164617Z_batch_smoke_summary_cases.jsonl",
   "batch_cases_jsonl_written": true,
   "batch_cases_jsonl_count": 2,
   "batch_cases_jsonl_error": null,
@@ -87,7 +87,7 @@
   "warnings": [],
   "errors": [],
   "output_paths": {
-    "qa_summary_json": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_latest_batch_smoke_summary.json",
-    "batch_cases_jsonl_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_latest_batch_smoke_summary_cases.jsonl"
+    "qa_summary_json": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_20260224T164617Z_batch_smoke_summary.json",
+    "batch_cases_jsonl_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_20260224T164617Z_batch_smoke_summary_cases.jsonl"
   }
 }

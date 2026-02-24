@@ -1,7 +1,7 @@
 {
   "generated_at": "2026-02-24T16:46:24Z",
   "source_cli": "run_artists_answer_qa_retry_manifest.py",
-  "input_cases_jsonl_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_latest_batch_smoke_summary_cases.jsonl",
+  "input_cases_jsonl_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_20260224T164617Z_batch_smoke_summary_cases.jsonl",
   "total_cases": 2,
   "failed_cases": 0,
   "retry_case_count": 0,
