@@ -13,7 +13,7 @@ STREAMLIT_ENTRYPOINT（固定）
 - Local run: streamlit run app.py
 
 SOURCE_SSOT: 01_PROJECT_SPEC_CURRENT_FULL.docx
-LAST_UPDATED: 2026-02-24 19:42 JST
+LAST_UPDATED: 2026-02-24 20:02 JST
 
 
 ========================
@@ -68,7 +68,7 @@ STATE_SNAPSHOT（現在地）
 ========================
 ■いまの最優先フェーズ（Codexが随時更新する）
 - Phase 1：RAG抽出パイプライン成立（seed10で安定稼働させる）
-  - 直近の到達目標：artists_text の context JSON を使う回答スモークCLIを成立させ、Phase2接続の最小往復を確認する（TASK 60）
+  - 直近の到達目標：artists回答比較に最小回帰ガードを追加し、query再生成/context固定の劣化を非0で検知できる状態にする（TASK 63）
   - 次の到達目標：Phase2（検索/表示）へ接続する
   - その次：検索品質と表示品質の改善サイクルに入る
 
@@ -1315,7 +1315,7 @@ NEXT_TASKS（次回やること）
         - `data/phase1_seed10/derived/context/artists_text_context_20260224T103230Z.json`
         - `data/phase1_seed10/derived/context/artists_text_context_summary_20260224T103230Z.json`
 
-[ ] 60) artists_text の回答スモークCLIを追加し、context JSON から根拠付き回答を出力する（本体前進）
+[x] 60) artists_text の回答スモークCLIを追加し、context JSON から根拠付き回答を出力する（本体前進）
     - 目的：TASK59で整形した context JSON を入力に、Phase2接続前の最小回答導線（質問→回答+根拠）を成立させる
     - 制約：取得ループ内で実行しない（Post-fetch分離）、既存Exhibitions/Tarutani処理を壊さない
     - 成立条件：
@@ -1324,6 +1324,76 @@ NEXT_TASKS（次回やること）
       - answer summary（question, query, context_path, output_paths）を保存できる
       - 03のCHANGELOGに反映される
       - 次タスク（TASK61）プロンプト全文を提示できる
+    - 実行メモ：
+      - 実装：
+        - `run_answer_artists_seed10.py` を追加（`--question`/`--query` で context再生成→回答生成→根拠同梱保存）
+        - LLM失敗時の最小フォールバックを実装（`answer_status=fallback` + evidence保存）
+      - 動作確認：
+        - `python run_phase1_seed10.py --include-artists-text` → exit 0
+        - `python run_enrichment_artists_seed10_apply.py` → exit 0
+        - `python run_vectorize_artists_seed10.py` → exit 0（`embedded_total=81`）
+        - `python run_search_artists_seed10.py --query "contemporary painting"` → exit 0（`k_returned=5`）
+        - `python run_build_artists_context_seed10.py --query "contemporary painting"` → exit 0
+        - `python run_answer_artists_seed10.py --question "この検索結果から注目作家の傾向を教えて" --query "contemporary painting"` → exit 0（`answer_status=ok`, `k_returned=5`）
+        - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+      - 生成物：
+        - `data/phase1_seed10/derived/answer/artists_text_answer_20260224T104404Z.json`
+        - `data/phase1_seed10/derived/answer/artists_text_answer_summary_20260224T104404Z.json`
+
+[x] 61) artists_text の回答比較CLIを追加し、query再生成 / context固定の差分可視化入口を作る（本体前進）
+    - 目的：artists回答導線の再現性を高めるため、query再生成とcontext固定の差分を1コマンドで比較できる入口を作る
+    - 制約：取得ループ内で実行しない（Post-fetch分離）、既存Exhibitions/Tarutani/guard処理を壊さない
+    - 成立条件：
+      - `python run_compare_artists_answers.py --question "..." --query "..." --context-path "..."`（例）が実行できる
+      - 比較summaryに `answer_chars` / `evidence_count` / `mismatch_fields`（または同等）を保存できる
+      - 03のCHANGELOGに反映される
+      - 次タスク（TASK62）プロンプト全文を提示できる
+    - 実行メモ：
+      - 実装：
+        - `run_compare_artists_answers.py` を追加（`run_answer_artists_seed10.py` の query再生成 / context固定を両実行して比較）
+        - 比較summaryに `answer_chars` / `evidence_count` / `mismatch_fields` / `differences` を保存
+      - 動作確認：
+        - `python run_build_artists_context_seed10.py --query "contemporary painting"` → exit 0
+        - `python run_answer_artists_seed10.py --question "この検索結果から注目作家の傾向を教えて" --query "contemporary painting"` → exit 0
+        - `python run_compare_artists_answers.py --question "この検索結果から注目作家の傾向を教えて" --query "contemporary painting" --context-path "data/phase1_seed10/derived/context/artists_text_context_20260224T105015Z.json"` → exit 0（`mismatch_fields=['answer_chars','numeric_tokens']`）
+        - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+      - 生成物：
+        - `data/phase1_seed10/derived/answer/artists_text_answer_compare_20260224T105153Z.json`
+
+[x] 62) artists_text 回答CLIの最小ガードを追加し、空回答/根拠欠落を非0終了で検知できるようにする（本体前進）
+    - 目的：回答導線の最低品質を守るため、空回答や根拠欠落をCI/手元で検知できる最小ガードを導入する
+    - 制約：取得ループ内で実行しない（Post-fetch分離）、既存Exhibitions/Tarutani/guard処理を壊さない
+    - 成立条件：
+      - `run_answer_artists_seed10.py` に `--fail-on-invalid-output`（例）を追加し、条件不成立時に非0終了できる
+      - 最低限のガード条件（`answer` 非空、`evidence` 1件以上、必須根拠キー存在）をsummaryへ記録できる
+      - 03のCHANGELOGに反映される
+      - 次タスク（TASK63）プロンプト全文を提示できる
+    - 実行メモ：
+      - 実装：
+        - `run_answer_artists_seed10.py` に `--fail-on-invalid-output` を追加
+        - 出力ガード（`answer` 非空 / `evidence` 非空 / `source_url,record_id,score,excerpt` の必須キー存在）を実装
+        - answer JSON / summary JSON に `output_valid` / `invalid_reasons` / `fail_on_invalid_output` を追加
+      - 動作確認（外向き接続あり）：
+        - `python run_build_artists_context_seed10.py --query "contemporary painting"` → exit 0（`artists_text_context_20260224T110028Z.json`）
+        - `python run_answer_artists_seed10.py --question "この検索結果から注目作家の傾向を教えて" --query "contemporary painting" --fail-on-invalid-output` → exit 0（`output_valid=true`）
+        - `python run_compare_artists_answers.py --question "この検索結果から注目作家の傾向を教えて" --query "contemporary painting" --context-path "data/phase1_seed10/derived/context/artists_text_context_20260224T110028Z.json"` → exit 0
+        - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+      - 失敗系確認（無効出力）：
+        - `/tmp/artists_invalid_context_task62.json` を使って `python run_answer_artists_seed10.py --question "ガード動作確認" --context-path /tmp/artists_invalid_context_task62.json --fail-on-invalid-output` を実行
+        - `output_valid=false` / `invalid_reasons=['empty_evidence_value:0.source_url','empty_evidence_value:0.record_id','empty_evidence_value:0.excerpt']` / exit 2 を確認
+      - 生成物：
+        - `data/phase1_seed10/derived/answer/artists_text_answer_summary_20260224T110049Z.json`
+        - `data/phase1_seed10/derived/answer/artists_text_answer_summary_20260224T110214Z.json`
+
+[ ] 63) artists_text 回答比較CLIに最小回帰ガードを追加し、差分悪化時のみ非0終了にする（本体前進）
+    - 目的：TASK61の単純差分比較を運用しやすくするため、「差分」と「回帰」を分離し、悪化方向だけを非0で検知できるようにする
+    - 制約：取得ループ内で実行しない（Post-fetch分離）、既存Exhibitions/Tarutani/guard処理を壊さない
+    - 成立条件：
+      - `run_compare_artists_answers.py` に `--fail-on-regression` を追加し、回帰条件時のみ非0終了できる
+      - 最低限 `guard_passed` / `regression_reasons` / `mismatch_fields` をsummaryへ保存できる
+      - 回帰条件（例：`answer_status` 悪化、`output_valid` true→false、`evidence_count` 減少）を明示できる
+      - 03のCHANGELOGに反映される
+      - 次タスク（TASK64）プロンプト全文を提示できる
 
 ========================
 BACKLOG（後回し/保留）
@@ -3405,6 +3475,111 @@ TASK 60) artists_text の回答スモークCLIを追加し、context JSON から
 - （WSL）python run_answer_artists_seed10.py --question "contemporary paintingの要点を教えて" --query "contemporary painting"
 - （WSL）python run_compare_phase1_guard.py --target-year 2025
 
+------------------------------------------------------------
+TASK 61) artists_text の回答比較CLIを追加し、query再生成 / context固定の差分可視化入口を作る（本体前進）
+------------------------------------------------------------------------------------------------
+目的：
+- artists回答導線の再現性を高めるため、query再生成モードとcontext固定モードの差分を1コマンドで比較できるようにする。
+- 回答品質調整前に、まずは「差分を見える化できる状態」を先に作る。
+
+参照ファイル：
+- run_answer_artists_seed10.py
+- run_build_artists_context_seed10.py
+- data/phase1_seed10/derived/context/artists_text_context_*.json
+- data/phase1_seed10/derived/answer/artists_text_answer_*.json
+- docs/03_STATE_SNAPSHOT_NEXT_TASKS.md
+- docs/04_TASK_PROGRESS_LOG.md
+
+制約：
+- 取得ループ内で実行しない（Post-fetch分離維持）
+- 既存Exhibitions/Tarutani/guard/history/lint/matrixの既存処理を壊さない
+- ドメイン専用ハードコードを増やさない
+
+完了条件：
+- `python run_compare_artists_answers.py --question "..." --query "..." --context-path "..."`（例）が実行できる
+- 比較summaryに最低限 `answer_chars` / `evidence_count` / `mismatch_fields`（または同等）を保存できる
+- 03 の NEXT_TASKS の 61) を [x]、CHANGELOG追記
+- 04 に実行結果（コマンド/exit/差分要約）を追記
+- 次の最優先タスク（TASK62）のプロンプト全文を提示
+
+動作確認コマンド：
+- （WSL）python run_build_artists_context_seed10.py --query "contemporary painting"
+- （WSL）python run_answer_artists_seed10.py --question "この検索結果から注目作家の傾向を教えて" --query "contemporary painting"
+- （WSL）python run_compare_artists_answers.py --question "この検索結果から注目作家の傾向を教えて" --query "contemporary painting" --context-path "data/phase1_seed10/derived/context/artists_text_context_YYYYMMDDTHHMMSSZ.json"
+- （WSL）python run_compare_phase1_guard.py --target-year 2025
+
+------------------------------------------------------------
+TASK 62) artists_text 回答CLIの最小ガードを追加し、空回答/根拠欠落を非0終了で検知できるようにする（本体前進）
+------------------------------------------------------------------------------------------------
+目的：
+- artists回答導線の最低品質を守るため、空回答や根拠欠落を手元/CIで早期検知できる最小ガードを追加する。
+- 回答品質改善の前に、まずは「壊れている回答を自動検知できる状態」を固定する。
+
+参照ファイル：
+- run_answer_artists_seed10.py
+- run_compare_artists_answers.py
+- data/phase1_seed10/derived/answer/artists_text_answer_*.json
+- data/phase1_seed10/derived/answer/artists_text_answer_summary_*.json
+- docs/03_STATE_SNAPSHOT_NEXT_TASKS.md
+- docs/04_TASK_PROGRESS_LOG.md
+
+制約：
+- 取得ループ内で実行しない（Post-fetch分離維持）
+- 既存Exhibitions/Tarutani/guard/history/lint/matrixの既存処理を壊さない
+- ドメイン専用ハードコードを増やさない
+
+完了条件：
+- `python run_answer_artists_seed10.py --question "..." --query "..." --fail-on-invalid-output`（例）が実行できる
+- 最低限の検知条件（`answer` 非空 / `evidence` 1件以上 / 根拠必須キー存在）を実装できる
+- summaryに `output_valid` / `invalid_reasons`（または同等）を保存できる
+- 無効出力時は `--fail-on-invalid-output` 指定で非0終了できる
+- 03 の NEXT_TASKS の 62) を [x]、CHANGELOG追記
+- 04 に実行結果（コマンド/exit/ガード判定）を追記
+- 次の最優先タスク（TASK63）のプロンプト全文を提示
+
+動作確認コマンド：
+- （WSL）python run_build_artists_context_seed10.py --query "contemporary painting"
+- （WSL）python run_answer_artists_seed10.py --question "この検索結果から注目作家の傾向を教えて" --query "contemporary painting" --fail-on-invalid-output
+- （WSL）python run_compare_artists_answers.py --question "この検索結果から注目作家の傾向を教えて" --query "contemporary painting" --context-path "data/phase1_seed10/derived/context/artists_text_context_YYYYMMDDTHHMMSSZ.json"
+- （WSL）python run_compare_phase1_guard.py --target-year 2025
+
+------------------------------------------------------------
+TASK 63) artists_text 回答比較CLIに最小回帰ガードを追加し、差分悪化時のみ非0終了にする（本体前進）
+------------------------------------------------------------------------------------------------
+目的：
+- TASK61の比較CLIで出ている差分を「単なる差分」と「回帰（悪化）」に分離し、運用でノイズfailを減らす。
+- 回答品質改善前に、最低限の回帰検知（status/evidence/output_valid）だけを固定する。
+
+参照ファイル：
+- run_compare_artists_answers.py
+- run_answer_artists_seed10.py
+- data/phase1_seed10/derived/answer/artists_text_answer_compare_*.json
+- data/phase1_seed10/derived/answer/artists_text_answer_summary_*.json
+- docs/03_STATE_SNAPSHOT_NEXT_TASKS.md
+- docs/04_TASK_PROGRESS_LOG.md
+
+制約：
+- 取得ループ内で実行しない（Post-fetch分離維持）
+- 既存Exhibitions/Tarutani/guard/history/lint/matrixの既存処理を壊さない
+- ドメイン専用ハードコードを増やさない
+
+完了条件：
+- `python run_compare_artists_answers.py --question "..." --query "..." --context-path "..." --fail-on-regression`（例）が実行できる
+- 比較summaryに `guard_passed` / `regression_reasons` / `mismatch_fields` を保存できる
+- 回帰条件（最低限）を実装できる：
+  - `answer_status` が `ok -> fallback` に悪化
+  - `output_valid` が `true -> false` に悪化
+  - `evidence_count` が減少
+- `--fail-on-regression` 指定時のみ回帰で非0終了、差分のみ（回帰なし）は0終了できる
+- 03 の NEXT_TASKS の 63) を [x]、CHANGELOG追記
+- 04 に実行結果（コマンド/exit/回帰判定）を追記
+- 次の最優先タスク（TASK64）のプロンプト全文を提示
+
+動作確認コマンド：
+- （WSL）python run_build_artists_context_seed10.py --query "contemporary painting"
+- （WSL）python run_compare_artists_answers.py --question "この検索結果から注目作家の傾向を教えて" --query "contemporary painting" --context-path "data/phase1_seed10/derived/context/artists_text_context_YYYYMMDDTHHMMSSZ.json" --fail-on-regression
+- （WSL）python run_compare_phase1_guard.py --target-year 2025
+
 
 ========================
 CODEX_SNIPPETS（頻出コピペ：ここだけ使えば回る）
@@ -3526,6 +3701,8 @@ CHANGELOG（このファイルの更新履歴）
 - 2026-02-24：TASK 51 実施。`run_phase1_seed10.py` のCSV読込を任意3列目 `artists_url` 対応へ拡張し、artists取得は `artists_url` 優先 / `exhibitions_url` fallback で解決するよう変更。summaryに `artists_list_source_counts` / `artists_list_url_artists_url_used` / `artists_list_url_exhibitions_fallback_used` を追加し、既存exhibitions既定挙動と guard互換（exit 0）を維持。
 - 2026-02-24：TASK 52 着手。seed10対象行の `artists_url` 補完状況は確認済み（10/10）。ただし実行環境のDNS/外向き接続制約で artists取得は `failed_new`→`cooldown skip` となり、`new_saved>0` 検証は未達（継続中）。
 - 2026-02-24：03整備。`TASK 53` が NEXT_TASKS / CODEX_TASK_PROMPTS に未反映だったため追記し、再開時の実行手順（通信確認→artists再実行→summary確認）を固定化。
+- 2026-02-24：TASK 61 実施。`run_compare_artists_answers.py` を追加し、query再生成 / context固定の差分比較（`answer_chars` / `evidence_count` / `mismatch_fields`）を1コマンド化。実行結果は `artists_text_answer_compare_20260224T105153Z.json`（`mismatch_fields=['answer_chars','numeric_tokens']`）として保存し、次タスク（TASK62: 最小出力ガード）を追加。
+- 2026-02-24：TASK 62 実施。`run_answer_artists_seed10.py` に `--fail-on-invalid-output` を追加し、`answer` 非空 / `evidence` 非空 / 必須根拠キー存在の最小ガードを実装。summaryへ `output_valid` / `invalid_reasons` を保存し、正常ケース（exit 0）と無効コンテキストケース（exit 2）を確認。次タスク（TASK63: 回答比較の最小回帰ガード）を追加。
 - 2026-02-24：TASK 52/53 完了。外向き通信確認（curl/socket）通過後、artists failed台帳のcooldown影響を除外して再実行し、`run_summary_seed10_2025_task53_first_pass.json` で `artists_records_saved_total=81` を確認。2回目実行で artists `skipped=82` を確認し、guard互換（exit 0）を維持。
 - 2026-02-23：TASK 9.5 実施。run_tarutani_text_pdf_backfill.py でTarutaniRAGのPDF 9件を本文抽出してバックフィル（still_empty=0）。続けて Enrichment requests再生成（candidates=9）→ applyで headline_ja を9件更新（failed=0）。次は TASK 10（Embedding/Index入口）。
 - 2026-02-23：運用メンテ実施。`私とあなたの物語り ／水谷イズル(アーティスト),2020.pdf` のレコードを削除済みPDFから新規DOCX（`私とあなたの物語り_水谷イズル_2020.docx`）へ差し替え、text再抽出（1477文字）と headline_ja 再生成（updated=1）を反映。
@@ -3584,3 +3761,4 @@ CHANGELOG（このファイルの更新履歴）
 - 2026-02-24：TASK 57 実施。外向き接続を再確認（`curl -I https://example.com` / `socket.gethostbyname` とも成功）後、`python run_vectorize_artists_seed10.py` を再実行して `input_total=81` / `embedded_total=81` / `failed_total=0` を確認。生成物（index/meta/manifest）を更新し、`python run_compare_phase1_guard.py --target-year 2025` exit 0 で既存互換を維持。次は TASK58（artists検索スモークCLI）。
 - 2026-02-24：TASK 58 実施。`run_search_artists_seed10.py` を追加し、artists vector生成物（index/meta）から RETRIEVAL_QUERY で top-k 検索を実行可能化。`--query "contemporary painting"` で `source_url/record_id/score` を含む上位5件を出力し、`artists_text_search_results_*.jsonl` / `artists_text_search_summary_*.json`（query/k/output_paths）を保存。`python run_compare_phase1_guard.py --target-year 2025` exit 0 で既存互換を維持。次は TASK59（context JSON整形）。
 - 2026-02-24：TASK 59 実施。`run_build_artists_context_seed10.py` を追加し、artists検索結果（top-k）を context JSON へ整形する導線を実装。`--query "contemporary painting"` で `source_url/record_id/score/excerpt` を含む context（k=5）と summary（query/k/input_paths/output_paths）を保存。`python run_compare_phase1_guard.py --target-year 2025` exit 0 で既存互換を維持。次は TASK60（回答スモークCLI）。
+- 2026-02-24：TASK 60 実施。`run_answer_artists_seed10.py` を追加し、artists context JSON から回答+根拠（`source_url/record_id/score/excerpt`）を出力する回答スモークCLIを実装。`--question "この検索結果から注目作家の傾向を教えて" --query "contemporary painting"` で `answer_status=ok` / `k_returned=5` を確認し、`artists_text_answer_*.json` と `artists_text_answer_summary_*.json` を保存。`python run_compare_phase1_guard.py --target-year 2025` exit 0 で既存互換を維持。次は TASK61（回答比較CLI）。

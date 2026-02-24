@@ -1,6 +1,6 @@
 # 04_TASK_PROGRESS_LOG.md
 
-最終更新: 2026-02-24 19:42 JST  
+最終更新: 2026-02-24 20:02 JST  
 対象プロジェクト: ART_PULSE_EDITOR（Phase1 seed10 / Guard運用整備）  
 位置づけ: 実装進捗ログ（01=SSOT、02=索引、03=現行運用タスクの補助ログ）
 
@@ -29,8 +29,8 @@
 
 ## 2. 全体の進捗サマリ（現時点）
 
-- 完了: **TASK 1 ～ TASK 59**
-- 次の予定: **TASK 60**
+- 完了: **TASK 1 ～ TASK 62**
+- 次の予定: **TASK 63**
 - 直近の重点:
   - TarutaniRAG 側で比較/guard の「型」を作成 → Phase1本体（Exhibitions/Artists）へ横展開
   - Phase1 guard 本体 / history 比較 / fixture / matrix / schema文書化 / category文脈まで整備
@@ -463,18 +463,18 @@
 
 ---
 
-## 10. 現在の次タスク（TASK60）
+## 10. 現在の次タスク（TASK63）
 
-[ ] 60) artists_text の回答スモークCLIを追加し、context JSON から根拠付き回答を出力する（本体前進）
+[ ] 63) artists_text 回答比較CLIに最小回帰ガードを追加し、差分悪化時のみ非0終了にする（本体前進）
 - 目的：
-  - TASK59で整形した context JSON を使い、質問→回答+根拠保存の最小導線を成立させる
+  - TASK61の単純差分比較を「差分」と「回帰」に分離し、運用ノイズを抑えて悪化のみ検知する
 - 制約：
   - 取得ループ内LLM加工は追加しない（Post-fetch分離）
-  - 既存Exhibitions/Tarutaniの既存処理を壊さない
+  - 既存Exhibitions/Tarutani/guard/history/lint/matrixの既存処理を壊さない
 - 成立条件：
-  - `run_answer_artists_seed10.py --question ... --query ...` が実行できる
-  - answer summary（question/query/context_path/output_paths）を保存できる
-  - 03 の CHANGELOG に反映
+  - `run_compare_artists_answers.py --fail-on-regression` を追加し、回帰時のみ非0終了できる
+  - summaryへ `guard_passed` / `regression_reasons` / `mismatch_fields` を保存できる
+  - 03 / 04 のログ更新に反映できる
 
 ---
 
@@ -859,3 +859,78 @@
 - 生成物：
   - `data/phase1_seed10/derived/context/artists_text_context_20260224T103230Z.json`
   - `data/phase1_seed10/derived/context/artists_text_context_summary_20260224T103230Z.json`
+
+## 30. TASK60 実行ログ（artists 回答スモークCLI）
+
+[x] 60) artists_text の回答スモークCLIを追加し、context JSON から根拠付き回答を出力（本体前進）
+- 変更ファイル：
+  - `run_answer_artists_seed10.py`（新規）
+  - `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md`
+  - `docs/04_TASK_PROGRESS_LOG.md`
+- 実装内容：
+  - `--question` / `--query` で context再生成→回答生成→根拠同梱保存までを行うCLIを追加
+  - 出力JSONに `answer` / `answer_status` / `evidence(source_url, record_id, score, excerpt)` を保存
+  - summaryに `question` / `query` / `context_path` / `output_paths` / `k_returned` を保存
+  - LLM失敗時の最小フォールバック（`answer_status=fallback` + evidence保存）を追加
+- 動作確認（2026-02-24）：
+  - `python run_phase1_seed10.py --include-artists-text` → exit 0
+  - `python run_enrichment_artists_seed10_apply.py` → exit 0
+  - `python run_vectorize_artists_seed10.py` → exit 0
+  - `python run_search_artists_seed10.py --query "contemporary painting"` → exit 0
+  - `python run_build_artists_context_seed10.py --query "contemporary painting"` → exit 0
+  - `python run_answer_artists_seed10.py --question "この検索結果から注目作家の傾向を教えて" --query "contemporary painting"` → exit 0（`answer_status=ok`, `k_returned=5`）
+  - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+- 生成物：
+  - `data/phase1_seed10/derived/answer/artists_text_answer_20260224T104404Z.json`
+  - `data/phase1_seed10/derived/answer/artists_text_answer_summary_20260224T104404Z.json`
+
+## 31. TASK61 実行ログ（artists 回答比較CLI）
+
+[x] 61) artists_text の回答比較CLIを追加し、query再生成 / context固定の差分可視化入口を作る（本体前進）
+- 変更ファイル：
+  - `run_compare_artists_answers.py`（新規）
+  - `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md`
+  - `docs/04_TASK_PROGRESS_LOG.md`
+- 実装内容：
+  - `run_answer_artists_seed10.py` を query再生成モード / context固定モードで2回実行し、差分を1つのsummaryへ集約するCLIを追加
+  - 比較summaryへ `answer_chars` / `evidence_count` / `mismatch_fields` / `differences` を保存
+  - `--fail-on-mismatch` 指定時のみ mismatch で exit 2（未指定は exit 0）を実装
+- 動作確認（2026-02-24）：
+  - `python run_build_artists_context_seed10.py --query "contemporary painting"` → exit 0
+  - `python run_answer_artists_seed10.py --question "この検索結果から注目作家の傾向を教えて" --query "contemporary painting"` → exit 0
+  - `python run_compare_artists_answers.py --question "この検索結果から注目作家の傾向を教えて" --query "contemporary painting" --context-path "data/phase1_seed10/derived/context/artists_text_context_20260224T105015Z.json"` → exit 0
+  - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+- 実行結果（比較summary）：
+  - `data/phase1_seed10/derived/answer/artists_text_answer_compare_20260224T105153Z.json`
+  - `mismatch_fields=['answer_chars','numeric_tokens']`
+  - `query_rebuild.answer_chars=732` / `fixed_context.answer_chars=769`
+  - `query_rebuild.evidence_count=5` / `fixed_context.evidence_count=5`
+
+## 32. TASK62 実行ログ（artists 回答CLIの最小ガード）
+
+[x] 62) artists_text 回答CLIの最小ガードを追加し、空回答/根拠欠落を非0終了で検知できるようにする（本体前進）
+- 変更ファイル：
+  - `run_answer_artists_seed10.py`
+  - `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md`
+  - `docs/04_TASK_PROGRESS_LOG.md`
+- 実装内容：
+  - `run_answer_artists_seed10.py` に `--fail-on-invalid-output` を追加
+  - 最小ガードを追加：
+    - `answer` 非空
+    - `evidence` 1件以上
+    - 各evidenceの必須キー（`source_url` / `record_id` / `score` / `excerpt`）存在
+  - answer JSON / summary JSON に `output_valid` / `invalid_reasons` / `fail_on_invalid_output` を保存
+- 動作確認（2026-02-24）：
+  - `python run_build_artists_context_seed10.py --query "contemporary painting"` → exit 1（sandbox DNS）
+  - `python run_answer_artists_seed10.py --question "この検索結果から注目作家の傾向を教えて" --query "contemporary painting" --fail-on-invalid-output` → exit 1（sandbox DNS）
+  - 外向き接続付きで再実行：
+    - `python run_build_artists_context_seed10.py --query "contemporary painting"` → exit 0
+    - `python run_answer_artists_seed10.py --question "この検索結果から注目作家の傾向を教えて" --query "contemporary painting" --fail-on-invalid-output` → exit 0（`output_valid=true`）
+    - `python run_compare_artists_answers.py --question "この検索結果から注目作家の傾向を教えて" --query "contemporary painting" --context-path "data/phase1_seed10/derived/context/artists_text_context_20260224T110028Z.json"` → exit 0
+    - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+  - 無効出力ケース確認（/tmpの一時invalid context）：
+    - `python run_answer_artists_seed10.py --question "ガード動作確認" --context-path /tmp/artists_invalid_context_task62.json --fail-on-invalid-output` → exit 2
+    - `invalid_reasons=['empty_evidence_value:0.source_url','empty_evidence_value:0.record_id','empty_evidence_value:0.excerpt']`
+- 生成物：
+  - `data/phase1_seed10/derived/answer/artists_text_answer_summary_20260224T110049Z.json`（正常）
+  - `data/phase1_seed10/derived/answer/artists_text_answer_summary_20260224T110214Z.json`（無効ケース）
