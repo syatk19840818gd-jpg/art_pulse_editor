@@ -1,0 +1,71 @@
+{
+  "generated_at": "2026-02-24T08:11:09Z",
+  "source_cli": "run_phase1_guard_lint_fixture_matrix.py",
+  "fixture_manifest_path": "/home/syatk/my_projects/art_pulse_editor/tests/fixtures/phase1_guard/lint_fixture_manifest.json",
+  "total_cases": 4,
+  "executed_cases": 4,
+  "passed_cases": 4,
+  "failed_cases": 0,
+  "fail_fast": false,
+  "all_cases_passed": true,
+  "cases": [
+    {
+      "case_name": "lint_valid_config",
+      "description": "Valid category profile config should pass lint.",
+      "expected_exit_code": 0,
+      "actual_exit_code": 0,
+      "exit_code_match": true,
+      "summary_checks_passed": true,
+      "summary_check_failures": [],
+      "pass_fail": true,
+      "command": "/usr/bin/python /home/syatk/my_projects/art_pulse_editor/run_phase1_guard_category_profile_lint.py --config-path /home/syatk/my_projects/art_pulse_editor/tests/fixtures/phase1_guard/lint/valid/phase1_guard_category_profiles_valid.json --output-path /home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_guard_category_profile_lint_fixture_lint_valid_config_20260224T081108Z_01.json",
+      "output_summary_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_guard_category_profile_lint_fixture_lint_valid_config_20260224T081108Z_01.json"
+    },
+    {
+      "case_name": "lint_missing_config",
+      "description": "Missing config path should fail lint with config_missing code.",
+      "expected_exit_code": 1,
+      "actual_exit_code": 1,
+      "exit_code_match": true,
+      "summary_checks_passed": true,
+      "summary_check_failures": [],
+      "pass_fail": true,
+      "command": "/usr/bin/python /home/syatk/my_projects/art_pulse_editor/run_phase1_guard_category_profile_lint.py --config-path /home/syatk/my_projects/art_pulse_editor/tests/fixtures/phase1_guard/lint/missing/phase1_guard_missing_config.json --output-path /home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_guard_category_profile_lint_fixture_lint_missing_config_20260224T081108Z_02.json",
+      "output_summary_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_guard_category_profile_lint_fixture_lint_missing_config_20260224T081108Z_02.json"
+    },
+    {
+      "case_name": "lint_bad_json",
+      "description": "Broken JSON should fail lint with config_json_decode_error code.",
+      "expected_exit_code": 1,
+      "actual_exit_code": 1,
+      "exit_code_match": true,
+      "summary_checks_passed": true,
+      "summary_check_failures": [],
+      "pass_fail": true,
+      "command": "/usr/bin/python /home/syatk/my_projects/art_pulse_editor/run_phase1_guard_category_profile_lint.py --config-path /home/syatk/my_projects/art_pulse_editor/tests/fixtures/phase1_guard/lint/bad_json/phase1_guard_bad_config.json --output-path /home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_guard_category_profile_lint_fixture_lint_bad_json_20260224T081108Z_03.json",
+      "output_summary_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_guard_category_profile_lint_fixture_lint_bad_json_20260224T081108Z_03.json"
+    },
+    {
+      "case_name": "lint_bad_schema",
+      "description": "Schema type error should fail lint with config_schema_error code.",
+      "expected_exit_code": 1,
+      "actual_exit_code": 1,
+      "exit_code_match": true,
+      "summary_checks_passed": true,
+      "summary_check_failures": [],
+      "pass_fail": true,
+      "command": "/usr/bin/python /home/syatk/my_projects/art_pulse_editor/run_phase1_guard_category_profile_lint.py --config-path /home/syatk/my_projects/art_pulse_editor/tests/fixtures/phase1_guard/lint/bad_schema/phase1_guard_bad_schema_config.json --output-path /home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_guard_category_profile_lint_fixture_lint_bad_schema_20260224T081108Z_04.json",
+      "output_summary_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_guard_category_profile_lint_fixture_lint_bad_schema_20260224T081108Z_04.json"
+    }
+  ],
+  "lint_exit_code_meaning": {
+    "0": "lint_pass",
+    "1": "lint_fail"
+  },
+  "wrapper_exit_code_meaning": {
+    "0": "matrix_pass",
+    "1": "matrix_fail"
+  },
+  "wrapper_exit_code": 0,
+  "stop_reason": null
+}

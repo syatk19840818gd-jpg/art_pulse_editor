@@ -72,6 +72,67 @@ Important: this runner executes `run_phase1_guard_category_profile_lint.py` (lin
 - expected exit code (`0/1`)
 - expected lint summary keys/values (`summary_checks_passed`)
 
+## One-command matrix runner (all guard matrices)
+
+Run lint/category/history matrices sequentially:
+
+```bash
+python run_phase1_guard_all_matrices.py
+```
+
+Optional pretty output + explicit summary path:
+
+```bash
+python run_phase1_guard_all_matrices.py --output-json data/phase1_seed10/logs/phase1_guard_all_matrices_latest.json --pretty
+```
+
+Wrapper exit code meanings:
+
+- `0`: all matrix wrappers passed
+- `1`: at least one matrix wrapper failed or was not executed
+
+Important: this wrapper does not change inner matrix logic.  
+Inner matrix wrappers still keep their own `0/1` contract, and inner CLIs keep existing exit rules (`guard 0/2`, `history 0/2/3`, `lint 0/1`).
+
+### Lightweight integrated report (TASK44)
+
+Generate a short triage report from integrated summary:
+
+```bash
+python run_phase1_guard_all_matrices_report.py --summary-path data/phase1_seed10/logs/phase1_guard_all_matrices_latest.json
+python run_phase1_guard_all_matrices_report.py --latest
+```
+
+Optional JSON output:
+
+```bash
+python run_phase1_guard_all_matrices_report.py --latest --output-json data/phase1_seed10/logs/phase1_guard_all_matrices_report_latest.json
+```
+
+Report CLI exit codes:
+
+- `0`: report generated
+- `1`: summary missing/invalid
+
+### Report CLI fixture matrix (TASK45)
+
+Run fixed report fixtures (valid/missing/bad_json) in one command:
+
+```bash
+python run_phase1_guard_all_matrices_report_fixture_matrix.py
+```
+
+Cases:
+
+- `report_valid_summary` -> expected exit `0`
+- `report_missing_summary` -> expected exit `1`
+- `report_bad_json_summary` -> expected exit `1`
+
+Matrix wrapper exit codes:
+
+- `0`: all fixture cases matched expected result
+- `1`: at least one fixture case mismatch
+
 ## Cases
 
 - `pass`: compatible comparison, no regression, expected exit code `0`

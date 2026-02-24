@@ -1,0 +1,122 @@
+{
+  "started_at": "2026-02-24T08:05:06Z",
+  "completed_at": "2026-02-24T08:05:06Z",
+  "generated_by": "run_compare_phase1_guard_history.py",
+  "current_summary_path": "/home/syatk/my_projects/art_pulse_editor/tests/fixtures/phase1_guard/artists_history/current_artists_compatible_2025.json",
+  "baseline_summary_path": "/home/syatk/my_projects/art_pulse_editor/tests/fixtures/phase1_guard/artists_history/baseline_exhibitions_2025.json",
+  "comparison_compatible": false,
+  "compatibility_errors": [
+    "category_mismatch:exhibitions_text!=artists_text"
+  ],
+  "compatibility_warnings": [
+    "category_mismatch:exhibitions_text!=artists_text",
+    "current_category_profile_config_context_missing",
+    "baseline_category_profile_config_context_missing"
+  ],
+  "baseline_resolution_mode": "manual",
+  "baseline_candidates_checked": 0,
+  "baseline_selected_reason": "manual_baseline_argument:auto_search_skipped",
+  "baseline_auto_search_dir": null,
+  "summary_glob_effective": "phase1_guard_summary_*.json",
+  "current_guard_schema_version": "1.0",
+  "baseline_guard_schema_version": "1.0",
+  "guard_schema_version_comparison_mode": "both_present",
+  "guard_schema_version_compatible": true,
+  "guard_schema_version_policy": "both_present_must_match;missing_allowed_with_warning",
+  "current_category": "artists_text",
+  "baseline_category": "exhibitions_text",
+  "category_comparison_mode": "both_present",
+  "category_effective_for_comparison": "unresolved_mismatch",
+  "category_compatible": false,
+  "category_compatibility_policy": "both_present_must_match;missing_allowed_with_warning;strict_mismatch_incompatible",
+  "category_warnings": [
+    "category_mismatch:exhibitions_text!=artists_text"
+  ],
+  "current_category_profile_config_source": null,
+  "current_category_profile_config_path": null,
+  "current_category_profile_config_loaded": null,
+  "current_category_profile_config_error": null,
+  "current_category_profile_config_error_detail": null,
+  "current_category_profile_config_version_effective": null,
+  "baseline_category_profile_config_source": null,
+  "baseline_category_profile_config_path": null,
+  "baseline_category_profile_config_loaded": null,
+  "baseline_category_profile_config_error": null,
+  "baseline_category_profile_config_error_detail": null,
+  "baseline_category_profile_config_version_effective": null,
+  "category_profile_config_comparison_mode": "both_missing",
+  "category_profile_config_same_source": null,
+  "category_profile_config_same_version": null,
+  "category_profile_config_effective_for_comparison": "unknown",
+  "category_profile_config_warnings": [
+    "current_category_profile_config_context_missing",
+    "baseline_category_profile_config_context_missing"
+  ],
+  "baseline_candidate_paths": [],
+  "baseline_candidate_details": [],
+  "diffs": {
+    "records_saved_total": {
+      "baseline": 0,
+      "current": 0,
+      "delta": 0
+    },
+    "skipped_total": {
+      "baseline": 78,
+      "current": 78,
+      "delta": 0
+    },
+    "failed_fetches_total_ledger": {
+      "baseline": 0,
+      "current": 0,
+      "delta": 0
+    },
+    "visited_pages_total_ledger": {
+      "baseline": 78,
+      "current": 78,
+      "delta": 0
+    },
+    "mismatches": {
+      "baseline": 0,
+      "current": 0,
+      "delta": 0
+    },
+    "mismatch_fields": {
+      "added": [],
+      "removed": [],
+      "common": [],
+      "baseline_count": 0,
+      "current_count": 0
+    }
+  },
+  "additional_guard_checks_diff": {
+    "changed_to_fail": [],
+    "changed_to_pass": [],
+    "changed_to_skipped": [],
+    "changed_from_skipped": [],
+    "unchanged_pass": [
+      "GX_FAILED_REASON_COUNTS_SUM_MATCH",
+      "GX_RECORDS_RELATIONS_MATCH",
+      "GX_SKIP_BREAKDOWN_SUM_MATCH"
+    ],
+    "unchanged_fail": [],
+    "unchanged_skipped": [],
+    "added_checks": [],
+    "removed_checks": []
+  },
+  "additional_guard_checks_changed_fields": [],
+  "additional_guard_check_transitions": {},
+  "additional_guard_checks_comparison_mode": "both_present",
+  "additional_guard_checks_missing_in": [],
+  "regression_passed": false,
+  "regression_reasons": [
+    "comparison_incompatible"
+  ],
+  "fail_on_regression": false,
+  "strict_compatibility": true,
+  "exit_code": 3,
+  "exit_code_meaning": {
+    "0": "pass（差分なし or 差分ありだが回帰なし）",
+    "2": "regression（回帰検知）",
+    "3": "incompatible（比較不成立）"
+  }
+}

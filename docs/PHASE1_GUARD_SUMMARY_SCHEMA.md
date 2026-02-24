@@ -533,6 +533,92 @@ Minimum keys to read:
   - `output_summary_path`
 - `wrapper_exit_code` (`0=matrix_pass`, `1=matrix_fail`)
 
+### 7.5 Integrated all-matrices summary (lint/category/history)
+
+Use unified one-command execution:
+
+```bash
+python run_phase1_guard_all_matrices.py
+python run_phase1_guard_all_matrices.py --output-json data/phase1_seed10/logs/phase1_guard_all_matrices_latest.json --pretty
+```
+
+Integrated summary file:
+
+- `data/phase1_seed10/logs/phase1_guard_all_matrices_YYYYMMDDTHHMMSSZ.json`
+
+Minimum keys to read:
+
+- `all_passed`
+- `wrapper_exit_code` (`0=all_pass`, `1=any_fail`)
+- `execution_order` (default: `["lint", "category", "history"]`)
+- `executed_matrices`
+- `matrices[]`
+  - `name`
+  - `expected_exit_code` (matrix wrapper expectation: always `0`)
+  - `actual_exit_code`
+  - `pass_fail`
+  - `summary_path` (nullable when matrix summary is missing)
+  - `stdout_tail`
+  - `stderr_tail`
+  - `error` (wrapper launch error only)
+- `warnings`
+
+Operational note:
+
+- This wrapper only orchestrates existing matrix wrappers.
+- Inner matrix logic is unchanged.
+- Use per-matrix `summary_path` to drill down into failure causes.
+
+### 7.6 Integrated summary report CLI (TASK44)
+
+Use report CLI for quick triage:
+
+```bash
+python run_phase1_guard_all_matrices_report.py --summary-path data/phase1_seed10/logs/phase1_guard_all_matrices_latest.json
+python run_phase1_guard_all_matrices_report.py --latest
+```
+
+Optional report JSON:
+
+```bash
+python run_phase1_guard_all_matrices_report.py --latest --output-json data/phase1_seed10/logs/phase1_guard_all_matrices_report_latest.json
+```
+
+Report output keys:
+
+- `all_passed`
+- `wrapper_exit_code`
+- `execution_order`
+- `failed_matrices` (`name` / `actual_exit_code` / `summary_path`)
+- `child_summary_paths`
+
+Report CLI exit codes:
+
+- `0`: report generated
+- `1`: summary not found or invalid JSON/schema
+
+### 7.7 Report CLI fixture matrix summary (TASK45)
+
+Use one-command report fixture matrix:
+
+```bash
+python run_phase1_guard_all_matrices_report_fixture_matrix.py
+```
+
+Matrix summary file:
+
+- `data/phase1_seed10/logs/phase1_guard_all_matrices_report_fixture_matrix_YYYYMMDDTHHMMSSZ.json`
+
+Minimum keys to read:
+
+- `all_cases_passed`
+- `cases[].expected_exit_code`
+- `cases[].actual_exit_code`
+- `cases[].summary_checks_passed`
+- `cases[].summary_check_failures`
+- `cases[].report_output_path`
+- `wrapper_exit_code` (`0=matrix_pass`, `1=matrix_fail`)
+
 ## 8. Backward Compatibility Notes (TASK26/27)
 
 - Old guard summaries may not include `additional_guard_check_results`.

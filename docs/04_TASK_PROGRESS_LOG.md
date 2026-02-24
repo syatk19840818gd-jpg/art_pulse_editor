@@ -1,6 +1,6 @@
 # 04_TASK_PROGRESS_LOG.md
 
-最終更新: 2026-02-24 JST  
+最終更新: 2026-02-24 17:01 JST  
 対象プロジェクト: ART_PULSE_EDITOR（Phase1 seed10 / Guard運用整備）  
 位置づけ: 実装進捗ログ（01=SSOT、02=索引、03=現行運用タスクの補助ログ）
 
@@ -29,8 +29,8 @@
 
 ## 2. 全体の進捗サマリ（現時点）
 
-- 完了: **TASK 1 ～ TASK 38**
-- 次の予定: **TASK 39**
+- 完了: **TASK 1 ～ TASK 43**
+- 次の予定: **TASK 44**
 - 直近の重点:
   - TarutaniRAG 側で比較/guard の「型」を作成 → Phase1本体（Exhibitions/Artists）へ横展開
   - Phase1 guard 本体 / history 比較 / fixture / matrix / schema文書化 / category文脈まで整備
@@ -463,17 +463,16 @@
 
 ---
 
-## 10. 現在の次タスク（TASK39）
+## 10. 現在の次タスク（TASK44）
 
-[ ] 39) history比較summaryにも category_profile_config 文脈を載せ、運用可視化を揃える（安全側）
+[ ] 44) 統合matrix summaryの軽量レポートCLIを追加し、CI失敗時の切り分けを高速化する（安全側）
 - 目的：
-  - current/baseline の guard summary が、どの category profile config ソース（external / builtin fallback など）で生成されたかを history summary に写す
-  - 比較時の前提差（設定の違い）を早く把握できるようにする
+  - `run_phase1_guard_all_matrices.py` が出力する統合summaryを1画面で読めるレポートへ整形し、失敗matrixの特定を即時化する
 - 制約：
-  - history回帰判定・互換判定ロジックは変更しない（可視化キー追加のみ）
+  - guard/history/lint 各CLIおよび各matrix wrapperの判定ロジックは変更しない（summary読取CLIのみ追加）
 - 成立条件：
-  - history summary に `current_category_profile_config_*` / `baseline_category_profile_config_*` 系キーを追加
-  - strict / non-strict の終了コード規約（0/2/3）は不変
+  - `--summary-path` / `--latest` の2経路でレポート生成ができる
+  - `all_passed` / 失敗matrix名 / `actual_exit_code` / `summary_path` を最低限出力できる
   - 03 の CHANGELOG に反映
 
 ---
@@ -515,3 +514,23 @@
 - 変更後は fixture / matrix で再現性を確認してから前進
 
 ---
+
+## 13. TASK43 実行ログ（統合matrix入口）
+
+[x] 43) guard検証（history/category/lint）の統合matrix入口を追加し、手元/CIの実行導線を一本化する（安全側）
+- 追加ファイル：
+  - `run_phase1_guard_all_matrices.py`
+- 実装内容（最小差分）：
+  - 実行順 `lint -> category -> history` を固定し、3系統matrix wrapperを順次実行
+  - fail-fastは採用せず、1件失敗しても残りを実行して総合summaryに残す
+  - 統合summary（`phase1_guard_all_matrices_*.json`）へ `all_passed / wrapper_exit_code / execution_order / matrices[] / warnings` を保存
+  - 統合wrapper終了コードを `0=all_pass / 1=any_fail` に固定
+- 動作確認：
+  - `python run_phase1_guard_all_matrices.py` → exit 0
+  - `python run_phase1_guard_all_matrices.py --output-json "data/phase1_seed10/logs/phase1_guard_all_matrices_latest.json" --pretty` → exit 0
+  - `python run_phase1_guard_lint_fixture_matrix.py` → exit 0
+  - `python run_phase1_guard_category_fixture_matrix.py` → exit 0
+  - `python run_phase1_guard_fixture_matrix.py` → exit 0
+- 統合summary保存先：
+  - `data/phase1_seed10/logs/phase1_guard_all_matrices_20260224T075951Z.json`
+  - `data/phase1_seed10/logs/phase1_guard_all_matrices_latest.json`

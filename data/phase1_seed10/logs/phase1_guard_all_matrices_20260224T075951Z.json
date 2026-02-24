@@ -1,0 +1,90 @@
+{
+  "all_passed": true,
+  "wrapper_exit_code": 0,
+  "started_at_utc": "2026-02-24T07:59:51Z",
+  "finished_at_utc": "2026-02-24T07:59:53Z",
+  "source_cli": "run_phase1_guard_all_matrices.py",
+  "execution_order": [
+    "lint",
+    "category",
+    "history"
+  ],
+  "executed_matrices": 3,
+  "matrices": [
+    {
+      "name": "lint",
+      "command": [
+        "/usr/bin/python",
+        "/home/syatk/my_projects/art_pulse_editor/run_phase1_guard_lint_fixture_matrix.py",
+        "--logs-dir",
+        "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs",
+        "--output-path",
+        "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_guard_lint_fixture_matrix_20260224T075951Z.json"
+      ],
+      "expected_exit_code": 0,
+      "exit_code": 0,
+      "actual_exit_code": 0,
+      "pass_fail": "pass",
+      "summary_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_guard_lint_fixture_matrix_20260224T075951Z.json",
+      "stdout_tail": "ests/fixtures/phase1_guard/lint/bad_json/phase1_guard_bad_config.json valid=False source=builtin_fallback error=config_json_decode_error:invalid_json\n[DONE] summary=/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_guard_category_profile_lint_fixture_lint_bad_json_20260224T075951Z_03.json\n[DONE] Phase1 category profile lint checked_at=2026-02-24T07:59:52Z\n[DONE] config=/home/syatk/my_projects/art_pulse_editor/tests/fixtures/phase1_guard/lint/bad_schema/phase1_guard_bad_schema_config.json valid=False source=builtin_fallback error=config_schema_error:type_error:exhibitions_text.required_input_files\n[DONE] summary=/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_guard_category_profile_lint_fixture_lint_bad_schema_20260224T075951Z_04.json\n[CASE] lint_valid_config expected=0 actual=0 checks=OK\n[CASE] lint_missing_config expected=1 actual=1 checks=OK\n[CASE] lint_bad_json expected=1 actual=1 checks=OK\n[CASE] lint_bad_schema expected=1 actual=1 checks=OK\n[MATRIX] total=4 passed=4 failed=0 all_cases_passed=true\n[MATRIX] summary=/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_guard_lint_fixture_matrix_20260224T075951Z.json\n",
+      "stderr_tail": "",
+      "error": null,
+      "started_at_utc": "2026-02-24T07:59:51Z",
+      "finished_at_utc": "2026-02-24T07:59:52Z",
+      "duration_seconds": 0.274
+    },
+    {
+      "name": "category",
+      "command": [
+        "/usr/bin/python",
+        "/home/syatk/my_projects/art_pulse_editor/run_phase1_guard_category_fixture_matrix.py",
+        "--logs-dir",
+        "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs",
+        "--output-path",
+        "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_guard_category_fixture_matrix_20260224T075951Z.json"
+      ],
+      "expected_exit_code": 0,
+      "exit_code": 0,
+      "actual_exit_code": 0,
+      "pass_fail": "pass",
+      "summary_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_guard_category_fixture_matrix_20260224T075951Z.json",
+      "stdout_tail": "[START] Phase1 guard compare at 2026-02-24T07:59:52Z\n[DONE] Phase1 guard compare complete. guard_passed=True mismatches=0\n[DONE] summary=/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_guard_summary_category_fixture_artists_reserved_warning_20260224T075952Z_01.json\n[START] Phase1 guard compare at 2026-02-24T07:59:52Z\n[DONE] Phase1 guard compare complete. guard_passed=True mismatches=0\n[DONE] summary=/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_guard_summary_category_fixture_artists_provisional_pass_20260224T075952Z_02.json\n[CASE] artists_reserved_warning expected=0 actual=0 checks=OK\n[CASE] artists_provisional_pass expected=0 actual=0 checks=OK\n[MATRIX] total=2 passed=2 failed=0 all_cases_passed=true\n[MATRIX] summary=/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_guard_category_fixture_matrix_20260224T075951Z.json\n",
+      "stderr_tail": "",
+      "error": null,
+      "started_at_utc": "2026-02-24T07:59:52Z",
+      "finished_at_utc": "2026-02-24T07:59:52Z",
+      "duration_seconds": 0.215
+    },
+    {
+      "name": "history",
+      "command": [
+        "/usr/bin/python",
+        "/home/syatk/my_projects/art_pulse_editor/run_phase1_guard_fixture_matrix.py",
+        "--logs-dir",
+        "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs",
+        "--output-path",
+        "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_guard_fixture_matrix_20260224T075951Z.json"
+      ],
+      "expected_exit_code": 0,
+      "exit_code": 0,
+      "actual_exit_code": 0,
+      "pass_fail": "pass",
+      "summary_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_guard_fixture_matrix_20260224T075951Z.json",
+      "stdout_tail": "tible=False regression_passed=False\n[DONE] baseline=/home/syatk/my_projects/art_pulse_editor/tests/fixtures/phase1_guard/artists_history/baseline_exhibitions_2025.json mode=manual\n[DONE] compatibility_errors=['category_mismatch:exhibitions_text!=artists_text']\n[DONE] regression_reasons=['comparison_incompatible']\n[DONE] summary=/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_guard_history_compare_fixture_artists_vs_exhibitions_category_mismatch_strict_20260224T075952Z_08.json\n[CASE] pass expected=0 actual=0 checks=OK\n[CASE] regression expected=2 actual=2 checks=OK\n[CASE] incompatible expected=3 actual=3 checks=OK\n[CASE] category_mismatch_non_strict expected=0 actual=0 checks=OK\n[CASE] category_mismatch_strict expected=3 actual=3 checks=OK\n[CASE] artists_history_compatible expected=0 actual=0 checks=OK\n[CASE] artists_vs_exhibitions_category_mismatch_non_strict expected=0 actual=0 checks=OK\n[CASE] artists_vs_exhibitions_category_mismatch_strict expected=3 actual=3 checks=OK\n[MATRIX] total=8 passed=8 failed=0 all_cases_passed=true\n[MATRIX] summary=/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_guard_fixture_matrix_20260224T075951Z.json\n",
+      "stderr_tail": "",
+      "error": null,
+      "started_at_utc": "2026-02-24T07:59:52Z",
+      "finished_at_utc": "2026-02-24T07:59:53Z",
+      "duration_seconds": 0.574
+    }
+  ],
+  "warnings": [],
+  "matrix_wrapper_exit_code_meaning": {
+    "0": "matrix_pass",
+    "1": "matrix_fail"
+  },
+  "wrapper_exit_code_meaning": {
+    "0": "all_pass",
+    "1": "any_fail"
+  }
+}

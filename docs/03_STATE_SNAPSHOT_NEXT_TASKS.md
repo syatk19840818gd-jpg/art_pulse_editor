@@ -13,7 +13,7 @@ STREAMLIT_ENTRYPOINT（固定）
 - Local run: streamlit run app.py
 
 SOURCE_SSOT: 01_PROJECT_SPEC_CURRENT_FULL.docx
-LAST_UPDATED: 2026-02-24 16:45 JST
+LAST_UPDATED: 2026-02-24 17:12 JST
 
 
 ========================
@@ -930,13 +930,88 @@ NEXT_TASKS（次回やること）
         - `python run_phase1_guard_category_fixture_matrix.py` → wrapper exit 0
         - `python run_phase1_guard_fixture_matrix.py` → wrapper exit 0
 
-[ ] 43) guard検証（history/category/lint）の統合matrix入口を追加し、手元/CIの実行導線を一本化する（安全側）
+[x] 43) guard検証（history/category/lint）の統合matrix入口を追加し、手元/CIの実行導線を一本化する（安全側）
     - 目的：history/category/lint の3系統matrixを1コマンドで順次実行し、総合pass/failを返す統合ラッパーを作る
     - 制約：各CLI/各matrix本体の判定ロジックは変更しない（統合実行ラッパーのみ追加）
     - 成立条件：
       - `python run_phase1_guard_all_matrices.py`（例）で3系統を順次実行できる
       - 総合summaryに各matrixの exit / summary_path / pass_fail が保存される
       - wrapper exit code を `0=all_pass / 1=any_fail` で固定
+      - 03のCHANGELOGに反映される
+    - 実行メモ：
+      - 追加ファイル：
+        - `run_phase1_guard_all_matrices.py`
+      - 主要実装：
+        - 実行順 `lint -> category -> history` で各matrix wrapperを順次実行
+        - 各wrapperへ `--output-path` を渡して summary_path を確定取得
+        - 統合summary `phase1_guard_all_matrices_*.json` に `all_passed / wrapper_exit_code / execution_order / matrices[] / warnings` を保存
+        - fail-fast無し（1件失敗でも残りを継続）で総合判定
+      - ドキュメント更新：
+        - `tests/fixtures/phase1_guard/README.md` に統合matrix入口を追記
+        - `docs/PHASE1_GUARD_SUMMARY_SCHEMA.md` に統合matrix summaryキー（7.5）を追記
+      - 動作確認：
+        - `python run_phase1_guard_all_matrices.py` → exit 0
+        - `python run_phase1_guard_all_matrices.py --output-json "data/phase1_seed10/logs/phase1_guard_all_matrices_latest.json" --pretty` → exit 0
+        - `python run_phase1_guard_lint_fixture_matrix.py` → exit 0
+        - `python run_phase1_guard_category_fixture_matrix.py` → exit 0
+        - `python run_phase1_guard_fixture_matrix.py` → exit 0
+
+[x] 44) 統合matrix summaryの軽量レポートCLIを追加し、CIの失敗原因把握を高速化する（安全側）
+    - 目的：`run_phase1_guard_all_matrices.py` の summary JSON から、失敗matrix名・exit code・summary_path を一目で読めるレポートを生成する
+    - 制約：matrix本体/guard/history/lint 本体ロジックは変更しない（summary読取CLIのみ追加）
+    - 成立条件：
+      - `python run_phase1_guard_all_matrices_report.py --summary-path "<path>"` が実行できる
+      - `--latest` で最新の `phase1_guard_all_matrices_*.json` を自動解決できる
+      - レポートに `all_passed` / 失敗matrix一覧 / 各matrixの `actual_exit_code` / `summary_path` が出る
+      - 03のCHANGELOGに反映される
+    - 実行メモ：
+      - 追加ファイル：
+        - `run_phase1_guard_all_matrices_report.py`
+      - 主要実装：
+        - `--summary-path` / `--latest` の両経路で統合summaryを読取
+        - 標準出力で `all_passed` / `wrapper_exit_code` / `execution_order` / `failed_matrices` / `child_summary_paths` を短く表示
+        - 任意 `--output-json` で軽量レポートJSONを保存可能
+        - report CLI exit code を `0=report_generated / 1=summary_not_found_or_invalid` で固定
+      - ドキュメント更新：
+        - `tests/fixtures/phase1_guard/README.md` に report CLI 入口を追記
+        - `docs/PHASE1_GUARD_SUMMARY_SCHEMA.md` に report CLI（7.6）の読み方を追記
+      - 動作確認：
+        - `python run_phase1_guard_all_matrices.py --output-json "data/phase1_seed10/logs/phase1_guard_all_matrices_latest.json"` → exit 0
+        - `python run_phase1_guard_all_matrices_report.py --summary-path "data/phase1_seed10/logs/phase1_guard_all_matrices_latest.json"` → exit 0
+        - `python run_phase1_guard_all_matrices_report.py --latest` → exit 0
+
+[x] 45) report CLIの固定再現fixtureを追加し、summary欠落/破損時の挙動を1コマンドで検証できるようにする（安全側）
+    - 目的：`run_phase1_guard_all_matrices_report.py` の入出力を fixture 化し、valid/missing/bad_json の挙動を常に同じ条件で再現する
+    - 制約：guard/history/lint/matrix本体ロジックは変更しない（report CLI向け fixture/matrix 追加のみ）
+    - 成立条件：
+      - report fixture manifest と 1コマンドmatrix wrapperを追加
+      - valid（exit 0）/ missing（exit 1）/ bad_json（exit 1）を固定再現
+      - matrix summaryに expected/actual exit と summary_checks 結果を保存
+      - 03のCHANGELOGに反映される
+    - 実行メモ：
+      - 追加ファイル：
+        - `tests/fixtures/phase1_guard/report_fixture_manifest.json`
+        - `run_phase1_guard_all_matrices_report_fixture_matrix.py`
+        - `tests/fixtures/phase1_guard/report/valid/phase1_guard_all_matrices_valid.json`
+        - `tests/fixtures/phase1_guard/report/bad_json/phase1_guard_all_matrices_bad.json`
+      - 主要実装：
+        - report CLI向け3ケース（valid/missing/bad_json）を固定fixture化
+        - 1コマンドmatrixで `expected_exit_code` と report出力の `expected_summary_checks` を機械判定
+        - matrix summaryに `all_cases_passed` / `cases[].expected_exit_code` / `cases[].actual_exit_code` / `cases[].summary_checks_passed` / `cases[].summary_check_failures` / `cases[].report_output_path` を保存
+      - ドキュメント更新：
+        - `tests/fixtures/phase1_guard/README.md` に report fixture matrix 入口を追記
+        - `docs/PHASE1_GUARD_SUMMARY_SCHEMA.md` に report fixture matrix summary（7.7）を追記
+      - 動作確認：
+        - `python run_phase1_guard_all_matrices.py --output-json "data/phase1_seed10/logs/phase1_guard_all_matrices_latest.json"` → exit 0
+        - `python run_phase1_guard_all_matrices_report.py --summary-path "data/phase1_seed10/logs/phase1_guard_all_matrices_latest.json"` → exit 0
+        - `python run_phase1_guard_all_matrices_report_fixture_matrix.py` → exit 0（3ケース）
+
+[ ] 46) report CLIに`--fail-on-failed-matrix`を追加し、統合summaryが失敗状態なら非0終了を選べるようにする（安全側）
+    - 目的：report生成は成功していても `all_passed=false` のときCIを落としたい運用に対応する
+    - 制約：guard/history/lint/各matrix本体ロジックは変更しない（report CLIの終了ポリシー追加のみ）
+    - 成立条件：
+      - `--fail-on-failed-matrix` 指定時のみ、`all_passed=false` で exit 1
+      - 未指定時は従来どおり `0=report_generated` を維持
       - 03のCHANGELOGに反映される
 
 ========================
@@ -2420,6 +2495,123 @@ TASK 43) guard検証（history/category/lint）の統合matrix入口を追加し
 - （WSL）python run_phase1_guard_category_fixture_matrix.py
 - （WSL）python run_phase1_guard_lint_fixture_matrix.py
 
+------------------------------------------------------------
+TASK 44) 統合matrix summaryの軽量レポートCLIを追加し、CI失敗時の切り分けを高速化する（安全側）
+------------------------------------------------------------
+目的：
+- `run_phase1_guard_all_matrices.py` が出力する統合summary JSONを読み、失敗matrix・exit code・子summaryパスを短く表示/保存するレポートCLIを追加する。
+- CIログで「どこが落ちたか」を1画面で把握できる入口を作る（matrix本体ロジックは変更しない）。
+
+参照ファイル：
+- 01（SSOT）4-0共通 / 5-8（ログ運用）
+- 02（索引）CARD_ID: 14_CATEGORY_4_0_COMMON
+- run_phase1_guard_all_matrices.py
+- docs/PHASE1_GUARD_SUMMARY_SCHEMA.md
+- tests/fixtures/phase1_guard/README.md
+- docs/03_STATE_SNAPSHOT_NEXT_TASKS.md
+
+制約：
+- guard/history/lint 各CLIの判定ロジックは変更しない
+- 既存終了コード規約は維持（新規report CLIは `0=report_generated` / `1=summary_not_found_or_invalid` で可）
+- 取得ループには組み込まない（Post-fetch検証CLIのまま）
+
+完了条件：
+- `python run_phase1_guard_all_matrices_report.py --summary-path "<path>"` が実行できる
+- `--latest` で最新 `phase1_guard_all_matrices_*.json` を自動解決できる
+- レポートに最低限以下を出力できる：
+  - `all_passed`
+  - `wrapper_exit_code`
+  - `execution_order`
+  - 失敗matrix一覧（name / actual_exit_code / summary_path）
+  - 参照すべき子summaryパス一覧
+- 任意でレポートJSONまたはMarkdown保存（どちらか1つ）を実装
+- 03 の NEXT_TASKS の 44) を [x]、CHANGELOG追記
+- 次の最優先タスク（TASK45）のプロンプト全文を提示する
+
+動作確認コマンド：
+- （WSL）python run_phase1_guard_all_matrices.py --output-json "data/phase1_seed10/logs/phase1_guard_all_matrices_latest.json"
+- （WSL）python run_phase1_guard_all_matrices_report.py --summary-path "data/phase1_seed10/logs/phase1_guard_all_matrices_latest.json"
+- （WSL）python run_phase1_guard_all_matrices_report.py --latest
+
+------------------------------------------------------------
+TASK 45) report CLIの固定再現fixtureを追加し、summary欠落/破損時の挙動を1コマンドで検証できるようにする（安全側）
+------------------------------------------------------------
+目的：
+- `run_phase1_guard_all_matrices_report.py` の入出力を fixture 化し、valid/missing/bad_json の期待exitを毎回同じ条件で再現できるようにする。
+- CIで report CLI の安定性（summary読取の壊れやすさ）を guard本体ロジック非依存で検証できる入口を作る。
+
+参照ファイル：
+- 01（SSOT）4-0共通 / 5-8（ログ運用）
+- 02（索引）CARD_ID: 14_CATEGORY_4_0_COMMON
+- run_phase1_guard_all_matrices_report.py
+- tests/fixtures/phase1_guard/README.md
+- docs/PHASE1_GUARD_SUMMARY_SCHEMA.md
+- docs/03_STATE_SNAPSHOT_NEXT_TASKS.md
+
+制約：
+- guard/history/lint 各CLIおよび各matrix本体ロジックは変更しない
+- report CLIのexit規約（0/1）を維持
+- fixture/matrix追加のみ（取得ループには組み込まない）
+
+完了条件：
+- report fixture manifest（例：`tests/fixtures/phase1_guard/report_fixture_manifest.json`）を追加
+- report fixture matrix wrapper（例：`run_phase1_guard_all_matrices_report_fixture_matrix.py`）を追加
+- 最低3ケースを固定再現：
+  - valid summary（expected exit 0）
+  - missing summary（expected exit 1）
+  - bad json summary（expected exit 1）
+- matrix summaryに最低限以下を保存：
+  - `all_cases_passed`
+  - `cases[].expected_exit_code`
+  - `cases[].actual_exit_code`
+  - `cases[].summary_checks_passed`
+  - `cases[].summary_check_failures`
+  - `cases[].report_output_path`（任意）
+- 03 の NEXT_TASKS の 45) を [x]、CHANGELOG追記
+- 次の最優先タスク（TASK46）のプロンプト全文を提示する
+
+動作確認コマンド：
+- （WSL）python run_phase1_guard_all_matrices.py --output-json "data/phase1_seed10/logs/phase1_guard_all_matrices_latest.json"
+- （WSL）python run_phase1_guard_all_matrices_report.py --summary-path "data/phase1_seed10/logs/phase1_guard_all_matrices_latest.json"
+- （WSL）python run_phase1_guard_all_matrices_report_fixture_matrix.py
+
+------------------------------------------------------------
+TASK 46) report CLIに`--fail-on-failed-matrix`を追加し、CIの終了条件を選べるようにする（安全側）
+------------------------------------------------------------
+目的：
+- `run_phase1_guard_all_matrices_report.py` で、レポート生成成功とは別に「統合summaryが失敗状態（all_passed=false）ならCIを落とす」運用を選べるようにする。
+- 既存の report CLI 規約（デフォルトは `0=report_generated / 1=summary_not_found_or_invalid`）は維持し、オプション指定時のみ厳格化する。
+
+参照ファイル：
+- 01（SSOT）4-0共通 / 5-8（ログ運用）
+- 02（索引）CARD_ID: 14_CATEGORY_4_0_COMMON
+- run_phase1_guard_all_matrices_report.py
+- run_phase1_guard_all_matrices_report_fixture_matrix.py
+- tests/fixtures/phase1_guard/report_fixture_manifest.json
+- tests/fixtures/phase1_guard/README.md
+- docs/PHASE1_GUARD_SUMMARY_SCHEMA.md
+- docs/03_STATE_SNAPSHOT_NEXT_TASKS.md
+
+制約：
+- guard/history/lint 各CLIおよび各matrix本体ロジックは変更しない
+- 既定挙動（オプション未指定）は後方互換を維持
+- 取得ループには組み込まない（Post-fetch検証CLIのまま）
+
+完了条件：
+- `run_phase1_guard_all_matrices_report.py` に `--fail-on-failed-matrix` を追加
+- 挙動：
+  - 未指定：従来どおり（summary読取成功なら exit 0）
+  - 指定時：`all_passed=false` なら exit 1、`all_passed=true` なら exit 0
+- report出力（stdout/JSON）に `fail_on_failed_matrix` と `policy_result`（相当）を保存/表示
+- report fixture matrix にケースを追加して期待exitを固定再現（strict policy）
+- 03 の NEXT_TASKS の 46) を [x]、CHANGELOG追記
+- 次の最優先タスク（TASK47）のプロンプト全文を提示する
+
+動作確認コマンド：
+- （WSL）python run_phase1_guard_all_matrices_report.py --summary-path "data/phase1_seed10/logs/phase1_guard_all_matrices_latest.json"
+- （WSL）python run_phase1_guard_all_matrices_report.py --summary-path "data/phase1_seed10/logs/phase1_guard_all_matrices_latest.json" --fail-on-failed-matrix
+- （WSL）python run_phase1_guard_all_matrices_report_fixture_matrix.py
+
 
 ========================
 CODEX_SNIPPETS（頻出コピペ：ここだけ使えば回る）
@@ -2581,3 +2773,6 @@ CHANGELOG（このファイルの更新履歴）
 - 2026-02-24：TASK 40 実施。`run_phase1_guard_category_profile_lint.py` を追加し、category profile config を guard実行前に単体検査できる入口を実装。`phase1_guard_common.load_category_profiles(...)` を再利用して error code体系（`config_missing:*` / `config_json_decode_error:*` / `config_schema_error:*`）を維持し、lint summary（`config_path/config_exists/config_valid/config_error_code/config_error_detail/checked_at/source_cli`）を保存。動作確認は valid config で exit 0、missing/bad json/bad schema で exit 1 を確認（判定ロジック本体は未変更）。
 - 2026-02-24：TASK 41 実施。`tests/fixtures/phase1_guard/category_fixture_manifest.json` に activation監視チェックを追加（reserved/provisional 両ケースで `category_activation_conditions` 非空、`category_data_presence` 存在）。fixtureパスを `tests/fixtures/phase1_guard/category/...` に統一し、README/Schema文書の実行例と確認キーを更新。動作確認は `run_phase1_guard_category_fixture_matrix.py` で wrapper exit 0（2ケース）および指定の artists_text 2コマンドがともに exit 0、matrix summary の `cases[].summary_checks_passed=true` を確認。
 - 2026-02-24：TASK 42 実施。lint fixture manifest（`tests/fixtures/phase1_guard/lint_fixture_manifest.json`）と 1コマンドラッパー（`run_phase1_guard_lint_fixture_matrix.py`）を追加し、valid/missing/bad_json/bad_schema の4ケースを固定再現化。matrix summary に `all_cases_passed` / `cases[].expected_exit_code` / `cases[].actual_exit_code` / `cases[].summary_checks_passed` / `cases[].summary_check_failures` / `cases[].output_summary_path` を保存。動作確認は lint matrix wrapper exit 0（4ケース）、個別lintは valid=0 / missing=1 / bad_json=1 / bad_schema=1。既存の category/history matrix も exit 0 を確認。
+- 2026-02-24：TASK 43 実施。`run_phase1_guard_all_matrices.py` を追加し、lint/category/history の3系統matrixを1コマンドで順次実行できる統合入口を実装。統合summary（`phase1_guard_all_matrices_*.json`）へ `all_passed` / `wrapper_exit_code` / `execution_order` / `matrices[]` / `warnings` を保存し、終了コードを `0=all_pass / 1=any_fail` で固定。動作確認は統合実行（通常/`--output-json --pretty`）と既存3matrix単体の全てで exit 0 を確認（本体ロジック未変更）。
+- 2026-02-24：TASK 44 実施。`run_phase1_guard_all_matrices_report.py` を追加し、統合summaryを読む軽量レポートCLI（`--summary-path` / `--latest`）を実装。標準出力で `all_passed` / `wrapper_exit_code` / `execution_order` / `failed_matrices` / `child_summary_paths` を表示し、任意 `--output-json` でレポート保存を可能化。exit規約は `0=report_generated / 1=summary_not_found_or_invalid` を固定。動作確認は指定3コマンドすべて exit 0（本体ロジック未変更）。
+- 2026-02-24：TASK 45 実施。report CLI向け fixture（valid/missing/bad_json）を `tests/fixtures/phase1_guard/report_fixture_manifest.json` で固定化し、`run_phase1_guard_all_matrices_report_fixture_matrix.py` を追加。matrix summary に `all_cases_passed` / `cases[].expected_exit_code` / `cases[].actual_exit_code` / `cases[].summary_checks_passed` / `cases[].summary_check_failures` / `cases[].report_output_path` を保存。動作確認は指定3コマンドで exit 0、report fixture matrix 3ケースも exit 0（本体ロジック未変更）。

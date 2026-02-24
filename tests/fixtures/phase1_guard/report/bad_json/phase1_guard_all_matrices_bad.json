@@ -1,0 +1,9 @@
+{
+  "all_passed": true,
+  "wrapper_exit_code": 0,
+  "execution_order": ["lint", "category", "history"],
+  "matrices": [
+    {"name": "lint", "actual_exit_code": 0, "pass_fail": "pass"},
+    {"name": "category", "actual_exit_code": 0, "pass_fail": "pass"},
+    {"name": "history", "actual_exit_code": 0, "pass_fail": "pass"}
+  ]
