@@ -335,7 +335,28 @@ python run_compare_phase1_guard_history.py \
   --current-summary tests/fixtures/phase1_guard/incompatible/current_incompatible_with_additional_2025.json \
   --baseline-summary tests/fixtures/phase1_guard/incompatible/baseline_incompatible_2024.json \
   --strict-compatibility
+
+# category mismatch (non-strict) -> exit 0
+python run_compare_phase1_guard_history.py \
+  --current-summary tests/fixtures/phase1_guard/category_mismatch/current_category_mismatch_2025.json \
+  --baseline-summary tests/fixtures/phase1_guard/category_mismatch/baseline_category_mismatch_2025.json
+
+# category mismatch (strict) -> exit 3
+python run_compare_phase1_guard_history.py \
+  --current-summary tests/fixtures/phase1_guard/category_mismatch/current_category_mismatch_2025.json \
+  --baseline-summary tests/fixtures/phase1_guard/category_mismatch/baseline_category_mismatch_2025.json \
+  --strict-compatibility
 ```
+
+Category mismatch read points in history summary:
+
+- `current_category`
+- `baseline_category`
+- `category_comparison_mode` (expected: `both_present`)
+- `category_effective_for_comparison` (expected: `unresolved_mismatch`)
+- `category_compatible` (expected: `false`)
+- `category_warnings`
+- strict mode: mismatch reason appears in `compatibility_errors`
 
 ### 7.1 Matrix runner summary (one-command entry)
 

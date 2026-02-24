@@ -28,6 +28,24 @@
       "expected_exit_code": 3,
       "recommended_command": "python run_compare_phase1_guard_history.py --current-summary tests/fixtures/phase1_guard/incompatible/current_incompatible_2025.json --baseline-summary tests/fixtures/phase1_guard/incompatible/baseline_incompatible_2024.json --strict-compatibility",
       "notes": "Comparison should be incompatible and strict mode should return exit code 3."
+    },
+    {
+      "case_id": "category_mismatch_non_strict",
+      "description": "Category mismatch only (both_present mismatch) in non-strict mode; comparison continues with warning.",
+      "current_summary": "tests/fixtures/phase1_guard/category_mismatch/current_category_mismatch_2025.json",
+      "baseline_summary": "tests/fixtures/phase1_guard/category_mismatch/baseline_category_mismatch_2025.json",
+      "expected_exit_code": 0,
+      "recommended_command": "python run_compare_phase1_guard_history.py --current-summary tests/fixtures/phase1_guard/category_mismatch/current_category_mismatch_2025.json --baseline-summary tests/fixtures/phase1_guard/category_mismatch/baseline_category_mismatch_2025.json --fail-on-regression",
+      "notes": "Category mismatch should be warning-only in non-strict mode and keep comparison compatible."
+    },
+    {
+      "case_id": "category_mismatch_strict",
+      "description": "Category mismatch only (both_present mismatch) in strict mode; treated as incompatibility.",
+      "current_summary": "tests/fixtures/phase1_guard/category_mismatch/current_category_mismatch_2025.json",
+      "baseline_summary": "tests/fixtures/phase1_guard/category_mismatch/baseline_category_mismatch_2025.json",
+      "expected_exit_code": 3,
+      "recommended_command": "python run_compare_phase1_guard_history.py --current-summary tests/fixtures/phase1_guard/category_mismatch/current_category_mismatch_2025.json --baseline-summary tests/fixtures/phase1_guard/category_mismatch/baseline_category_mismatch_2025.json --strict-compatibility",
+      "notes": "Category mismatch should become incompatibility in strict mode (exit 3)."
     }
   ]
 }

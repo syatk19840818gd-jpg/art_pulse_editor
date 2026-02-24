@@ -29,6 +29,8 @@ The matrix runner treats those as case expectations and validates them per fixtu
 - `pass`: compatible comparison, no regression, expected exit code `0`
 - `regression`: compatible comparison with regression, expected exit code `2` (`--fail-on-regression`)
 - `incompatible`: incompatible comparison, expected exit code `3` (`--strict-compatibility`)
+- `category_mismatch_non_strict`: category only mismatch, expected exit code `0` (warning-only, comparison continues)
+- `category_mismatch_strict`: category only mismatch, expected exit code `3` (`--strict-compatibility`)
 
 Fixture metadata is defined in `fixture_manifest.json`.
 
@@ -69,6 +71,23 @@ python run_compare_phase1_guard_history.py \
 
 Expected exit code: `3`
 
+```bash
+python run_compare_phase1_guard_history.py \
+  --current-summary tests/fixtures/phase1_guard/category_mismatch/current_category_mismatch_2025.json \
+  --baseline-summary tests/fixtures/phase1_guard/category_mismatch/baseline_category_mismatch_2025.json
+```
+
+Expected exit code (non-strict): `0`
+
+```bash
+python run_compare_phase1_guard_history.py \
+  --current-summary tests/fixtures/phase1_guard/category_mismatch/current_category_mismatch_2025.json \
+  --baseline-summary tests/fixtures/phase1_guard/category_mismatch/baseline_category_mismatch_2025.json \
+  --strict-compatibility
+```
+
+Expected exit code (strict): `3`
+
 ## Option flags reminder
 
 - `--fail-on-regression`: return non-zero only when regression is detected (compatible comparison).
@@ -107,4 +126,13 @@ Expected:
   - `category_comparison_mode`
   - `category_effective_for_comparison`
   - `category_compatible`
+- fixed fixture `category_mismatch/*` reproduces both-present mismatch:
+  - non-strict: `exit 0`, `category_compatible=false`, warning-only
+  - strict: `exit 3`, category mismatch is added to `compatibility_errors`
+- verify these keys on category mismatch runs:
+  - `current_category`, `baseline_category`
+  - `category_comparison_mode`
+  - `category_effective_for_comparison`
+  - `category_compatible`
+  - `category_warnings`
 - old summary files without category are treated as backward-compatible warnings (`current_only` / `baseline_only` / `both_missing`), not immediate failure in non-strict mode.

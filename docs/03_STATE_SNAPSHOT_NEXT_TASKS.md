@@ -13,7 +13,7 @@ STREAMLIT_ENTRYPOINT（固定）
 - Local run: streamlit run app.py
 
 SOURCE_SSOT: 01_PROJECT_SPEC_CURRENT_FULL.docx
-LAST_UPDATED: 2026-02-24 11:27 JST
+LAST_UPDATED: 2026-02-24 11:36 JST
 
 
 ========================
@@ -68,7 +68,7 @@ STATE_SNAPSHOT（現在地）
 ========================
 ■いまの最優先フェーズ（Codexが随時更新する）
 - Phase 1：RAG抽出パイプライン成立（seed10で安定稼働させる）
-  - 直近の到達目標：category mismatch を fixture で固定再現し、運用の再現性を先に固める（TASK 33）
+  - 直近の到達目標：artists_text の最小guard運用（必須ファイル集合/必須summaryキー）を具体化する（TASK 34）
   - 次の到達目標：Phase2（検索/表示）へ接続する
   - その次：検索品質と表示品質の改善サイクルに入る
 
@@ -649,12 +649,28 @@ NEXT_TASKS（次回やること）
         - 後方互換（baselineのcategory欠落を/tmpコピーで再現）: non-strict/strict とも比較継続（exit 0）、`category_comparison_mode=current_only` と warning を確認
       - 既存回帰判定ロジックと終了コード規約（0/2/3）は維持。
 
-[ ] 33) category mismatch の固定再現fixtureを追加し、history比較の運用再現性を固める（安全側）
+[x] 33) category mismatch の固定再現fixtureを追加し、history比較の運用再現性を固める（安全側）
     - 目的：TASK32で追加した category 互換可視化を、fixtureで毎回同じ入力で再現できるようにする
     - 制約：history回帰判定ロジックは変更しない。fixture/manifest/README整備を中心に最小差分で進める
     - 成立条件：
       - category mismatch ケースを fixture manifest に追加し、期待結果（non-strict=0 / strict=3）を固定化できる
       - matrixまたは同等の1コマンドで再現確認できる
+      - 03のCHANGELOGに反映される
+    - 実行メモ：
+      - fixture追加：`tests/fixtures/phase1_guard/category_mismatch/{current_category_mismatch_2025.json,baseline_category_mismatch_2025.json}`（category以外の互換条件は一致させ、category mismatch単独原因で再現）。
+      - manifest追加：`category_mismatch_non_strict`（expected 0）/ `category_mismatch_strict`（expected 3）を2ケース登録（方式：manifest分離で strict/non-strict を固定）。
+      - README更新：category mismatch の目的、non-strict/strict の期待exit code、確認キー（`current_category`/`baseline_category`/`category_comparison_mode`/`category_effective_for_comparison`/`category_compatible`/`category_warnings`）を追記。
+      - 動作確認：
+        - non-strict: exit 0（`comparison_compatible=true`, `category_compatible=false`, `category_comparison_mode=both_present`）
+        - strict: exit 3（`compatibility_errors` に `category_mismatch:*` を確認）
+        - matrix: `python run_phase1_guard_fixture_matrix.py` で 5ケース pass（wrapper exit 0）
+
+[ ] 34) artists_text の最小guard運用を reserved_minimal から一段進める（必須集合の具体化）
+    - 目的：`--category artists_text` を実運用に近づけるため、最小の必須入力集合と必須summaryキーを具体化し、将来のExhibitions/Artists横展開の準備を進める
+    - 制約：既存の `exhibitions_text` 既定挙動・終了コード規約を壊さない（後方互換優先）
+    - 成立条件：
+      - artists_text 向けの最小必須ファイル集合と必須summaryキー集合が明文化/実装される
+      - category profile の support mode が `reserved_minimal` から安全に更新される（または更新条件が明確化される）
       - 03のCHANGELOGに反映される
 
 ========================
@@ -1710,6 +1726,43 @@ TASK 33) category mismatch の固定再現fixtureを追加し、history比較の
 - （WSL）python run_compare_phase1_guard_history.py --current-summary "tests/fixtures/phase1_guard/category_mismatch/current_category_mismatch_2025.json" --baseline-summary "tests/fixtures/phase1_guard/category_mismatch/baseline_category_mismatch_2025.json" --strict-compatibility
 - （WSL）python run_phase1_guard_fixture_matrix.py
 
+------------------------------------------------------------
+TASK 34) artists_text の最小guard運用を reserved_minimal から一段進める（必須集合の具体化）
+------------------------------------------------------------
+目的：
+- `run_compare_phase1_guard.py --category artists_text` を「入口のみ」から一段進め、最小の必須入力集合/必須summaryキー集合を具体化する。
+- 既存の `exhibitions_text` 既定挙動を壊さず、Artists横展開の実運用準備を進める。
+
+参照ファイル：
+- 01（SSOT）4-0共通 / 4-1 Exhibitions / 4-3 Artists / 5-8
+- 02（索引）CARD_ID: 14_CATEGORY_4_0_COMMON / CARD_ID: 15_CATEGORY_4_1_EXHIBITIONS_TEXT / CARD_ID: 05_MANIFEST_SYNC
+- run_compare_phase1_guard.py
+- phase1_guard_common.py
+- docs/PHASE1_GUARD_SUMMARY_SCHEMA.md
+- （必要なら）run_compare_phase1_guard_history.py
+- data/phase1_seed10/logs/run_summary_seed10_2025.json
+
+制約：
+- 既存の `exhibitions_text` 未指定時挙動（seed10互換）を壊さない
+- 既存判定ロジック（G1〜G4 + TASK26追加見張り）を壊さない
+- 既存終了コード規約を壊さない（本体CLI: pass=0, mismatch+`--fail-on-mismatch`=2）
+- 取得ループには組み込まない（Post-fetch検証CLIのまま）
+- ドメイン専用ロジックを追加しない
+
+完了条件：
+- artists_text の最小必須ファイル集合（required input files）と必須summaryキー集合を定義できる
+- `category_required_files_profile` / `required_input_files_effective` / `category_support_mode` の内容が artists_text で意味を持つ形に更新される
+- artists_text 実行時に「何が足りないか」を warning/mismatch として判別できる（ただし過剰に失敗させない）
+- docs に artists_text のサポート範囲を追記できる
+- 03 の NEXT_TASKS の 34) を [x]、CHANGELOG追記
+- 次の最優先タスク（TASK 35）のプロンプト全文を提示する
+
+動作確認コマンド：
+- （WSL）python run_compare_phase1_guard.py --target-year 2025
+- （WSL）python run_compare_phase1_guard.py --target-year 2025 --category exhibitions_text
+- （WSL）python run_compare_phase1_guard.py --target-year 2025 --category artists_text
+- （WSL）python run_compare_phase1_guard.py --target-year 2025 --category artists_text --fail-on-mismatch
+
 
 ========================
 CODEX_SNIPPETS（頻出コピペ：ここだけ使えば回る）
@@ -1861,3 +1914,4 @@ CHANGELOG（このファイルの更新履歴）
 - 2026-02-24：TASK 30 実施。`guard_schema_version` を共通定数化し、history summary に `current/baseline_guard_schema_version`・`guard_schema_version_comparison_mode`・`guard_schema_version_compatible`・`guard_schema_version_policy` を追加。互換判定は「both_present一致=OK、不一致=NG、片側欠落/両側欠落=後方互換警告」に固定し、strict時のみ schema不一致を incompatible（exit 3）として扱う方針を文書化。確認は fixture matrix exit 0、既存 pass/regression/incompatible exit 0/2/3、`/tmp` 一時コピーの schema mismatch で non-strict exit 0 / strict exit 3。終了コード規約（0/2/3）は維持。
 - 2026-02-24：TASK 31 実施。`--category` を最小実体化し、カテゴリ別必須ファイル集合の入口を追加（`phase1_guard_common.py` の `GUARD_CATEGORY_PROFILES`）。既定値は `exhibitions_text` を維持し、`artists_text` は `reserved_minimal` で入口のみ有効化。summaryへ `category_required_files_profile` / `required_input_files_effective` / `category_support_mode` / `category_warnings` を追加。動作確認は既定/明示カテゴリ/`--fail-on-mismatch` の各コマンドで exit 0、既存判定ロジックと終了コード規約は維持。
 - 2026-02-24：TASK 32 実施。`run_compare_phase1_guard_history.py` に category 比較メタ（`current_category` / `baseline_category` / `category_comparison_mode` / `category_effective_for_comparison` / `category_compatible` / `category_compatibility_policy` / `category_warnings`）を追加。互換ルールは「both_present一致=OK、不一致=NG、欠落は後方互換warning」とし、non-strictは比較継続、strictは不一致を `compatibility_errors` へ昇格して exit 3。動作確認は通常比較 exit 0、regression exit 2、incompatible exit 3、category欠落後方互換（/tmpコピー）で継続確認。終了コード規約（0/2/3）と回帰判定ロジックは維持。
+- 2026-02-24：TASK 33 実施。category mismatch 固定fixture（`tests/fixtures/phase1_guard/category_mismatch/*.json`）を追加し、manifestに non-strict（expected 0）/ strict（expected 3）を2ケース登録（方式：manifest分離）。READMEとschema文書へ確認手順/確認キー（`current_category` / `baseline_category` / `category_comparison_mode` / `category_effective_for_comparison` / `category_compatible` / `category_warnings`）を追記。動作確認は non-strict exit 0、strict exit 3、matrix（5ケース）exit 0。history回帰判定ロジックは未変更。
