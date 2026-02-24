@@ -99,3 +99,12 @@ Expected:
 
 - non-strict: summary is produced and schema mismatch is recorded
 - strict (`--strict-compatibility`): incompatible (`exit 3`)
+
+## Category context check (history summary)
+
+- history summary now stores category context:
+  - `current_category`, `baseline_category`
+  - `category_comparison_mode`
+  - `category_effective_for_comparison`
+  - `category_compatible`
+- old summary files without category are treated as backward-compatible warnings (`current_only` / `baseline_only` / `both_missing`), not immediate failure in non-strict mode.

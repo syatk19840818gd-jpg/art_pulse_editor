@@ -153,6 +153,13 @@ Typical file:
 - `guard_schema_version_comparison_mode`
 - `guard_schema_version_compatible`
 - `guard_schema_version_policy`
+- `current_category`
+- `baseline_category`
+- `category_comparison_mode`
+- `category_effective_for_comparison`
+- `category_compatible`
+- `category_compatibility_policy`
+- `category_warnings`
 - `baseline_candidate_paths`
 - `baseline_candidate_details`
 - `diffs`
@@ -195,6 +202,23 @@ Compatibility evaluation order (summary perspective):
 1. summary load and source CLI validity (`generated_by`/signature)
 2. `target_year` compatibility
 3. `guard_schema_version` compatibility (with backward-compatible missing handling)
+4. `category` compatibility context (visualization-first; strict promotes mismatch to incompatible)
+
+Category compatibility policy:
+
+- `category_compatibility_policy`: `both_present_must_match;missing_allowed_with_warning;strict_mismatch_incompatible`
+- `category_comparison_mode`:
+  - `both_present`: category strings exist on both sides
+  - `current_only` / `baseline_only` / `both_missing`: backward-compatible missing handling
+- `category_compatible`:
+  - `true` for matched categories or missing-side backward-compatible modes
+  - `false` only when both present and mismatched
+- `category_effective_for_comparison`:
+  - resolved category context when possible
+  - `unresolved_mismatch` when both present but mismatched
+- strict/non-strict:
+  - non-strict: mismatched category is warning-only and comparison continues
+  - strict (`--strict-compatibility`): category mismatch is promoted into `compatibility_errors` and can return exit `3`
 
 ### 4.3 Baseline resolution block
 

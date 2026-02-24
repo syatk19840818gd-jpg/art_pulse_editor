@@ -10,7 +10,9 @@ from pathlib import Path
 from typing import Any
 
 from phase1_guard_common import (
+    DEFAULT_GUARD_CATEGORY,
     EXIT_CODE_MEANING,
+    GUARD_CATEGORY_COMPATIBILITY_POLICY,
     GUARD_SCHEMA_VERSION_POLICY,
     INCOMPATIBLE_EXIT_CODE,
     REGRESSION_EXIT_CODE,
@@ -274,6 +276,63 @@ def evaluate_guard_schema_version_compatibility(
         "guard_schema_version_policy": GUARD_SCHEMA_VERSION_POLICY,
         "compatibility_warnings": warnings,
         "compatibility_errors": errors,
+    }
+
+
+def normalize_category(value: Any) -> str | None:
+    if not isinstance(value, str):
+        return None
+    normalized = value.strip()
+    return normalized if normalized else None
+
+
+def evaluate_category_compatibility(
+    current_category: str | None,
+    baseline_category: str | None,
+) -> dict[str, Any]:
+    if current_category is not None and baseline_category is not None:
+        comparison_mode = "both_present"
+        category_compatible = current_category == baseline_category
+        if category_compatible:
+            effective = current_category
+            warnings: list[str] = []
+            errors: list[str] = []
+        else:
+            effective = "unresolved_mismatch"
+            warnings = [f"category_mismatch:{baseline_category}!={current_category}"]
+            errors = [f"category_mismatch:{baseline_category}!={current_category}"]
+    elif current_category is not None:
+        comparison_mode = "current_only"
+        category_compatible = True
+        effective = current_category
+        warnings = ["baseline_category_missing"]
+        errors = []
+    elif baseline_category is not None:
+        comparison_mode = "baseline_only"
+        category_compatible = True
+        effective = baseline_category
+        warnings = ["current_category_missing"]
+        errors = []
+    else:
+        comparison_mode = "both_missing"
+        category_compatible = True
+        effective = DEFAULT_GUARD_CATEGORY
+        warnings = [
+            "current_category_missing",
+            "baseline_category_missing",
+            f"default_category_assumed:{DEFAULT_GUARD_CATEGORY}",
+        ]
+        errors = []
+
+    return {
+        "current_category": current_category,
+        "baseline_category": baseline_category,
+        "category_comparison_mode": comparison_mode,
+        "category_effective_for_comparison": effective,
+        "category_compatible": category_compatible,
+        "category_compatibility_policy": GUARD_CATEGORY_COMPATIBILITY_POLICY,
+        "category_warnings": warnings,
+        "category_compatibility_errors": errors,
     }
 
 
@@ -643,6 +702,16 @@ def main() -> int:
     compatibility_errors.extend(schema_version_eval["compatibility_errors"])
     compatibility_warnings.extend(schema_version_eval["compatibility_warnings"])
 
+    current_category = normalize_category(current_obj.get("category"))
+    baseline_category = normalize_category(baseline_obj.get("category"))
+    category_eval = evaluate_category_compatibility(
+        current_category=current_category,
+        baseline_category=baseline_category,
+    )
+    compatibility_warnings.extend(category_eval["category_warnings"])
+    if args.strict_compatibility and not category_eval["category_compatible"]:
+        compatibility_errors.extend(category_eval["category_compatibility_errors"])
+
     comparison_compatible = len(compatibility_errors) == 0
 
     current_mismatch_fields = parse_string_list(current_obj.get("mismatch_fields"))
@@ -731,6 +800,13 @@ def main() -> int:
         "guard_schema_version_comparison_mode": schema_version_eval["guard_schema_version_comparison_mode"],
         "guard_schema_version_compatible": schema_version_eval["guard_schema_version_compatible"],
         "guard_schema_version_policy": schema_version_eval["guard_schema_version_policy"],
+        "current_category": category_eval["current_category"],
+        "baseline_category": category_eval["baseline_category"],
+        "category_comparison_mode": category_eval["category_comparison_mode"],
+        "category_effective_for_comparison": category_eval["category_effective_for_comparison"],
+        "category_compatible": category_eval["category_compatible"],
+        "category_compatibility_policy": category_eval["category_compatibility_policy"],
+        "category_warnings": category_eval["category_warnings"],
         "baseline_candidate_paths": baseline_candidate_paths,
         "baseline_candidate_details": baseline_candidate_details,
         "diffs": diffs,

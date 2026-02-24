@@ -13,7 +13,7 @@ STREAMLIT_ENTRYPOINT（固定）
 - Local run: streamlit run app.py
 
 SOURCE_SSOT: 01_PROJECT_SPEC_CURRENT_FULL.docx
-LAST_UPDATED: 2026-02-24 11:20 JST
+LAST_UPDATED: 2026-02-24 11:27 JST
 
 
 ========================
@@ -68,7 +68,7 @@ STATE_SNAPSHOT（現在地）
 ========================
 ■いまの最優先フェーズ（Codexが随時更新する）
 - Phase 1：RAG抽出パイプライン成立（seed10で安定稼働させる）
-  - 直近の到達目標：history比較にも category 文脈を載せ、カテゴリ互換の読み方を固定化する（TASK 32）
+  - 直近の到達目標：category mismatch を fixture で固定再現し、運用の再現性を先に固める（TASK 33）
   - 次の到達目標：Phase2（検索/表示）へ接続する
   - その次：検索品質と表示品質の改善サイクルに入る
 
@@ -619,12 +619,42 @@ NEXT_TASKS（次回やること）
         - 参考確認（任意）：`artists_text` でも reserved_minimal warning 付きで実行継続（exit 0）。
       - 既存判定ロジック（G1〜G4 + TASK26追加見張り）と終了コード規約（0/2/3）は維持。
 
-[ ] 32) history比較に category 文脈を追加し、カテゴリ互換情報をsummary化する（安全側）
+[x] 32) history比較に category 文脈を追加し、カテゴリ互換情報をsummary化する（安全側）
     - 目的：`run_compare_phase1_guard_history.py` に current/baseline の category 情報を載せ、比較時の文脈ずれを可視化する
     - 制約：回帰判定ロジックは変更せず、表示/summary項目追加を中心に最小差分で進める
     - 成立条件：
       - history summary に category 比較情報（current/baseline/effective/compatibility）を保存できる
       - strict/non-strict での扱いを既存互換の範囲で明記できる
+      - 03のCHANGELOGに反映される
+    - 実行メモ：
+      - history summary に category 比較キーを追加：
+        - `current_category`
+        - `baseline_category`
+        - `category_comparison_mode`
+        - `category_effective_for_comparison`
+        - `category_compatible`
+        - `category_compatibility_policy`
+        - `category_warnings`
+      - category互換ルールを実装（可視化優先）：
+        - both_present一致: 互換OK
+        - both_present不一致: `category_compatible=false`
+        - current_only/baseline_only/both_missing: 後方互換（warningで比較継続）
+      - strict/non-strict：
+        - non-strict: category不一致は warning-only（比較継続）
+        - strict: category不一致を `compatibility_errors` に昇格し incompatibility（exit 3）
+      - 動作確認：
+        - 通常比較（同カテゴリ）: exit 0
+        - regression fixture + `--fail-on-regression`: exit 2
+        - incompatible fixture + `--strict-compatibility`: exit 3
+        - 後方互換（baselineのcategory欠落を/tmpコピーで再現）: non-strict/strict とも比較継続（exit 0）、`category_comparison_mode=current_only` と warning を確認
+      - 既存回帰判定ロジックと終了コード規約（0/2/3）は維持。
+
+[ ] 33) category mismatch の固定再現fixtureを追加し、history比較の運用再現性を固める（安全側）
+    - 目的：TASK32で追加した category 互換可視化を、fixtureで毎回同じ入力で再現できるようにする
+    - 制約：history回帰判定ロジックは変更しない。fixture/manifest/README整備を中心に最小差分で進める
+    - 成立条件：
+      - category mismatch ケースを fixture manifest に追加し、期待結果（non-strict=0 / strict=3）を固定化できる
+      - matrixまたは同等の1コマンドで再現確認できる
       - 03のCHANGELOGに反映される
 
 ========================
@@ -1643,6 +1673,43 @@ TASK 32) history比較に category 文脈を追加し、カテゴリ互換情報
 - （WSL）python run_compare_phase1_guard_history.py --current-summary tests/fixtures/phase1_guard/pass/current_pass_2025.json --baseline-summary tests/fixtures/phase1_guard/pass/baseline_pass_2025.json --fail-on-regression
 - （WSL）python run_compare_phase1_guard_history.py --current-summary tests/fixtures/phase1_guard/incompatible/current_incompatible_2025.json --baseline-summary tests/fixtures/phase1_guard/incompatible/baseline_incompatible_2024.json --strict-compatibility
 
+------------------------------------------------------------
+TASK 33) category mismatch の固定再現fixtureを追加し、history比較の運用再現性を固める（安全側）
+------------------------------------------------------------
+目的：
+- TASK32で追加した category 互換可視化を、毎回同じ入力/同じ期待値で再現できる fixture ケースとして固定化する。
+- まずは運用再現性を優先し、history CLI本体ロジックは変更しない。
+
+参照ファイル：
+- 01（SSOT）4-0共通 / 4-1 Exhibitions / 4-3 Artists / 5-8
+- 02（索引）CARD_ID: 14_CATEGORY_4_0_COMMON / CARD_ID: 05_MANIFEST_SYNC / CARD_ID: 09_FAILURE_LOGGING
+- run_compare_phase1_guard_history.py
+- run_phase1_guard_fixture_matrix.py
+- tests/fixtures/phase1_guard/fixture_manifest.json
+- tests/fixtures/phase1_guard/README.md
+- docs/PHASE1_GUARD_SUMMARY_SCHEMA.md
+
+制約：
+- history回帰判定ロジックは変更しない（表示/fixture追加のみ）
+- 既存終了コード規約（0/2/3）を壊さない
+- fixture本体を直接壊す編集は避け、必要なら新規fixtureファイルを追加する
+- 取得ループには組み込まない（Post-fetch検証CLIのまま）
+- 既存summaryキーは削除しない
+
+完了条件：
+- category mismatch ケース（both_present不一致）を fixture に追加できる
+- 期待結果を固定化できる：
+  - non-strict: exit 0（category不一致は warning-only）
+  - strict: exit 3（category不一致を incompatibility 扱い）
+- fixture manifest / README / matrix実行手順を更新できる
+- 03 の NEXT_TASKS の 33) を [x]、CHANGELOG追記
+- 次の最優先タスク（TASK 34）のプロンプト全文を提示する
+
+動作確認コマンド：
+- （WSL）python run_compare_phase1_guard_history.py --current-summary "tests/fixtures/phase1_guard/category_mismatch/current_category_mismatch_2025.json" --baseline-summary "tests/fixtures/phase1_guard/category_mismatch/baseline_category_mismatch_2025.json"
+- （WSL）python run_compare_phase1_guard_history.py --current-summary "tests/fixtures/phase1_guard/category_mismatch/current_category_mismatch_2025.json" --baseline-summary "tests/fixtures/phase1_guard/category_mismatch/baseline_category_mismatch_2025.json" --strict-compatibility
+- （WSL）python run_phase1_guard_fixture_matrix.py
+
 
 ========================
 CODEX_SNIPPETS（頻出コピペ：ここだけ使えば回る）
@@ -1793,3 +1860,4 @@ CHANGELOG（このファイルの更新履歴）
 - 2026-02-24：TASK 29 実施。`run_phase1_guard_fixture_matrix.py` を追加し、`fixture_manifest.json` 駆動で pass/regression/incompatible を1コマンド実行化。matrix summary（`phase1_guard_fixture_matrix_*.json`）に expected/actual exit code とケース結果を保存。ラッパー終了コードは `0=matrix pass / 1=matrix fail` とし、内側CLI期待値（0/2/3）と分離。動作確認は通常実行 exit 0、`--fail-fast` + テスト用manifestで exit 1。guard CLI本体ロジックは未変更。
 - 2026-02-24：TASK 30 実施。`guard_schema_version` を共通定数化し、history summary に `current/baseline_guard_schema_version`・`guard_schema_version_comparison_mode`・`guard_schema_version_compatible`・`guard_schema_version_policy` を追加。互換判定は「both_present一致=OK、不一致=NG、片側欠落/両側欠落=後方互換警告」に固定し、strict時のみ schema不一致を incompatible（exit 3）として扱う方針を文書化。確認は fixture matrix exit 0、既存 pass/regression/incompatible exit 0/2/3、`/tmp` 一時コピーの schema mismatch で non-strict exit 0 / strict exit 3。終了コード規約（0/2/3）は維持。
 - 2026-02-24：TASK 31 実施。`--category` を最小実体化し、カテゴリ別必須ファイル集合の入口を追加（`phase1_guard_common.py` の `GUARD_CATEGORY_PROFILES`）。既定値は `exhibitions_text` を維持し、`artists_text` は `reserved_minimal` で入口のみ有効化。summaryへ `category_required_files_profile` / `required_input_files_effective` / `category_support_mode` / `category_warnings` を追加。動作確認は既定/明示カテゴリ/`--fail-on-mismatch` の各コマンドで exit 0、既存判定ロジックと終了コード規約は維持。
+- 2026-02-24：TASK 32 実施。`run_compare_phase1_guard_history.py` に category 比較メタ（`current_category` / `baseline_category` / `category_comparison_mode` / `category_effective_for_comparison` / `category_compatible` / `category_compatibility_policy` / `category_warnings`）を追加。互換ルールは「both_present一致=OK、不一致=NG、欠落は後方互換warning」とし、non-strictは比較継続、strictは不一致を `compatibility_errors` へ昇格して exit 3。動作確認は通常比較 exit 0、regression exit 2、incompatible exit 3、category欠落後方互換（/tmpコピー）で継続確認。終了コード規約（0/2/3）と回帰判定ロジックは維持。

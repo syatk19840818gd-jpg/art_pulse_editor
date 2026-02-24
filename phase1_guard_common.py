@@ -23,6 +23,7 @@ GUARD_CATEGORY_PROFILES: dict[str, dict[str, Any]] = {
         "support_mode": "reserved_minimal",
     },
 }
+GUARD_CATEGORY_COMPATIBILITY_POLICY = "both_present_must_match;missing_allowed_with_warning;strict_mismatch_incompatible"
 EXIT_CODE_MEANING = {
     "0": "pass（差分なし or 差分ありだが回帰なし）",
     "2": "regression（回帰検知）",
