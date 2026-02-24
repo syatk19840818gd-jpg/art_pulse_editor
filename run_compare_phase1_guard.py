@@ -233,6 +233,36 @@ def resolve_path(override: str, fallback: Any) -> Path | None:
     return None
 
 
+def parse_counter_map(value: Any) -> tuple[dict[str, int] | None, list[str]]:
+    if not isinstance(value, dict):
+        return None, ["not_dict"]
+
+    counts: dict[str, int] = {}
+    errors: list[str] = []
+    for key, raw in value.items():
+        if not isinstance(key, str) or not key:
+            errors.append("invalid_key")
+            continue
+        parsed = safe_int(raw)
+        if parsed is None:
+            errors.append(f"non_int_value:{key}")
+            continue
+        counts[key] = parsed
+
+    return counts, errors
+
+
+def dedupe_strings(values: list[str]) -> list[str]:
+    deduped: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        if value in seen:
+            continue
+        seen.add(value)
+        deduped.append(value)
+    return deduped
+
+
 def pick_latest_by_mtime(paths: list[Path]) -> Path | None:
     if not paths:
         return None
@@ -661,6 +691,173 @@ def main() -> int:
     if summary_ledger_errors:
         mismatch_fields.append("summary_ledger_count_mismatch")
 
+    # Additional guard checks (backward-compatible: missing keys are skipped, not mismatched)
+    additional_guard_checks = [
+        "GX_SKIP_BREAKDOWN_SUM_MATCH",
+        "GX_FAILED_REASON_COUNTS_SUM_MATCH",
+        "GX_RECORDS_RELATIONS_MATCH",
+    ]
+    additional_guard_check_results: dict[str, Any] = {}
+    missing_keys: list[str] = []
+    skipped_checks: list[str] = []
+
+    skip_counts_key: str | None = None
+    if "skip_breakdown" in summary_obj:
+        skip_counts_key = "skip_breakdown"
+    elif "skipped_by_reason" in summary_obj:
+        skip_counts_key = "skipped_by_reason"
+
+    if skip_counts_key is None:
+        skipped_checks.append("GX_SKIP_BREAKDOWN_SUM_MATCH")
+        missing_keys.extend(["skip_breakdown", "skipped_by_reason"])
+        additional_guard_check_results["GX_SKIP_BREAKDOWN_SUM_MATCH"] = {
+            "status": "skipped_backward_compatible",
+            "passed": None,
+            "missing_keys": ["skip_breakdown", "skipped_by_reason"],
+            "reason": "skip counter map key missing",
+        }
+    elif skipped_total is None:
+        skipped_checks.append("GX_SKIP_BREAKDOWN_SUM_MATCH")
+        missing_keys.append("skipped_total")
+        additional_guard_check_results["GX_SKIP_BREAKDOWN_SUM_MATCH"] = {
+            "status": "skipped_backward_compatible",
+            "passed": None,
+            "used_key": skip_counts_key,
+            "missing_keys": ["skipped_total"],
+            "reason": "skipped_total missing or non-int",
+        }
+    else:
+        parsed_map, parse_errors = parse_counter_map(summary_obj.get(skip_counts_key))
+        if parsed_map is None or parse_errors:
+            mismatch_fields.append("GX_SKIP_BREAKDOWN_SUM_MISMATCH")
+            additional_guard_check_results["GX_SKIP_BREAKDOWN_SUM_MATCH"] = {
+                "status": "failed",
+                "passed": False,
+                "used_key": skip_counts_key,
+                "errors": parse_errors or ["invalid_counter_map"],
+            }
+        else:
+            breakdown_sum = sum(parsed_map.values())
+            passed = breakdown_sum == skipped_total
+            if not passed:
+                mismatch_fields.append("GX_SKIP_BREAKDOWN_SUM_MISMATCH")
+            additional_guard_check_results["GX_SKIP_BREAKDOWN_SUM_MATCH"] = {
+                "status": "checked",
+                "passed": passed,
+                "used_key": skip_counts_key,
+                "breakdown_sum": breakdown_sum,
+                "skipped_total": skipped_total,
+            }
+
+    failed_reasons_key = "failed_fetches_reason_counts"
+    if failed_reasons_key not in summary_obj:
+        skipped_checks.append("GX_FAILED_REASON_COUNTS_SUM_MATCH")
+        missing_keys.append(failed_reasons_key)
+        additional_guard_check_results["GX_FAILED_REASON_COUNTS_SUM_MATCH"] = {
+            "status": "skipped_backward_compatible",
+            "passed": None,
+            "missing_keys": [failed_reasons_key],
+            "reason": "failed reason counter map key missing",
+        }
+    elif failed_total_ledger is None:
+        skipped_checks.append("GX_FAILED_REASON_COUNTS_SUM_MATCH")
+        missing_keys.append("failed_fetches_total_ledger")
+        additional_guard_check_results["GX_FAILED_REASON_COUNTS_SUM_MATCH"] = {
+            "status": "skipped_backward_compatible",
+            "passed": None,
+            "used_key": failed_reasons_key,
+            "missing_keys": ["failed_fetches_total_ledger"],
+            "reason": "failed_fetches_total_ledger missing or non-int",
+        }
+    else:
+        parsed_map, parse_errors = parse_counter_map(summary_obj.get(failed_reasons_key))
+        if parsed_map is None or parse_errors:
+            mismatch_fields.append("GX_FAILED_REASON_COUNTS_SUM_MISMATCH")
+            additional_guard_check_results["GX_FAILED_REASON_COUNTS_SUM_MATCH"] = {
+                "status": "failed",
+                "passed": False,
+                "used_key": failed_reasons_key,
+                "errors": parse_errors or ["invalid_counter_map"],
+            }
+        else:
+            reason_sum = sum(parsed_map.values())
+            passed = reason_sum == failed_total_ledger
+            if not passed:
+                mismatch_fields.append("GX_FAILED_REASON_COUNTS_SUM_MISMATCH")
+            additional_guard_check_results["GX_FAILED_REASON_COUNTS_SUM_MATCH"] = {
+                "status": "checked",
+                "passed": passed,
+                "used_key": failed_reasons_key,
+                "reason_sum": reason_sum,
+                "failed_fetches_total_ledger": failed_total_ledger,
+            }
+
+    required_record_keys = ["existing_records_total", "new_records_saved_total", "records_total_after_run"]
+    missing_record_keys = [key for key in required_record_keys if key not in summary_obj]
+    if missing_record_keys:
+        skipped_checks.append("GX_RECORDS_RELATIONS_MATCH")
+        missing_keys.extend(missing_record_keys)
+        additional_guard_check_results["GX_RECORDS_RELATIONS_MATCH"] = {
+            "status": "skipped_backward_compatible",
+            "passed": None,
+            "missing_keys": missing_record_keys,
+            "reason": "required records keys missing",
+        }
+    elif None in {existing_records_total, new_records_saved_total, records_total_after_run}:
+        skipped_checks.append("GX_RECORDS_RELATIONS_MATCH")
+        for key, value in (
+            ("existing_records_total", existing_records_total),
+            ("new_records_saved_total", new_records_saved_total),
+            ("records_total_after_run", records_total_after_run),
+        ):
+            if value is None:
+                missing_keys.append(key)
+        additional_guard_check_results["GX_RECORDS_RELATIONS_MATCH"] = {
+            "status": "skipped_backward_compatible",
+            "passed": None,
+            "missing_keys": [k for k in ("existing_records_total", "new_records_saved_total", "records_total_after_run") if k in missing_keys],
+            "reason": "required records values are non-int",
+        }
+    else:
+        expected_after = existing_records_total + new_records_saved_total
+        base_passed = records_total_after_run == expected_after
+
+        records_saved_semantics = "missing"
+        records_saved_relation_passed = True
+        if "records_saved_total" in summary_obj:
+            if records_saved_total is None:
+                records_saved_semantics = "invalid_non_int"
+                records_saved_relation_passed = False
+            elif records_saved_total == new_records_saved_total:
+                records_saved_semantics = "new_saved_semantics"
+            elif records_saved_total == records_total_after_run:
+                records_saved_semantics = "after_run_semantics"
+            else:
+                records_saved_semantics = "inconsistent"
+                records_saved_relation_passed = False
+
+        passed = base_passed and records_saved_relation_passed
+        if not passed:
+            mismatch_fields.append("GX_RECORDS_RELATIONS_MISMATCH")
+        additional_guard_check_results["GX_RECORDS_RELATIONS_MATCH"] = {
+            "status": "checked",
+            "passed": passed,
+            "records_total_after_run": records_total_after_run,
+            "expected_after_run": expected_after,
+            "records_saved_total": records_saved_total,
+            "records_saved_semantics": records_saved_semantics,
+            "records_saved_relation_passed": records_saved_relation_passed,
+        }
+
+    missing_keys = dedupe_strings(missing_keys)
+    skipped_checks = dedupe_strings(skipped_checks)
+    check_results["additional_guard_checks"] = {
+        "checks": additional_guard_checks,
+        "results": additional_guard_check_results,
+        "missing_keys": missing_keys,
+        "skipped_checks": skipped_checks,
+    }
+
     failed_schema_check = validate_failed_fetch_schema(failed_ledger.entries)
     check_results["failed_fetches_schema"] = failed_schema_check
     if not failed_schema_check["passed"]:
@@ -695,6 +892,10 @@ def main() -> int:
         "guard_passed": guard_passed,
         "mismatches": len(deduped_mismatches),
         "mismatch_fields": deduped_mismatches,
+        "additional_guard_checks": additional_guard_checks,
+        "additional_guard_check_results": additional_guard_check_results,
+        "missing_keys": missing_keys,
+        "skipped_checks": skipped_checks,
         "input_paths": {
             "run_summary_path": str(run_summary_path),
             "visited_pages_path": str(visited_path) if visited_path else None,

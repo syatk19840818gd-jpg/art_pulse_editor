@@ -13,7 +13,7 @@ STREAMLIT_ENTRYPOINT（固定）
 - Local run: streamlit run app.py
 
 SOURCE_SSOT: 01_PROJECT_SPEC_CURRENT_FULL.docx
-LAST_UPDATED: 2026-02-24 10:30 JST
+LAST_UPDATED: 2026-02-24 10:43 JST
 
 
 ========================
@@ -68,7 +68,7 @@ STATE_SNAPSHOT（現在地）
 ========================
 ■いまの最優先フェーズ（Codexが随時更新する）
 - Phase 1：RAG抽出パイプライン成立（seed10で安定稼働させる）
-  - 直近の到達目標：Phase1 guard本体の見張り項目を最小強化（TASK 26）して回帰検知を一段上げる
+  - 直近の到達目標：Phase1 guard summary schemaを文書化し、運用読み取りを固定化する（TASK 28）
   - 次の到達目標：Phase2（検索/表示）へ接続する
   - その次：検索品質と表示品質の改善サイクルに入る
 
@@ -518,12 +518,39 @@ NEXT_TASKS（次回やること）
       - `tests/fixtures/phase1_guard/README.md` と `run_guard_fixture_matrix.sh` を追加し、再現手順を固定化。
       - 動作確認：pass（exit 0）/ regression（exit 2）/ incompatible（exit 3）を固定fixtureで確認。CLIロジック本体は未変更。
 
-[ ] 26) Phase1 guard本体のsummary/ledger見張り項目を最小強化する（安全側）
+[x] 26) Phase1 guard本体のsummary/ledger見張り項目を最小強化する（安全側）
     - 目的：カテゴリ分岐追加より先に、既存guard本体の整合チェックを1段だけ強化して回帰検知の抜け漏れを減らす
     - 制約：`run_compare_phase1_guard.py` の既存判定を壊さず、追加チェックは最小（項目追加のみ）に限定する
     - 成立条件：
       - summary/ledgerキー整合の追加見張り項目を2〜3個実装できる
       - `--fail-on-mismatch` の終了コード挙動（不一致時のみ exit 2）を維持できる
+      - 03のCHANGELOGに反映される
+    - 実行メモ：
+      - 追加見張り項目を実装：`GX_SKIP_BREAKDOWN_SUM_MATCH`、`GX_FAILED_REASON_COUNTS_SUM_MATCH`、`GX_RECORDS_RELATIONS_MATCH`。
+      - 後方互換方針：キー不足は mismatch にせず `missing_keys` / `skipped_checks` へ記録（`skipped_backward_compatible`）。
+      - summary拡張：`additional_guard_checks` / `additional_guard_check_results` / `missing_keys` / `skipped_checks` を保存。
+      - 動作確認：2025 pass は exit 0、`skip内訳` を崩したコピーsummaryで `--fail-on-mismatch` exit 2 を確認。
+      - 既存判定ロジック（internal_consistency / summary_vs_ledger / manifest / failed schema）は変更せず維持。
+
+[x] 27) Phase1 guard history比較の追加見張り項目差分を見える化する（安全側）
+    - 目的：TASK26で増えた追加見張り項目を history比較 summary で読み取りやすくし、回帰理由の把握時間を短縮する
+    - 制約：historyの回帰判定ロジックは変更しない（表示/summary項目追加のみ）
+    - 成立条件：
+      - `additional_guard_check_results` の差分（pass→fail / fail→pass / skipped）を summary に保存できる
+      - `--fail-on-regression` / `--strict-compatibility` の終了コード規約（0/2/3）を維持できる
+      - 03のCHANGELOGに反映される
+    - 実行メモ：
+      - history summary に `additional_guard_checks_diff` / `additional_guard_checks_changed_fields` / `additional_guard_check_transitions` を追加。
+      - 後方互換の可視化として `additional_guard_checks_comparison_mode` / `additional_guard_checks_missing_in` を追加（old summaryに項目が無くても比較継続）。
+      - 動作確認：pass=exit 0（both_present, changedなし）、regression=exit 2（`GX_SKIP_BREAKDOWN_SUM_MATCH` が changed_to_fail）、incompatible=exit 3（current_only）。後方互換ケース（old baseline）でも比較不成立にせず exit 0 を確認。
+      - 既存の回帰判定ロジック/終了コード規約（0/2/3）は変更なし。
+
+[ ] 28) guard本体/history比較のsummary schemaを軽く文書化して運用読み方を固定化する
+    - 目的：CLI出力JSONの主要キーと読み方を文書化し、CI/運用での解釈ずれを防ぐ
+    - 制約：CLIロジックは変更しない（README/docs追加のみ）
+    - 成立条件：
+      - guard本体summaryとhistory summaryの主要キー一覧を作成できる
+      - exit code（0/2/3）と判定手順の読み方を明記できる
       - 03のCHANGELOGに反映される
 
 ========================
@@ -1337,6 +1364,75 @@ TASK 26) Phase1 guard本体のsummary/ledger見張り項目を最小強化する
 - （WSL）python run_compare_phase1_guard.py --target-year 2025 --fail-on-mismatch
 - （WSL）python run_compare_phase1_guard.py --target-year 2024 --fail-on-mismatch
 
+------------------------------------------------------------
+TASK 27) Phase1 guard history比較の追加見張り項目差分を見える化する（安全側）
+------------------------------------------------------------
+目的：
+- TASK26で追加した `additional_guard_check_results` を history比較 summary に見える形で載せ、どの見張りが悪化/改善したかを即読できるようにする。
+- 判定ロジックや終了コードは変えず、表示・summary項目の追加に限定して安全に進める。
+
+参照ファイル：
+- 01（SSOT）4-0共通 / 4-1 Exhibitions / 4-3 Artists / 5-8
+- 02（索引）CARD_ID: 14_CATEGORY_4_0_COMMON / CARD_ID: 09_FAILURE_LOGGING / CARD_ID: 05_MANIFEST_SYNC
+- run_compare_phase1_guard.py
+- run_compare_phase1_guard_history.py
+- tests/fixtures/phase1_guard/fixture_manifest.json
+- tests/fixtures/phase1_guard/pass/*.json
+- tests/fixtures/phase1_guard/regression/*.json
+- tests/fixtures/phase1_guard/incompatible/*.json
+
+制約：
+- 取り込みループ内で実行しない（Post-fetch検証CLIとして分離）
+- regression判定・compatibility判定のロジックは変更しない（見える化のみ）
+- 既存終了コード規約（0=pass,2=regression,3=incompatible）を維持
+- ドメイン専用ロジックは追加しない
+- Tarutani側の新機能追加はしない
+
+完了条件：
+- history比較 summary に、追加見張り項目の差分一覧（例：`additional_check_diffs`）を保存できる
+  - 最低限 `new_failures` / `resolved_failures` / `state_changes`（skipped含む）を持つ
+- fixtureの pass/regression/incompatible で実行し、exit code が従来どおり 0/2/3 であることを確認できる
+- 03 の NEXT_TASKS の 27) を [x]、CHANGELOG追記
+- 次の最優先タスク（TASK 28）のプロンプト全文を提示する
+
+動作確認コマンド：
+- （WSL）python run_compare_phase1_guard_history.py --current-summary tests/fixtures/phase1_guard/pass/current_pass_2025.json --baseline-summary tests/fixtures/phase1_guard/pass/baseline_pass_2025.json --fail-on-regression
+- （WSL）python run_compare_phase1_guard_history.py --current-summary tests/fixtures/phase1_guard/regression/current_regression_2025.json --baseline-summary tests/fixtures/phase1_guard/regression/baseline_regression_2025.json --fail-on-regression
+- （WSL）python run_compare_phase1_guard_history.py --current-summary tests/fixtures/phase1_guard/incompatible/current_incompatible_2025.json --baseline-summary tests/fixtures/phase1_guard/incompatible/baseline_incompatible_2024.json --strict-compatibility
+
+------------------------------------------------------------
+TASK 28) guard本体/history比較のsummary schemaを軽く文書化して運用読み方を固定化する
+------------------------------------------------------------
+目的：
+- `run_compare_phase1_guard.py` / `run_compare_phase1_guard_history.py` の summary JSON 主要キーを最小ドキュメント化し、CI/運用で「どこを見ればよいか」を固定化する。
+- ロジック変更ではなく、読み方の標準化で運用ミスを減らす。
+
+参照ファイル：
+- 01（SSOT）4-0共通 / 4-1 Exhibitions / 4-3 Artists / 5-8
+- 02（索引）CARD_ID: 14_CATEGORY_4_0_COMMON / CARD_ID: 09_FAILURE_LOGGING / CARD_ID: 05_MANIFEST_SYNC
+- run_compare_phase1_guard.py
+- run_compare_phase1_guard_history.py
+- tests/fixtures/phase1_guard/fixture_manifest.json
+- tests/fixtures/phase1_guard/results/task27_*.json
+
+制約：
+- CLIロジックは変更しない（README/docs追加のみ）
+- 既存終了コード規約（0=pass,2=regression,3=incompatible）を文書上でも維持
+- 取得ループには組み込まない（Post-fetch検証CLIのまま）
+- ドメイン専用ロジックは追加しない
+- Tarutani側の新機能追加はしない
+
+完了条件：
+- guard本体summary / history summary の主要キー一覧を文書化できる（必須・任意・後方互換キーの区分）
+- 判定フロー（どのキーを見て pass/regression/incompatible を判断するか）を短く明記できる
+- fixtureコマンド（pass/regression/incompatible）と期待exit code（0/2/3）を文書へ紐づけできる
+- 03 の NEXT_TASKS の 28) を [x]、CHANGELOG追記
+- 次の最優先タスク（TASK 29）のプロンプト全文を提示する
+
+動作確認コマンド：
+- （WSL）python run_compare_phase1_guard_history.py --current-summary tests/fixtures/phase1_guard/regression/current_regression_with_additional_2025.json --baseline-summary tests/fixtures/phase1_guard/regression/baseline_regression_with_additional_2025.json --fail-on-regression
+- （WSL）python run_compare_phase1_guard_history.py --current-summary tests/fixtures/phase1_guard/incompatible/current_incompatible_with_additional_2025.json --baseline-summary tests/fixtures/phase1_guard/incompatible/baseline_incompatible_2024.json --strict-compatibility
+
 
 ========================
 CODEX_SNIPPETS（頻出コピペ：ここだけ使えば回る）
@@ -1481,3 +1577,5 @@ CHANGELOG（このファイルの更新履歴）
 - 2026-02-24：TASK 23 実施。`run_compare_phase1_guard_history.py` の baseline探索既定を `--current-summary` 親ディレクトリ起点へ汎化し、`--summary-glob`（既定 `phase1_guard_summary_*.json`）を追加。`--baseline-summary` 明示時はauto探索を無効化（manual固定）し、summaryへ `baseline_auto_search_dir` / `summary_glob_effective` などを保存。終了コード規約（0=pass,2=regression,3=incompatible）は維持確認。次は TASK 24（guard CLI共通関数化）。
 - 2026-02-24：TASK 24 実施。`phase1_guard_common.py` を追加し、path解決/summary保存/時刻生成/終了コード説明を共通化。`run_compare_phase1_guard.py` と `run_compare_phase1_guard_history.py` は共通関数参照へ最小差し替え（比較ロジック本体は変更最小）を実施し、動作確認で exit code 規約（0/2/3）維持を確認。次は TASK 25（共通fixture/テストデータ整理）。
 - 2026-02-24：TASK 25 実施。`tests/fixtures/phase1_guard/` に pass/regression/incompatible の固定fixture、`fixture_manifest.json`、`README.md`、`run_guard_fixture_matrix.sh` を追加し、再現コマンドと期待exit code（0/2/3）を明文化。固定fixture実行で exit 0/2/3 を確認し、CLIロジック本体は変更していない。
+- 2026-02-24：TASK 26 実施。`run_compare_phase1_guard.py` に summary/ledger 数字整合の追加見張り（skip内訳合計・failed理由内訳合計・records関係）を追加。キー不足は後方互換として `missing_keys`/`skipped_checks` へ記録し、mismatchにはしない方針を明記。2025通常実行は exit 0、skip内訳を崩したコピーsummaryで `--fail-on-mismatch` exit 2 を確認。既存判定ロジックは維持。
+- 2026-02-24：TASK 27 実施。`run_compare_phase1_guard_history.py` に追加見張り項目の差分見える化（`additional_guard_checks_diff` / `additional_guard_checks_changed_fields` / `additional_guard_check_transitions`）を追加。旧summary互換として `additional_guard_checks_comparison_mode` / `additional_guard_checks_missing_in` を保存し、項目欠落でも比較継続。動作確認は pass=0 / regression=2 / incompatible=3、回帰判定ロジック自体は未変更。

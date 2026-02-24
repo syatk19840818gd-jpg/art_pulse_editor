@@ -231,6 +231,121 @@ def diff_metric(name: str, current: dict[str, int | None], baseline: dict[str, i
     }
 
 
+def normalize_additional_check_state(entry: Any) -> str:
+    if not isinstance(entry, dict):
+        return "skipped"
+
+    passed = entry.get("passed")
+    if isinstance(passed, bool):
+        return "pass" if passed else "fail"
+
+    status = entry.get("status")
+    if isinstance(status, str) and "skip" in status.lower():
+        return "skipped"
+
+    return "skipped"
+
+
+def extract_additional_check_state_map(summary_obj: dict[str, Any]) -> tuple[dict[str, str], bool]:
+    raw = summary_obj.get("additional_guard_check_results")
+    if not isinstance(raw, dict):
+        return {}, False
+
+    state_map: dict[str, str] = {}
+    for key, value in raw.items():
+        if not isinstance(key, str) or not key:
+            continue
+        state_map[key] = normalize_additional_check_state(value)
+    return state_map, True
+
+
+def build_additional_guard_checks_diff(current_obj: dict[str, Any], baseline_obj: dict[str, Any]) -> dict[str, Any]:
+    current_state_map, current_present = extract_additional_check_state_map(current_obj)
+    baseline_state_map, baseline_present = extract_additional_check_state_map(baseline_obj)
+
+    if current_present and baseline_present:
+        comparison_mode = "both_present"
+        missing_in: list[str] = []
+    elif current_present:
+        comparison_mode = "current_only"
+        missing_in = ["baseline"]
+    elif baseline_present:
+        comparison_mode = "baseline_only"
+        missing_in = ["current"]
+    else:
+        comparison_mode = "both_missing"
+        missing_in = ["baseline", "current"]
+
+    current_keys = set(current_state_map.keys())
+    baseline_keys = set(baseline_state_map.keys())
+    common_keys = sorted(current_keys & baseline_keys)
+    added_checks = sorted(current_keys - baseline_keys)
+    removed_checks = sorted(baseline_keys - current_keys)
+
+    changed_to_fail: list[str] = []
+    changed_to_pass: list[str] = []
+    changed_to_skipped: list[str] = []
+    changed_from_skipped: list[str] = []
+    unchanged_pass: list[str] = []
+    unchanged_fail: list[str] = []
+    unchanged_skipped: list[str] = []
+    transitions: dict[str, dict[str, str]] = {}
+
+    for check_id in common_keys:
+        baseline_state = baseline_state_map[check_id]
+        current_state = current_state_map[check_id]
+        if baseline_state == current_state:
+            if current_state == "pass":
+                unchanged_pass.append(check_id)
+            elif current_state == "fail":
+                unchanged_fail.append(check_id)
+            else:
+                unchanged_skipped.append(check_id)
+            continue
+
+        transitions[check_id] = {"baseline": baseline_state, "current": current_state}
+        if current_state == "fail":
+            changed_to_fail.append(check_id)
+        if current_state == "pass":
+            changed_to_pass.append(check_id)
+        if current_state == "skipped":
+            changed_to_skipped.append(check_id)
+        if baseline_state == "skipped" and current_state in {"pass", "fail"}:
+            changed_from_skipped.append(check_id)
+
+    for check_id in added_checks:
+        transitions[check_id] = {"baseline": "missing", "current": current_state_map[check_id]}
+    for check_id in removed_checks:
+        transitions[check_id] = {"baseline": baseline_state_map[check_id], "current": "missing"}
+
+    changed_fields = sorted(
+        set(changed_to_fail)
+        | set(changed_to_pass)
+        | set(changed_to_skipped)
+        | set(changed_from_skipped)
+        | set(added_checks)
+        | set(removed_checks)
+    )
+
+    return {
+        "comparison_mode": comparison_mode,
+        "missing_in": missing_in,
+        "diff": {
+            "changed_to_fail": changed_to_fail,
+            "changed_to_pass": changed_to_pass,
+            "changed_to_skipped": changed_to_skipped,
+            "changed_from_skipped": changed_from_skipped,
+            "unchanged_pass": unchanged_pass,
+            "unchanged_fail": unchanged_fail,
+            "unchanged_skipped": unchanged_skipped,
+            "added_checks": added_checks,
+            "removed_checks": removed_checks,
+        },
+        "changed_fields": changed_fields,
+        "transitions": transitions,
+    }
+
+
 def build_candidate(
     *,
     path: Path,
@@ -515,6 +630,7 @@ def main() -> int:
             "current_count": len(current_mismatch_fields),
         },
     }
+    additional_checks_diff = build_additional_guard_checks_diff(current_obj, baseline_obj)
 
     regression_reasons: list[str] = []
     if comparison_compatible:
@@ -572,6 +688,11 @@ def main() -> int:
         "baseline_candidate_paths": baseline_candidate_paths,
         "baseline_candidate_details": baseline_candidate_details,
         "diffs": diffs,
+        "additional_guard_checks_diff": additional_checks_diff["diff"],
+        "additional_guard_checks_changed_fields": additional_checks_diff["changed_fields"],
+        "additional_guard_check_transitions": additional_checks_diff["transitions"],
+        "additional_guard_checks_comparison_mode": additional_checks_diff["comparison_mode"],
+        "additional_guard_checks_missing_in": additional_checks_diff["missing_in"],
         "regression_passed": regression_passed,
         "regression_reasons": regression_reasons,
         "fail_on_regression": bool(args.fail_on_regression),
