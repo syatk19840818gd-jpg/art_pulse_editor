@@ -11,6 +11,7 @@ from typing import Any
 
 from phase1_guard_common import (
     EXIT_CODE_MEANING,
+    GUARD_SCHEMA_VERSION_POLICY,
     INCOMPATIBLE_EXIT_CODE,
     REGRESSION_EXIT_CODE,
     paths_equal,
@@ -231,6 +232,51 @@ def diff_metric(name: str, current: dict[str, int | None], baseline: dict[str, i
     }
 
 
+def normalize_schema_version(value: Any) -> str | None:
+    if not isinstance(value, str):
+        return None
+    normalized = value.strip()
+    return normalized if normalized else None
+
+
+def evaluate_guard_schema_version_compatibility(
+    current_version: str | None,
+    baseline_version: str | None,
+) -> dict[str, Any]:
+    if current_version is not None and baseline_version is not None:
+        mode = "both_present"
+        compatible = current_version == baseline_version
+        warnings: list[str] = []
+        errors: list[str] = []
+        if not compatible:
+            errors.append(f"guard_schema_version_mismatch:{baseline_version}!={current_version}")
+    elif current_version is not None:
+        mode = "current_only"
+        compatible = True
+        warnings = ["baseline_guard_schema_version_missing"]
+        errors = []
+    elif baseline_version is not None:
+        mode = "baseline_only"
+        compatible = True
+        warnings = ["current_guard_schema_version_missing"]
+        errors = []
+    else:
+        mode = "both_missing"
+        compatible = True
+        warnings = ["current_guard_schema_version_missing", "baseline_guard_schema_version_missing"]
+        errors = []
+
+    return {
+        "current_guard_schema_version": current_version,
+        "baseline_guard_schema_version": baseline_version,
+        "guard_schema_version_comparison_mode": mode,
+        "guard_schema_version_compatible": compatible,
+        "guard_schema_version_policy": GUARD_SCHEMA_VERSION_POLICY,
+        "compatibility_warnings": warnings,
+        "compatibility_errors": errors,
+    }
+
+
 def normalize_additional_check_state(entry: Any) -> str:
     if not isinstance(entry, dict):
         return "skipped"
@@ -362,7 +408,7 @@ def build_candidate(
     target_year = safe_int(obj.get("target_year"))
     target_year_matches = current_target_year is not None and target_year == current_target_year
 
-    schema_version = obj.get("guard_schema_version") if isinstance(obj.get("guard_schema_version"), str) else None
+    schema_version = normalize_schema_version(obj.get("guard_schema_version"))
     if current_schema_version is None or schema_version is None:
         schema_matches_current: bool | None = None
     else:
@@ -420,7 +466,7 @@ def select_auto_baseline(
     summary_glob: str,
 ) -> tuple[Path | None, str, str, int, list[str], list[dict[str, Any]]]:
     current_target_year = safe_int(current_obj.get("target_year"))
-    current_schema_version = current_obj.get("guard_schema_version") if isinstance(current_obj.get("guard_schema_version"), str) else None
+    current_schema_version = normalize_schema_version(current_obj.get("guard_schema_version"))
     current_time = resolve_summary_sort_time(current_path, current_obj)
 
     candidates: list[BaselineCandidate] = []
@@ -588,19 +634,14 @@ def main() -> int:
             f"target_year_mismatch:{baseline_target_year}!={current_target_year}"
         )
 
-    current_schema_version = current_obj.get("guard_schema_version")
-    baseline_schema_version = baseline_obj.get("guard_schema_version")
-    if isinstance(current_schema_version, str) and isinstance(baseline_schema_version, str):
-        if current_schema_version != baseline_schema_version:
-            compatibility_errors.append(
-                f"guard_schema_version_mismatch:{baseline_schema_version}!={current_schema_version}"
-            )
-    else:
-        # Optional field; keep as warning only.
-        if not isinstance(current_schema_version, str):
-            compatibility_warnings.append("current_guard_schema_version_missing")
-        if not isinstance(baseline_schema_version, str):
-            compatibility_warnings.append("baseline_guard_schema_version_missing")
+    current_schema_version = normalize_schema_version(current_obj.get("guard_schema_version"))
+    baseline_schema_version = normalize_schema_version(baseline_obj.get("guard_schema_version"))
+    schema_version_eval = evaluate_guard_schema_version_compatibility(
+        current_version=current_schema_version,
+        baseline_version=baseline_schema_version,
+    )
+    compatibility_errors.extend(schema_version_eval["compatibility_errors"])
+    compatibility_warnings.extend(schema_version_eval["compatibility_warnings"])
 
     comparison_compatible = len(compatibility_errors) == 0
 
@@ -685,6 +726,11 @@ def main() -> int:
         "baseline_selected_reason": baseline_selected_reason,
         "baseline_auto_search_dir": str(baseline_auto_search_dir) if not args.baseline_summary else None,
         "summary_glob_effective": args.summary_glob,
+        "current_guard_schema_version": schema_version_eval["current_guard_schema_version"],
+        "baseline_guard_schema_version": schema_version_eval["baseline_guard_schema_version"],
+        "guard_schema_version_comparison_mode": schema_version_eval["guard_schema_version_comparison_mode"],
+        "guard_schema_version_compatible": schema_version_eval["guard_schema_version_compatible"],
+        "guard_schema_version_policy": schema_version_eval["guard_schema_version_policy"],
         "baseline_candidate_paths": baseline_candidate_paths,
         "baseline_candidate_details": baseline_candidate_details,
         "diffs": diffs,

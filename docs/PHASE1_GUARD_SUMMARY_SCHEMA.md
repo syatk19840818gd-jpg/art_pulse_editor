@@ -134,6 +134,11 @@ Typical file:
 - `baseline_selected_reason`
 - `baseline_auto_search_dir`
 - `summary_glob_effective`
+- `current_guard_schema_version`
+- `baseline_guard_schema_version`
+- `guard_schema_version_comparison_mode`
+- `guard_schema_version_compatible`
+- `guard_schema_version_policy`
 - `baseline_candidate_paths`
 - `baseline_candidate_details`
 - `diffs`
@@ -154,6 +159,28 @@ Typical file:
 - `comparison_compatible`: whether baseline/current can be compared
 - `compatibility_errors`: hard incompatibility reasons
 - `strict_compatibility`: if true, incompatibility returns exit `3`
+
+Schema version policy:
+
+- `guard_schema_version_policy`: `both_present_must_match;missing_allowed_with_warning`
+- `guard_schema_version_comparison_mode`:
+  - `both_present`: compare exact string equality
+  - `current_only`, `baseline_only`, `both_missing`: backward-compatible mode
+- `guard_schema_version_compatible`:
+  - `true` when equal in `both_present`, or when either side is missing
+  - `false` only for `both_present` + mismatch
+
+Strict/non-strict behavior:
+
+- non-strict: schema mismatch is recorded in `compatibility_errors`, comparison summary is still written
+- `--strict-compatibility`: schema mismatch is treated as incompatible (`exit 3`)
+- missing schema version on old summary is warning-only (not immediate incompatible)
+
+Compatibility evaluation order (summary perspective):
+
+1. summary load and source CLI validity (`generated_by`/signature)
+2. `target_year` compatibility
+3. `guard_schema_version` compatibility (with backward-compatible missing handling)
 
 ### 4.3 Baseline resolution block
 

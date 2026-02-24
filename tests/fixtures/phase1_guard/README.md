@@ -74,3 +74,28 @@ Expected exit code: `3`
 - `--fail-on-regression`: return non-zero only when regression is detected (compatible comparison).
 - `--strict-compatibility`: return non-zero when compatibility checks fail.
 - matrix runner `--fail-fast`: stop at the first expected/actual mismatch.
+
+## Schema version check (guard_schema_version)
+
+- Fixture `pass`/`regression` pairs use matching `guard_schema_version` (`1.0`).
+- `incompatible` fixture demonstrates compatibility failure by `target_year` mismatch; schema fields may be missing on one side and are treated as backward-compatible warnings.
+- To test schema mismatch without modifying fixture originals, use temporary copies:
+
+```bash
+cp tests/fixtures/phase1_guard/pass/current_pass_2025.json /tmp/current_schema_mismatch.json
+cp tests/fixtures/phase1_guard/pass/baseline_pass_2025.json /tmp/baseline_schema_mismatch.json
+python - <<'PY'
+import json
+from pathlib import Path
+p = Path('/tmp/current_schema_mismatch.json')
+obj = json.loads(p.read_text(encoding='utf-8'))
+obj['guard_schema_version'] = '2.0'
+p.write_text(json.dumps(obj, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+print(p)
+PY
+```
+
+Expected:
+
+- non-strict: summary is produced and schema mismatch is recorded
+- strict (`--strict-compatibility`): incompatible (`exit 3`)

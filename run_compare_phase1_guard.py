@@ -9,14 +9,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from phase1_guard_common import resolve_logs_dir, utc_now_iso, utc_timestamp_compact, write_summary_json
+from phase1_guard_common import GUARD_SCHEMA_VERSION, resolve_logs_dir, utc_now_iso, utc_timestamp_compact, write_summary_json
 
 DEFAULT_LOGS_DIR = Path("data/phase1_seed10/logs")
 DEFAULT_RUN_SUMMARY_TEMPLATE = "run_summary_seed10_{target_year}.json"
 DEFAULT_VISITED_TEMPLATE = "visited_pages_seed10_{target_year}.json"
 DEFAULT_FAILED_TEMPLATE = "failed_fetches_seed10_{target_year}.json"
 OUTPUT_TEMPLATE = "phase1_guard_summary_{target_year}_{timestamp}.json"
-GUARD_SCHEMA_VERSION = "1.0"
 GENERATED_BY = "run_compare_phase1_guard.py"
 
 REQUIRED_SUMMARY_KEYS = {

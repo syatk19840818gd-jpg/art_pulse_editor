@@ -8,6 +8,8 @@ from typing import Any, Mapping
 
 REGRESSION_EXIT_CODE = 2
 INCOMPATIBLE_EXIT_CODE = 3
+GUARD_SCHEMA_VERSION = "1.0"
+GUARD_SCHEMA_VERSION_POLICY = "both_present_must_match;missing_allowed_with_warning"
 EXIT_CODE_MEANING = {
     "0": "pass（差分なし or 差分ありだが回帰なし）",
     "2": "regression（回帰検知）",
