@@ -10,10 +10,11 @@ from pathlib import Path
 from typing import Any
 
 from phase1_guard_common import (
+    DEFAULT_CATEGORY_PROFILE_CONFIG_PATH,
     DEFAULT_GUARD_CATEGORY,
     GUARD_CATEGORY_PROFILE_VERSION,
-    GUARD_CATEGORY_PROFILES,
     GUARD_SCHEMA_VERSION,
+    get_effective_category_profiles,
     resolve_logs_dir,
     utc_now_iso,
     utc_timestamp_compact,
@@ -86,6 +87,11 @@ def parse_args() -> argparse.Namespace:
         "--category",
         default=DEFAULT_GUARD_CATEGORY,
         help=f"guard category metadata (default: {DEFAULT_GUARD_CATEGORY})",
+    )
+    parser.add_argument(
+        "--category-profile-config",
+        default=str(DEFAULT_CATEGORY_PROFILE_CONFIG_PATH),
+        help=f"category profile config path (default: {DEFAULT_CATEGORY_PROFILE_CONFIG_PATH})",
     )
     parser.add_argument(
         "--fail-on-mismatch",
@@ -271,16 +277,24 @@ def dedupe_strings(values: list[str]) -> list[str]:
     return deduped
 
 
-def resolve_category_profile(requested_category: str) -> tuple[str, dict[str, Any], list[str]]:
+def resolve_category_profile(
+    requested_category: str,
+    category_profiles: dict[str, dict[str, Any]],
+) -> tuple[str, dict[str, Any], list[str]]:
     category = requested_category.strip() if isinstance(requested_category, str) else ""
     if not category:
         category = DEFAULT_GUARD_CATEGORY
 
-    profile = GUARD_CATEGORY_PROFILES.get(category)
+    profile = category_profiles.get(category)
     warnings: list[str] = []
     if profile is None:
         category = DEFAULT_GUARD_CATEGORY
-        profile = GUARD_CATEGORY_PROFILES[category]
+        profile = category_profiles.get(category)
+        if profile is None and category_profiles:
+            category, profile = next(iter(category_profiles.items()))
+            warnings.append(f"default_category_missing_fallback_to_first:{category}")
+        elif profile is None:
+            profile = {}
         warnings.append(f"unknown_category_fallback:{requested_category}->{category}")
     return category, dict(profile), warnings
 
@@ -468,7 +482,28 @@ def main() -> int:
     started_at = utc_now_iso()
     print(f"[START] Phase1 guard compare at {started_at}")
 
-    effective_category, category_profile, category_warnings = resolve_category_profile(args.category)
+    category_profile_bundle = get_effective_category_profiles(args.category_profile_config)
+    loaded_category_profiles_raw = category_profile_bundle.get("profiles")
+    category_profiles = (
+        loaded_category_profiles_raw
+        if isinstance(loaded_category_profiles_raw, dict)
+        else {}
+    )
+    effective_category, category_profile, category_warnings = resolve_category_profile(
+        args.category, category_profiles
+    )
+    category_profile_source = str(category_profile_bundle.get("source") or "builtin_fallback")
+    category_profile_config_path = str(category_profile_bundle.get("config_path") or "")
+    category_profile_config_loaded = bool(category_profile_bundle.get("config_loaded"))
+    category_profile_config_error_raw = category_profile_bundle.get("config_error")
+    category_profile_config_error = (
+        str(category_profile_config_error_raw)
+        if isinstance(category_profile_config_error_raw, str) and category_profile_config_error_raw
+        else None
+    )
+    category_profile_config_version_effective = str(
+        category_profile_bundle.get("config_version_effective") or ""
+    )
     category_required_inputs_raw = category_profile.get("required_input_files")
     category_required_inputs = (
         [x for x in category_required_inputs_raw if isinstance(x, str) and x]
@@ -487,6 +522,8 @@ def main() -> int:
     category_reserved_reason = str(category_profile.get("reserved_reason") or "")
     category_profile_version = str(category_profile.get("profile_version") or GUARD_CATEGORY_PROFILE_VERSION)
     category_data_presence: dict[str, Any] | None = None
+    if category_profile_config_error is not None:
+        category_warnings.append(f"category_profile_config_fallback:{category_profile_config_error}")
 
     logs_dir = resolve_logs_dir(args.logs_dir)
     timestamp = utc_timestamp_compact()
@@ -568,6 +605,11 @@ def main() -> int:
         "requested_category": args.category,
         "effective_category": effective_category,
         "profile_version": category_profile_version,
+        "config_source": category_profile_source,
+        "config_path": category_profile_config_path,
+        "config_loaded": category_profile_config_loaded,
+        "config_error": category_profile_config_error,
+        "config_version_effective": category_profile_config_version_effective,
         "support_mode_configured": category_support_mode_configured,
         "support_mode_effective": category_support_mode_effective,
         "required_input_files": category_required_inputs,
@@ -1064,6 +1106,11 @@ def main() -> int:
         "guard_schema_version": GUARD_SCHEMA_VERSION,
         "category": args.category,
         "category_profile_version": category_profile_version,
+        "category_profile_source": category_profile_source,
+        "category_profile_config_path": category_profile_config_path,
+        "category_profile_config_loaded": category_profile_config_loaded,
+        "category_profile_config_error": category_profile_config_error,
+        "category_profile_config_version_effective": category_profile_config_version_effective,
         "category_required_files_profile": effective_category,
         "required_input_files_effective": required_input_files_effective,
         "required_summary_keys_effective": sorted(category_required_summary_keys),
