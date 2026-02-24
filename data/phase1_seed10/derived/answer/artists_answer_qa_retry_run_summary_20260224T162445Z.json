@@ -1,0 +1,31 @@
+{
+  "started_at": "2026-02-24T16:24:45Z",
+  "completed_at": "2026-02-24T16:24:45Z",
+  "source_cli": "run_artists_answer_qa_retry_run.py",
+  "retry_manifest_path_requested": "/tmp/artists_answer_qa_retry_manifest_task73_invalid.json",
+  "retry_manifest_latest_resolved": false,
+  "retry_manifest_path": "/tmp/artists_answer_qa_retry_manifest_task73_invalid.json",
+  "retry_manifest_case_count": 1,
+  "executed_cases": 1,
+  "wrapper_exit_code": 1,
+  "all_passed": false,
+  "child_batch_exit_code": 1,
+  "child_batch_summary_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_retry_run_summary_20260224T162445Z_child_batch_summary.json",
+  "child_batch_cases_jsonl_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_retry_run_summary_20260224T162445Z_child_batch_summary_cases.jsonl",
+  "output_summary_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_retry_run_summary_20260224T162445Z.json",
+  "invalid_case_count": 0,
+  "invalid_case_ids": [],
+  "notes": [
+    "child_batch_failed"
+  ],
+  "child_batch_command": [
+    "/home/syatk/my_projects/art_pulse_editor/.venv_art_pulse_editor/bin/python",
+    "run_artists_answer_qa_smoke.py",
+    "--batch-manifest",
+    "/tmp/tmp6b29xgy0_retry_batch_manifest.json",
+    "--output-json",
+    "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_retry_run_summary_20260224T162445Z_child_batch_summary.json"
+  ],
+  "child_batch_stdout_tail": "[START] artists QA smoke at 2026-02-24T16:24:45Z\n[DONE] artists QA smoke batch complete. all_passed=False total_cases=1\n[DONE] summary=/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_retry_run_summary_20260224T162445Z_child_batch_summary.json\n[DONE] batch_cases_jsonl=/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_retry_run_summary_20260224T162445Z_child_batch_summary_cases.jsonl",
+  "child_batch_stderr_tail": ""
+}

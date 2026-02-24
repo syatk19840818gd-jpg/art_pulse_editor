@@ -1,6 +1,6 @@
 # 04_TASK_PROGRESS_LOG.md
 
-最終更新: 2026-02-24 23:45 JST  
+最終更新: 2026-02-25 01:42 JST  
 対象プロジェクト: ART_PULSE_EDITOR（Phase1 seed10 / Guard運用整備）  
 位置づけ: 実装進捗ログ（01=SSOT、02=索引、03=現行運用タスクの補助ログ）
 
@@ -29,8 +29,8 @@
 
 ## 2. 全体の進捗サマリ（現時点）
 
-- 完了: **TASK 1 ～ TASK 72**
-- 次の予定: **TASK 73**
+- 完了: **TASK 1 ～ TASK 75**
+- 次の予定: **TASK 76**
 - 直近の重点:
   - TarutaniRAG 側で比較/guard の「型」を作成 → Phase1本体（Exhibitions/Artists）へ横展開
   - Phase1 guard 本体 / history 比較 / fixture / matrix / schema文書化 / category文脈まで整備
@@ -463,18 +463,18 @@
 
 ---
 
-## 10. 現在の次タスク（TASK73）
+## 10. 現在の次タスク（TASK76）
 
-[ ] 73) artists回答QA retry manifest をそのまま実行するワンショットCLIを追加し、失敗case復旧を1コマンド化する（本体前進）
+[ ] 76) artists回答QA日次復旧ワンショットの軽量レポートCLIを追加し、daily summary から failed step と参照先summaryを1コマンドで確認できるようにする（本体前進）
 - 目的：
-  - TASK72で生成した `*_retry_manifest.json` を直接実行し、抽出→再実行の手順分断をなくす
+  - TASK75の daily summary から失敗stepと参照先子summaryを短く集約し、日次確認を高速化する
 - 制約：
   - 取得ループ内LLM加工は追加しない（Post-fetch分離）
   - 既存Exhibitions/Tarutani/guard/history/lint/matrixの既存処理を壊さない
 - 成立条件：
-  - `python run_artists_answer_qa_retry_run.py --retry-manifest "..."` でretry実行を開始できる
-  - `--latest` で最新 `*_retry_manifest.json` を自動解決できる
-  - 失敗0件manifestでは no-op/skip を明示して成功終了できる
+  - `python run_artists_answer_qa_daily_recovery_report.py --summary-path "..."`（例）が実行できる
+  - `--latest` で最新 daily summary を自動解決できる
+  - レポートに `all_passed` / `wrapper_exit_code` / `failed_steps` / `child_summary_paths_to_check` / `notes`（同等）を保存できる
   - 03 / 04 のログ更新に反映できる
 
 ---
@@ -1249,3 +1249,90 @@
   - `data/phase1_seed10/derived/answer/artists_answer_qa_smoke_summary_task72_batch_fixed_cases.jsonl`
   - `data/phase1_seed10/derived/answer/artists_answer_qa_smoke_summary_task72_batch_fixed_cases_retry_manifest.json`
   - `data/phase1_seed10/logs/phase1_guard_summary_2025_20260224T144521Z.json`
+
+## 43. TASK73 実行ログ（artists QA retry manifest ワンショット実行CLI）
+
+[x] 73) artists回答QA retry manifest をそのまま実行するワンショットCLIを追加し、失敗case復旧を1コマンド化する（本体前進）
+- 変更ファイル：
+  - `run_artists_answer_qa_retry_run.py`（新規）
+  - `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md`
+  - `docs/04_TASK_PROGRESS_LOG.md`
+- 実装内容：
+  - `run_artists_answer_qa_retry_run.py` を追加
+    - 入力モード：`--retry-manifest` / `--latest`（排他、両方指定/未指定は exit 1）
+    - `--latest` で最新 `artists_answer_qa_smoke_summary_*_retry_manifest.json` を自動解決
+    - `cases=[]` manifest は no-op 成功（exit 0、`executed_cases=0`）として処理
+    - validケースは `run_artists_answer_qa_smoke.py --batch-manifest ...` を subprocess 再利用して実行（ロジック重複回避）
+    - 親summaryへ `retry_manifest_path` / `retry_manifest_case_count` / `executed_cases` / `wrapper_exit_code` / `child_batch_exit_code` / `child_batch_summary_path` / `child_batch_cases_jsonl_path` / `invalid_case_count` / `invalid_case_ids` を保存
+    - 親CLI exit code を `0=success(no-op含む)` / `1=failure` に正規化
+- 動作確認（2026-02-25）：
+  - `python run_artists_answer_qa_smoke.py --batch-manifest "/tmp/artists_answer_qa_batch_manifest_task67_fixed.json" --output-json "data/phase1_seed10/derived/answer/artists_answer_qa_smoke_summary_task73_batch_fixed.json"` → exit 0
+  - `python run_artists_answer_qa_retry_manifest.py --cases-jsonl "data/phase1_seed10/derived/answer/artists_answer_qa_smoke_summary_task73_batch_fixed_cases.jsonl"` → exit 0
+  - `python run_artists_answer_qa_retry_run.py --retry-manifest "data/phase1_seed10/derived/answer/artists_answer_qa_smoke_summary_task73_batch_fixed_cases_retry_manifest.json"` → exit 0（no-op）
+  - `python run_artists_answer_qa_retry_run.py --latest` → exit 0（no-op）
+  - `python run_artists_answer_qa_retry_run.py --retry-manifest "/tmp/artists_answer_qa_retry_manifest_task73_invalid.json"` → exit 1（child batch fail）
+  - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+- 生成物：
+  - `data/phase1_seed10/derived/answer/artists_answer_qa_smoke_summary_task73_batch_fixed.json`
+  - `data/phase1_seed10/derived/answer/artists_answer_qa_smoke_summary_task73_batch_fixed_cases.jsonl`
+  - `data/phase1_seed10/derived/answer/artists_answer_qa_smoke_summary_task73_batch_fixed_cases_retry_manifest.json`
+  - `data/phase1_seed10/derived/answer/artists_answer_qa_retry_run_summary_20260224T162427Z.json`
+  - `data/phase1_seed10/derived/answer/artists_answer_qa_retry_run_summary_20260224T162436Z.json`
+  - `data/phase1_seed10/derived/answer/artists_answer_qa_retry_run_summary_20260224T162445Z.json`
+  - `data/phase1_seed10/derived/answer/artists_answer_qa_retry_run_summary_20260224T162445Z_child_batch_summary.json`
+  - `data/phase1_seed10/logs/phase1_guard_summary_2025_20260224T162450Z.json`
+
+## 44. TASK74 実行ログ（artists QA retry run summary 軽量レポートCLI）
+
+[x] 74) artists回答QA retry run summary の軽量レポートCLIを追加し、failed/recovered を1コマンドで確認できるようにする（本体前進）
+- 変更ファイル：
+  - `run_artists_answer_qa_retry_run_report.py`（新規）
+  - `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md`
+  - `docs/04_TASK_PROGRESS_LOG.md`
+- 実装内容：
+  - `run_artists_answer_qa_retry_run_report.py` を追加
+    - 入力モード：`--summary-path` / `--latest`（排他）
+    - `--latest` は `artists_answer_qa_retry_run_summary_*.json` から `_child_batch_summary` / `_report` を除外して本体summaryを解決
+    - レポートへ `retry_manifest_path` / `retry_manifest_case_count` / `executed_cases` / `wrapper_exit_code` / `all_passed` / `child_batch_summary_path` / `child_batch_cases_jsonl_path` / `notes` を保存
+    - 既定出力は `<summary_stem>_report.json`（`--output-json` で上書き可）
+    - exit code を `0=report_generated / 1=summary_not_found_or_invalid` で固定
+- 動作確認（2026-02-25）：
+  - `python run_artists_answer_qa_retry_run.py --latest` → exit 0
+  - `python run_artists_answer_qa_retry_run_report.py --summary-path "data/phase1_seed10/derived/answer/artists_answer_qa_retry_run_summary_20260224T163348Z.json"` → exit 0
+  - `python run_artists_answer_qa_retry_run_report.py --latest` → exit 0
+  - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+- 生成物：
+  - `data/phase1_seed10/derived/answer/artists_answer_qa_retry_run_summary_20260224T163348Z.json`
+  - `data/phase1_seed10/derived/answer/artists_answer_qa_retry_run_summary_20260224T163348Z_report.json`
+  - `data/phase1_seed10/logs/phase1_guard_summary_2025_20260224T163434Z.json`
+
+## 45. TASK75 実行ログ（artists QA 日次復旧ワンショットCLI）
+
+[x] 75) artists回答QAの日次復旧ワンショットCLIを追加し、batch実行→report→retry manifest→retry run→retry report を1コマンド化する（本体前進）
+- 変更ファイル：
+  - `run_artists_answer_qa_daily_recovery.py`（新規）
+  - `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md`
+  - `docs/04_TASK_PROGRESS_LOG.md`
+- 実装内容：
+  - `run_artists_answer_qa_daily_recovery.py` を追加
+    - 入力：`--batch-manifest`（必須）/ `--output-json`（任意）
+    - 子CLIを順次再利用して実行：
+      - `run_artists_answer_qa_smoke.py --batch-manifest ...`
+      - `run_artists_answer_qa_batch_report.py --cases-jsonl ...`
+      - `run_artists_answer_qa_retry_manifest.py --cases-jsonl ...`
+      - `run_artists_answer_qa_retry_run.py --retry-manifest ...`
+      - `run_artists_answer_qa_retry_run_report.py --summary-path ...`
+    - daily summary へ `steps[].name/command/exit_code/status/output_paths` / `all_passed` / `wrapper_exit_code` / `notes` を保存
+    - retry対象0件（`retry_run_mode=noop_empty_retry_manifest`）は no-op 成功として記録
+- 動作確認（2026-02-25）：
+  - `python run_artists_answer_qa_daily_recovery.py --batch-manifest "/tmp/artists_answer_qa_batch_manifest_task67_fixed.json"` → exit 0
+  - `python run_artists_answer_qa_daily_recovery.py --batch-manifest "/tmp/artists_answer_qa_batch_manifest_task67_fixed.json" --output-json "data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_latest.json"` → exit 0
+  - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+- 生成物：
+  - `data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_20260224T164100Z.json`
+  - `data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_latest.json`
+  - `data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_latest_batch_smoke_summary.json`
+  - `data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_latest_batch_smoke_summary_cases.jsonl`
+  - `data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_latest_retry_manifest.json`
+  - `data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_latest_retry_run_summary.json`
+  - `data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_latest_retry_run_report.json`

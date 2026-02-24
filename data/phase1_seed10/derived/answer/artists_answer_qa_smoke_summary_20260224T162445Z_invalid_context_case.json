@@ -1,0 +1,22 @@
+{
+  "started_at": "2026-02-24T16:24:45Z",
+  "completed_at": "2026-02-24T16:24:45Z",
+  "source_cli": "run_artists_answer_qa_smoke.py",
+  "question": "この検索結果から注目作家の傾向を教えて",
+  "query": "",
+  "query_effective": null,
+  "context_path_effective": "/tmp/path_not_found_for_task73_context.json",
+  "qa_input_mode": "invalid_args",
+  "k_requested": 5,
+  "fail_on_regression": false,
+  "all_passed": false,
+  "wrapper_exit_code": 1,
+  "steps": [],
+  "warnings": [],
+  "errors": [
+    "context_path_not_found:/tmp/path_not_found_for_task73_context.json"
+  ],
+  "output_paths": {
+    "qa_summary_json": "data/phase1_seed10/derived/answer/artists_answer_qa_smoke_summary_20260224T162445Z_invalid_context_case.json"
+  }
+}

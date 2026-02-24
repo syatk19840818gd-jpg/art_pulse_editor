@@ -1,0 +1,13 @@
+{
+  "generated_at": "2026-02-24T16:24:20Z",
+  "source_cli": "run_artists_answer_qa_retry_manifest.py",
+  "input_cases_jsonl_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_smoke_summary_task73_batch_fixed_cases.jsonl",
+  "total_cases": 2,
+  "failed_cases": 0,
+  "retry_case_count": 0,
+  "failed_case_ids": [],
+  "cases": [],
+  "notes": [
+    "no_failed_cases_found"
+  ]
+}

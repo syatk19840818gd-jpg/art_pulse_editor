@@ -1,0 +1,21 @@
+{
+  "started_at": "2026-02-24T16:28:28Z",
+  "completed_at": "2026-02-24T16:28:28Z",
+  "source_cli": "run_artists_answer_qa_retry_run.py",
+  "retry_manifest_path_requested": "/tmp/a.json",
+  "retry_manifest_latest_resolved": true,
+  "retry_manifest_path": null,
+  "retry_manifest_case_count": 0,
+  "executed_cases": 0,
+  "wrapper_exit_code": 1,
+  "all_passed": false,
+  "child_batch_exit_code": null,
+  "child_batch_summary_path": null,
+  "child_batch_cases_jsonl_path": null,
+  "output_summary_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_retry_run_summary_20260224T162828Z.json",
+  "invalid_case_count": 0,
+  "invalid_case_ids": [],
+  "notes": [
+    "exactly_one_of_retry_manifest_or_latest_required"
+  ]
+}
