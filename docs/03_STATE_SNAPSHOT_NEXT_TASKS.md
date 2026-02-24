@@ -13,7 +13,7 @@ STREAMLIT_ENTRYPOINT（固定）
 - Local run: streamlit run app.py
 
 SOURCE_SSOT: 01_PROJECT_SPEC_CURRENT_FULL.docx
-LAST_UPDATED: 2026-02-23 22:59 JST
+LAST_UPDATED: 2026-02-24 10:12 JST
 
 
 ========================
@@ -68,7 +68,7 @@ STATE_SNAPSHOT（現在地）
 ========================
 ■いまの最優先フェーズ（Codexが随時更新する）
 - Phase 1：RAG抽出パイプライン成立（seed10で安定稼働させる）
-  - 直近の到達目標：Phase1 guardをseed10以外へ拡張する準備（TASK 21）を成立させる
+  - 直近の到達目標：Phase1 guard historyのパス/探索汎化（TASK 23）を成立させる
   - 次の到達目標：Phase2（検索/表示）へ接続する
   - その次：検索品質と表示品質の改善サイクルに入る
 
@@ -423,13 +423,68 @@ NEXT_TASKS（次回やること）
     - 実行メモ：summaryに `baseline_resolution_mode / baseline_candidates_checked / baseline_selected_reason / strict_compatibility / exit_code_meaning` を追加し、CI向け終了コード（0/2/3）の意味を保存。
     - 実行メモ：正常系（auto baseline）exit 0、回帰系（fixture）exit 2、比較不成立（strict）exit 3 を確認。
 
-[ ] 21) Phase1 guardをseed10以外へ拡張する準備（入力パス/年/カテゴリの汎化点整理）
+[x] 21) Phase1 guardをseed10以外へ拡張する準備（入力パス/年/カテゴリの汎化点整理）
     - 目的：seed10固定の比較運用から脱却し、対象年・入力パス・カテゴリ追加に耐える設計へ事前整理する
     - 制約：このタスクでは実装を急がず、汎化ポイントの明文化を優先する（既存挙動は壊さない）
     - 成立条件：
       - `run_compare_phase1_guard.py / run_compare_phase1_guard_history.py` のseed10固定箇所を棚卸しできる
       - 受け入れる入力（year / summary path / logs dir / category）の最小CLI仕様案を決められる
       - 互換維持方針（既定値は現行seed10）を明文化できる
+      - 03のCHANGELOGに反映される
+    - 棚卸し結果（seed10固定箇所）：
+      - A) ファイル名固定：
+        - `run_compare_phase1_guard.py` が `run_summary_seed10_{target_year}.json` を既定参照（`DEFAULT_SUMMARY_TEMPLATE`）。
+        - `run_phase1_seed10.py` が `visited_pages_seed10_{TARGET_YEAR}.json` / `failed_fetches_seed10_{TARGET_YEAR}.json` / `run_summary_seed10_{TARGET_YEAR}.json` を生成。
+        - history側は `phase1_guard_summary_*.json` / `phase1_guard_history_compare_*.json` 命名に依存（候補探索・出力）。
+      - B) ディレクトリ固定：
+        - `run_compare_phase1_guard.py` / `run_compare_phase1_guard_history.py` とも `LOG_DIR = data/phase1_seed10/logs` 固定。
+        - 入出力既定が seed10 logs に寄っており、非seed10 runでは引数指定が必須。
+      - C) target_year固定：
+        - `run_phase1_seed10.py` は `TARGET_YEAR = 2025` 固定。
+        - guard系CLIは `--target-year`（本体）と summary内 `target_year`（history）で扱っており、年比較ロジック自体は共通化可能。
+      - D) カテゴリ固定（Exhibitions/Artists拡張余地）：
+        - G1〜G4はカテゴリ非依存の共通チェック（必須キー/内部整合/summary↔ledger/failed前進運用）として維持可能。
+        - ただし `output_files` の実体は現状 Exhibitions raw 前提。Artists を含める場合は「カテゴリ別必須ファイル集合」を引数/設定で受ける必要がある。
+      - E) baseline探索固定：
+        - history CLI の auto探索は `phase1_guard_summary_*.json` と `target_year` / 生成元CLI一致で候補を選別。
+        - `--baseline-search-dir` は導入済みで seed10以外へ拡張可能だが、候補命名は phase1_guard_summary 依存。
+    - 汎化方針（互換維持）：
+      - 既定値は現行seed10挙動を維持（引数未指定で現状どおり動作）。
+      - 新引数は追加のみ（既存引数/summary項目は破壊しない）。
+      - summaryは後方互換を保ち、項目追加で拡張する。
+      - 取得ループには組み込まず、Post-fetch検証CLIとして分離を維持する。
+    - 最小CLI仕様案（TASK22実装対象）：
+      - `run_compare_phase1_guard.py`：
+        - 既存：`--target-year` / `--summary-path` / `--fail-on-mismatch`
+        - 追加案：`--logs-dir`（既定：`data/phase1_seed10/logs`）、`--category`（既定：`exhibitions_text`、現時点はメタ保存中心）
+      - `run_compare_phase1_guard_history.py`：
+        - 既存：`--current-summary` / `--baseline-summary` / `--baseline-search-dir` / `--strict-compatibility` / `--fail-on-regression`
+        - 追加案（必要なら）：`--summary-glob`（既定 `phase1_guard_summary_*.json`、命名拡張時の保険）
+    - TASK22の実装優先順（最小）：
+      - 先行：`run_compare_phase1_guard.py` のパス/年汎化（`--logs-dir` + 既定テンプレートの動的解決）を先に実装。
+      - 後続：history CLI は既存 `--baseline-search-dir` を活かし、必要最小限（glob可変化の要否確認）のみ実装。
+      - カテゴリは同時に厳格判定へ入れず、まずは summary メタに `category` を保存して互換維持で進める。
+
+[x] 22) Phase1 guard本体のパス/年汎化を実装する（seed10互換維持）
+    - 目的：`run_compare_phase1_guard.py` の seed10 固定依存を最小差分で外し、logs-dir/target-year 指定で再利用可能にする
+    - 制約：既定値は現行seed10挙動を維持し、既存コマンドの互換を壊さない
+    - 成立条件：
+      - `--logs-dir` を追加し、summary/ledger入出力の既定解決を切り替えられる
+      - 未指定時は現行どおり `data/phase1_seed10/logs` を使う
+      - summaryに `category`（既定 `exhibitions_text`）と `logs_dir` を追加保存できる
+      - 03のCHANGELOGに反映される
+    - 実行メモ：
+      - `python run_compare_phase1_guard.py --target-year 2025` で `guard_passed=true` / exit 0 を確認（`phase1_guard_summary_2025_20260224T010743Z.json`）。
+      - `python run_compare_phase1_guard.py --target-year 2025 --logs-dir "data/phase1_seed10/logs"` で `guard_passed=true` / exit 0 を確認（`phase1_guard_summary_2025_20260224T010751Z.json`）。
+      - `python run_compare_phase1_guard.py --target-year 2025 --logs-dir "data/phase1_seed10/logs" --fail-on-mismatch` で差分なし exit 0 を確認（`phase1_guard_summary_2025_20260224T010758Z.json`）。
+
+[ ] 23) Phase1 guard history比較のパス/探索汎化を実装する（seed10互換維持）
+    - 目的：`run_compare_phase1_guard_history.py` の baseline探索を seed10 固定前提から外し、current summary 起点で他runにも使えるようにする
+    - 制約：既定値は現行互換を維持し、`--fail-on-regression` / `--strict-compatibility` の終了コード規約（0/2/3）を壊さない
+    - 成立条件：
+      - `--baseline-search-dir` 未指定時に `--current-summary` の親ディレクトリを既定探索先として使える
+      - 候補探索のglobをCLIから指定できる（例：`--summary-glob`、既定は現行互換）
+      - summary に `baseline_auto_search_dir` / `baseline_candidates_checked` / `baseline_resolution_mode` が保存される
       - 03のCHANGELOGに反映される
 
 ========================
@@ -1072,6 +1127,74 @@ TASK 21) Phase1 guardをseed10以外へ拡張する準備（入力パス/年/カ
 動作確認コマンド：
 - （今回は設計整理中心のため実行コマンドは任意）
 
+------------------------------------------------------------
+TASK 22) Phase1 guard本体のパス/年汎化を実装する（seed10互換維持）
+------------------------------------------------------------
+目的：
+- `run_compare_phase1_guard.py` の seed10 固定依存（logs-dir / 既定ファイル名）を最小差分で汎化し、非seed10 runにも流用できる状態にする。
+
+参照ファイル：
+- 01（SSOT）4-0共通 / 4-1 Exhibitions / 4-3 Artists / 5-8
+- 02（索引）CARD_ID: 14_CATEGORY_4_0_COMMON / CARD_ID: 15_CATEGORY_4_1_EXHIBITIONS_TEXT / CARD_ID: 05_MANIFEST_SYNC
+- run_compare_phase1_guard.py
+- run_compare_phase1_guard_history.py
+- run_phase1_seed10.py
+- data/phase1_seed10/logs/run_summary_seed10_2025.json
+
+制約：
+- 取り込みループ内で実行しない（Post-fetch検証CLIとして分離）
+- 既存の seed10 既定挙動を壊さない（引数未指定時は現行互換）
+- failed_fetches は「存在しただけ」で失敗扱いにしない方針を維持
+- Tarutani側の新機能追加はしない
+
+完了条件：
+- `run_compare_phase1_guard.py` に `--logs-dir` を追加できる（既定：`data/phase1_seed10/logs`）
+- `--summary-path` 未指定時の既定解決が `--logs-dir` 基準になる
+- `visited_pages_path` / `failed_fetches_path` / `output_files` の既定解決も `--logs-dir` 基準で破綻しない
+- summary に `logs_dir` / `category`（既定 `exhibitions_text`）を保存できる
+- 既存コマンド（`--target-year 2025`）は従来どおり成功する
+- 03 の NEXT_TASKS の 22) を [x]、CHANGELOG追記
+- 次の最優先タスク（TASK 23）のプロンプト全文を提示する
+
+動作確認コマンド：
+- （WSL）python run_compare_phase1_guard.py --target-year 2025
+- （WSL）python run_compare_phase1_guard.py --target-year 2025 --logs-dir "data/phase1_seed10/logs"
+- （WSL）python run_compare_phase1_guard.py --target-year 2025 --logs-dir "data/phase1_seed10/logs" --fail-on-mismatch
+
+------------------------------------------------------------
+TASK 23) Phase1 guard history比較のパス/探索汎化を実装する（seed10互換維持）
+------------------------------------------------------------
+目的：
+- `run_compare_phase1_guard_history.py` の baseline探索を seed10 固定前提から外し、`current-summary` の場所に追従して他runにも流用できるようにする。
+
+参照ファイル：
+- 01（SSOT）4-0共通 / 4-1 Exhibitions / 4-3 Artists / 5-8
+- 02（索引）CARD_ID: 14_CATEGORY_4_0_COMMON / CARD_ID: 05_MANIFEST_SYNC / CARD_ID: 09_FAILURE_LOGGING
+- run_compare_phase1_guard_history.py
+- run_compare_phase1_guard.py
+- data/phase1_seed10/logs/phase1_guard_summary_*.json
+- data/phase1_seed10/logs/phase1_guard_history_compare_*.json
+
+制約：
+- 取り込みループ内で実行しない（Post-fetch検証CLIとして分離）
+- 既存の seed10 既定挙動を壊さない（引数未指定時は現行互換）
+- `--fail-on-regression` / `--strict-compatibility` の終了コード規約（0=pass, 2=regression, 3=incompatible）を維持する
+- failed_fetches は「存在しただけ」で失敗扱いにしない方針を維持
+- Tarutani側の新機能追加はしない
+
+完了条件：
+- `--baseline-search-dir` 未指定時、`--current-summary` の親ディレクトリを既定探索先として使える
+- 候補探索globをCLIで指定できる（例：`--summary-glob`、既定は `phase1_guard_summary_*.json`）
+- auto baseline解決時の情報（`baseline_auto_search_dir` / `baseline_candidates_checked` / `baseline_resolution_mode` / `baseline_selected_reason`）を summary に保存できる
+- 既存の手動指定モード（`--baseline-summary`）は従来どおり動作する
+- 03 の NEXT_TASKS の 23) を [x]、CHANGELOG追記
+- 次の最優先タスク（TASK 24）のプロンプト全文を提示する
+
+動作確認コマンド：
+- （WSL）python run_compare_phase1_guard_history.py --current-summary "data/phase1_seed10/logs/phase1_guard_summary_2025_YYYYMMDDTHHMMSSZ.json"
+- （WSL）python run_compare_phase1_guard_history.py --current-summary "data/phase1_seed10/logs/phase1_guard_summary_2025_YYYYMMDDTHHMMSSZ.json" --baseline-search-dir "data/phase1_seed10/logs" --summary-glob "phase1_guard_summary_*.json"
+- （WSL）python run_compare_phase1_guard_history.py --current-summary "data/phase1_seed10/logs/phase1_guard_summary_2025_YYYYMMDDTHHMMSSZ.json" --strict-compatibility
+
 
 ========================
 CODEX_SNIPPETS（頻出コピペ：ここだけ使えば回る）
@@ -1211,3 +1334,5 @@ CHANGELOG（このファイルの更新履歴）
 - 2026-02-23：TASK 18 実施。`run_compare_phase1_guard.py` を追加し、run_summary必須キー・内部整合・summary↔ledger整合・failed_fetches前進運用維持（schema確認）を検証可能化。`--target-year 2025` と `--fail-on-mismatch` の両実行で `guard_passed=true` / exit 0 を確認し、不一致ケース（`--target-year 2024 --fail-on-mismatch`）では exit 2 を確認。次は TASK 19（前回runとの回帰比較CLI）。
 - 2026-02-23：TASK 19 実施。`run_compare_phase1_guard_history.py` を追加し、比較前提（target_year/生成元CLI/任意schema version）一致チェックと「差分」と「回帰」の分離判定を実装。正常系（exit 0）、回帰系（exit 2）、比較不成立（exit 3）を確認し、summaryへ `comparison_compatible` / `compatibility_errors` / `diffs` / `regression_passed` / `regression_reasons` / `exit_code` を保存。
 - 2026-02-23：TASK 20 実施。`run_compare_phase1_guard_history.py` に baseline自動解決（manual/auto、過去summary優先、schema一致/guard_passed優先）と `--strict-compatibility` を追加。summaryへ `baseline_resolution_mode` などの運用メタと `exit_code_meaning` を保存し、終了コード運用（0=pass,2=regression,3=incompatible）を明文化。正常系 exit 0、回帰系 exit 2、比較不成立(strict) exit 3 を確認。
+- 2026-02-23：TASK 21 実施（設計整理）。01/02/guard系CLI/run_phase1_seed10.py を突合し、seed10固定箇所を5分類（ファイル名/ディレクトリ/年/カテゴリ/baseline探索）で棚卸し。互換維持方針（未指定時seed10維持）と最小CLI仕様案（logs-dir/summary-path/category/baseline-search-dir）を明文化し、次タスクを TASK 22（guard本体のパス/年汎化実装）に確定。
+- 2026-02-24：TASK 22 実施。`run_compare_phase1_guard.py` に `--logs-dir` / `--run-summary-path` / `--category` を追加し、入力解決（run_summary/visited/failed/output_files）と summary出力既定を logs-dir 基準へ汎化（seed10既定互換を維持）。`--target-year 2025` / `--logs-dir` 指定 / `--fail-on-mismatch` の3コマンドでいずれも `guard_passed=true`・exit 0 を確認。次は TASK 23（history比較CLIのパス/探索汎化）。

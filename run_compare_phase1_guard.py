@@ -3,14 +3,17 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-LOG_DIR = Path("data/phase1_seed10/logs")
-DEFAULT_SUMMARY_TEMPLATE = "run_summary_seed10_{target_year}.json"
+DEFAULT_LOGS_DIR = Path("data/phase1_seed10/logs")
+DEFAULT_RUN_SUMMARY_TEMPLATE = "run_summary_seed10_{target_year}.json"
+DEFAULT_VISITED_TEMPLATE = "visited_pages_seed10_{target_year}.json"
+DEFAULT_FAILED_TEMPLATE = "failed_fetches_seed10_{target_year}.json"
 OUTPUT_TEMPLATE = "phase1_guard_summary_{target_year}_{timestamp}.json"
 GUARD_SCHEMA_VERSION = "1.0"
 GENERATED_BY = "run_compare_phase1_guard.py"
@@ -58,17 +61,32 @@ def write_json(path: Path, payload: dict[str, Any]) -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Validate Phase1 seed10 guard checks for Exhibitions/Artists summaries and ledgers."
+        description="Validate Phase1 guard checks for Exhibitions/Artists summaries and ledgers."
     )
     parser.add_argument("--target-year", type=int, required=True, help="target year (e.g. 2025)")
     parser.add_argument(
+        "--logs-dir",
+        default=str(DEFAULT_LOGS_DIR),
+        help="base directory for guard input/output defaults",
+    )
+    parser.add_argument(
+        "--run-summary-path",
+        default="",
+        help="input run_summary path. Default: <logs-dir>/run_summary_seed10_<target_year>.json",
+    )
+    parser.add_argument(
         "--summary-path",
         default="",
-        help="run_summary path. Default: data/phase1_seed10/logs/run_summary_seed10_<target_year>.json",
+        help="output summary path. Default: <logs-dir>/phase1_guard_summary_<target_year>_<timestamp>.json",
     )
     parser.add_argument("--visited-path", default="", help="override visited_pages path")
     parser.add_argument("--failed-path", default="", help="override failed_fetches path")
     parser.add_argument("--manifest-path", default="", help="optional artifact_manifest path")
+    parser.add_argument(
+        "--category",
+        default="exhibitions_text",
+        help="guard category metadata (default: exhibitions_text)",
+    )
     parser.add_argument(
         "--fail-on-mismatch",
         action="store_true",
@@ -223,6 +241,55 @@ def resolve_path(override: str, fallback: Any) -> Path | None:
     return None
 
 
+def normalize_logs_dir(path_value: str) -> Path:
+    return Path(path_value).expanduser().resolve()
+
+
+def pick_latest_by_mtime(paths: list[Path]) -> Path | None:
+    if not paths:
+        return None
+    return max(paths, key=lambda p: p.stat().st_mtime if p.exists() else 0.0)
+
+
+def resolve_default_run_summary_path(logs_dir: Path, target_year: int) -> Path:
+    legacy = logs_dir / DEFAULT_RUN_SUMMARY_TEMPLATE.format(target_year=target_year)
+    if legacy.exists():
+        return legacy
+    generic_candidates = sorted(logs_dir.glob(f"run_summary_*_{target_year}.json"))
+    latest = pick_latest_by_mtime(generic_candidates)
+    return latest if latest is not None else legacy
+
+
+def resolve_default_ledger_path(
+    logs_dir: Path,
+    target_year: int,
+    *,
+    legacy_template: str,
+    glob_pattern: str,
+) -> Path:
+    legacy = logs_dir / legacy_template.format(target_year=target_year)
+    if legacy.exists():
+        return legacy
+    candidates = sorted(logs_dir.glob(glob_pattern.format(target_year=target_year)))
+    latest = pick_latest_by_mtime(candidates)
+    return latest if latest is not None else legacy
+
+
+def infer_output_files_from_raw(logs_dir: Path, target_year: int) -> tuple[dict[str, Path], str]:
+    raw_dir = logs_dir.parent / "raw"
+    paths = sorted(raw_dir.glob(f"exhibitions_*_{target_year}.jsonl"))
+    output_file_paths: dict[str, Path] = {}
+    for path in paths:
+        match = re.match(rf"^exhibitions_(.+)_{target_year}\.jsonl$", path.name)
+        if not match:
+            continue
+        fair_slug = match.group(1)
+        output_file_paths[fair_slug] = path
+    if output_file_paths:
+        return output_file_paths, "from_logs_dir_raw_glob"
+    return {}, "missing"
+
+
 def load_manifest_check(path: Path | None, target_year: int) -> dict[str, Any]:
     if path is None:
         return {
@@ -312,25 +379,47 @@ def main() -> int:
     started_at = utc_now_iso()
     print(f"[START] Phase1 guard compare at {started_at}")
 
+    logs_dir = normalize_logs_dir(args.logs_dir)
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    summary_path = Path(args.summary_path) if args.summary_path else LOG_DIR / DEFAULT_SUMMARY_TEMPLATE.format(target_year=args.target_year)
+
+    # Backward-compatible fallback:
+    # If old usage passed --summary-path as input run_summary path, treat it as input when it
+    # points to an existing run_summary_* file and --run-summary-path is omitted.
+    run_summary_path_arg = args.run_summary_path
+    output_summary_path_arg = args.summary_path
+    if not run_summary_path_arg and output_summary_path_arg:
+        summary_path_candidate = Path(output_summary_path_arg)
+        if summary_path_candidate.exists() and summary_path_candidate.name.startswith("run_summary_"):
+            run_summary_path_arg = output_summary_path_arg
+            output_summary_path_arg = ""
+
+    run_summary_path = (
+        Path(run_summary_path_arg)
+        if run_summary_path_arg
+        else resolve_default_run_summary_path(logs_dir, args.target_year)
+    )
+    output_path = (
+        Path(output_summary_path_arg)
+        if output_summary_path_arg
+        else logs_dir / OUTPUT_TEMPLATE.format(target_year=args.target_year, timestamp=timestamp)
+    )
 
     check_results: dict[str, Any] = {}
     mismatch_fields: list[str] = []
 
-    summary_obj, summary_load_error = load_json_object(summary_path)
+    summary_obj, summary_load_error = load_json_object(run_summary_path)
     if summary_load_error:
         mismatch_fields.append("run_summary_load_error")
         check_results["run_summary_load"] = {
             "passed": False,
-            "path": str(summary_path),
+            "path": str(run_summary_path),
             "error": summary_load_error,
         }
         summary_obj = {}
     else:
         check_results["run_summary_load"] = {
             "passed": True,
-            "path": str(summary_path),
+            "path": str(run_summary_path),
             "error": None,
         }
 
@@ -348,11 +437,26 @@ def main() -> int:
 
     # Input paths (summary values can be overridden by CLI args).
     visited_path = resolve_path(args.visited_path, summary_obj.get("visited_pages_path"))
+    if visited_path is None:
+        visited_path = resolve_default_ledger_path(
+            logs_dir,
+            args.target_year,
+            legacy_template=DEFAULT_VISITED_TEMPLATE,
+            glob_pattern="visited_pages_*_{target_year}.json",
+        )
     failed_path = resolve_path(args.failed_path, summary_obj.get("failed_fetches_path"))
+    if failed_path is None:
+        failed_path = resolve_default_ledger_path(
+            logs_dir,
+            args.target_year,
+            legacy_template=DEFAULT_FAILED_TEMPLATE,
+            glob_pattern="failed_fetches_*_{target_year}.json",
+        )
 
     output_files = summary_obj.get("output_files")
     output_file_paths: dict[str, Path] = {}
     output_file_errors: list[str] = []
+    output_files_resolution = "from_summary"
     if isinstance(output_files, dict):
         for fair_slug, value in output_files.items():
             if not (isinstance(fair_slug, str) and isinstance(value, str) and value):
@@ -360,7 +464,17 @@ def main() -> int:
                 continue
             output_file_paths[fair_slug] = Path(value)
     else:
-        output_file_errors.append("output_files_not_dict")
+        output_files_resolution = "from_logs_dir_raw_glob_pending"
+
+    if not output_file_paths:
+        inferred_output_files, inferred_mode = infer_output_files_from_raw(logs_dir, args.target_year)
+        if inferred_output_files:
+            output_file_paths = inferred_output_files
+            output_files_resolution = inferred_mode
+        else:
+            if not isinstance(output_files, dict):
+                output_file_errors.append("output_files_not_dict")
+            output_files_resolution = "missing"
 
     if output_file_errors:
         mismatch_fields.append("output_files_invalid")
@@ -382,6 +496,7 @@ def main() -> int:
 
     check_results["output_files"] = {
         "passed": output_file_paths_exist and not output_file_errors,
+        "resolution_mode": output_files_resolution,
         "errors": output_file_errors,
         "items": output_file_checks,
     }
@@ -580,19 +695,20 @@ def main() -> int:
 
     guard_passed = len(deduped_mismatches) == 0
 
-    output_path = LOG_DIR / OUTPUT_TEMPLATE.format(target_year=args.target_year, timestamp=timestamp)
     summary_payload = {
         "started_at": started_at,
         "completed_at": utc_now_iso(),
         "generated_by": GENERATED_BY,
         "guard_schema_version": GUARD_SCHEMA_VERSION,
+        "category": args.category,
+        "logs_dir": str(logs_dir),
         "target_year": args.target_year,
         "fail_on_mismatch": bool(args.fail_on_mismatch),
         "guard_passed": guard_passed,
         "mismatches": len(deduped_mismatches),
         "mismatch_fields": deduped_mismatches,
         "input_paths": {
-            "run_summary_path": str(summary_path),
+            "run_summary_path": str(run_summary_path),
             "visited_pages_path": str(visited_path) if visited_path else None,
             "failed_fetches_path": str(failed_path) if failed_path else None,
             "manifest_path": str(manifest_path) if manifest_path else None,
