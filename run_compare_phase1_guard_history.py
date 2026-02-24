@@ -286,6 +286,27 @@ def normalize_category(value: Any) -> str | None:
     return normalized if normalized else None
 
 
+def normalize_optional_string(value: Any) -> str | None:
+    if not isinstance(value, str):
+        return None
+    normalized = value.strip()
+    return normalized if normalized else None
+
+
+def normalize_optional_bool(value: Any) -> bool | None:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, int):
+        return value != 0
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized in {"1", "true", "yes", "on"}:
+            return True
+        if normalized in {"0", "false", "no", "off"}:
+            return False
+    return None
+
+
 def evaluate_category_compatibility(
     current_category: str | None,
     baseline_category: str | None,
@@ -333,6 +354,103 @@ def evaluate_category_compatibility(
         "category_compatibility_policy": GUARD_CATEGORY_COMPATIBILITY_POLICY,
         "category_warnings": warnings,
         "category_compatibility_errors": errors,
+    }
+
+
+def extract_category_profile_config_context(summary_obj: dict[str, Any]) -> dict[str, Any]:
+    keys = (
+        "category_profile_source",
+        "category_profile_config_path",
+        "category_profile_config_loaded",
+        "category_profile_config_error",
+        "category_profile_config_error_detail",
+        "category_profile_config_version_effective",
+    )
+    present = any(key in summary_obj for key in keys)
+    return {
+        "present": present,
+        "source": normalize_optional_string(summary_obj.get("category_profile_source")),
+        "config_path": normalize_optional_string(summary_obj.get("category_profile_config_path")),
+        "config_loaded": normalize_optional_bool(summary_obj.get("category_profile_config_loaded")),
+        "config_error": normalize_optional_string(summary_obj.get("category_profile_config_error")),
+        "config_error_detail": normalize_optional_string(summary_obj.get("category_profile_config_error_detail")),
+        "config_version_effective": normalize_optional_string(
+            summary_obj.get("category_profile_config_version_effective")
+        ),
+    }
+
+
+def evaluate_category_profile_config_context(
+    current_context: dict[str, Any],
+    baseline_context: dict[str, Any],
+) -> dict[str, Any]:
+    current_present = bool(current_context.get("present"))
+    baseline_present = bool(baseline_context.get("present"))
+
+    if current_present and baseline_present:
+        comparison_mode = "both_present"
+    elif current_present:
+        comparison_mode = "current_only"
+    elif baseline_present:
+        comparison_mode = "baseline_only"
+    else:
+        comparison_mode = "both_missing"
+
+    current_source = normalize_optional_string(current_context.get("source"))
+    baseline_source = normalize_optional_string(baseline_context.get("source"))
+    if current_source is not None and baseline_source is not None:
+        same_source: bool | None = current_source == baseline_source
+    else:
+        same_source = None
+
+    current_version = normalize_optional_string(current_context.get("config_version_effective"))
+    baseline_version = normalize_optional_string(baseline_context.get("config_version_effective"))
+    if current_version is not None and baseline_version is not None:
+        same_version: bool | None = current_version == baseline_version
+    else:
+        same_version = None
+
+    if comparison_mode == "both_present":
+        if current_source and baseline_source:
+            effective_for_comparison = current_source if current_source == baseline_source else "mixed"
+        elif current_source or baseline_source:
+            effective_for_comparison = current_source or baseline_source
+        else:
+            effective_for_comparison = "unknown"
+    elif comparison_mode == "current_only":
+        effective_for_comparison = current_source or "unknown"
+    elif comparison_mode == "baseline_only":
+        effective_for_comparison = baseline_source or "unknown"
+    else:
+        effective_for_comparison = "unknown"
+
+    warnings: list[str] = []
+    if comparison_mode == "current_only":
+        warnings.append("baseline_category_profile_config_context_missing")
+    elif comparison_mode == "baseline_only":
+        warnings.append("current_category_profile_config_context_missing")
+    elif comparison_mode == "both_missing":
+        warnings.append("current_category_profile_config_context_missing")
+        warnings.append("baseline_category_profile_config_context_missing")
+    else:
+        if same_source is False:
+            warnings.append(f"category_profile_config_source_mismatch:{baseline_source}!={current_source}")
+        if same_version is False:
+            warnings.append(f"category_profile_config_version_mismatch:{baseline_version}!={current_version}")
+
+    current_error = normalize_optional_string(current_context.get("config_error"))
+    baseline_error = normalize_optional_string(baseline_context.get("config_error"))
+    if current_error is not None:
+        warnings.append(f"current_category_profile_config_error:{current_error}")
+    if baseline_error is not None:
+        warnings.append(f"baseline_category_profile_config_error:{baseline_error}")
+
+    return {
+        "comparison_mode": comparison_mode,
+        "same_source": same_source,
+        "same_version": same_version,
+        "effective_for_comparison": effective_for_comparison,
+        "warnings": warnings,
     }
 
 
@@ -712,6 +830,14 @@ def main() -> int:
     if args.strict_compatibility and not category_eval["category_compatible"]:
         compatibility_errors.extend(category_eval["category_compatibility_errors"])
 
+    current_profile_config_context = extract_category_profile_config_context(current_obj)
+    baseline_profile_config_context = extract_category_profile_config_context(baseline_obj)
+    profile_config_eval = evaluate_category_profile_config_context(
+        current_context=current_profile_config_context,
+        baseline_context=baseline_profile_config_context,
+    )
+    compatibility_warnings.extend(profile_config_eval["warnings"])
+
     comparison_compatible = len(compatibility_errors) == 0
 
     current_mismatch_fields = parse_string_list(current_obj.get("mismatch_fields"))
@@ -807,6 +933,23 @@ def main() -> int:
         "category_compatible": category_eval["category_compatible"],
         "category_compatibility_policy": category_eval["category_compatibility_policy"],
         "category_warnings": category_eval["category_warnings"],
+        "current_category_profile_config_source": current_profile_config_context["source"],
+        "current_category_profile_config_path": current_profile_config_context["config_path"],
+        "current_category_profile_config_loaded": current_profile_config_context["config_loaded"],
+        "current_category_profile_config_error": current_profile_config_context["config_error"],
+        "current_category_profile_config_error_detail": current_profile_config_context["config_error_detail"],
+        "current_category_profile_config_version_effective": current_profile_config_context["config_version_effective"],
+        "baseline_category_profile_config_source": baseline_profile_config_context["source"],
+        "baseline_category_profile_config_path": baseline_profile_config_context["config_path"],
+        "baseline_category_profile_config_loaded": baseline_profile_config_context["config_loaded"],
+        "baseline_category_profile_config_error": baseline_profile_config_context["config_error"],
+        "baseline_category_profile_config_error_detail": baseline_profile_config_context["config_error_detail"],
+        "baseline_category_profile_config_version_effective": baseline_profile_config_context["config_version_effective"],
+        "category_profile_config_comparison_mode": profile_config_eval["comparison_mode"],
+        "category_profile_config_same_source": profile_config_eval["same_source"],
+        "category_profile_config_same_version": profile_config_eval["same_version"],
+        "category_profile_config_effective_for_comparison": profile_config_eval["effective_for_comparison"],
+        "category_profile_config_warnings": profile_config_eval["warnings"],
         "baseline_candidate_paths": baseline_candidate_paths,
         "baseline_candidate_details": baseline_candidate_details,
         "diffs": diffs,

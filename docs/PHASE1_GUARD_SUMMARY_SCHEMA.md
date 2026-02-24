@@ -183,6 +183,23 @@ Typical file:
 - `category_compatible`
 - `category_compatibility_policy`
 - `category_warnings`
+- `current_category_profile_config_source`
+- `current_category_profile_config_path`
+- `current_category_profile_config_loaded`
+- `current_category_profile_config_error`
+- `current_category_profile_config_error_detail`
+- `current_category_profile_config_version_effective`
+- `baseline_category_profile_config_source`
+- `baseline_category_profile_config_path`
+- `baseline_category_profile_config_loaded`
+- `baseline_category_profile_config_error`
+- `baseline_category_profile_config_error_detail`
+- `baseline_category_profile_config_version_effective`
+- `category_profile_config_comparison_mode`
+- `category_profile_config_same_source`
+- `category_profile_config_same_version`
+- `category_profile_config_effective_for_comparison`
+- `category_profile_config_warnings`
 - `baseline_candidate_paths`
 - `baseline_candidate_details`
 - `diffs`
@@ -242,6 +259,24 @@ Category compatibility policy:
 - strict/non-strict:
   - non-strict: mismatched category is warning-only and comparison continues
   - strict (`--strict-compatibility`): category mismatch is promoted into `compatibility_errors` and can return exit `3`
+
+Category profile config context (visualization-only):
+
+- history summary copies current/baseline guard config context:
+  - `current_category_profile_config_*`
+  - `baseline_category_profile_config_*`
+- `category_profile_config_comparison_mode`:
+  - `both_present` / `current_only` / `baseline_only` / `both_missing`
+- `category_profile_config_same_source` and `category_profile_config_same_version`:
+  - `true`/`false` when both values exist
+  - `null` when either side is missing
+- `category_profile_config_effective_for_comparison`:
+  - typically `external_config`, `builtin_fallback`, `mixed`, or `unknown`
+- `category_profile_config_warnings`:
+  - records missing context and source/version mismatch as warning signals
+- backward compatibility:
+  - old summaries without config-context keys remain comparable
+  - strict/non-strict behavior is unchanged by this block (warning-only, no new incompatibility rules)
 
 ### 4.3 Baseline resolution block
 
