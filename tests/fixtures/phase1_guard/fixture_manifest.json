@@ -1,0 +1,33 @@
+{
+  "version": "1.0",
+  "description": "Reusable fixture set for Phase1 guard/history CLI regression checks.",
+  "cases": [
+    {
+      "case_id": "pass",
+      "description": "Compatible comparison with no regression.",
+      "current_summary": "tests/fixtures/phase1_guard/pass/current_pass_2025.json",
+      "baseline_summary": "tests/fixtures/phase1_guard/pass/baseline_pass_2025.json",
+      "expected_exit_code": 0,
+      "recommended_command": "python run_compare_phase1_guard_history.py --current-summary tests/fixtures/phase1_guard/pass/current_pass_2025.json --baseline-summary tests/fixtures/phase1_guard/pass/baseline_pass_2025.json --fail-on-regression",
+      "notes": "Comparison should be compatible and regression_passed should be true."
+    },
+    {
+      "case_id": "regression",
+      "description": "Compatible comparison with regression (guard_passed true->false and mismatch increase).",
+      "current_summary": "tests/fixtures/phase1_guard/regression/current_regression_2025.json",
+      "baseline_summary": "tests/fixtures/phase1_guard/regression/baseline_regression_2025.json",
+      "expected_exit_code": 2,
+      "recommended_command": "python run_compare_phase1_guard_history.py --current-summary tests/fixtures/phase1_guard/regression/current_regression_2025.json --baseline-summary tests/fixtures/phase1_guard/regression/baseline_regression_2025.json --fail-on-regression",
+      "notes": "Regression reason should include mismatches increase and/or guard_passed regression."
+    },
+    {
+      "case_id": "incompatible",
+      "description": "Incompatible comparison due to target_year mismatch.",
+      "current_summary": "tests/fixtures/phase1_guard/incompatible/current_incompatible_2025.json",
+      "baseline_summary": "tests/fixtures/phase1_guard/incompatible/baseline_incompatible_2024.json",
+      "expected_exit_code": 3,
+      "recommended_command": "python run_compare_phase1_guard_history.py --current-summary tests/fixtures/phase1_guard/incompatible/current_incompatible_2025.json --baseline-summary tests/fixtures/phase1_guard/incompatible/baseline_incompatible_2024.json --strict-compatibility",
+      "notes": "Comparison should be incompatible and strict mode should return exit code 3."
+    }
+  ]
+}
