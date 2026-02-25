@@ -1,0 +1,62 @@
+{
+  "started_at": "2026-02-25T10:13:59Z",
+  "completed_at": "2026-02-25T10:14:02Z",
+  "source_cli": "run_artists_answer_qa_daily_recovery_retry_run_from_rollup_manifest.py",
+  "retry_manifest_path_requested": "--latest",
+  "retry_manifest_latest_resolved": true,
+  "retry_manifest_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_report_rollup_20260225T085951Z_retry_manifest.json",
+  "retry_manifest_case_count": 2,
+  "executed_runs": 2,
+  "succeeded_runs": 0,
+  "failed_runs": 2,
+  "all_passed": false,
+  "wrapper_exit_code": 1,
+  "child_daily_summaries": [
+    "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_retry_run_from_rollup_summary_20260225T101359Z_failed_run_001_daily_summary.json",
+    "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_retry_run_from_rollup_summary_20260225T101359Z_failed_run_002_daily_summary.json"
+  ],
+  "cases": [
+    {
+      "case_id": "failed_run_001",
+      "status": "failed",
+      "exit_code": 1,
+      "source_summary_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_20260225T081253Z.json",
+      "batch_manifest_path": "/tmp/artists_answer_qa_batch_manifest_task67_fixed.json",
+      "daily_summary_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_retry_run_from_rollup_summary_20260225T101359Z_failed_run_001_daily_summary.json",
+      "notes": [],
+      "stdout_tail": "[DONE] artists QA daily recovery complete. all_passed=False wrapper_exit_code=1\n[DONE] summary=/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_retry_run_from_rollup_summary_20260225T101359Z_failed_run_001_daily_summary.json\n",
+      "stderr_tail": "",
+      "command": [
+        "/usr/bin/python",
+        "run_artists_answer_qa_daily_recovery.py",
+        "--batch-manifest",
+        "/tmp/artists_answer_qa_batch_manifest_task67_fixed.json",
+        "--output-json",
+        "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_retry_run_from_rollup_summary_20260225T101359Z_failed_run_001_daily_summary.json"
+      ]
+    },
+    {
+      "case_id": "failed_run_002",
+      "status": "failed",
+      "exit_code": 1,
+      "source_summary_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_20260225T080644Z.json",
+      "batch_manifest_path": "/tmp/artists_answer_qa_batch_manifest_task67_fixed.json",
+      "daily_summary_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_retry_run_from_rollup_summary_20260225T101359Z_failed_run_002_daily_summary.json",
+      "notes": [],
+      "stdout_tail": "[DONE] artists QA daily recovery complete. all_passed=False wrapper_exit_code=1\n[DONE] summary=/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_retry_run_from_rollup_summary_20260225T101359Z_failed_run_002_daily_summary.json\n",
+      "stderr_tail": "",
+      "command": [
+        "/usr/bin/python",
+        "run_artists_answer_qa_daily_recovery.py",
+        "--batch-manifest",
+        "/tmp/artists_answer_qa_batch_manifest_task67_fixed.json",
+        "--output-json",
+        "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_retry_run_from_rollup_summary_20260225T101359Z_failed_run_002_daily_summary.json"
+      ]
+    }
+  ],
+  "notes": [
+    "retry_runs_failed_or_invalid_cases_found"
+  ],
+  "output_summary_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_retry_run_from_rollup_summary_20260225T101359Z.json"
+}

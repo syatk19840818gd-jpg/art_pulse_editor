@@ -13,7 +13,7 @@ STREAMLIT_ENTRYPOINT（固定）
 - Local run: streamlit run app.py
 
 SOURCE_SSOT: 01_PROJECT_SPEC_CURRENT_FULL.docx
-LAST_UPDATED: 2026-02-25 18:47 JST
+LAST_UPDATED: 2026-02-25 19:31 JST
 
 
 ========================
@@ -68,7 +68,7 @@ STATE_SNAPSHOT（現在地）
 ========================
 ■いまの最優先フェーズ（Codexが随時更新する）
 - Phase 1：RAG抽出パイプライン成立（seed10で安定稼働させる）
-  - 直近の到達目標：retry run summary report のrollup導線を追加し、failed/recovered run推移を1コマンドで確認できるようにする（TASK 85）
+  - 直近の到達目標：retry run report rollup起点のワンショット実行結果を軽量レポート化し、failed/recovered run を1コマンドで確認できるようにする（TASK 88）
   - 次の到達目標：Phase2（検索/表示）へ接続する
   - その次：検索品質と表示品質の改善サイクルに入る
 
@@ -1998,7 +1998,7 @@ NEXT_TASKS（次回やること）
         - `data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_retry_run_from_rollup_summary_20260225T094707Z_report.json`
         - `data/phase1_seed10/logs/phase1_guard_summary_2025_20260225T094725Z.json`
 
-[ ] 85) artists回答QA日次復旧retry run summary report のrollup CLIを追加し、failed/recovered run推移を1コマンドで抽出できるようにする（本体前進）
+[x] 85) artists回答QA日次復旧retry run summary report のrollup CLIを追加し、failed/recovered run推移を1コマンドで抽出できるようにする（本体前進）
     - 目的：TASK84で生成される `artists_answer_qa_daily_recovery_retry_run_from_rollup_summary_*_report.json` を複数本まとめて読み、失敗runを即時抽出する
     - 制約：取得ループ内で実行しない（Post-fetch分離）、既存retry run本体/報告CLIのロジックは変更しない（rollup CLI追加のみ）
     - 成立条件：
@@ -2007,6 +2007,87 @@ NEXT_TASKS（次回やること）
       - `--latest-n` と `--search-dir` を使って対象範囲を調整できる
       - 03 の NEXT_TASKS の 85) を [x]、CHANGELOG追記
       - 04 に実行結果（コマンド/exit/rollupパス）を追記
+    - 実行メモ：
+      - 実装：
+        - `run_artists_answer_qa_daily_recovery_retry_run_from_retry_run_report_rollup_manifest_report_rollup.py` を追加
+        - top-levelへ `schema_name` / `schema_version` / `artifact_kind` / `generated_at` / `generated_by` を追加
+        - 対象探索を `is_target_report(...)` / `list_candidate_reports(...)` に寄せ、include/exclude/sortを1か所に集約
+      - 動作確認：
+        - `python run_artists_answer_qa_daily_recovery_retry_run_from_rollup_manifest.py --latest` → exit 1
+        - `python run_artists_answer_qa_daily_recovery_retry_run_from_retry_run_report_rollup_manifest_report.py --latest` → exit 0
+        - `python run_artists_answer_qa_daily_recovery_retry_run_from_retry_run_report_rollup_manifest_report_rollup.py --latest-n 20` → exit 0
+        - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+      - 生成物：
+        - `data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_retry_run_from_rollup_summary_20260225T100815Z.json`
+        - `data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_retry_run_from_rollup_summary_20260225T100815Z_report.json`
+        - `data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_retry_run_report_rollup_20260225T100830Z.json`
+        - `data/phase1_seed10/logs/phase1_guard_summary_2025_20260225T100835Z.json`
+
+[x] 86) artists回答QA日次復旧retry run summary report rollup から failed run 向け retry manifest を生成するCLIを追加し、要再対応runの再実行入口を短縮する（本体前進）
+    - 目的：TASK85で生成した rollup JSON から failed run のみを抽出し、再実行用 manifest を自動生成して復旧導線を短縮する
+    - 制約：取得ループ内で実行しない（Post-fetch分離）、既存daily recovery/retry run/report/rollup本体ロジックは変更しない（manifest生成CLI追加のみ）
+    - 成立条件：
+      - `python run_artists_answer_qa_daily_recovery_retry_manifest_from_retry_run_report_rollup.py --rollup-json "..."`（例）が実行できる
+      - `--latest` で最新 `artists_answer_qa_daily_recovery_retry_run_report_rollup_*.json` を解決できる
+      - generated manifest に最低限 `source_summary_path` / `failed_case_ids` / `retry_manifest_path`（同等）を保存できる
+      - failed run 0件でも空manifestを保存して exit 0 を維持できる
+      - 03 の NEXT_TASKS の 86) を [x]、CHANGELOG追記
+      - 04 に実行結果（コマンド/exit/manifestパス）を追記
+    - 実行メモ：
+      - 実装：
+        - 既存 `run_artists_answer_qa_daily_recovery_retry_manifest_from_retry_run_report_rollup.py` をTASK85出力に対して適用
+        - `--latest` で `artists_answer_qa_daily_recovery_retry_run_report_rollup_*.json` を解決し、`*_retry_manifest.json` を除外する探索ロジックを確認
+        - 生成manifestに `source_summary_path` / `failed_case_ids` / `retry_manifest_path` / `cases[]` を保存
+      - 動作確認：
+        - `python run_artists_answer_qa_daily_recovery_retry_run_from_retry_run_report_rollup_manifest_report_rollup.py --latest-n 20` → exit 0
+        - `python run_artists_answer_qa_daily_recovery_retry_manifest_from_retry_run_report_rollup.py --latest` → exit 0
+        - `python run_artists_answer_qa_daily_recovery_retry_manifest_from_retry_run_report_rollup.py --rollup-json "data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_retry_run_report_rollup_20260225T102015Z.json"` → exit 0
+        - `python run_artists_answer_qa_daily_recovery_retry_run_from_rollup_manifest.py --retry-manifest "data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_retry_run_report_rollup_20260225T102015Z_retry_manifest.json"` → exit 1
+        - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+      - 生成物：
+        - `data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_retry_run_report_rollup_20260225T102015Z.json`
+        - `data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_retry_run_report_rollup_20260225T102015Z_retry_manifest.json`
+        - `data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_retry_run_from_rollup_summary_20260225T102033Z.json`
+        - `data/phase1_seed10/logs/phase1_guard_summary_2025_20260225T102015Z.json`
+
+[x] 87) artists回答QA日次復旧retry run report rollup起点retry manifestのワンショット実行ラッパーを追加し、`--latest` だけで再実行できるようにする（本体前進）
+    - 目的：TASK86で生成する `artists_answer_qa_daily_recovery_retry_run_report_rollup_*_retry_manifest.json` を直接実行し、要再対応run再実行を1コマンド化する
+    - 制約：取得ループ内で実行しない（Post-fetch分離）、既存daily recovery/retry run/report/rollup/retry-manifest本体ロジックは変更しない（実行ラッパー追加のみ）
+    - 成立条件：
+      - `python run_artists_answer_qa_daily_recovery_retry_run_from_retry_run_report_rollup_retry_manifest.py --latest`（例）が実行できる
+      - `--retry-manifest` 明示指定でも実行できる
+      - failed run 0件manifestでは no-op成功（exit 0）し、summaryに `executed_runs=0` / `notes` を保存できる
+      - 03 の NEXT_TASKS の 87) を [x]、CHANGELOG追記
+      - 04 に実行結果（コマンド/exit/summaryパス）を追記
+    - 実行メモ：
+      - 実装：
+        - `run_artists_answer_qa_daily_recovery_retry_run_from_retry_run_report_rollup_retry_manifest.py` を追加
+        - 既存 `run_artists_answer_qa_daily_recovery_retry_run_from_rollup_manifest.py` を subprocess で再利用する薄いラッパーとして実装
+        - `--latest` は `artists_answer_qa_daily_recovery_retry_run_report_rollup_*_retry_manifest.json` を既定globで解決
+      - 動作確認：
+        - `python run_artists_answer_qa_daily_recovery_retry_run_from_retry_run_report_rollup_manifest_report_rollup.py --latest-n 20` → exit 0
+        - `python run_artists_answer_qa_daily_recovery_retry_manifest_from_retry_run_report_rollup.py --latest` → exit 0
+        - `python run_artists_answer_qa_daily_recovery_retry_run_from_retry_run_report_rollup_retry_manifest.py --latest` → exit 1
+        - `python run_artists_answer_qa_daily_recovery_retry_run_from_retry_run_report_rollup_retry_manifest.py --retry-manifest "data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_retry_run_report_rollup_20260225T102710Z_retry_manifest.json"` → exit 1
+        - `python run_artists_answer_qa_daily_recovery_retry_run_from_retry_run_report_rollup_retry_manifest.py --retry-manifest "/tmp/artists_retry_run_report_rollup_empty_task87_retry_manifest.json"` → exit 0（no-op）
+        - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+      - 生成物：
+        - `data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_retry_run_report_rollup_20260225T102710Z.json`
+        - `data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_retry_run_report_rollup_20260225T102710Z_retry_manifest.json`
+        - `data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_retry_run_from_rollup_summary_20260225T102717Z.json`
+        - `data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_retry_run_from_rollup_summary_20260225T102805Z.json`
+        - `data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_retry_run_from_rollup_summary_20260225T103131Z.json`
+        - `data/phase1_seed10/logs/phase1_guard_summary_2025_20260225T102859Z.json`
+
+[ ] 88) artists回答QA日次復旧retry run report rollup起点retry run summary の軽量レポートCLIを追加し、failed/recovered run を1コマンドで確認できるようにする（本体前進）
+    - 目的：TASK87で生成される `artists_answer_qa_daily_recovery_retry_run_from_rollup_summary_*.json` を短く集約し、失敗runと参照先daily summaryを即確認できる導線を追加する
+    - 制約：取得ループ内で実行しない（Post-fetch分離）、既存retry run本体ロジックは変更しない（report CLI追加のみ）
+    - 成立条件：
+      - `python run_artists_answer_qa_daily_recovery_retry_run_from_retry_run_report_rollup_retry_manifest_report.py --summary-path "..."`（例）が実行できる
+      - `--latest` で最新 `artists_answer_qa_daily_recovery_retry_run_from_rollup_summary_*.json` を自動解決できる
+      - レポートに最低限 `retry_manifest_path` / `executed_runs` / `failed_runs` / `failed_case_ids` / `child_daily_summaries_to_check` / `notes`（同等）を保存できる
+      - 03 の NEXT_TASKS の 88) を [x]、CHANGELOG追記
+      - 04 に実行結果（コマンド/exit/レポートパス）を追記
 
 ========================
 BACKLOG（後回し/保留）
@@ -4966,6 +5047,110 @@ TASK 85) artists回答QA日次復旧retry run summary report のrollup CLIを追
 - （WSL）python run_artists_answer_qa_daily_recovery_retry_run_from_retry_run_report_rollup_manifest_report_rollup.py --latest-n 20
 - （WSL）python run_compare_phase1_guard.py --target-year 2025
 
+------------------------------------------------------------
+TASK 86) artists回答QA日次復旧retry run summary report rollup から failed run 向け retry manifest を生成するCLIを追加し、要再対応runの再実行入口を短縮する（本体前進）
+------------------------------------------------------------------------------------------------
+目的：
+- TASK85で生成される `artists_answer_qa_daily_recovery_retry_run_report_rollup_*.json` から failed run を抽出し、再実行manifestを自動生成する。
+- 日次運用で「rollup確認→retry manifest生成」の手作業を減らし、復旧導線を短縮する。
+
+参照ファイル：
+- run_artists_answer_qa_daily_recovery_retry_run_from_retry_run_report_rollup_manifest_report_rollup.py
+- data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_retry_run_report_rollup_*.json
+- docs/03_STATE_SNAPSHOT_NEXT_TASKS.md
+- docs/04_TASK_PROGRESS_LOG.md
+
+制約：
+- 取得ループ内で実行しない（Post-fetch分離維持）
+- 既存Exhibitions/Tarutani/guard/history/lint/matrixの既存処理を壊さない
+- ドメイン専用ハードコードを増やさない
+- 既存daily recovery/retry run/report/rollup本体ロジックは変更しない（manifest生成CLI追加のみ）
+
+完了条件：
+- `python run_artists_answer_qa_daily_recovery_retry_manifest_from_retry_run_report_rollup.py --rollup-json "..."`（例）が実行できる
+- `--latest` で最新 `artists_answer_qa_daily_recovery_retry_run_report_rollup_*.json` を自動解決できる
+- 生成manifestに最低限 `source_summary_path` / `failed_case_ids` / `retry_manifest_path`（同等）を保存できる
+- failed run 0件でもクラッシュせず、空manifest（または0件明示）を保存できる
+- 03 の NEXT_TASKS の 86) を [x]、CHANGELOG追記
+- 04 に実行結果（コマンド/exit/manifestパス）を追記
+- 次の最優先タスク（TASK87）のプロンプト全文を提示する
+
+動作確認コマンド：
+- （WSL）python run_artists_answer_qa_daily_recovery_retry_run_from_retry_run_report_rollup_manifest_report_rollup.py --latest-n 20
+- （WSL）python run_artists_answer_qa_daily_recovery_retry_manifest_from_retry_run_report_rollup.py --latest
+- （WSL）python run_artists_answer_qa_daily_recovery_retry_run_from_rollup_manifest.py --retry-manifest "data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_retry_run_report_rollup_YYYYMMDDTHHMMSSZ_retry_manifest.json"
+- （WSL）python run_compare_phase1_guard.py --target-year 2025
+
+------------------------------------------------------------
+TASK 87) artists回答QA日次復旧retry run report rollup起点retry manifestをワンショット実行するCLIを追加し、`--latest` だけで再実行できるようにする（本体前進）
+------------------------------------------------------------------------------------------------
+目的：
+- TASK86で生成される `artists_answer_qa_daily_recovery_retry_run_report_rollup_*_retry_manifest.json` を直接実行し、failed runの再実行を1コマンド化する。
+- 日次運用で「rollup確認→manifest生成→再実行」の最終手順を短縮する。
+
+参照ファイル：
+- run_artists_answer_qa_daily_recovery_retry_manifest_from_retry_run_report_rollup.py
+- run_artists_answer_qa_daily_recovery_retry_run_from_rollup_manifest.py
+- data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_retry_run_report_rollup_*_retry_manifest.json
+- docs/03_STATE_SNAPSHOT_NEXT_TASKS.md
+- docs/04_TASK_PROGRESS_LOG.md
+
+制約：
+- 取得ループ内で実行しない（Post-fetch分離維持）
+- 既存Exhibitions/Tarutani/guard/history/lint/matrixの既存処理を壊さない
+- ドメイン専用ハードコードを増やさない
+- 既存daily recovery/retry run/report/rollup/retry-manifest本体ロジックは変更しない（実行ラッパー追加のみ）
+
+完了条件：
+- `python run_artists_answer_qa_daily_recovery_retry_run_from_retry_run_report_rollup_retry_manifest.py --retry-manifest "..."`（例）が実行できる
+- `--latest` で最新 `artists_answer_qa_daily_recovery_retry_run_report_rollup_*_retry_manifest.json` を自動解決できる
+- failed run 0件manifestでは no-op成功（exit 0）し、summaryに `executed_runs=0` / `notes` を保存できる
+- summaryに最低限 `retry_manifest_path` / `executed_runs` / `wrapper_exit_code` / `child_daily_summaries`（同等）を保存できる
+- 03 の NEXT_TASKS の 87) を [x]、CHANGELOG追記
+- 04 に実行結果（コマンド/exit/summaryパス）を追記
+- 次の最優先タスク（TASK88）のプロンプト全文を提示する
+
+動作確認コマンド：
+- （WSL）python run_artists_answer_qa_daily_recovery_retry_run_from_retry_run_report_rollup_manifest_report_rollup.py --latest-n 20
+- （WSL）python run_artists_answer_qa_daily_recovery_retry_manifest_from_retry_run_report_rollup.py --latest
+- （WSL）python run_artists_answer_qa_daily_recovery_retry_run_from_retry_run_report_rollup_retry_manifest.py --latest
+- （WSL）python run_artists_answer_qa_daily_recovery_retry_run_from_retry_run_report_rollup_retry_manifest.py --retry-manifest "data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_retry_run_report_rollup_YYYYMMDDTHHMMSSZ_retry_manifest.json"
+- （WSL）python run_compare_phase1_guard.py --target-year 2025
+
+------------------------------------------------------------
+TASK 88) artists回答QA日次復旧retry run report rollup起点retry run summary の軽量レポートCLIを追加し、failed/recovered run を1コマンドで確認できるようにする（本体前進）
+------------------------------------------------------------------------------------------------
+目的：
+- TASK87で生成される `artists_answer_qa_daily_recovery_retry_run_from_rollup_summary_*.json` を短く集約し、失敗runと参照先daily summaryを即確認できる導線を追加する。
+- 日次運用で「retry run実行後の確認」を1コマンド化する。
+
+参照ファイル：
+- run_artists_answer_qa_daily_recovery_retry_run_from_retry_run_report_rollup_retry_manifest.py
+- data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_retry_run_from_rollup_summary_*.json
+- docs/03_STATE_SNAPSHOT_NEXT_TASKS.md
+- docs/04_TASK_PROGRESS_LOG.md
+
+制約：
+- 取得ループ内で実行しない（Post-fetch分離維持）
+- 既存Exhibitions/Tarutani/guard/history/lint/matrixの既存処理を壊さない
+- ドメイン専用ハードコードを増やさない
+- 既存retry run本体ロジックは変更しない（report CLI追加のみ）
+
+完了条件：
+- `python run_artists_answer_qa_daily_recovery_retry_run_from_retry_run_report_rollup_retry_manifest_report.py --summary-path "..."`（例）が実行できる
+- `--latest` で最新 `artists_answer_qa_daily_recovery_retry_run_from_rollup_summary_*.json` を自動解決できる
+- レポートに最低限 `retry_manifest_path` / `executed_runs` / `failed_runs` / `failed_case_ids` / `child_daily_summaries_to_check` / `notes`（同等）を保存できる
+- 03 の NEXT_TASKS の 88) を [x]、CHANGELOG追記
+- 04 に実行結果（コマンド/exit/レポートパス）を追記
+- 次の最優先タスク（TASK89）のプロンプト全文を提示する
+
+動作確認コマンド：
+- （WSL）python run_artists_answer_qa_daily_recovery_retry_run_from_retry_run_report_rollup_manifest_report_rollup.py --latest-n 20
+- （WSL）python run_artists_answer_qa_daily_recovery_retry_manifest_from_retry_run_report_rollup.py --latest
+- （WSL）python run_artists_answer_qa_daily_recovery_retry_run_from_retry_run_report_rollup_retry_manifest.py --latest
+- （WSL）python run_artists_answer_qa_daily_recovery_retry_run_from_retry_run_report_rollup_retry_manifest_report.py --latest
+- （WSL）python run_compare_phase1_guard.py --target-year 2025
+
 
 ========================
 CODEX_SNIPPETS（頻出コピペ：ここだけ使えば回る）
@@ -5170,3 +5355,6 @@ CHANGELOG（このファイルの更新履歴）
 - 2026-02-25：TASK 82 実施。`run_artists_answer_qa_daily_recovery_retry_manifest_from_retry_run_report_rollup.py` を追加し、`artists_answer_qa_daily_recovery_retry_run_report_rollup_*.json` から failed run を抽出して retry manifest を生成する導線（`--rollup-json` / `--latest`）を実装。`--latest` は `*_retry_manifest.json` を除外して rollup本体JSONを解決し、生成manifestへ `source_summary_path` / `failed_case_ids` / `retry_manifest_path` / `cases[].batch_manifest_path` を保存。動作確認は `retry_run_report_rollup --latest-n 20`（exit 0）/ `retry_manifest_from_retry_run_report_rollup --latest`（exit 0）/ 空rollup（`failed_runs=0`）で manifest 生成（exit 0）/ `retry_run_from_rollup_manifest --retry-manifest ...`（exit 1）/ `run_compare_phase1_guard.py --target-year 2025`（exit 0）。次タスク（TASK83: retry run report rollup起点manifestワンショット実行CLI）を追加。
 - 2026-02-25：TASK 83 実施。`run_artists_answer_qa_daily_recovery_retry_run_from_retry_run_report_rollup_manifest.py` を追加し、TASK82の retry manifest を既存 `run_artists_answer_qa_daily_recovery_retry_run_from_rollup_manifest.py` へ委譲実行するワンショット導線（`--retry-manifest` / `--latest`）を実装。`--latest` 既定globを `artists_answer_qa_daily_recovery_retry_run_report_rollup_*_retry_manifest.json` に固定し、failed runありmanifestでは exit 1、空manifestでは no-op 成功（exit 0, `executed_runs=0`）を確認。動作確認は `retry_run_report_rollup --latest-n 20`（exit 0）/ `retry_manifest_from_retry_run_report_rollup --latest`（exit 0）/ `retry_run_from_retry_run_report_rollup_manifest --latest`（exit 1）/ `--retry-manifest ...094043Z...`（exit 1）/ `--retry-manifest /tmp/...empty...`（exit 0）/ `run_compare_phase1_guard.py --target-year 2025`（exit 0）。次タスク（TASK84: retry run summary軽量レポートCLI）を追加。
 - 2026-02-25：TASK 84 実施。`run_artists_answer_qa_daily_recovery_retry_run_from_retry_run_report_rollup_manifest_report.py` を追加し、retry run summary（`artists_answer_qa_daily_recovery_retry_run_from_rollup_summary_*.json`）の軽量レポート導線（`--summary-path` / `--latest`）を実装。`--latest` は `_report.json` と `_failed_run_` を除外して本体summaryのみ解決し、`retry_manifest_path` / `executed_runs` / `failed_runs` / `failed_case_ids` / `child_daily_summaries_to_check` / `notes` を保存。動作確認は `retry_run_report_rollup --latest-n 20`（exit 0）/ `retry_manifest_from_retry_run_report_rollup --latest`（exit 0）/ `retry_run_from_retry_run_report_rollup_manifest --latest`（exit 1）/ `retry_run_from_retry_run_report_rollup_manifest_report --latest`（exit 0）/ `--summary-path ...094707Z.json`（exit 0）/ `run_compare_phase1_guard.py --target-year 2025`（exit 0）。次タスク（TASK85: retry run summary report rollup CLI）を追加。
+- 2026-02-25：TASK 85 実施。`run_artists_answer_qa_daily_recovery_retry_run_from_retry_run_report_rollup_manifest_report_rollup.py` を追加し、retry run summary report（`artists_answer_qa_daily_recovery_retry_run_from_rollup_summary_*_report.json`）のrollup導線を実装。出力top-levelへ `schema_name` / `schema_version` / `artifact_kind` / `generated_at` / `generated_by` を追加し、対象探索は `is_target_report` / `list_candidate_reports` へ最小共通化。動作確認は `retry_run_from_rollup_manifest --latest`（exit 1）/ `retry_run_from_retry_run_report_rollup_manifest_report --latest`（exit 0）/ `retry_run_from_retry_run_report_rollup_manifest_report_rollup --latest-n 20`（exit 0）/ `run_compare_phase1_guard.py --target-year 2025`（exit 0）。次タスク（TASK86: retry run summary report rollup起点retry manifest生成CLI）を追加。
+- 2026-02-25：TASK 86 実施。`run_artists_answer_qa_daily_recovery_retry_manifest_from_retry_run_report_rollup.py` をTASK85生成物に適用し、retry run report rollup起点の retry manifest 生成を再確認。`--latest` で最新 `artists_answer_qa_daily_recovery_retry_run_report_rollup_*.json`（`*_retry_manifest.json` 除外）を解決し、`source_summary_path` / `failed_case_ids` / `retry_manifest_path` / `cases[]` を保存。動作確認は `retry_run_report_rollup --latest-n 20`（exit 0）/ `retry_manifest_from_retry_run_report_rollup --latest`（exit 0）/ `retry_run_from_rollup_manifest --retry-manifest ...102015Z...`（exit 1）/ `run_compare_phase1_guard.py --target-year 2025`（exit 0）。次タスク（TASK87: retry run report rollup起点retry manifestワンショット実行CLI）を追加。
+- 2026-02-25：TASK 87 実施。`run_artists_answer_qa_daily_recovery_retry_run_from_retry_run_report_rollup_retry_manifest.py` を追加し、retry run report rollup起点 retry manifest のワンショット実行導線（`--retry-manifest` / `--latest`）を実装。既存 `run_artists_answer_qa_daily_recovery_retry_run_from_rollup_manifest.py` をsubprocess再利用して重複実装を回避し、`--latest` で `artists_answer_qa_daily_recovery_retry_run_report_rollup_*_retry_manifest.json` を解決。動作確認は `retry_run_report_rollup --latest-n 20`（exit 0）/ `retry_manifest_from_retry_run_report_rollup --latest`（exit 0）/ `retry_run_from_retry_run_report_rollup_retry_manifest --latest`（exit 1）/ `--retry-manifest ...102710Z...`（exit 1）/ `--retry-manifest /tmp/artists_retry_run_report_rollup_empty_task87_retry_manifest.json`（exit 0, no-op）/ `run_compare_phase1_guard.py --target-year 2025`（exit 0）。次タスク（TASK88: retry run summary軽量レポートCLI）を追加。
