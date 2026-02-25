@@ -1,0 +1,55 @@
+{
+  "generated_at": "2026-02-25T08:57:28Z",
+  "source_cli": "run_artists_answer_qa_daily_recovery_retry_manifest_from_rollup.py",
+  "source_rollup_path_requested": null,
+  "source_rollup_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_report_rollup_20260225T085728Z.json",
+  "source_rollup_latest_resolved": true,
+  "rollup_failed_run_count": 2,
+  "retry_case_count": 2,
+  "retry_manifest_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_report_rollup_20260225T085728Z_retry_manifest.json",
+  "cases": [
+    {
+      "case_id": "failed_run_001",
+      "source_summary_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_20260225T081253Z.json",
+      "source_report_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_20260225T081253Z_report.json",
+      "failed_step_count": 2,
+      "failed_step_names": [
+        "batch_smoke",
+        "retry_run"
+      ],
+      "child_summary_paths_to_check": [
+        "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_20260225T081253Z_retry_run_summary_child_batch_summary.json",
+        "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_20260225T081253Z_retry_run_summary_child_batch_summary_cases.jsonl",
+        "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_20260225T081253Z_batch_smoke_summary.json",
+        "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_20260225T081253Z_batch_report.json",
+        "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_20260225T081253Z_retry_manifest.json",
+        "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_20260225T081253Z_retry_run_summary.json",
+        "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_20260225T081253Z_retry_run_report.json",
+        "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_20260225T081253Z_batch_smoke_summary_cases.jsonl"
+      ],
+      "batch_manifest_path": "/tmp/artists_answer_qa_batch_manifest_task67_fixed.json"
+    },
+    {
+      "case_id": "failed_run_002",
+      "source_summary_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_20260225T080644Z.json",
+      "source_report_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_20260225T080644Z_report.json",
+      "failed_step_count": 2,
+      "failed_step_names": [
+        "batch_smoke",
+        "retry_run"
+      ],
+      "child_summary_paths_to_check": [
+        "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_20260225T080644Z_retry_run_summary_child_batch_summary.json",
+        "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_20260225T080644Z_retry_run_summary_child_batch_summary_cases.jsonl",
+        "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_20260225T080644Z_batch_smoke_summary.json",
+        "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_20260225T080644Z_batch_report.json",
+        "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_20260225T080644Z_retry_manifest.json",
+        "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_20260225T080644Z_retry_run_summary.json",
+        "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_20260225T080644Z_retry_run_report.json",
+        "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_20260225T080644Z_batch_smoke_summary_cases.jsonl"
+      ],
+      "batch_manifest_path": "/tmp/artists_answer_qa_batch_manifest_task67_fixed.json"
+    }
+  ],
+  "notes": []
+}
