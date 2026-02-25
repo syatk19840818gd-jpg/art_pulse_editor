@@ -1,0 +1,14 @@
+{
+  "generated_at": "2026-02-25T08:13:20Z",
+  "source_cli": "run_artists_answer_qa_daily_recovery_retry_manifest_from_rollup.py",
+  "source_rollup_path_requested": "data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_report_rollup_20260225T080328Z.json",
+  "source_rollup_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_report_rollup_20260225T080328Z.json",
+  "source_rollup_latest_resolved": false,
+  "rollup_failed_run_count": 0,
+  "retry_case_count": 0,
+  "retry_manifest_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_report_rollup_20260225T080328Z_retry_manifest.json",
+  "cases": [],
+  "notes": [
+    "no_failed_runs_in_rollup"
+  ]
+}

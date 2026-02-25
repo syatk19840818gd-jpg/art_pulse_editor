@@ -1,0 +1,16 @@
+{
+  "started_at": "2026-02-25T07:54:07Z",
+  "completed_at": "2026-02-25T07:54:07Z",
+  "source_cli": "run_artists_answer_qa_daily_recovery.py",
+  "batch_manifest_path": "/tmp/artists_answer_qa_batch_manifest_task67_fixed.json",
+  "all_passed": false,
+  "wrapper_exit_code": 1,
+  "steps": [],
+  "notes": [],
+  "errors": [
+    "batch_manifest_not_found:/tmp/artists_answer_qa_batch_manifest_task67_fixed.json"
+  ],
+  "output_paths": {
+    "daily_summary_json": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_20260225T075407Z.json"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "checked_at": "2026-02-25T08:03:33Z",
+  "source_cli": "run_artists_answer_qa_retry_run_report.py",
+  "summary_path_requested": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_20260225T080328Z_retry_run_summary.json",
+  "summary_latest_resolved": false,
+  "summary_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_20260225T080328Z_retry_run_summary.json",
+  "retry_manifest_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_summary_20260225T080328Z_retry_manifest.json",
+  "retry_manifest_case_count": 0,
+  "executed_cases": 0,
+  "wrapper_exit_code": 0,
+  "all_passed": true,
+  "child_batch_summary_path": null,
+  "child_batch_cases_jsonl_path": null,
+  "notes": [
+    "no_failed_cases_in_manifest"
+  ],
+  "warnings": [],
+  "report_exit_code": 0,
+  "report_status": "ok"
+}
