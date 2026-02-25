@@ -3,16 +3,21 @@ from __future__ import annotations
 
 import argparse
 import json
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+from qa_artifact_utils import build_artifact_header, resolve_latest_artifact
 
 DEFAULT_SEARCH_DIR = Path("data/phase1_seed10/derived/answer")
 DEFAULT_GLOB = "artists_answer_qa_daily_recovery_retry_run_report_rollup_*.json"
 SOURCE_CLI = "run_artists_answer_qa_daily_recovery_retry_manifest_from_retry_run_report_rollup.py"
+INPUT_ARTIFACT_KIND = "retry_run_report_rollup"
+OUTPUT_ARTIFACT_KIND = "retry_run_report_rollup_retry_manifest"
 
 
 def utc_now_iso() -> str:
+    from datetime import datetime, timezone
+
     return datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
 
 
@@ -26,24 +31,6 @@ def load_json(path: Path) -> dict[str, Any]:
     if not isinstance(obj, dict):
         raise ValueError(f"json_not_object:{path}")
     return obj
-
-
-def _is_rollup_candidate(path: Path) -> bool:
-    name = path.name
-    if not name.startswith("artists_answer_qa_daily_recovery_retry_run_report_rollup_"):
-        return False
-    if not name.endswith(".json"):
-        return False
-    # Exclude output manifests created from rollup files.
-    return "_retry_manifest.json" not in name
-
-
-def _resolve_latest_rollup(search_dir: Path, pattern: str) -> tuple[Path | None, str | None]:
-    candidates = [p for p in search_dir.glob(pattern) if p.is_file() and _is_rollup_candidate(p)]
-    if not candidates:
-        return None, f"latest_retry_run_report_rollup_not_found:{search_dir}/{pattern}"
-    latest = max(candidates, key=lambda p: p.stat().st_mtime)
-    return latest.resolve(), None
 
 
 def _as_optional_str(value: Any) -> str | None:
@@ -175,7 +162,11 @@ def main() -> int:
     if requested_rollup_path:
         rollup_path = Path(requested_rollup_path).resolve()
     else:
-        latest_path, latest_error = _resolve_latest_rollup(Path(args.search_dir), args.glob)
+        latest_path, latest_error = resolve_latest_artifact(
+            Path(args.search_dir).resolve(),
+            INPUT_ARTIFACT_KIND,
+            glob_pattern=args.glob,
+        )
         if latest_error:
             print(f"[ERROR] {latest_error}")
             return 1
@@ -245,7 +236,7 @@ def main() -> int:
     )
 
     manifest: dict[str, Any] = {
-        "generated_at": utc_now_iso(),
+        **build_artifact_header(OUTPUT_ARTIFACT_KIND, generated_by=SOURCE_CLI),
         "source_cli": SOURCE_CLI,
         "source_rollup_path_requested": requested_rollup_path,
         "source_rollup_path": str(rollup_path),

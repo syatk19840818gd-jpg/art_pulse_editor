@@ -1,0 +1,9 @@
+{
+  "source_summary_path": "data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_retry_run_from_rollup_summary_20991231T235959Z.json",
+  "all_passed": true,
+  "wrapper_exit_code": 0,
+  "failed_runs": 0,
+  "failed_case_ids": [],
+  "child_daily_summaries_to_check": [],
+  "notes": ["task89_smoke_seed_noop"]
+}

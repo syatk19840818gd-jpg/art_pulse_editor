@@ -1,0 +1,63 @@
+{
+  "started_at": "2026-02-25T11:20:39Z",
+  "completed_at": "2026-02-25T11:20:39Z",
+  "source_cli": "run_artists_answer_qa_smoke.py",
+  "question": "この検索結果から注目作家の傾向を教えて",
+  "query": "",
+  "query_effective": null,
+  "qa_input_mode": "fixed_context",
+  "context_path_effective": "data/phase1_seed10/derived/context/artists_text_context_20260224T133157Z.json",
+  "context_summary_path_effective": "data/phase1_seed10/derived/context/artists_text_context_summary_20260224T133157Z.json",
+  "k_requested": 5,
+  "fail_on_regression": false,
+  "all_passed": false,
+  "wrapper_exit_code": 1,
+  "steps": [
+    {
+      "name": "context_build",
+      "command": [],
+      "exit_code": 0,
+      "status": "skipped",
+      "output_paths": {
+        "context_path": "data/phase1_seed10/derived/context/artists_text_context_20260224T133157Z.json",
+        "context_summary_path": "data/phase1_seed10/derived/context/artists_text_context_summary_20260224T133157Z.json"
+      },
+      "stdout_tail": "",
+      "stderr_tail": "",
+      "skip_reason": "fixed_context_mode_provided"
+    },
+    {
+      "name": "answer_generate",
+      "command": [
+        "/usr/bin/python",
+        "run_answer_artists_seed10.py",
+        "--question",
+        "この検索結果から注目作家の傾向を教えて",
+        "--context-path",
+        "data/phase1_seed10/derived/context/artists_text_context_20260224T133157Z.json",
+        "--k",
+        "5",
+        "--fail-on-invalid-output"
+      ],
+      "exit_code": 1,
+      "status": "failed",
+      "output_paths": {},
+      "stdout_tail": "",
+      "stderr_tail": "Traceback (most recent call last):\n  File \"/home/syatk/my_projects/art_pulse_editor/run_answer_artists_seed10.py\", line 15, in <module>\n    from dotenv import load_dotenv\nModuleNotFoundError: No module named 'dotenv'\n"
+    },
+    {
+      "name": "answer_compare",
+      "command": [],
+      "exit_code": 0,
+      "status": "skipped",
+      "output_paths": {},
+      "stdout_tail": "",
+      "stderr_tail": "",
+      "skip_reason": "compare_skipped_in_fixed_context_mode"
+    }
+  ],
+  "warnings": [],
+  "output_paths": {
+    "qa_summary_json": "data/phase1_seed10/derived/answer/artists_answer_qa_smoke_summary_20260225T112038Z_fixed_case_2.json"
+  }
+}

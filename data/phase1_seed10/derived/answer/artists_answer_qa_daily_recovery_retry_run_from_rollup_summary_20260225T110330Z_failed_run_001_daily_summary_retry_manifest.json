@@ -1,0 +1,29 @@
+{
+  "generated_at": "2026-02-25T11:04:41Z",
+  "source_cli": "run_artists_answer_qa_retry_manifest.py",
+  "input_cases_jsonl_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_retry_run_from_rollup_summary_20260225T110330Z_failed_run_001_daily_summary_batch_smoke_summary_cases.jsonl",
+  "total_cases": 2,
+  "failed_cases": 2,
+  "retry_case_count": 2,
+  "failed_case_ids": [
+    "fixed_case_1",
+    "fixed_case_2"
+  ],
+  "cases": [
+    {
+      "case_id": "fixed_case_1",
+      "question": "この検索結果から注目作家の傾向を教えて",
+      "query": null,
+      "context_path": "data/phase1_seed10/derived/context/artists_text_context_20260224T133138Z.json",
+      "fail_on_regression": false
+    },
+    {
+      "case_id": "fixed_case_2",
+      "question": "この検索結果から注目作家の傾向を教えて",
+      "query": null,
+      "context_path": "data/phase1_seed10/derived/context/artists_text_context_20260224T133157Z.json",
+      "fail_on_regression": false
+    }
+  ],
+  "notes": []
+}

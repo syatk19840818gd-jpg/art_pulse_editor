@@ -6,9 +6,12 @@ import subprocess
 import sys
 from pathlib import Path
 
+from qa_artifact_utils import resolve_latest_artifact
+
 DEFAULT_SEARCH_DIR = Path("data/phase1_seed10/derived/answer")
 DEFAULT_GLOB = "artists_answer_qa_daily_recovery_retry_run_report_rollup_*_retry_manifest.json"
 DELEGATE_SCRIPT = Path("run_artists_answer_qa_daily_recovery_retry_run_from_rollup_manifest.py")
+INPUT_ARTIFACT_KIND = "retry_run_report_rollup_retry_manifest"
 
 
 def parse_args() -> argparse.Namespace:
@@ -46,8 +49,16 @@ def main() -> int:
     if args.retry_manifest:
         cmd.extend(["--retry-manifest", args.retry_manifest])
     else:
-        cmd.append("--latest")
-        cmd.extend(["--search-dir", args.search_dir, "--glob", args.glob])
+        latest_manifest, latest_error = resolve_latest_artifact(
+            Path(args.search_dir).resolve(),
+            INPUT_ARTIFACT_KIND,
+            glob_pattern=args.glob,
+        )
+        if latest_error:
+            print(f"[ERROR] {latest_error}")
+            return 1
+        assert latest_manifest is not None
+        cmd.extend(["--retry-manifest", str(latest_manifest)])
 
     if args.output_json:
         cmd.extend(["--output-json", args.output_json])

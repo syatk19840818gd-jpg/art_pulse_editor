@@ -9,11 +9,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from qa_artifact_utils import build_artifact_header
+
 DEFAULT_SEARCH_DIR = Path("data/phase1_seed10/derived/answer")
 DEFAULT_GLOB = "artists_answer_qa_daily_recovery_report_rollup_*_retry_manifest.json"
 DEFAULT_SUMMARY_DIR = Path("data/phase1_seed10/derived/answer")
 DAILY_RECOVERY_SCRIPT = Path("run_artists_answer_qa_daily_recovery.py")
 SOURCE_CLI = "run_artists_answer_qa_daily_recovery_retry_run_from_rollup_manifest.py"
+OUTPUT_ARTIFACT_KIND = "retry_run_summary_from_rollup"
 
 
 def utc_now_iso() -> str:
@@ -93,6 +96,7 @@ def main() -> int:
     )
 
     summary: dict[str, Any] = {
+        **build_artifact_header(OUTPUT_ARTIFACT_KIND, generated_by=SOURCE_CLI),
         "started_at": started_at,
         "completed_at": None,
         "source_cli": SOURCE_CLI,

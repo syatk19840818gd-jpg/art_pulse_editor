@@ -1,6 +1,6 @@
 # 04_TASK_PROGRESS_LOG.md
 
-最終更新: 2026-02-25 19:31 JST  
+最終更新: 2026-02-25 20:29 JST  
 対象プロジェクト: ART_PULSE_EDITOR（Phase1 seed10 / Guard運用整備）  
 位置づけ: 実装進捗ログ（01=SSOT、02=索引、03=現行運用タスクの補助ログ）
 
@@ -29,8 +29,8 @@
 
 ## 2. 全体の進捗サマリ（現時点）
 
-- 完了: **TASK 1 ～ TASK 87**
-- 次の予定: **TASK 88**
+- 完了: **TASK 1 ～ TASK 89**
+- 次の予定: **TASK 90**
 - 直近の重点:
   - TarutaniRAG 側で比較/guard の「型」を作成 → Phase1本体（Exhibitions/Artists）へ横展開
   - Phase1 guard 本体 / history 比較 / fixture / matrix / schema文書化 / category文脈まで整備
@@ -463,18 +463,18 @@
 
 ---
 
-## 10. 現在の次タスク（TASK88）
+## 10. 現在の次タスク（TASK90）
 
-[ ] 88) artists回答QA日次復旧retry run report rollup起点retry run summary の軽量レポートCLIを追加し、failed/recovered run を1コマンドで確認できるようにする（本体前進）
+[ ] 90) artists回答QA retry-run daily chain summary の軽量レポートCLIを追加し、failed step と参照先summaryを1コマンドで確認できるようにする（本体前進）
 - 目的：
-  - TASK87で生成される `artists_answer_qa_daily_recovery_retry_run_from_rollup_summary_*.json` を短く集約し、failed/recovered run と参照先daily summaryを即確認できる導線を追加する
+  - TASK89で生成される `artists_answer_qa_retry_run_daily_chain_summary_*.json` から failed step と参照先summaryを短時間で確認できる導線を追加する
 - 制約：
   - 取得ループ内LLM加工は追加しない（Post-fetch分離）
-  - 既存retry run本体ロジックは変更しない（report CLI追加のみ）
+  - 既存daily chain本体ロジックは変更せず、report CLI追加のみに限定する
 - 成立条件：
-  - `python run_artists_answer_qa_daily_recovery_retry_run_from_retry_run_report_rollup_retry_manifest_report.py --summary-path "..."`（例）が実行できる
-  - `--latest` で最新 `artists_answer_qa_daily_recovery_retry_run_from_rollup_summary_*.json` を自動解決できる
-  - レポートに `retry_manifest_path` / `executed_runs` / `failed_runs` / `failed_case_ids` / `child_daily_summaries_to_check` / `notes`（同等）を保存できる
+  - `python run_aqa_retry_run_daily_chain_report.py --latest` / `--summary-path` が実行できる
+  - report JSONに `all_passed` / `wrapper_exit_code` / `failed_steps` / `child_summary_paths_to_check` / `notes` を保存できる
+  - 03/04に実行結果と生成物パスを反映できる
 
 ---
 
@@ -1659,3 +1659,78 @@
   - `data/phase1_seed10/logs/phase1_guard_summary_2025_20260225T102859Z.json`
 - 削除候補メモ（未削除）：
   - 今回該当なし（実データ削除は未実施）
+
+## 58. TASK88 実行ログ（retry run summary軽量レポートCLI + 最小共通整理）
+
+[x] 88) artists回答QA日次復旧retry run report rollup起点retry run summary の軽量レポートCLIを追加し、failed/recovered run を1コマンドで確認できるようにする（本体前進）
+- 変更ファイル：
+  - `qa_artifact_utils.py`（新規）
+  - `run_artists_answer_qa_daily_recovery_retry_run_from_retry_run_report_rollup_retry_manifest_report.py`（新規）
+  - `run_aqa_retry_run_report_rollup.py`（新規）
+  - `run_aqa_retry_run_report_rollup_manifest.py`（新規）
+  - `run_aqa_retry_run_report_rollup_retry_run.py`（新規）
+  - `run_aqa_retry_run_report_rollup_retry_run_report.py`（新規）
+  - `run_artists_answer_qa_daily_recovery_retry_run_from_retry_run_report_rollup_manifest_report_rollup.py`
+  - `run_artists_answer_qa_daily_recovery_retry_manifest_from_retry_run_report_rollup.py`
+  - `run_artists_answer_qa_daily_recovery_retry_run_from_retry_run_report_rollup_retry_manifest.py`
+  - `run_artists_answer_qa_daily_recovery_retry_run_from_rollup_manifest.py`
+  - `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md`
+  - `docs/04_TASK_PROGRESS_LOG.md`
+- 実装内容：
+  - TASK88本体として `run_artists_answer_qa_daily_recovery_retry_run_from_retry_run_report_rollup_retry_manifest_report.py` を追加
+    - 入力: `--summary-path` / `--latest`（排他）
+    - 出力: `retry_manifest_path` / `executed_runs` / `failed_runs` / `failed_case_ids` / `child_daily_summaries_to_check` / `notes`
+    - exit: `0=report_generated` / `1=summary_not_found_or_invalid`
+  - 軽量共通整理として `qa_artifact_utils.py` を追加
+    - TASK85〜88系の artifact registry（`artifact_kind/schema_name/schema_version/glob/exclude`）
+    - `resolve_latest_artifact(...)` / `list_candidate_artifacts(...)` を共通化
+    - `build_artifact_header(...)` で共通メタ付与を統一
+  - TASK85/86/87系に共通化を反映（既存本体ロジックは維持）
+  - 命名長の運用負荷軽減として短い入口ラッパー4本を追加（長いCLI名は後方互換で維持）
+- 動作確認（2026-02-25）：
+  - `python run_artists_answer_qa_daily_recovery_retry_run_from_retry_run_report_rollup_retry_manifest.py --latest` → exit 1
+  - `python run_artists_answer_qa_daily_recovery_retry_run_from_retry_run_report_rollup_retry_manifest_report.py --latest` → exit 0
+  - `python run_artists_answer_qa_daily_recovery_retry_run_from_retry_run_report_rollup_retry_manifest_report.py --summary-path "data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_retry_run_from_rollup_summary_20260225T105331Z.json"` → exit 0
+  - `python run_aqa_retry_run_report_rollup_retry_run_report.py --latest` → exit 0
+  - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+- 生成物：
+  - `data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_retry_run_from_rollup_summary_20260225T105331Z.json`
+  - `data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_retry_run_from_rollup_summary_20260225T105331Z_report.json`
+  - `data/phase1_seed10/logs/phase1_guard_summary_2025_20260225T105421Z.json`
+- CLEANUP_CANDIDATES（未削除）：
+  - `/tmp/artists_retry_run_report_rollup_empty_task87_retry_manifest.json`
+    - 理由: no-op検証専用の一時manifest（本番導線では不要）
+  - `data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_retry_run_from_rollup_summary_*_failed_run_*_daily_summary*.json`
+    - 理由: retry run失敗時の子summary群で大量生成される中間確認用出力（保全要否を後で判断）
+  - `data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_retry_run_from_rollup_summary_*_report.json`
+    - 理由: 同時刻summary本体が残るため、運用で必要分だけ残す方針を後で整理可能
+
+## 59. TASK89 実行ログ（retry-run導線ワンショット日次チェーンCLI）
+
+[x] 89) artists回答QA retry-run導線（TASK85〜88）を短い入口でワンショット実行するCLIを追加し、日次復旧の運用手順を固定する（本体前進）
+- 変更ファイル：
+  - `run_aqa_retry_run_daily_chain.py`（新規）
+  - `qa_artifact_utils.py`
+  - `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md`
+  - `docs/04_TASK_PROGRESS_LOG.md`
+- 実装内容：
+  - `run_aqa_retry_run_daily_chain.py` を追加し、短い入口4本（TASK85〜88）を subprocess で順次実行するチェーン導線を実装
+    - `run_aqa_retry_run_report_rollup.py`
+    - `run_aqa_retry_run_report_rollup_manifest.py`
+    - `run_aqa_retry_run_report_rollup_retry_run.py`
+    - `run_aqa_retry_run_report_rollup_retry_run_report.py`
+  - chain summaryへ `steps[].name/command/exit_code/output_paths` / `all_passed` / `wrapper_exit_code` / `notes` を保存
+  - 上流失敗時は後続stepを `skipped` で明示する運用に統一
+  - retry対象0件（empty manifest）では no-op 成功（exit 0）を維持
+  - `qa_artifact_utils.py` の registry に `retry_run_daily_chain_summary` を追加（artifact識別メタ統一）
+- 動作確認（2026-02-25）：
+  - `python run_aqa_retry_run_daily_chain.py --latest` → exit 0
+  - `python run_aqa_retry_run_daily_chain.py --latest --output-json "data/phase1_seed10/derived/answer/artists_answer_qa_retry_run_daily_chain_summary_latest.json"` → exit 0
+  - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+- 生成物：
+  - `data/phase1_seed10/derived/answer/artists_answer_qa_retry_run_daily_chain_summary_20260225T112755Z.json`
+  - `data/phase1_seed10/derived/answer/artists_answer_qa_retry_run_daily_chain_summary_latest.json`
+  - `data/phase1_seed10/logs/phase1_guard_summary_2025_20260225T112809Z.json`
+- CLEANUP_CANDIDATES（未削除）：
+  - `data/phase1_seed10/derived/answer/artists_answer_qa_daily_recovery_retry_run_from_rollup_summary_20991231T235959Z_report.json`
+    - 理由: TASK89の no-op スモーク用に投入した最新解決シード（運用導線では不要）

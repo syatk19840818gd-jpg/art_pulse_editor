@@ -3,9 +3,14 @@ from __future__ import annotations
 
 import argparse
 import json
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+from qa_artifact_utils import (
+    build_artifact_header,
+    list_candidate_artifacts,
+    utc_timestamp_compact,
+)
 
 DEFAULT_SEARCH_DIR = Path("data/phase1_seed10/derived/answer")
 DEFAULT_GLOB = "artists_answer_qa_daily_recovery_retry_run_from_rollup_summary_*_report.json"
@@ -13,17 +18,8 @@ DEFAULT_LATEST_N = 20
 SOURCE_CLI = (
     "run_artists_answer_qa_daily_recovery_retry_run_from_retry_run_report_rollup_manifest_report_rollup.py"
 )
-SCHEMA_NAME = "artists_answer_qa_daily_recovery_retry_run_report_rollup"
-SCHEMA_VERSION = "v1"
-ARTIFACT_KIND = "retry_run_report_rollup"
-
-
-def utc_now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
-
-
-def utc_timestamp_compact() -> str:
-    return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+INPUT_ARTIFACT_KIND = "retry_run_summary_from_rollup_report"
+OUTPUT_ARTIFACT_KIND = "retry_run_report_rollup"
 
 
 def write_json(path: Path, payload: dict[str, Any]) -> None:
@@ -63,22 +59,6 @@ def _as_string_list(value: Any) -> list[str]:
             if text:
                 out.append(text)
     return out
-
-
-def is_target_report(path: Path) -> bool:
-    name = path.name
-    if not name.startswith("artists_answer_qa_daily_recovery_retry_run_from_rollup_summary_"):
-        return False
-    if not name.endswith("_report.json"):
-        return False
-    excluded_tokens = ("_failed_run_", "_report_rollup_")
-    return not any(token in name for token in excluded_tokens)
-
-
-def list_candidate_reports(search_dir: Path, pattern: str, latest_n: int) -> list[Path]:
-    candidates = [path for path in search_dir.glob(pattern) if path.is_file() and is_target_report(path)]
-    candidates = sorted(candidates, key=lambda p: (p.stat().st_mtime, p.name), reverse=True)
-    return candidates[: latest_n if latest_n > 0 else 1]
 
 
 def parse_args() -> argparse.Namespace:
@@ -132,14 +112,9 @@ def main() -> int:
     args = parse_args()
     latest_n = max(1, int(args.latest_n))
     search_dir = Path(args.search_dir).resolve()
-    generated_at = utc_now_iso()
 
     rollup: dict[str, Any] = {
-        "schema_name": SCHEMA_NAME,
-        "schema_version": SCHEMA_VERSION,
-        "artifact_kind": ARTIFACT_KIND,
-        "generated_at": generated_at,
-        "generated_by": SOURCE_CLI,
+        **build_artifact_header(OUTPUT_ARTIFACT_KIND, generated_by=SOURCE_CLI),
         "source_cli": SOURCE_CLI,
         "search_dir": str(search_dir),
         "glob_pattern": args.glob,
@@ -162,7 +137,12 @@ def main() -> int:
         ).resolve()
     )
 
-    candidate_reports = list_candidate_reports(search_dir, args.glob, latest_n)
+    candidate_reports = list_candidate_artifacts(
+        search_dir,
+        INPUT_ARTIFACT_KIND,
+        glob_pattern=args.glob,
+        latest_n=latest_n,
+    )
     if not candidate_reports:
         message = f"retry_run_reports_not_found:{search_dir}/{args.glob}"
         rollup["warnings"].append(message)
