@@ -1,0 +1,21 @@
+{
+  "artifact_kind": "retry_run_daily_chain_recovery_chain_report_rollup",
+  "schema_name": "artists_answer_qa_retry_run_daily_chain_recovery_chain_report_rollup",
+  "schema_version": "v1",
+  "generated_at": "2026-02-25T16:16:15Z",
+  "generated_by": "run_aqa_retry_run_daily_chain_recovery_chain_report_rollup.py",
+  "source_cli": "run_aqa_retry_run_daily_chain_recovery_chain_report_rollup.py",
+  "search_dir": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer",
+  "glob": "",
+  "latest_n": 2,
+  "total_reports": 2,
+  "failed_run_count": 0,
+  "failed_runs": [],
+  "source_report_paths": [
+    "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_retry_run_daily_chain_recovery_chain_summary_20260225T161147Z_report.json",
+    "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/derived/answer/artists_answer_qa_retry_run_daily_chain_recovery_chain_summary_20260225T160126Z_report.json"
+  ],
+  "warnings": [],
+  "rollup_exit_code": 0,
+  "exit_reason": "rollup_generated"
+}

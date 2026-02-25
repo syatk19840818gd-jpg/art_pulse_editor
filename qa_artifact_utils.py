@@ -79,6 +79,33 @@ ARTIFACT_REGISTRY: dict[str, dict[str, Any]] = {
         "required_suffix": "_retry_manifest.json",
         "exclude_substrings": [],
     },
+    "retry_run_daily_chain_recovery_chain_summary": {
+        "artifact_kind": "retry_run_daily_chain_recovery_chain_summary",
+        "schema_name": "artists_answer_qa_retry_run_daily_chain_recovery_chain_summary",
+        "schema_version": "v1",
+        "glob_pattern": "artists_answer_qa_retry_run_daily_chain_recovery_chain_summary_*.json",
+        "required_prefix": "artists_answer_qa_retry_run_daily_chain_recovery_chain_summary_",
+        "required_suffix": ".json",
+        "exclude_substrings": ["_report.json"],
+    },
+    "retry_run_daily_chain_recovery_chain_report": {
+        "artifact_kind": "retry_run_daily_chain_recovery_chain_report",
+        "schema_name": "artists_answer_qa_retry_run_daily_chain_recovery_chain_report",
+        "schema_version": "v1",
+        "glob_pattern": "artists_answer_qa_retry_run_daily_chain_recovery_chain_summary_*_report.json",
+        "required_prefix": "artists_answer_qa_retry_run_daily_chain_recovery_chain_summary_",
+        "required_suffix": "_report.json",
+        "exclude_substrings": [],
+    },
+    "retry_run_daily_chain_recovery_chain_report_rollup": {
+        "artifact_kind": "retry_run_daily_chain_recovery_chain_report_rollup",
+        "schema_name": "artists_answer_qa_retry_run_daily_chain_recovery_chain_report_rollup",
+        "schema_version": "v1",
+        "glob_pattern": "artists_answer_qa_retry_run_daily_chain_recovery_chain_report_rollup_*.json",
+        "required_prefix": "artists_answer_qa_retry_run_daily_chain_recovery_chain_report_rollup_",
+        "required_suffix": ".json",
+        "exclude_substrings": [],
+    },
 }
 
 _TIMESTAMP_RE = re.compile(r"(20\d{6}T\d{6}Z)")
