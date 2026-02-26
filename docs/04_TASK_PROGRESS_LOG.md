@@ -1,6 +1,6 @@
 # 04_TASK_PROGRESS_LOG.md
 
-最終更新: 2026-02-26 11:31 JST  
+最終更新: 2026-02-26 13:22 JST  
 対象プロジェクト: ART_PULSE_EDITOR（Phase1 seed10 / Guard運用整備）  
 位置づけ: 実装進捗ログ（01=SSOT、02=索引、03=現行運用タスクの補助ログ）
 
@@ -30,7 +30,7 @@
 ## 2. 全体の進捗サマリ（現時点）
 
 - 完了: **TASK 1 ～ TASK 104**
-- 次の予定: **TASK 105**
+- 次の予定: **TASK 107（rollup最新判定補正）**
 - 直近の重点:
   - TarutaniRAG 側で比較/guard の「型」を作成 → Phase1本体（Exhibitions/Artists）へ横展開
   - Phase1 guard 本体 / history 比較 / fixture / matrix / schema文書化 / category文脈まで整備
@@ -528,15 +528,26 @@
   - `python run_phase1_seed10_artist_image_collect_retry_run.py --latest`（例）が実行できる
   - summaryに `retry_manifest_path` / `executed_cases` / `wrapper_exit_code`（同等）を保存できる
 
-[ ] 105) artists画像収集retry-run summaryの軽量レポートCLIを追加し、failed/recoveredと参照先summaryを `--latest` で即確認できるようにする（本体前進）
+[x] 105) ブロッカー解消：DNS/外向き通信回復後に artists 画像収集を再実測し、改善ループを再開する（本体前進）
 - 目的：
-  - TASK104のretry-run summaryを短く集約し、失敗時の参照先を1コマンドで確認できるようにする
+  - DNS/外向き通信の回復状態を確認し、artists画像収集の再実測（5枚目標）を再実行して現状を把握する
 - 制約：
   - 取得ループ内LLM加工は追加しない（Post-fetch分離）
-  - 画像収集本体/ retry-run 本体ロジックは変更せず、report CLI追加のみに限定する
+  - 既存画像収集本体ロジックは原則変更しない（今回は再実測中心）
 - 成立条件：
-  - `python run_phase1_seed10_artist_image_collect_retry_run_report.py --latest`（例）が実行できる
-  - reportに `retry_manifest_path` / `executed_cases` / `wrapper_exit_code` / `child_collect_summaries_to_check`（同等）を保存できる
+  - `curl` / `socket` で通信状態を確認する
+  - 画像収集summary/report/rollup/guardを再実行し、失敗理由を次アクション可能な粒度で残す
+
+[x] 106) 環境ブロッカー継続対応：DNS/外向き通信回復後の artists画像収集再実測を再開し、5枚達成率の改善ループへ戻す（本体前進）
+- 目的：
+  - DNS/外向き通信回復を確認したうえで、artists画像収集を再実測して改善ループを再開する
+- 制約：
+  - 取得ループ内LLM加工は追加しない（Post-fetch分離）
+  - 既存画像収集本体ロジックは原則変更しない（再実測中心）
+- 現状：
+  - 2026-02-26 12:44 JST 時点で DNS 回復確認（`curl`/`socket` とも成功）
+  - 再実測で `network_dns_probe_ok=true`、`artists_with_ge_target_images=66/81`、`success_rate_ge_target=0.814815` を確認
+[ ] 107) artists画像収集report rollupの最新判定を補正し、最新成功run（TASK106）を正しく推移集計へ反映する（本体前進）
 
 ---
 
@@ -2189,6 +2200,259 @@
   - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_retry_run_summary_20260226T023125Z.json`
   - `data/phase1_seed10/logs/phase1_guard_summary_2025_20260226T023115Z.json`
 
+## 74. HOTFIX 実行ログ（artists画像抽出0件の原因切り分け + 最小修正）
+
+- 変更ファイル：
+  - `run_phase1_seed10_artist_image_collect.py`
+  - `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md`
+  - `docs/04_TASK_PROGRESS_LOG.md`
+- 実装内容（最小差分）：
+  - `fetch_html` / `fetch_image` に `www` 有無の汎用URLフォールバックを追加（ドメイン専用分岐なし）
+  - requests retry adapter（`urllib3 Retry`）を追加し、接続/一時失敗の再試行を有効化
+  - DNS事前診断（`network_dns_probe_host=example.com` / `network_dns_probe_ok`）を summary へ追加
+  - 失敗理由を `html_fetch_failed:dns_resolution_error:<domain>` 形式に正規化して保存
+  - `failed_cases` に `domain` / `reason_code` を追加し、次段の集計で原因追跡しやすくした
+- 動作確認（2026-02-26 JST）：
+  - `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5` → exit 0
+  - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+- 実行結果（要点）：
+  - `network_dns_probe_ok=false`
+  - `failed_cases=81`
+  - `top_reason=html_fetch_failed:dns_resolution_error:<domain>` に収束（原因の明示化）
+- 生成物：
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260226T030506Z.json`
+  - `data/phase1_seed10/logs/phase1_guard_summary_2025_20260226T030506Z.json`
+
+## 75. TASK105 実行ログ（DNS/外向き通信回復後の再実測）
+
+[x] 105) ブロッカー解消：DNS/外向き通信回復後に artists 画像収集を再実測し、改善ループを再開する（本体前進）
+- 参照章ID（01/02）：
+  - 01: `4-0) ①～④共通ルール`, `4-4) Artist：作品画像（抽出ルール）`, `5-8) 同期方式（R2正本 + local cache）`, `6-3) 品質ライン（試作10ギャラリーの運用）`
+  - 02: `CARD_ID: 09_FAILURE_LOGGING`, `CARD_ID: 10_NO_HERO_IMAGES`, `CARD_ID: 11_IMAGE_TARGET_LINE`, `CARD_ID: 14_CATEGORY_4_0_COMMON`
+- 実行コマンド（2026-02-26 JST）：
+  - `curl -I https://example.com` → exit 6（`Could not resolve host`）
+  - `python -c "import socket; print(socket.gethostbyname('example.com'))"` → exit 1（`gaierror`）
+  - `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5` → exit 0
+  - `python run_phase1_seed10_artist_image_collect_report.py --latest` → exit 0
+  - `python run_phase1_seed10_artist_image_collect_report.py --summary-path "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260226T031350Z.json"` → exit 0
+  - `python run_phase1_seed10_artist_image_collect_report_rollup.py --latest-n 20` → exit 0
+  - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+- 実測要約：
+  - `network_dns_probe_ok=false`（DNS未回復）
+  - `seed_artist_count=81`, `artists_with_ge_1_image=0`, `artists_with_ge_target_images=0`
+  - `success_rate_ge_target=0.0`, `threshold_passed=false`
+  - `failed_cases` 主要 reason: `html_fetch_failed`（81件）
+  - `top_failed_domains`: `theapproach.co.uk`, `athrart.com`, `gallerybaton.com`, `aplusart.asia`, `afriartgallery.org`（各10件）
+- 生成物：
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260226T031350Z.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260226T031350Z_report.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_report_rollup_20260226T031350Z.json`
+  - `data/phase1_seed10/logs/phase1_guard_summary_2025_20260226T031350Z.json`
+- 判定：
+  - 環境ブロッカー継続（DNS未回復）。コード追加は広げず、環境回復後の再実測再開へ進める。
+
+## 76. TASK106 実行ログ（環境ブロッカー継続対応・再実測）
+
+[ ] 106) 環境ブロッカー継続対応：DNS/外向き通信回復後の artists画像収集再実測を再開し、5枚達成率の改善ループへ戻す（本体前進）
+- 参照章ID（01/02）：
+  - 01: `4-0) ①～④共通ルール`, `4-4) Artist：作品画像（抽出ルール）`, `5-8) 同期方式（R2正本 + local cache）`, `6-3) 品質ライン（試作10ギャラリーの運用）`
+  - 02: `CARD_ID: 09_FAILURE_LOGGING`, `CARD_ID: 10_NO_HERO_IMAGES`, `CARD_ID: 11_IMAGE_TARGET_LINE`, `CARD_ID: 14_CATEGORY_4_0_COMMON`
+- 実行コマンド（2026-02-26 JST）：
+  - `curl -I https://example.com` → exit 6（`Could not resolve host`）
+  - `python -c "import socket; print(socket.gethostbyname('example.com'))"` → exit 1（`gaierror`）
+  - `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5` → exit 0
+  - `python run_phase1_seed10_artist_image_collect_report.py --latest` → exit 0
+  - `python run_phase1_seed10_artist_image_collect_report.py --summary-path "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260226T032922Z.json"` → exit 0
+  - `python run_phase1_seed10_artist_image_collect_report_rollup.py --latest-n 20` → exit 0
+  - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+- 実測要約：
+  - `network_dns_probe_ok=false`（DNS未回復継続）
+  - `seed_artist_count=81`, `artists_with_ge_1_image=0`, `artists_with_ge_target_images=0`
+  - `success_rate_ge_target=0.0`, `threshold_passed=false`
+  - `failed_cases` 主要 reason: `html_fetch_failed`（81件）
+  - `top_failed_domains`: `theapproach.co.uk`, `athrart.com`, `gallerybaton.com`, `aplusart.asia`, `afriartgallery.org`
+- 生成物：
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260226T032922Z.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260226T032922Z_report.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_report_rollup_20260226T032922Z.json`
+  - `data/phase1_seed10/logs/phase1_guard_summary_2025_20260226T032922Z.json`
+- 判定：
+  - 通信回復条件を満たさないため、TASK106は継続管理（[ ]）とする。
+  - コード改修は追加せず、環境回復後に同手順を再実行する。
+
+## 77. TASK106 実行ログ（通信回復後の再実測・完了）
+
+[x] 106) 環境ブロッカー継続対応：DNS/外向き通信回復後の artists画像収集再実測を再開し、5枚達成率の改善ループへ戻す（本体前進）
+- 参照章ID（01/02）：
+  - 01: `4-0) ①～④共通ルール`, `4-4) Artist：作品画像（抽出ルール）`, `5-8) 同期方式（R2正本 + local cache）`, `6-3) 品質ライン（試作10ギャラリーの運用）`
+  - 02: `CARD_ID: 09_FAILURE_LOGGING`, `CARD_ID: 10_NO_HERO_IMAGES`, `CARD_ID: 11_IMAGE_TARGET_LINE`, `CARD_ID: 14_CATEGORY_4_0_COMMON`
+- 実行コマンド（2026-02-26 JST）：
+  - `curl -I https://example.com` → exit 0
+  - `python -c "import socket; print(socket.gethostbyname('example.com'))"` → exit 0（`104.18.26.120`）
+  - `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5` → exit 0
+  - `python run_phase1_seed10_artist_image_collect_report.py --latest` → exit 0
+  - `python run_phase1_seed10_artist_image_collect_report.py --summary-path "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260226T032922Z.json"` → exit 0
+  - `python run_phase1_seed10_artist_image_collect_report_rollup.py --latest-n 20` → exit 0
+  - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+- 実測要約（collect summary）：
+  - `network_dns_probe_ok=true`
+  - `seed_artist_count=81`, `artists_with_ge_1_image=70`, `artists_with_ge_target_images=66`
+  - `success_rate_ge_target=0.814815`, `threshold_passed=true`, `total_images_saved=343`
+  - `failed_cases` 主要 reason: `no_image_candidates_found`（11件）, `insufficient_image_candidates_after_download`（4件）
+- 生成物：
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260226T033809Z.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260226T033809Z_report.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_report_rollup_20260226T034342Z.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_report_rollup_20260226T032922Z.json`
+  - `data/phase1_seed10/logs/phase1_guard_summary_2025_20260226T034342Z.json`
+- 判定：
+  - TASK106完了（通信回復後の実測で目標ライン達成）。
+  - ただし rollup の最新判定が `20260226T033809Z_report.json` を拾わず、`latest_success_rate` が旧summary（`...032922Z`）を参照する不整合を確認。次タスクで補正する。
+
+## 78. 運用ルール更新（RAG抽出の内訳表示を恒久化）
+
+- 目的：
+  - 「RAG抽出時は必ず中身の内訳（どのgallery/fairで何人対象か）を表示・保存する」を恒久ルールとして固定。
+- 仕様/索引の反映：
+  - SSOT追記: `docs/01_PROJECT_SPEC_CURRENT_FULL.docx`（6-3）
+    - `RAG抽出の実行summary/reportには、対象内訳（最低: fair/gallery単位の対象人数・成功人数・成功率）を必須で残す。`
+  - DERIVED追記: `docs/02_RAG_SPEC_DERIVED.md`（`CARD_ID: 14_CATEGORY_4_0_COMMON`）
+- 実装反映：
+  - `run_phase1_seed10_artist_image_collect.py`
+    - summaryに `fair_breakdown` / `gallery_breakdown` を追加
+    - 実行時に `[BREAKDOWN] gallery ...` を標準出力
+  - `run_phase1_seed10_artist_image_collect_report.py`
+    - reportに `fair_breakdown` / `gallery_breakdown` を追加
+  - `run_phase1_seed10_artist_image_collect_report_rollup.py`
+    - rollupに `gallery_breakdown_trend` / `latest_gallery_breakdown` を追加
+- 実行コマンド（2026-02-26 JST）：
+  - `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5` → exit 0
+  - `python run_phase1_seed10_artist_image_collect_report.py --latest` → exit 0
+  - `python run_phase1_seed10_artist_image_collect_report_rollup.py --latest-n 20` → exit 0
+  - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+- 生成物：
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260226T040337Z.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260226T040337Z_report.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_report_rollup_20260226T040402Z.json`
+  - `data/phase1_seed10/logs/phase1_guard_summary_2025_20260226T040407Z.json`
+- 確認結果（要点）：
+  - 標準出力で gallery別内訳（fair/galleryごとの artists, ge1, ge_target, rate）を確認
+  - report JSONで `gallery_breakdown` 10件を確認
+  - rollup JSONで `gallery_breakdown_trend` / `latest_gallery_breakdown` を保存
+
+## 79. 運用ルール追補（内訳に取得画像枚数・取得率%を必須化）
+
+- 目的：
+  - 内訳表示に「何枚取得されたか」「取得率何%か」を必須化し、実行結果だけで判断可能にする。
+- 変更ファイル：
+  - `run_phase1_seed10_artist_image_collect.py`
+  - `run_phase1_seed10_artist_image_collect_report.py`
+  - `docs/01_PROJECT_SPEC_CURRENT_FULL.docx`
+  - `docs/02_RAG_SPEC_DERIVED.md`
+  - `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md`
+  - `docs/04_TASK_PROGRESS_LOG.md`
+- 実行コマンド（2026-02-26 JST）：
+  - `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5 --output-json data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260226T_breakdown_pct_check.json` → exit 0
+  - `python run_phase1_seed10_artist_image_collect_report.py --summary-path data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260226T_breakdown_pct_check.json` → exit 0
+- 生成物：
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260226T_breakdown_pct_check.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260226T_breakdown_pct_check_report.json`
+- 反映内容（要点）：
+  - summary/reportに `success_rate_ge_target_pct` を追加
+  - `gallery_breakdown` 各行に `images_saved_total` と `success_rate_ge_target_pct` を追加
+  - 標準出力の内訳表示を `images=...` / `(...%)` 付きへ更新
+  - SSOT/DERIVEDの文言を「対象人数・成功人数・取得画像枚数・成功率%」へ更新
+
+## 80. 運用ルール追補（exhibitions/textにも同一内訳フォーマットを適用）
+
+- 目的：
+  - 内訳表示ルールを画像収集だけでなく、`run_phase1_seed10.py` のテキスト抽出（exhibitions_text / artists_text）にも適用する。
+- 変更ファイル：
+  - `run_phase1_seed10.py`
+  - `run_phase1_seed10_artist_image_collect.py`
+  - `run_phase1_seed10_artist_image_collect_report.py`
+  - `docs/01_PROJECT_SPEC_CURRENT_FULL.docx`
+  - `docs/02_RAG_SPEC_DERIVED.md`
+  - `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md`
+  - `docs/04_TASK_PROGRESS_LOG.md`
+- 実行コマンド（2026-02-26 JST）：
+  - `python -m py_compile run_phase1_seed10.py run_phase1_seed10_artist_image_collect.py run_phase1_seed10_artist_image_collect_report.py` → exit 0
+  - `python run_phase1_seed10.py --include-artists-text` → exit 1（`ModuleNotFoundError: No module named 'bs4'`）
+  - `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5` → exit 0
+  - `python run_phase1_seed10_artist_image_collect_report.py --latest` → exit 0
+  - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+- 生成物（確認できたもの）：
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260226T041157Z.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260226T041157Z_report.json`
+  - `data/phase1_seed10/logs/phase1_guard_summary_2025_20260226T041711Z.json`
+- 反映内容（要点）：
+  - `run_phase1_seed10.py` summaryに以下を追加：
+    - `exhibitions_text_fair_breakdown` / `exhibitions_text_gallery_breakdown`
+    - `artists_text_fair_breakdown` / `artists_text_gallery_breakdown`
+    - 各カテゴリの `*_seed_gallery_count` / `*_galleries_with_ge_1_record` / `*_success_rate_ge_1_record_pct`
+  - console表示に `[BREAKDOWN][exhibitions_text][gallery]` / `[BREAKDOWN][artists_text][gallery]` を追加
+  - 画像側の内訳表示は `images` と `%` を含む形式に統一
+  - SSOT/DERIVED文言を「取得件数（画像=取得画像枚数、テキスト=抽出レコード件数）」に更新
+
+## 81. 実行環境対応（bs4未導入時のテキスト抽出フォールバック）
+
+- 背景：
+  - `python run_phase1_seed10.py --include-artists-text` 実行時に `ModuleNotFoundError: No module named 'bs4'` が発生。
+  - `pip install beautifulsoup4 lxml` は DNS 解決失敗で導入不可（環境依存）。
+- 変更ファイル：
+  - `run_phase1_seed10.py`
+  - `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md`
+  - `docs/04_TASK_PROGRESS_LOG.md`
+- 実装内容（最小差分）：
+  - `bs4` importをoptional化し、未導入時は標準ライブラリ `html.parser` ベースのフォールバックを使用
+  - リンク抽出/本文抽出を `extract_links_from_html` / `VisibleTextHTMLParser` へ切替可能化
+  - summaryに `html_parser_backend` を追加
+  - exhibitions_text / artists_text の内訳を summary/console に保存・表示
+    - `*_fair_breakdown` / `*_gallery_breakdown`
+    - `*_seed_gallery_count` / `*_galleries_with_ge_1_record`
+    - `*_success_rate_ge_1_record_pct`
+- 実行コマンド（2026-02-26 JST）：
+  - `python -m py_compile run_phase1_seed10.py` → exit 0
+  - `python run_phase1_seed10.py --include-artists-text` → exit 0
+  - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+- 生成物：
+  - `data/phase1_seed10/logs/run_summary_seed10_2025.json`
+  - `data/phase1_seed10/logs/phase1_guard_summary_2025_20260226T042243Z.json`
+- 実測確認：
+  - `html_parser_backend=stdlib_html_parser_fallback`
+  - `exhibitions_text_gallery_breakdown` 件数=10
+  - `artists_text_gallery_breakdown` 件数=10
+
+## 82. Artists一覧URL→詳細URL固定ルール対応（一覧ページ直抽出禁止）
+
+- 変更ファイル：
+  - `run_phase1_seed10.py`
+  - `run_phase1_seed10_artist_image_collect.py`
+  - `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md`
+  - `docs/04_TASK_PROGRESS_LOG.md`
+- 実装内容（最小差分）：
+  - `run_phase1_seed10.py`
+    - `extract_candidate_artist_urls(...)` の一覧ページフォールバック（`[list_page_url]`）を廃止。
+    - artists候補URLは「一覧URLそのもの」「一覧パス相当URL」を除外し、詳細ページらしいURLのみ通すよう修正。
+    - 詳細候補0件時は `NO_ARTIST_DETAIL_LINKS` を failed_fetches / visited_pages に記録。
+  - `run_phase1_seed10_artist_image_collect.py`
+    - 一覧URLを直接画像抽出対象にしないよう変更。
+    - 一覧URL入力時は、まず詳細URLを抽出してから各詳細ページで画像候補抽出するフローへ変更。
+    - 同一ギャラリーに詳細URL行が既に存在する場合、一覧URL行ターゲットは除外（過去raw混在の影響を抑止）。
+    - summary `notes` に `artist_collect_source_rule=detail_pages_only` を追加。
+- 実行コマンド（2026-02-26 JST）：
+  - `python -m py_compile run_phase1_seed10.py run_phase1_seed10_artist_image_collect.py` → exit 0
+  - `python run_phase1_seed10.py --include-artists-text` → exit 0
+  - `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5 --output-json data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_detail_rule_check2.json` → exit 0
+  - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+- 生成物：
+  - `data/phase1_seed10/logs/run_summary_seed10_2025.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_detail_rule_check2.json`
+  - `data/phase1_seed10/logs/phase1_guard_summary_2025_20260226T050315Z.json`
+- 確認結果（要点）：
+  - artists画像summaryで `seed_artist_count=72`（一覧URL行の一部除外後）/ `success_rate_ge_target=0.847222` を確認。
+  - `adamsandollman.com` / `arcadiamissa.com` は `reason=html_fetch_failed:dns_resolution_error:*`（sandbox内DNS制約）で、一覧ページ直抽出ではなく詳細URL解決フェーズで失敗していることを確認。
+
 ## CLEANUP_CANDIDATES_MASTER（集約管理）
 
 本節は削除候補の棚卸し専用。2026-02-25 からは「候補は `_trash` へ先に退避」を実運用化。
@@ -2220,6 +2484,20 @@
   - path: `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_report_rollup_20260225T235146Z_retry_manifest_retry_manifest.json`
     - 理由: TASK104実装途中で `--latest` 誤判定（rollupが retry_manifest を拾う）時に生成された中間manifest
     - 状態: 削除候補（実削除/実移動は未実施）
+- 2026-02-26（TASK105）:
+  - 今回の実装では新規の削除候補追加なし（実削除/実移動とも未実施）
+- 2026-02-26（TASK106）:
+  - 今回の実装では新規の削除候補追加なし（実削除/実移動とも未実施）
+- 2026-02-26（内訳表示ルール恒久化）:
+  - 今回の実装では新規の削除候補追加なし（実削除/実移動とも未実施）
+- 2026-02-26（内訳表示ルール追補）:
+  - 今回の実装では新規の削除候補追加なし（実削除/実移動とも未実施）
+- 2026-02-26（内訳表示ルール追補: exhibitions/text適用）:
+  - 今回の実装では新規の削除候補追加なし（実削除/実移動とも未実施）
+- 2026-02-26（bs4フォールバック対応）:
+  - 今回の実装では新規の削除候補追加なし（実削除/実移動とも未実施）
+- 2026-02-26（一覧URL→詳細URL固定ルール対応）:
+  - 今回の実装では新規の削除候補追加なし（実削除/実移動とも未実施）
 
 - path: `/tmp/artists_retry_run_report_rollup_empty_task87_retry_manifest.json`
   - 理由: no-op検証専用の一時manifest

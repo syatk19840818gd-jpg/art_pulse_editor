@@ -155,6 +155,8 @@ def main() -> int:
         "success_rate_trend": [],
         "top_failed_reasons_trend": [],
         "top_failed_domains_trend": [],
+        "gallery_breakdown_trend": [],
+        "latest_gallery_breakdown": [],
         "top_failed_reasons_aggregate": [],
         "top_failed_domains_aggregate": [],
         "source_report_paths": [],
@@ -210,6 +212,9 @@ def main() -> int:
 
         reason_rows = _normalize_reason_rows(report_obj.get("top_failed_reasons"))
         domain_rows = _normalize_domain_rows(report_obj.get("top_failed_domains"))
+        gallery_breakdown_rows = report_obj.get("gallery_breakdown")
+        if not isinstance(gallery_breakdown_rows, list):
+            gallery_breakdown_rows = []
 
         for row in reason_rows:
             reason_counter[row["reason"]] += int(row["count"])
@@ -238,6 +243,13 @@ def main() -> int:
                 "top_failed_domains": domain_rows,
             }
         )
+        rollup["gallery_breakdown_trend"].append(
+            {
+                "report_path": str(report_path),
+                "summary_path": summary_path,
+                "gallery_breakdown": gallery_breakdown_rows,
+            }
+        )
 
     if valid_reports == 0:
         rollup["warnings"].append("no_valid_report_json_loaded")
@@ -257,6 +269,9 @@ def main() -> int:
         {"domain": domain, "count": count}
         for domain, count in domain_counter.most_common(20)
     ]
+    if rollup["gallery_breakdown_trend"]:
+        latest_breakdown = rollup["gallery_breakdown_trend"][-1].get("gallery_breakdown")
+        rollup["latest_gallery_breakdown"] = latest_breakdown if isinstance(latest_breakdown, list) else []
 
     rollup["rollup_exit_code"] = 0
     rollup["exit_reason"] = "rollup_generated"

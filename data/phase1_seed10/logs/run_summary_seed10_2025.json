@@ -1,8 +1,9 @@
 {
-  "started_at": "2026-02-24T10:42:42Z",
-  "completed_at": "2026-02-24T10:42:43Z",
+  "started_at": "2026-02-26T05:02:38Z",
+  "completed_at": "2026-02-26T05:02:38Z",
   "target_year": 2025,
   "seed_per_fair": 5,
+  "html_parser_backend": "stdlib_html_parser_fallback",
   "max_exhibition_links_per_gallery": 10,
   "failure_retry_cooldown_seconds": 3600,
   "max_failure_retries_per_url": 3,
@@ -24,7 +25,7 @@
   "skipped_known_saved_page": 0,
   "skipped_out_of_year": 0,
   "skipped_by_reason": {
-    "KNOWN_FAILED_URL_COOLDOWN": 10
+    "KNOWN_FAILED_URL_MAX_RETRIES": 10
   },
   "existing_text_hashes_by_fair": {
     "frieze_london": 28,
@@ -78,6 +79,262 @@
   },
   "artists_failed_fetches_path": "data/phase1_seed10/logs/failed_fetches_artists_seed10_2025.json",
   "artists_visited_pages_path": "data/phase1_seed10/logs/visited_pages_artists_seed10_2025.json",
+  "exhibitions_text_fair_breakdown": [
+    {
+      "category": "exhibitions_text",
+      "fair_slug": "frieze_london",
+      "target_gallery_count": 5,
+      "successful_gallery_count": 0,
+      "records_saved_total": 0,
+      "success_rate_ge_1_record": 0.0,
+      "success_rate_ge_1_record_pct": 0.0
+    },
+    {
+      "category": "exhibitions_text",
+      "fair_slug": "liste",
+      "target_gallery_count": 5,
+      "successful_gallery_count": 0,
+      "records_saved_total": 0,
+      "success_rate_ge_1_record": 0.0,
+      "success_rate_ge_1_record_pct": 0.0
+    }
+  ],
+  "exhibitions_text_gallery_breakdown": [
+    {
+      "category": "exhibitions_text",
+      "fair_slug": "frieze_london",
+      "gallery_name_en": "Adams and Ollman",
+      "target_gallery_count": 1,
+      "successful_gallery_count": 0,
+      "records_saved_total": 0,
+      "success_rate_ge_1_record": 0.0,
+      "success_rate_ge_1_record_pct": 0.0
+    },
+    {
+      "category": "exhibitions_text",
+      "fair_slug": "frieze_london",
+      "gallery_name_en": "Arcadia Missa",
+      "target_gallery_count": 1,
+      "successful_gallery_count": 0,
+      "records_saved_total": 0,
+      "success_rate_ge_1_record": 0.0,
+      "success_rate_ge_1_record_pct": 0.0
+    },
+    {
+      "category": "exhibitions_text",
+      "fair_slug": "frieze_london",
+      "gallery_name_en": "Athr",
+      "target_gallery_count": 1,
+      "successful_gallery_count": 0,
+      "records_saved_total": 0,
+      "success_rate_ge_1_record": 0.0,
+      "success_rate_ge_1_record_pct": 0.0
+    },
+    {
+      "category": "exhibitions_text",
+      "fair_slug": "frieze_london",
+      "gallery_name_en": "Gallery Baton",
+      "target_gallery_count": 1,
+      "successful_gallery_count": 0,
+      "records_saved_total": 0,
+      "success_rate_ge_1_record": 0.0,
+      "success_rate_ge_1_record_pct": 0.0
+    },
+    {
+      "category": "exhibitions_text",
+      "fair_slug": "frieze_london",
+      "gallery_name_en": "The Approach",
+      "target_gallery_count": 1,
+      "successful_gallery_count": 0,
+      "records_saved_total": 0,
+      "success_rate_ge_1_record": 0.0,
+      "success_rate_ge_1_record_pct": 0.0
+    },
+    {
+      "category": "exhibitions_text",
+      "fair_slug": "liste",
+      "gallery_name_en": "A+ Works of Art",
+      "target_gallery_count": 1,
+      "successful_gallery_count": 0,
+      "records_saved_total": 0,
+      "success_rate_ge_1_record": 0.0,
+      "success_rate_ge_1_record_pct": 0.0
+    },
+    {
+      "category": "exhibitions_text",
+      "fair_slug": "liste",
+      "gallery_name_en": "Addis Fine Art",
+      "target_gallery_count": 1,
+      "successful_gallery_count": 0,
+      "records_saved_total": 0,
+      "success_rate_ge_1_record": 0.0,
+      "success_rate_ge_1_record_pct": 0.0
+    },
+    {
+      "category": "exhibitions_text",
+      "fair_slug": "liste",
+      "gallery_name_en": "Afriart Gallery",
+      "target_gallery_count": 1,
+      "successful_gallery_count": 0,
+      "records_saved_total": 0,
+      "success_rate_ge_1_record": 0.0,
+      "success_rate_ge_1_record_pct": 0.0
+    },
+    {
+      "category": "exhibitions_text",
+      "fair_slug": "liste",
+      "gallery_name_en": "Amanita",
+      "target_gallery_count": 1,
+      "successful_gallery_count": 0,
+      "records_saved_total": 0,
+      "success_rate_ge_1_record": 0.0,
+      "success_rate_ge_1_record_pct": 0.0
+    },
+    {
+      "category": "exhibitions_text",
+      "fair_slug": "liste",
+      "gallery_name_en": "Anca Poteraşu Gallery",
+      "target_gallery_count": 1,
+      "successful_gallery_count": 0,
+      "records_saved_total": 0,
+      "success_rate_ge_1_record": 0.0,
+      "success_rate_ge_1_record_pct": 0.0
+    }
+  ],
+  "exhibitions_text_seed_gallery_count": 10,
+  "exhibitions_text_galleries_with_ge_1_record": 0,
+  "exhibitions_text_success_rate_ge_1_record": 0.0,
+  "exhibitions_text_success_rate_ge_1_record_pct": 0.0,
+  "artists_text_fair_breakdown": [
+    {
+      "category": "artists_text",
+      "fair_slug": "frieze_london",
+      "target_gallery_count": 5,
+      "successful_gallery_count": 0,
+      "records_saved_total": 0,
+      "success_rate_ge_1_record": 0.0,
+      "success_rate_ge_1_record_pct": 0.0
+    },
+    {
+      "category": "artists_text",
+      "fair_slug": "liste",
+      "target_gallery_count": 5,
+      "successful_gallery_count": 0,
+      "records_saved_total": 0,
+      "success_rate_ge_1_record": 0.0,
+      "success_rate_ge_1_record_pct": 0.0
+    }
+  ],
+  "artists_text_gallery_breakdown": [
+    {
+      "category": "artists_text",
+      "fair_slug": "frieze_london",
+      "gallery_name_en": "Adams and Ollman",
+      "target_gallery_count": 1,
+      "successful_gallery_count": 0,
+      "records_saved_total": 0,
+      "success_rate_ge_1_record": 0.0,
+      "success_rate_ge_1_record_pct": 0.0
+    },
+    {
+      "category": "artists_text",
+      "fair_slug": "frieze_london",
+      "gallery_name_en": "Arcadia Missa",
+      "target_gallery_count": 1,
+      "successful_gallery_count": 0,
+      "records_saved_total": 0,
+      "success_rate_ge_1_record": 0.0,
+      "success_rate_ge_1_record_pct": 0.0
+    },
+    {
+      "category": "artists_text",
+      "fair_slug": "frieze_london",
+      "gallery_name_en": "Athr",
+      "target_gallery_count": 1,
+      "successful_gallery_count": 0,
+      "records_saved_total": 0,
+      "success_rate_ge_1_record": 0.0,
+      "success_rate_ge_1_record_pct": 0.0
+    },
+    {
+      "category": "artists_text",
+      "fair_slug": "frieze_london",
+      "gallery_name_en": "Gallery Baton",
+      "target_gallery_count": 1,
+      "successful_gallery_count": 0,
+      "records_saved_total": 0,
+      "success_rate_ge_1_record": 0.0,
+      "success_rate_ge_1_record_pct": 0.0
+    },
+    {
+      "category": "artists_text",
+      "fair_slug": "frieze_london",
+      "gallery_name_en": "The Approach",
+      "target_gallery_count": 1,
+      "successful_gallery_count": 0,
+      "records_saved_total": 0,
+      "success_rate_ge_1_record": 0.0,
+      "success_rate_ge_1_record_pct": 0.0
+    },
+    {
+      "category": "artists_text",
+      "fair_slug": "liste",
+      "gallery_name_en": "A+ Works of Art",
+      "target_gallery_count": 1,
+      "successful_gallery_count": 0,
+      "records_saved_total": 0,
+      "success_rate_ge_1_record": 0.0,
+      "success_rate_ge_1_record_pct": 0.0
+    },
+    {
+      "category": "artists_text",
+      "fair_slug": "liste",
+      "gallery_name_en": "Addis Fine Art",
+      "target_gallery_count": 1,
+      "successful_gallery_count": 0,
+      "records_saved_total": 0,
+      "success_rate_ge_1_record": 0.0,
+      "success_rate_ge_1_record_pct": 0.0
+    },
+    {
+      "category": "artists_text",
+      "fair_slug": "liste",
+      "gallery_name_en": "Afriart Gallery",
+      "target_gallery_count": 1,
+      "successful_gallery_count": 0,
+      "records_saved_total": 0,
+      "success_rate_ge_1_record": 0.0,
+      "success_rate_ge_1_record_pct": 0.0
+    },
+    {
+      "category": "artists_text",
+      "fair_slug": "liste",
+      "gallery_name_en": "Amanita",
+      "target_gallery_count": 1,
+      "successful_gallery_count": 0,
+      "records_saved_total": 0,
+      "success_rate_ge_1_record": 0.0,
+      "success_rate_ge_1_record_pct": 0.0
+    },
+    {
+      "category": "artists_text",
+      "fair_slug": "liste",
+      "gallery_name_en": "Anca Poteraşu Gallery",
+      "target_gallery_count": 1,
+      "successful_gallery_count": 0,
+      "records_saved_total": 0,
+      "success_rate_ge_1_record": 0.0,
+      "success_rate_ge_1_record_pct": 0.0
+    }
+  ],
+  "artists_text_seed_gallery_count": 10,
+  "artists_text_galleries_with_ge_1_record": 0,
+  "artists_text_success_rate_ge_1_record": 0.0,
+  "artists_text_success_rate_ge_1_record_pct": 0.0,
+  "notes": [
+    "text_breakdown_mode=fair_and_gallery_with_records_and_success_rate_pct",
+    "artists_source_rule=artist_list_url_to_artist_detail_pages_only"
+  ],
   "artists_enrichment_mode": "post_fetch_requests_only",
   "artists_enrichment_candidates_total": 81,
   "artists_enrichment_requests_created": 81,

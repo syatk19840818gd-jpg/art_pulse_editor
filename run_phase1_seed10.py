@@ -9,12 +9,16 @@ import re
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any
 from urllib.parse import ParseResult, urljoin, urlparse
 
 import requests
-from bs4 import BeautifulSoup
+try:
+    from bs4 import BeautifulSoup
+except ModuleNotFoundError:  # pragma: no cover - environment fallback
+    BeautifulSoup = None
 
 TARGET_YEAR = 2025
 RAG_CATEGORY = "exhibitions_text"
@@ -33,6 +37,7 @@ NON_RETRYABLE_FAILURE_REASON_CODES = {
     "HTTP_403",
     "HTTP_404",
     "UNSUPPORTED_CONTENT_TYPE",
+    "NO_ARTIST_DETAIL_LINKS",
 }
 
 CSV_PATHS = {
@@ -67,6 +72,97 @@ ARTIST_LINK_KEYWORDS = (
     "bio",
     "biography",
 )
+
+ARTIST_LIST_PATH_PATTERNS = (
+    "/artist",
+    "/artists",
+    "/artists/",
+    "/list-of-artists",
+    "/artist-list",
+    "/category/artist",
+    "/category/artists",
+)
+
+
+class LinkHTMLParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.links: list[tuple[str, str]] = []
+        self._in_anchor = False
+        self._anchor_href = ""
+        self._anchor_chunks: list[str] = []
+        self._skip_depth = 0
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        tag_lower = tag.lower()
+        if tag_lower in {"script", "style", "noscript"}:
+            self._skip_depth += 1
+            return
+        if tag_lower == "a":
+            href = ""
+            for key, value in attrs:
+                if key.lower() == "href" and value:
+                    href = value.strip()
+                    break
+            if href:
+                self._in_anchor = True
+                self._anchor_href = href
+                self._anchor_chunks = []
+
+    def handle_endtag(self, tag: str) -> None:
+        tag_lower = tag.lower()
+        if tag_lower in {"script", "style", "noscript"}:
+            if self._skip_depth > 0:
+                self._skip_depth -= 1
+            return
+        if tag_lower == "a" and self._in_anchor:
+            anchor_text = " ".join(chunk for chunk in self._anchor_chunks if chunk).strip()
+            self.links.append((self._anchor_href, anchor_text))
+            self._in_anchor = False
+            self._anchor_href = ""
+            self._anchor_chunks = []
+
+    def handle_data(self, data: str) -> None:
+        if self._skip_depth > 0:
+            return
+        if self._in_anchor:
+            chunk = data.strip()
+            if chunk:
+                self._anchor_chunks.append(chunk)
+
+    def close(self) -> None:
+        super().close()
+        if self._in_anchor and self._anchor_href:
+            anchor_text = " ".join(chunk for chunk in self._anchor_chunks if chunk).strip()
+            self.links.append((self._anchor_href, anchor_text))
+            self._in_anchor = False
+            self._anchor_href = ""
+            self._anchor_chunks = []
+
+
+class VisibleTextHTMLParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self._lines: list[str] = []
+        self._skip_depth = 0
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag.lower() in {"script", "style", "noscript"}:
+            self._skip_depth += 1
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag.lower() in {"script", "style", "noscript"} and self._skip_depth > 0:
+            self._skip_depth -= 1
+
+    def handle_data(self, data: str) -> None:
+        if self._skip_depth > 0:
+            return
+        text = data.strip()
+        if text:
+            self._lines.append(text)
+
+    def get_text(self) -> str:
+        return "\n".join(self._lines)
 
 
 @dataclass
@@ -139,6 +235,81 @@ def resolve_artists_list_url(gallery: GallerySeed) -> tuple[str, str]:
     return gallery.exhibitions_url, "exhibitions_url_fallback"
 
 
+def build_text_category_breakdown(
+    *,
+    category: str,
+    seed_galleries: list[GallerySeed],
+    records_by_fair: dict[str, list[dict[str, Any]]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    target_gallery_keys: list[tuple[str, str]] = []
+    target_gallery_key_set: set[tuple[str, str]] = set()
+    target_count_by_fair: Counter[str] = Counter()
+
+    for gallery in seed_galleries:
+        key = (gallery.fair_slug, gallery.gallery_name_en)
+        if key in target_gallery_key_set:
+            continue
+        target_gallery_key_set.add(key)
+        target_gallery_keys.append(key)
+        target_count_by_fair[gallery.fair_slug] += 1
+
+    saved_count_by_gallery: Counter[tuple[str, str]] = Counter()
+    for fair_slug, records in records_by_fair.items():
+        for record in records:
+            gallery_name_en = str(record.get("gallery_name_en") or "unknown")
+            saved_count_by_gallery[(fair_slug, gallery_name_en)] += 1
+
+    all_gallery_keys = sorted(set(target_gallery_key_set) | set(saved_count_by_gallery.keys()))
+
+    gallery_rows: list[dict[str, Any]] = []
+    for fair_slug, gallery_name_en in all_gallery_keys:
+        target_gallery_count = 1 if (fair_slug, gallery_name_en) in target_gallery_key_set else 0
+        records_saved_total = int(saved_count_by_gallery.get((fair_slug, gallery_name_en), 0))
+        successful_gallery_count = int(target_gallery_count > 0 and records_saved_total >= 1)
+        success_rate = (successful_gallery_count / target_gallery_count) if target_gallery_count > 0 else 0.0
+        gallery_rows.append(
+            {
+                "category": category,
+                "fair_slug": fair_slug,
+                "gallery_name_en": gallery_name_en,
+                "target_gallery_count": target_gallery_count,
+                "successful_gallery_count": successful_gallery_count,
+                "records_saved_total": records_saved_total,
+                "success_rate_ge_1_record": round(success_rate, 6),
+                "success_rate_ge_1_record_pct": round(success_rate * 100.0, 2),
+            }
+        )
+
+    fairs_in_breakdown = sorted(
+        set(target_count_by_fair.keys()) | set(fair_slug for fair_slug, _ in saved_count_by_gallery.keys())
+    )
+    fair_rows: list[dict[str, Any]] = []
+    for fair_slug in fairs_in_breakdown:
+        target_gallery_count = int(target_count_by_fair.get(fair_slug, 0))
+        successful_gallery_count = 0
+        records_saved_total = 0
+        for row in gallery_rows:
+            if row["fair_slug"] != fair_slug:
+                continue
+            records_saved_total += int(row.get("records_saved_total") or 0)
+            if int(row.get("target_gallery_count") or 0) > 0 and int(row.get("records_saved_total") or 0) >= 1:
+                successful_gallery_count += 1
+        success_rate = (successful_gallery_count / target_gallery_count) if target_gallery_count > 0 else 0.0
+        fair_rows.append(
+            {
+                "category": category,
+                "fair_slug": fair_slug,
+                "target_gallery_count": target_gallery_count,
+                "successful_gallery_count": successful_gallery_count,
+                "records_saved_total": records_saved_total,
+                "success_rate_ge_1_record": round(success_rate, 6),
+                "success_rate_ge_1_record_pct": round(success_rate * 100.0, 2),
+            }
+        )
+
+    return fair_rows, gallery_rows
+
+
 def _normalized_host(parsed: ParseResult) -> str:
     host = parsed.hostname or ""
     host = host.lower()
@@ -153,18 +324,67 @@ def _same_domain(url_a: str, url_b: str) -> bool:
     return _normalized_host(pa) == _normalized_host(pb)
 
 
+def _normalize_url_for_link_compare(url: str) -> str:
+    parsed = urlparse(url)
+    normalized = f"{parsed.scheme.lower()}://{parsed.netloc.lower()}{parsed.path}".rstrip("/")
+    if parsed.query:
+        normalized = f"{normalized}?{parsed.query}"
+    return normalized
+
+
 def _looks_like_exhibition_link(candidate_url: str, anchor_text: str) -> bool:
     target = f"{candidate_url.lower()} {anchor_text.lower()}"
     return any(keyword in target for keyword in LINK_KEYWORDS)
 
 
+def _looks_like_artist_listing_url(url: str) -> bool:
+    path = (urlparse(url).path or "").lower().rstrip("/")
+    if not path:
+        return False
+    return any(path.endswith(pattern.rstrip("/")) for pattern in ARTIST_LIST_PATH_PATTERNS)
+
+
+def _looks_like_artist_detail_link(candidate_url: str, list_page_url: str) -> bool:
+    candidate_norm = _normalize_url_for_link_compare(candidate_url)
+    list_norm = _normalize_url_for_link_compare(list_page_url)
+    if candidate_norm == list_norm:
+        return False
+    if _looks_like_artist_listing_url(candidate_url):
+        return False
+
+    candidate_path = (urlparse(candidate_url).path or "").lower().rstrip("/")
+    list_path = (urlparse(list_page_url).path or "").lower().rstrip("/")
+    if not candidate_path:
+        return False
+    if list_path and "artist" in list_path and candidate_path.startswith(f"{list_path}/"):
+        return True
+    if "/artist/" in candidate_path or "/artists/" in candidate_path:
+        return True
+    return False
+
+
+def extract_links_from_html(html: str) -> list[tuple[str, str]]:
+    if BeautifulSoup is not None:
+        soup = BeautifulSoup(html, "lxml")
+        links: list[tuple[str, str]] = []
+        for anchor in soup.find_all("a", href=True):
+            href = str(anchor.get("href") or "").strip()
+            if not href:
+                continue
+            links.append((href, anchor.get_text(" ", strip=True)))
+        return links
+    parser = LinkHTMLParser()
+    parser.feed(html)
+    parser.close()
+    return parser.links
+
+
 def extract_candidate_exhibition_urls(list_page_url: str, list_page_html: str) -> list[str]:
-    soup = BeautifulSoup(list_page_html, "lxml")
     candidates: list[str] = []
     seen: set[str] = set()
 
-    for anchor in soup.find_all("a", href=True):
-        href = (anchor.get("href") or "").strip()
+    for href, anchor_text in extract_links_from_html(list_page_html):
+        href = href.strip()
         if not href:
             continue
         if href.startswith(("mailto:", "tel:", "javascript:")):
@@ -175,7 +395,6 @@ def extract_candidate_exhibition_urls(list_page_url: str, list_page_html: str) -
             continue
         if not _same_domain(absolute_url, list_page_url):
             continue
-        anchor_text = anchor.get_text(" ", strip=True)
         if not _looks_like_exhibition_link(absolute_url, anchor_text):
             continue
         normalized = f"{parsed.scheme}://{parsed.netloc}{parsed.path}".rstrip("/")
@@ -194,12 +413,11 @@ def extract_candidate_exhibition_urls(list_page_url: str, list_page_html: str) -
 
 
 def extract_candidate_artist_urls(list_page_url: str, list_page_html: str) -> list[str]:
-    soup = BeautifulSoup(list_page_html, "lxml")
     candidates: list[str] = []
     seen: set[str] = set()
 
-    for anchor in soup.find_all("a", href=True):
-        href = (anchor.get("href") or "").strip()
+    for href, anchor_text_raw in extract_links_from_html(list_page_html):
+        href = href.strip()
         if not href:
             continue
         if href.startswith(("mailto:", "tel:", "javascript:")):
@@ -210,9 +428,11 @@ def extract_candidate_artist_urls(list_page_url: str, list_page_html: str) -> li
             continue
         if not _same_domain(absolute_url, list_page_url):
             continue
-        anchor_text = anchor.get_text(" ", strip=True).lower()
+        anchor_text = anchor_text_raw.lower()
         target = f"{absolute_url.lower()} {anchor_text}"
         if not any(keyword in target for keyword in ARTIST_LINK_KEYWORDS):
+            continue
+        if not _looks_like_artist_detail_link(absolute_url, list_page_url):
             continue
         normalized = f"{parsed.scheme}://{parsed.netloc}{parsed.path}".rstrip("/")
         if parsed.query:
@@ -224,8 +444,6 @@ def extract_candidate_artist_urls(list_page_url: str, list_page_html: str) -> li
         if len(candidates) >= MAX_EXHIBITION_LINKS_PER_GALLERY:
             break
 
-    if not candidates:
-        return [list_page_url]
     return candidates
 
 
@@ -304,12 +522,17 @@ def fetch_html(session: requests.Session, url: str) -> dict[str, Any]:
 
 
 def extract_text(html: str) -> str:
-    soup = BeautifulSoup(html, "lxml")
-    for node in soup(["script", "style", "noscript"]):
-        node.extract()
-    text = soup.get_text("\n", strip=True)
-    lines = [line.strip() for line in text.splitlines() if line.strip()]
-    return "\n".join(lines)
+    if BeautifulSoup is not None:
+        soup = BeautifulSoup(html, "lxml")
+        for node in soup(["script", "style", "noscript"]):
+            node.extract()
+        text = soup.get_text("\n", strip=True)
+        lines = [line.strip() for line in text.splitlines() if line.strip()]
+        return "\n".join(lines)
+    parser = VisibleTextHTMLParser()
+    parser.feed(html)
+    parser.close()
+    return parser.get_text()
 
 
 def normalize_text_for_hash(text: str) -> str:
@@ -1008,6 +1231,31 @@ def main() -> int:
                 list_page_url=list_page_url,
                 list_page_html=list_result["html"],
             )
+            if not candidate_urls:
+                no_detail_reason = "NO_ARTIST_DETAIL_LINKS"
+                artists_failed_fetches_in_run.append(
+                    upsert_failed_fetch(
+                        artists_failed_fetches_ledger,
+                        kind="page",
+                        raw_url=list_page_url,
+                        parent_source_url=artists_list_url,
+                        last_error=no_detail_reason,
+                        http_status=list_result["status_code"],
+                        reason_code=no_detail_reason,
+                        category=RAG_CATEGORY_ARTISTS,
+                    )
+                )
+                upsert_visited_page(
+                    artists_visited_pages_ledger,
+                    url=list_page_url,
+                    fair_slug=gallery.fair_slug,
+                    gallery_name_en=gallery.gallery_name_en,
+                    decision="failed",
+                    reason_code=no_detail_reason,
+                    parent_source_url=artists_list_url,
+                    category=RAG_CATEGORY_ARTISTS,
+                )
+                continue
 
             for page_url in candidate_urls:
                 page_url_hash = compute_page_url_hash(page_url)
@@ -1236,6 +1484,7 @@ def main() -> int:
         "completed_at": completed_at,
         "target_year": TARGET_YEAR,
         "seed_per_fair": SEED_PER_FAIR,
+        "html_parser_backend": "bs4_lxml" if BeautifulSoup is not None else "stdlib_html_parser_fallback",
         "max_exhibition_links_per_gallery": MAX_EXHIBITION_LINKS_PER_GALLERY,
         "failure_retry_cooldown_seconds": FAILURE_RETRY_COOLDOWN_SECONDS,
         "max_failure_retries_per_url": MAX_FAILURE_RETRIES_PER_URL,
@@ -1291,7 +1540,62 @@ def main() -> int:
         "artists_output_files": artists_output_files,
         "artists_failed_fetches_path": str(artists_failed_fetches_path) if include_artists_text else "",
         "artists_visited_pages_path": str(artists_visited_pages_path) if include_artists_text else "",
+        "exhibitions_text_fair_breakdown": [],
+        "exhibitions_text_gallery_breakdown": [],
+        "exhibitions_text_seed_gallery_count": 0,
+        "exhibitions_text_galleries_with_ge_1_record": 0,
+        "exhibitions_text_success_rate_ge_1_record": 0.0,
+        "exhibitions_text_success_rate_ge_1_record_pct": 0.0,
+        "artists_text_fair_breakdown": [],
+        "artists_text_gallery_breakdown": [],
+        "artists_text_seed_gallery_count": 0,
+        "artists_text_galleries_with_ge_1_record": 0,
+        "artists_text_success_rate_ge_1_record": 0.0,
+        "artists_text_success_rate_ge_1_record_pct": 0.0,
     }
+
+    exhibitions_fair_breakdown, exhibitions_gallery_breakdown = build_text_category_breakdown(
+        category=RAG_CATEGORY,
+        seed_galleries=seed_galleries,
+        records_by_fair=records_by_fair,
+    )
+    exhibitions_seed_gallery_count = sum(int(row.get("target_gallery_count") or 0) for row in exhibitions_fair_breakdown)
+    exhibitions_success_gallery_count = sum(
+        int(row.get("successful_gallery_count") or 0) for row in exhibitions_fair_breakdown
+    )
+    exhibitions_success_rate = (
+        exhibitions_success_gallery_count / exhibitions_seed_gallery_count if exhibitions_seed_gallery_count > 0 else 0.0
+    )
+    summary["exhibitions_text_fair_breakdown"] = exhibitions_fair_breakdown
+    summary["exhibitions_text_gallery_breakdown"] = exhibitions_gallery_breakdown
+    summary["exhibitions_text_seed_gallery_count"] = exhibitions_seed_gallery_count
+    summary["exhibitions_text_galleries_with_ge_1_record"] = exhibitions_success_gallery_count
+    summary["exhibitions_text_success_rate_ge_1_record"] = round(exhibitions_success_rate, 6)
+    summary["exhibitions_text_success_rate_ge_1_record_pct"] = round(exhibitions_success_rate * 100.0, 2)
+
+    if include_artists_text:
+        artists_fair_breakdown, artists_gallery_breakdown = build_text_category_breakdown(
+            category=RAG_CATEGORY_ARTISTS,
+            seed_galleries=seed_galleries,
+            records_by_fair=artists_records_by_fair,
+        )
+        artists_seed_gallery_count = sum(int(row.get("target_gallery_count") or 0) for row in artists_fair_breakdown)
+        artists_success_gallery_count = sum(int(row.get("successful_gallery_count") or 0) for row in artists_fair_breakdown)
+        artists_success_rate = (
+            artists_success_gallery_count / artists_seed_gallery_count if artists_seed_gallery_count > 0 else 0.0
+        )
+        summary["artists_text_fair_breakdown"] = artists_fair_breakdown
+        summary["artists_text_gallery_breakdown"] = artists_gallery_breakdown
+        summary["artists_text_seed_gallery_count"] = artists_seed_gallery_count
+        summary["artists_text_galleries_with_ge_1_record"] = artists_success_gallery_count
+        summary["artists_text_success_rate_ge_1_record"] = round(artists_success_rate, 6)
+        summary["artists_text_success_rate_ge_1_record_pct"] = round(artists_success_rate * 100.0, 2)
+
+    summary["notes"] = summary.get("notes", [])
+    if isinstance(summary["notes"], list):
+        summary["notes"].append("text_breakdown_mode=fair_and_gallery_with_records_and_success_rate_pct")
+        summary["notes"].append("artists_source_rule=artist_list_url_to_artist_detail_pages_only")
+
     summary.update(artists_enrichment_summary)
     summary_path = LOG_DIR / f"run_summary_seed10_{TARGET_YEAR}.json"
     write_json(summary_path, summary)
@@ -1308,6 +1612,24 @@ def main() -> int:
         f"skipped_known_saved={summary['skipped_known_saved_page']}, "
         f"skipped_out_of_year={summary['skipped_out_of_year']}"
     )
+    print(
+        "[BREAKDOWN][exhibitions_text] "
+        f"galleries_with_ge1={summary['exhibitions_text_galleries_with_ge_1_record']}/"
+        f"{summary['exhibitions_text_seed_gallery_count']} "
+        f"success_rate={summary['exhibitions_text_success_rate_ge_1_record']:.4f} "
+        f"({summary['exhibitions_text_success_rate_ge_1_record_pct']:.2f}%)"
+    )
+    if summary["exhibitions_text_gallery_breakdown"]:
+        print("[BREAKDOWN][exhibitions_text][gallery]")
+        for row in summary["exhibitions_text_gallery_breakdown"]:
+            print(
+                "  - "
+                f"{row.get('fair_slug')}/{row.get('gallery_name_en')}: "
+                f"records={row.get('records_saved_total')} "
+                f"ge1={row.get('successful_gallery_count')} "
+                f"rate={row.get('success_rate_ge_1_record')} "
+                f"({row.get('success_rate_ge_1_record_pct')}%)"
+            )
     if summary["skipped_by_reason"]:
         reason_parts = [f"{key}={value}" for key, value in sorted(summary["skipped_by_reason"].items())]
         print(f"[DONE] skip_breakdown: {' '.join(reason_parts)}")
@@ -1328,6 +1650,24 @@ def main() -> int:
             f"artists_url_used={summary['artists_list_url_artists_url_used']} "
             f"exhibitions_fallback_used={summary['artists_list_url_exhibitions_fallback_used']}"
         )
+        print(
+            "[BREAKDOWN][artists_text] "
+            f"galleries_with_ge1={summary['artists_text_galleries_with_ge_1_record']}/"
+            f"{summary['artists_text_seed_gallery_count']} "
+            f"success_rate={summary['artists_text_success_rate_ge_1_record']:.4f} "
+            f"({summary['artists_text_success_rate_ge_1_record_pct']:.2f}%)"
+        )
+        if summary["artists_text_gallery_breakdown"]:
+            print("[BREAKDOWN][artists_text][gallery]")
+            for row in summary["artists_text_gallery_breakdown"]:
+                print(
+                    "  - "
+                    f"{row.get('fair_slug')}/{row.get('gallery_name_en')}: "
+                    f"records={row.get('records_saved_total')} "
+                    f"ge1={row.get('successful_gallery_count')} "
+                    f"rate={row.get('success_rate_ge_1_record')} "
+                    f"({row.get('success_rate_ge_1_record_pct')}%)"
+                )
         print(
             "[DONE][artists_enrichment] "
             f"mode={summary['artists_enrichment_mode']} "

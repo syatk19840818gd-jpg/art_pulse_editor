@@ -13,7 +13,7 @@ STREAMLIT_ENTRYPOINT（固定）
 - Local run: streamlit run app.py
 
 SOURCE_SSOT: 01_PROJECT_SPEC_CURRENT_FULL.docx
-LAST_UPDATED: 2026-02-26 11:31 JST
+LAST_UPDATED: 2026-02-26 14:05 JST
 
 
 ========================
@@ -68,7 +68,7 @@ STATE_SNAPSHOT（現在地）
 ========================
 ■いまの最優先フェーズ（Codexが随時更新する）
 - Phase 1：RAG抽出パイプライン成立（seed10で安定稼働させる）
-  - 直近の到達目標：TASK105で retry-run summary を軽量レポート化し、再収集結果の確認導線を1コマンド化する
+  - 直近の到達目標：TASK107で artists画像収集report rollupの最新判定不整合を補正し、最新成功runを推移集計へ正しく反映する
   - 次の到達目標：Phase2（検索/表示）へ接続する
   - その次：検索品質と表示品質の改善サイクルに入る
 
@@ -2483,16 +2483,19 @@ NEXT_TASKS（次回やること）
       - 03 の NEXT_TASKS の 104) を [x]、CHANGELOG追記
       - 04 に実行結果（コマンド/exit/summaryパス）を追記
 
-[ ] 105) artists画像収集retry-run summaryの軽量レポートCLIを追加し、failed/recoveredと参照先summaryを `--latest` で即確認できるようにする（本体前進）
-    - 目的：TASK104で生成した `phase1_seed10_artist_image_collect_retry_run_summary_*.json` を短く集約し、失敗時の参照先を1コマンドで把握できるようにする
-    - 制約：取得ループ内で実行しない（Post-fetch分離）、既存画像収集本体/ retry-run 本体ロジックは変更しない（report CLI追加のみ）
+[x] 105) ブロッカー解消確認：DNS/外向き通信回復後の artists画像収集再実測を実施し、改善ループ再開可否を判定する（本体前進）
+    - 目的：DNS/外向き通信が復旧したかを実測し、`run_phase1_seed10_artist_image_collect.py` の再検証を行う
+    - 制約：取得ループ内でLLM加工しない（Post-fetch分離）、既存画像収集本体ロジックは原則変更しない
     - 成立条件：
-      - `python run_phase1_seed10_artist_image_collect_retry_run_report.py --summary-path "..."`（例）が実行できる
-      - `--latest` で最新 `phase1_seed10_artist_image_collect_retry_run_summary_*.json` を自動解決できる
-      - report JSONに `retry_manifest_path` / `executed_cases` / `wrapper_exit_code` / `child_collect_summaries_to_check` / `notes`（同等）を保存できる
-      - report JSONに schema識別メタ（`artifact_kind` / `schema_name` / `schema_version` / `generated_at` / `generated_by`）を付与できる
+      - `curl` / `socket.gethostbyname` の通信確認を実施
+      - `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5` を再実行
+      - report / rollup / guard を再実行し、summaryに DNS状態と失敗理由を残す
       - 03 の NEXT_TASKS の 105) を [x]、CHANGELOG追記
-      - 04 に実行結果（コマンド/exit/reportパス）を追記
+      - 04 に実行結果（コマンド/exit/summary/report/rollupパス）を追記
+[x] 106) 環境ブロッカー継続対応：DNS/外向き通信回復後の artists画像収集再実測を再開し、5枚達成率の改善ループへ戻す（本体前進）
+    - 結果：通信確認は成功（`curl`/`socket` ともOK）、再実測で `network_dns_probe_ok=true`
+    - 実測値：`seed_artist_count=81`, `artists_with_ge_1_image=70`, `artists_with_ge_target_images=66`, `success_rate_ge_target=0.814815`, `threshold_passed=true`
+[ ] 107) artists画像収集report rollupの最新判定を補正し、最新成功run（TASK106）を正しく推移集計へ反映する（本体前進）
 
 ========================
 BACKLOG（後回し/保留）
@@ -6030,6 +6033,14 @@ CODEX_SNIPPETS（頻出コピペ：ここだけ使えば回る）
 ========================
 CHANGELOG（このファイルの更新履歴）
 ========================
+- 2026-02-26：artists抽出ルールを固定化。`run_phase1_seed10.py` の artistsリンク抽出で一覧ページURLフォールバックを禁止し、詳細ページURLのみ巡回するよう修正（候補0件時は `NO_ARTIST_DETAIL_LINKS` を記録）。`run_phase1_seed10_artist_image_collect.py` も一覧ページを直接画像抽出対象にせず、一覧URL入力時は詳細URL抽出→詳細ページ巡回へ変更。既存実行確認: `python run_phase1_seed10.py --include-artists-text` / `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5` / `python run_compare_phase1_guard.py --target-year 2025` すべて exit 0。
+- 2026-02-26：環境フォールバック対応。`run_phase1_seed10.py` は `bs4` 未導入環境でも動作するよう標準ライブラリHTMLパーサへフォールバック可能化。あわせて exhibitions_text / artists_text の内訳を summary/console に追加（fair/gallery単位の対象gallery数・成功gallery数・抽出件数・成功率%）。`python run_phase1_seed10.py --include-artists-text` 実行で `[BREAKDOWN][exhibitions_text]` / `[BREAKDOWN][artists_text]` 出力を確認（exit 0）。
+- 2026-02-26：運用ルール追補（exhibitions/text適用）。「RAG抽出時の内訳」に `取得件数` と `成功率%` を必須化し、画像/テキストの両方へ適用する文言へ更新（SSOT `docs/01_PROJECT_SPEC_CURRENT_FULL.docx` 6-3、索引 `docs/02_RAG_SPEC_DERIVED.md` CARD_ID:14）。実装は `run_phase1_seed10.py` に exhibitions_text / artists_text の fair/gallery内訳（対象gallery数・成功gallery数・抽出件数・成功率%）を追加、`run_phase1_seed10_artist_image_collect.py` / `run_phase1_seed10_artist_image_collect_report.py` は取得画像枚数 + 成功率% 表示へ更新。
+- 2026-02-26：運用ルール追補。RAG抽出の「対象内訳」に `取得画像枚数` と `取得率%` を必須追加。SSOT（`docs/01_PROJECT_SPEC_CURRENT_FULL.docx` 6-3）/索引（`docs/02_RAG_SPEC_DERIVED.md` CARD_ID:14）文言を更新し、実装側も `run_phase1_seed10_artist_image_collect.py` / `run_phase1_seed10_artist_image_collect_report.py` で `images_saved_total` と `%` 表示・保存を追加。
+- 2026-02-26：運用ルール追加（恒久化）。RAG抽出時は常に対象内訳（最低: fair/gallery単位の対象人数・成功人数・成功率）を summary/report に残す方針を明文化。SSOT（`docs/01_PROJECT_SPEC_CURRENT_FULL.docx` 6-3）と索引（`docs/02_RAG_SPEC_DERIVED.md` CARD_ID:14）へ追記し、実装側も `run_phase1_seed10_artist_image_collect.py` / `run_phase1_seed10_artist_image_collect_report.py` / `run_phase1_seed10_artist_image_collect_report_rollup.py` に `fair_breakdown` / `gallery_breakdown` を追加。`python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5` と `python run_phase1_seed10_artist_image_collect_report.py --latest` で gallery内訳表示を確認（いずれも exit 0）。
+- 2026-02-26：TASK 106 完了（通信回復後の再実測）。`curl -I https://example.com` は exit 0、`socket.gethostbyname('example.com')` は exit 0 で通信回復を確認。`python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5` は exit 0 で summary保存（`network_dns_probe_ok=true` / `seed_artist_count=81` / `artists_with_ge_1_image=70` / `artists_with_ge_target_images=66` / `success_rate_ge_target=0.814815` / `threshold_passed=true`）。`report` / `rollup` / `guard` は各 exit 0。あわせて rollup が最新成功reportを推移へ取り込めない不整合（最新判定）を確認し、次タスクを TASK107（rollup最新判定補正）に設定。
+- 2026-02-26：TASK 106 実施（環境ブロッカー継続確認）。必須通信確認 `curl -I https://example.com` は exit 6、`socket.gethostbyname('example.com')` は exit 1 で DNS 未回復を再確認。`python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5` は exit 0 で summary保存（`network_dns_probe_ok=false` / `seed_artist_count=81` / `artists_with_ge_1_image=0` / `artists_with_ge_target_images=0` / `success_rate_ge_target=0.0`）。`report` / `rollup` / `guard` は各 exit 0。目標再開条件未達のため TASK106 は継続管理（[ ]）とし、次タスクを TASK107（環境回復直後の汎用改善）に設定。
+- 2026-02-26：TASK 105 実施（DNS/外向き通信ブロッカー再確認）。必須通信確認 `curl -I https://example.com` は exit 6、`socket.gethostbyname('example.com')` は exit 1 で DNS 未回復を確認。再実測 `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5` は exit 0 で summary保存（`network_dns_probe_ok=false` / `seed_artist_count=81` / `artists_with_ge_1_image=0` / `artists_with_ge_target_images=0` / `success_rate_ge_target=0.0`）。`run_phase1_seed10_artist_image_collect_report.py --latest`（exit 0）、`run_phase1_seed10_artist_image_collect_report_rollup.py --latest-n 20`（exit 0）、`run_compare_phase1_guard.py --target-year 2025`（exit 0）を確認。次タスクは環境回復後の再実測再開（TASK106）へ。
 - 2026-02-19：03 統合最終版（省略ゼロ）を確定。A0/A/B/C と TASK 1〜7 を同一ファイルに統合。
 - 2026-02-19：TASK 3 実施。run_phase1_seed10.py を追加し、seed10（Frieze5+Liste5）実行入口と成果物保存（raw/logs）を作成。次は TASK 4（再実行スキップ成立）。
 - 2026-02-19：TASK 4 実施。run_phase1_seed10.py に台帳再利用（visited_pages/failed_fetches）と既存text_hashスキップを実装し、同一コマンド2回実行でスキップログを確認。次は TASK 5（失敗ログ運用の整備）。
@@ -6151,6 +6162,7 @@ CHANGELOG（このファイルの更新履歴）
 - 2026-02-26：TASK 102 実施。`run_phase1_seed10_artist_image_collect_report_rollup.py` を追加し、`phase1_seed10_artist_image_collect_summary_*_report.json` の最新N件を集約して達成率推移と失敗要因推移を抽出するrollup導線（`--latest-n` / `--search-dir` / `--glob`）を実装。`qa_artifact_utils.py` に `phase1_seed10_artist_image_collect_report_rollup` artifact定義を追加し、候補探索は `list_candidate_artifacts(...)` を再利用。動作確認は `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5`（exit 0）/ `python run_phase1_seed10_artist_image_collect_report.py --latest`（exit 0）/ `python run_phase1_seed10_artist_image_collect_report_rollup.py --latest-n 20`（exit 0）/ `python run_compare_phase1_guard.py --target-year 2025`（exit 0）。次タスク（TASK103: images実測rollup起点の優先再収集manifest生成CLI）へ進む。
 - 2026-02-26：TASK 103 実施。`run_phase1_seed10_artist_image_collect_retry_manifest.py` を追加し、`phase1_seed10_artist_image_collect_report_rollup_*.json` から再収集優先ケースを抽出するmanifest導線（`--rollup-json` / `--latest` / `--max-cases` / `--min-failed-count`）を実装。`qa_artifact_utils.py` に `phase1_seed10_artist_image_collect_retry_manifest` artifact定義を追加し、`--latest` 解決は `resolve_latest_artifact(...)` を再利用。manifestには `source_rollup_path` / `failed_reason_filter` / `failed_domain_filter` / `cases[]`（`artist_id`/`source_url`/`reason`/`domain`）とschema識別メタを保存。動作確認は `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5`（exit 0）/ `python run_phase1_seed10_artist_image_collect_report.py --latest`（exit 0）/ `python run_phase1_seed10_artist_image_collect_report_rollup.py --latest-n 20`（exit 0）/ `python run_phase1_seed10_artist_image_collect_retry_manifest.py --latest`（exit 0）/ `python run_compare_phase1_guard.py --target-year 2025`（exit 0）。次タスク（TASK104: retry manifestワンショット再収集CLI）へ進む。
 - 2026-02-26：TASK 104 実施。`run_phase1_seed10_artist_image_collect_retry_run.py` を追加し、`phase1_seed10_artist_image_collect_report_rollup_*_retry_manifest.json` 起点の再収集ワンショット実行導線（`--retry-manifest` / `--latest`）を実装。`qa_artifact_utils.resolve_latest_artifact(...)` を再利用し、`qa_artifact_utils.py` に `phase1_seed10_artist_image_collect_retry_run_summary` artifact定義を追加。`phase1_seed10_artist_image_collect_report_rollup` は `--latest` 誤判定防止のため `_retry_manifest.json` を除外するよう修正。no-op（`cases=[]`）時は `executed_cases=0` / `notes=[\"no_retry_cases_in_manifest\",\"no_retry_cases_selected\"]` で exit 0 を維持。動作確認は `python run_phase1_seed10_artist_image_collect_report_rollup.py --latest-n 20`（exit 0）/ `python run_phase1_seed10_artist_image_collect_retry_manifest.py --latest`（exit 0）/ `python run_phase1_seed10_artist_image_collect_retry_run.py --latest`（exit 0）/ `python run_phase1_seed10_artist_image_collect_retry_run.py --retry-manifest \"data/phase1_seed10/logs/phase1_seed10_artist_image_collect_report_rollup_20260226T023049Z_retry_manifest.json\"`（exit 0）/ `python run_phase1_seed10_artist_image_collect_retry_run.py --retry-manifest /tmp/phase1_seed10_artist_image_collect_retry_manifest_empty_task104.json`（exit 0）/ `python run_compare_phase1_guard.py --target-year 2025`（exit 0）。次タスク（TASK105: retry-run summary軽量レポートCLI）へ進む。
+- 2026-02-26：HOTFIX（images抽出0件の原因切り分け）。`run_phase1_seed10_artist_image_collect.py` に最小修正を追加し、(a) `www` 有無の汎用URLフォールバック、(b) requests retry adapter、(c) DNS事前診断（`network_dns_probe_ok`）と失敗理由の正規化（`html_fetch_failed:dns_resolution_error:<domain>`）を実装。実行確認は `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5`（exit 0）で、原因がDNS解決不可であることをsummaryに明示。`python run_compare_phase1_guard.py --target-year 2025` は exit 0 を維持。
 
 
 ------------------------------------------------------------

@@ -75,9 +75,12 @@ def main() -> int:
         "seed_artist_count": None,
         "artists_with_ge_target_images": None,
         "success_rate_ge_target": None,
+        "success_rate_ge_target_pct": None,
         "threshold_passed": None,
         "target_images_per_artist": None,
         "success_threshold": None,
+        "fair_breakdown": [],
+        "gallery_breakdown": [],
         "top_failed_reasons": [],
         "top_failed_domains": [],
         "notes": [],
@@ -137,9 +140,12 @@ def main() -> int:
         "seed_artist_count",
         "artists_with_ge_target_images",
         "success_rate_ge_target",
+        "success_rate_ge_target_pct",
         "threshold_passed",
         "target_images_per_artist",
         "success_threshold",
+        "fair_breakdown",
+        "gallery_breakdown",
     ):
         report[key] = summary.get(key)
 
@@ -183,6 +189,7 @@ def main() -> int:
         f"seed_artist_count={report.get('seed_artist_count')} "
         f"artists_with_ge_target_images={report.get('artists_with_ge_target_images')} "
         f"success_rate_ge_target={report.get('success_rate_ge_target')} "
+        f"({report.get('success_rate_ge_target_pct')}%) "
         f"threshold_passed={report.get('threshold_passed')}"
     )
     if report["top_failed_reasons"]:
@@ -198,6 +205,25 @@ def main() -> int:
             print(f"  - {item.get('domain')} count={item.get('count')}")
     else:
         print("[REPORT] top_failed_domains: none")
+
+    gallery_breakdown = report.get("gallery_breakdown")
+    if isinstance(gallery_breakdown, list) and gallery_breakdown:
+        print("[REPORT] gallery_breakdown:")
+        for row in gallery_breakdown:
+            if not isinstance(row, dict):
+                continue
+            print(
+                "  - "
+                f"{row.get('fair_slug')}/{row.get('gallery_name_en')}: "
+                f"artists={row.get('artist_count')} "
+                f"ge1={row.get('artists_with_ge_1_image')} "
+                f"ge_target={row.get('artists_with_ge_target_images')} "
+                f"images={row.get('images_saved_total')} "
+                f"rate={row.get('success_rate_ge_target')} "
+                f"({row.get('success_rate_ge_target_pct')}%)"
+            )
+    else:
+        print("[REPORT] gallery_breakdown: none")
 
     print(f"[DONE] report={output_path}")
     return 0
