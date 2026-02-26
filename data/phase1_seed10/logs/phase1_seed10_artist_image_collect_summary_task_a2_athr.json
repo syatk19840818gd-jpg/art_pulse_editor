@@ -1,0 +1,96 @@
+{
+  "artifact_kind": "phase1_seed10_artist_image_collect_summary",
+  "schema_name": "phase1_seed10_artist_image_collect_summary",
+  "schema_version": "v1",
+  "generated_at": "2026-02-26T10:50:39Z",
+  "generated_by": "run_phase1_seed10_artist_image_collect.py",
+  "source_cli": "run_phase1_seed10_artist_image_collect.py",
+  "target_year": 2025,
+  "target_images_per_artist": 5,
+  "success_threshold": 0.7,
+  "seed_artist_count": 1,
+  "processed_artist_count": 1,
+  "artists_with_ge_1_image": 0,
+  "artists_with_ge_target_images": 0,
+  "success_rate_ge_target": 0.0,
+  "success_rate_ge_target_pct": 0.0,
+  "threshold_passed": false,
+  "total_images_saved": 0,
+  "per_artist_counts": [
+    {
+      "artist_id": "6a828828d03b0f3e8e4924be8af700ca5086141803640cc6526347fa8a0e160f",
+      "artist_storage_key": "athr__biography__6a828828",
+      "source_url": "https://athrart.com/artists/33-sara-abdu/biography",
+      "detail_urls_considered": [
+        "https://athrart.com/artists/33-sara-abdu/biography"
+      ],
+      "fair_slug": "frieze_london",
+      "gallery_name_en": "Athr",
+      "saved_images": 0,
+      "target_images": 5,
+      "target_met": false
+    }
+  ],
+  "failed_cases": [
+    {
+      "artist_id": "6a828828d03b0f3e8e4924be8af700ca5086141803640cc6526347fa8a0e160f",
+      "source_url": "https://athrart.com/artists/33-sara-abdu/biography",
+      "detail_urls_considered": [
+        "https://athrart.com/artists/33-sara-abdu/biography"
+      ],
+      "domain": "athrart.com",
+      "saved_images": 0,
+      "target_images": 5,
+      "reason": "artist_detail_fetch_failed",
+      "reason_code": "artist_detail_fetch_failed",
+      "notes": [
+        "html_fetch_failed:dns_resolution_error:athrart.com"
+      ]
+    }
+  ],
+  "domain_stats": {
+    "athrart.com": {
+      "target_artist_count": 1,
+      "success_ge1_count": 0,
+      "success_ge_target_count": 0,
+      "images_saved_total": 0
+    }
+  },
+  "fair_breakdown": [
+    {
+      "fair_slug": "frieze_london",
+      "artist_count": 1,
+      "artists_with_ge_1_image": 0,
+      "artists_with_ge_target_images": 0,
+      "images_saved_total": 0,
+      "success_rate_ge_target": 0.0,
+      "success_rate_ge_target_pct": 0.0
+    }
+  ],
+  "gallery_breakdown": [
+    {
+      "fair_slug": "frieze_london",
+      "gallery_name_en": "Athr",
+      "artist_count": 1,
+      "artists_with_ge_1_image": 0,
+      "artists_with_ge_target_images": 0,
+      "images_saved_total": 0,
+      "success_rate_ge_target": 0.0,
+      "success_rate_ge_target_pct": 0.0
+    }
+  ],
+  "notes": [
+    "dns_probe_failed:example.com:[Errno -2] Name or service not known",
+    "filter_only_fair_slug:frieze_london",
+    "filter_only_gallery_name:athr",
+    "artist_collect_source_rule=detail_pages_only",
+    "local_image_cache_layout=fair_only_flat_files",
+    "threshold_not_met:0/1<0.70",
+    "count_mode=effective_images_after_run",
+    "breakdown_mode=fair_and_gallery"
+  ],
+  "wrapper_exit_code": 0,
+  "network_dns_probe_host": "example.com",
+  "network_dns_probe_ok": false,
+  "max_artists_per_gallery_for_collect": 1
+}

@@ -205,6 +205,8 @@
 ### fair/gallery内訳
 | fair | gallery | 対象人数 | 成功人数(>=1枚) | 取得件数(画像枚数) | 成功率(>=5枚) |
 |---|---|---:|---:|---:|---:|
+| frieze_london | Adams and Ollman | 0 | 0 | 0 | 0.0% |
+| frieze_london | Arcadia Missa | 0 | 0 | 0 | 0.0% |
 | frieze_london | Athr | 10 | 3 | 3 | 0.0% |
 | frieze_london | Gallery Baton | 10 | 10 | 50 | 100.0% |
 | frieze_london | The Approach | 10 | 10 | 50 | 100.0% |
@@ -222,3 +224,58 @@
 - athrart.com: 10件
 - spazioamanita.com: 3件
 - aplusart.asia: 1件
+
+---
+## RUN 2026-02-26T10:50:56Z artists画像収集
+
+参照元:
+- `/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2_athr.json`
+- `/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2_athr_report.json`
+
+### サマリー
+- 対象人数: 1
+- 5枚達成人数: 0
+- 達成率(>= 5枚): 0.0%
+- 閾値通過(70%): False
+
+### fair/gallery内訳
+| fair | gallery | 対象人数 | 成功人数(>=1枚) | 取得件数(画像枚数) | 成功率(>=5枚) |
+|---|---|---:|---:|---:|---:|
+| frieze_london | Adams and Ollman | 0 | 0 | 0 | 0.0% |
+| frieze_london | The Approach | 0 | 0 | 0 | 0.0% |
+| frieze_london | Arcadia Missa | 0 | 0 | 0 | 0.0% |
+| frieze_london | Athr | 1 | 0 | 0 | 0.0% |
+| frieze_london | Gallery Baton | 0 | 0 | 0 | 0.0% |
+| liste | A+ Works of Art | 0 | 0 | 0 | 0.0% |
+| liste | Addis Fine Art | 0 | 0 | 0 | 0.0% |
+| liste | Afriart Gallery | 0 | 0 | 0 | 0.0% |
+| liste | Amanita | 0 | 0 | 0 | 0.0% |
+| liste | Anca Poteraşu Gallery | 0 | 0 | 0 | 0.0% |
+
+### 失敗理由上位
+- artist_detail_fetch_failed: 1件
+
+### 失敗ドメイン上位
+- athrart.com: 1件
+
+---
+## TASK A-2R（Athr works優先 再検証）
+
+参照元:
+- `data/phase1_seed10/logs/phase1_network_preflight_summary_20260226T115105Z.json`
+- `data/phase1_seed10/logs/phase1_network_preflight_summary_20260226T115106Z.json`
+
+### サマリー
+- DNSゲート: fail（2回とも）
+- 本体抽出: 未実行（fail-fast）
+
+### fair/gallery内訳
+| fair | gallery | 対象人数 | 成功人数(>=1枚) | 取得件数(画像枚数) | 成功率(>=5枚) |
+|---|---|---:|---:|---:|---:|
+| frieze_london | Athr | 1 | 0 | 0 | 0.0% |
+
+### 失敗理由上位
+- preflight_failed:dns_ok_rate_0.000
+
+### works関連ノート
+- `works_page_tried` / `works_page_found` / `works_candidates_count` は本体未実行のため今回未生成

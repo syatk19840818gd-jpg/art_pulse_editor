@@ -1,0 +1,177 @@
+{
+  "artifact_kind": "phase1_network_preflight_summary",
+  "schema_name": "phase1_network_preflight_summary",
+  "schema_version": "v1",
+  "generated_at": "2026-02-26T11:51:05Z",
+  "generated_by": "run_phase1_network_preflight.py",
+  "dns_total": 21,
+  "dns_ok_count": 0,
+  "dns_ok_rate": 0.0,
+  "http_probe_url": "https://example.com",
+  "http_probe_ok": false,
+  "seed_hosts": [
+    "example.com",
+    "adamsandollman.com",
+    "theapproach.co.uk",
+    "arcadiamissa.com",
+    "athrart.com",
+    "gallerybaton.com",
+    "liviabenavides.com",
+    "blankprojects.com",
+    "peterblumgallery.com",
+    "matthewbrowngallery.com",
+    "ceciliabrunsonprojects.com",
+    "galeriecapitain.de",
+    "carlosishikawa.com",
+    "casadosantapau.com",
+    "pedrocera.com",
+    "jamescohan.com",
+    "sadiecoles.com",
+    "thomasdanegallery.com",
+    "dastan.gallery",
+    "anatebgi.com",
+    "edelassanti.com"
+  ],
+  "dns_results": [
+    {
+      "host": "example.com",
+      "dns_ok": false,
+      "ip": "",
+      "error": "[Errno -2] Name or service not known"
+    },
+    {
+      "host": "adamsandollman.com",
+      "dns_ok": false,
+      "ip": "",
+      "error": "[Errno -2] Name or service not known"
+    },
+    {
+      "host": "theapproach.co.uk",
+      "dns_ok": false,
+      "ip": "",
+      "error": "[Errno -2] Name or service not known"
+    },
+    {
+      "host": "arcadiamissa.com",
+      "dns_ok": false,
+      "ip": "",
+      "error": "[Errno -2] Name or service not known"
+    },
+    {
+      "host": "athrart.com",
+      "dns_ok": false,
+      "ip": "",
+      "error": "[Errno -2] Name or service not known"
+    },
+    {
+      "host": "gallerybaton.com",
+      "dns_ok": false,
+      "ip": "",
+      "error": "[Errno -2] Name or service not known"
+    },
+    {
+      "host": "liviabenavides.com",
+      "dns_ok": false,
+      "ip": "",
+      "error": "[Errno -2] Name or service not known"
+    },
+    {
+      "host": "blankprojects.com",
+      "dns_ok": false,
+      "ip": "",
+      "error": "[Errno -2] Name or service not known"
+    },
+    {
+      "host": "peterblumgallery.com",
+      "dns_ok": false,
+      "ip": "",
+      "error": "[Errno -2] Name or service not known"
+    },
+    {
+      "host": "matthewbrowngallery.com",
+      "dns_ok": false,
+      "ip": "",
+      "error": "[Errno -2] Name or service not known"
+    },
+    {
+      "host": "ceciliabrunsonprojects.com",
+      "dns_ok": false,
+      "ip": "",
+      "error": "[Errno -2] Name or service not known"
+    },
+    {
+      "host": "galeriecapitain.de",
+      "dns_ok": false,
+      "ip": "",
+      "error": "[Errno -2] Name or service not known"
+    },
+    {
+      "host": "carlosishikawa.com",
+      "dns_ok": false,
+      "ip": "",
+      "error": "[Errno -2] Name or service not known"
+    },
+    {
+      "host": "casadosantapau.com",
+      "dns_ok": false,
+      "ip": "",
+      "error": "[Errno -2] Name or service not known"
+    },
+    {
+      "host": "pedrocera.com",
+      "dns_ok": false,
+      "ip": "",
+      "error": "[Errno -2] Name or service not known"
+    },
+    {
+      "host": "jamescohan.com",
+      "dns_ok": false,
+      "ip": "",
+      "error": "[Errno -2] Name or service not known"
+    },
+    {
+      "host": "sadiecoles.com",
+      "dns_ok": false,
+      "ip": "",
+      "error": "[Errno -2] Name or service not known"
+    },
+    {
+      "host": "thomasdanegallery.com",
+      "dns_ok": false,
+      "ip": "",
+      "error": "[Errno -2] Name or service not known"
+    },
+    {
+      "host": "dastan.gallery",
+      "dns_ok": false,
+      "ip": "",
+      "error": "[Errno -2] Name or service not known"
+    },
+    {
+      "host": "anatebgi.com",
+      "dns_ok": false,
+      "ip": "",
+      "error": "[Errno -2] Name or service not known"
+    },
+    {
+      "host": "edelassanti.com",
+      "dns_ok": false,
+      "ip": "",
+      "error": "[Errno -2] Name or service not known"
+    }
+  ],
+  "http_results": [
+    {
+      "url": "https://example.com",
+      "http_ok": false,
+      "status_code": null,
+      "error": "HTTPSConnectionPool(host='example.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError(\"<urllib3.connection.HTTPSConnection object at 0x71d5685b91f0>: Failed to resolve 'example.com' ([Errno -2] Name or service not known)\"))"
+    }
+  ],
+  "notes": [
+    "http_probe_failed:example.com",
+    "dns_ok_rate_below_threshold:0.000"
+  ],
+  "passed": false,
+  "wrapper_exit_code": 1
+}

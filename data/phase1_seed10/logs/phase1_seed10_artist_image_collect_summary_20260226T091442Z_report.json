@@ -2,7 +2,7 @@
   "artifact_kind": "phase1_seed10_artist_image_collect_report",
   "schema_name": "phase1_seed10_artist_image_collect_report",
   "schema_version": "v1",
-  "generated_at": "2026-02-26T09:22:07Z",
+  "generated_at": "2026-02-26T10:47:15Z",
   "generated_by": "run_phase1_seed10_artist_image_collect_report.py",
   "source_cli": "run_phase1_seed10_artist_image_collect_report.py",
   "source_summary_path_requested": "--latest",
@@ -38,6 +38,36 @@
   "gallery_breakdown": [
     {
       "fair_slug": "frieze_london",
+      "gallery_name_en": "Adams and Ollman",
+      "artist_count": 0,
+      "artists_with_ge_1_image": 0,
+      "artists_with_ge_target_images": 0,
+      "images_saved_total": 0,
+      "success_rate_ge_target": 0.0,
+      "success_rate_ge_target_pct": 0.0
+    },
+    {
+      "fair_slug": "frieze_london",
+      "gallery_name_en": "The Approach",
+      "artist_count": 10,
+      "artists_with_ge_1_image": 10,
+      "artists_with_ge_target_images": 10,
+      "images_saved_total": 50,
+      "success_rate_ge_target": 1.0,
+      "success_rate_ge_target_pct": 100.0
+    },
+    {
+      "fair_slug": "frieze_london",
+      "gallery_name_en": "Arcadia Missa",
+      "artist_count": 0,
+      "artists_with_ge_1_image": 0,
+      "artists_with_ge_target_images": 0,
+      "images_saved_total": 0,
+      "success_rate_ge_target": 0.0,
+      "success_rate_ge_target_pct": 0.0
+    },
+    {
+      "fair_slug": "frieze_london",
       "gallery_name_en": "Athr",
       "artist_count": 10,
       "artists_with_ge_1_image": 3,
@@ -49,16 +79,6 @@
     {
       "fair_slug": "frieze_london",
       "gallery_name_en": "Gallery Baton",
-      "artist_count": 10,
-      "artists_with_ge_1_image": 10,
-      "artists_with_ge_target_images": 10,
-      "images_saved_total": 50,
-      "success_rate_ge_target": 1.0,
-      "success_rate_ge_target_pct": 100.0
-    },
-    {
-      "fair_slug": "frieze_london",
-      "gallery_name_en": "The Approach",
       "artist_count": 10,
       "artists_with_ge_1_image": 10,
       "artists_with_ge_target_images": 10,

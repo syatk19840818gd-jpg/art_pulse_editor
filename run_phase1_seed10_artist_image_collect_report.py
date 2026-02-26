@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import json
+import re
 from collections import Counter
 from pathlib import Path
 from typing import Any
@@ -15,6 +17,11 @@ BREAKDOWN_DOC_PATH = Path("docs/RAG_EXTRACTION_BREAKDOWN_JA.md")
 SOURCE_CLI = "run_phase1_seed10_artist_image_collect_report.py"
 INPUT_ARTIFACT_KIND = "phase1_seed10_artist_image_collect_summary"
 OUTPUT_ARTIFACT_KIND = "phase1_seed10_artist_image_collect_report"
+SEED_PER_FAIR = 5
+CSV_PATHS = {
+    "frieze_london": Path("data/gallery_lists/gallery_list_frieze_london.csv"),
+    "liste": Path("data/gallery_lists/gallery_list_liste.csv"),
+}
 
 
 def write_json(path: Path, payload: dict[str, Any]) -> None:
@@ -43,6 +50,74 @@ def normalize_reason(reason: str) -> str:
     if ":" in text:
         return text.split(":", 1)[0].strip() or "unknown"
     return text
+
+
+def parse_gallery_name(raw_name: str) -> str:
+    text = (raw_name or "").strip()
+    match = re.match(r"^(.*?)（(.*?)）$", text)
+    if match:
+        return match.group(1).strip()
+    return text
+
+
+def load_seed_gallery_pairs(limit_per_fair: int = SEED_PER_FAIR) -> list[tuple[str, str]]:
+    pairs: list[tuple[str, str]] = []
+    for fair_slug, csv_path in CSV_PATHS.items():
+        if not csv_path.exists():
+            continue
+        count = 0
+        with csv_path.open("r", encoding="utf-8", newline="") as handle:
+            reader = csv.reader(handle)
+            for row in reader:
+                if len(row) < 2:
+                    continue
+                gallery_raw = (row[0] or "").strip()
+                list_url = (row[1] or "").strip()
+                if not gallery_raw or not list_url:
+                    continue
+                pairs.append((fair_slug, parse_gallery_name(gallery_raw)))
+                count += 1
+                if count >= limit_per_fair:
+                    break
+    return pairs
+
+
+def merge_gallery_breakdown_with_seed_targets(report: dict[str, Any]) -> list[dict[str, Any]]:
+    existing_rows = report.get("gallery_breakdown")
+    row_map: dict[tuple[str, str], dict[str, Any]] = {}
+    if isinstance(existing_rows, list):
+        for row in existing_rows:
+            if not isinstance(row, dict):
+                continue
+            fair_slug = str(row.get("fair_slug") or "").strip()
+            gallery_name_en = str(row.get("gallery_name_en") or "").strip()
+            if not fair_slug or not gallery_name_en:
+                continue
+            row_map[(fair_slug, gallery_name_en)] = dict(row)
+
+    seed_pairs = load_seed_gallery_pairs()
+    merged_rows: list[dict[str, Any]] = []
+    for fair_slug, gallery_name_en in seed_pairs:
+        row = row_map.get((fair_slug, gallery_name_en))
+        if row is None:
+            row = {
+                "fair_slug": fair_slug,
+                "gallery_name_en": gallery_name_en,
+                "artist_count": 0,
+                "artists_with_ge_1_image": 0,
+                "artists_with_ge_target_images": 0,
+                "images_saved_total": 0,
+                "success_rate_ge_target": 0.0,
+                "success_rate_ge_target_pct": 0.0,
+            }
+        merged_rows.append(row)
+
+    used_keys = set(seed_pairs)
+    for key, row in row_map.items():
+        if key in used_keys:
+            continue
+        merged_rows.append(row)
+    return merged_rows
 
 
 def parse_args() -> argparse.Namespace:
@@ -223,6 +298,7 @@ def main() -> int:
         "gallery_breakdown",
     ):
         report[key] = summary.get(key)
+    report["gallery_breakdown"] = merge_gallery_breakdown_with_seed_targets(report)
 
     notes = summary.get("notes", [])
     if isinstance(notes, list):

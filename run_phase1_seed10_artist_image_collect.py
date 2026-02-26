@@ -68,6 +68,18 @@ POSITIVE_TOKENS = (
     "artist",
 )
 
+WORKS_LINK_KEYWORDS = ("work", "works")
+WORKS_LINK_EXCLUDE_KEYWORDS = (
+    "exhibition",
+    "exhibitions",
+    "profile",
+    "bio",
+    "about",
+    "news",
+    "press",
+    "contact",
+)
+
 DISALLOWED_EXTENSIONS = {".svg", ".gif", ".ico"}
 CONTENT_TYPE_TO_EXTENSION = {
     "image/jpeg": ".jpg",
@@ -117,6 +129,9 @@ def parse_args() -> argparse.Namespace:
         default=TARGET_IMAGES_PER_ARTIST_DEFAULT,
         help=f"default: {TARGET_IMAGES_PER_ARTIST_DEFAULT}",
     )
+    parser.add_argument("--only-fair-slug", default="", help="optional filter: only this fair_slug")
+    parser.add_argument("--only-gallery-name", default="", help="optional filter: only this gallery_name_en")
+    parser.add_argument("--only-source-url", default="", help="optional filter: only this artist source_url")
     parser.add_argument("--output-json", default="", help="optional summary output path")
     return parser.parse_args()
 
@@ -398,6 +413,57 @@ def extract_artist_detail_urls(list_page_url: str, html: str, max_links: int = 8
     return candidates
 
 
+def extract_works_candidate_urls(detail_url: str, detail_html: str, max_links: int = 12) -> list[str]:
+    candidates: list[str] = []
+    seen: set[str] = set()
+
+    def _append(url: str) -> None:
+        normalized = normalize_url_for_link_compare(url)
+        if not normalized or normalized in seen:
+            return
+        seen.add(normalized)
+        candidates.append(url)
+
+    for match in A_TAG_RE.finditer(detail_html):
+        tag_html = match.group(0)
+        attrs = parse_img_attrs(tag_html)
+        href = str(attrs.get("href") or "").strip()
+        if not href or href.startswith(("mailto:", "tel:", "javascript:")):
+            continue
+        absolute_url = urljoin(detail_url, href)
+        parsed = urlparse(absolute_url)
+        if parsed.scheme not in {"http", "https"}:
+            continue
+        if normalize_domain(absolute_url) != normalize_domain(detail_url):
+            continue
+
+        target = " ".join(
+            [
+                absolute_url.lower(),
+                str(attrs.get("title") or "").lower(),
+                str(attrs.get("aria-label") or "").lower(),
+                str(attrs.get("class") or "").lower(),
+            ]
+        )
+        if not any(keyword in target for keyword in WORKS_LINK_KEYWORDS):
+            continue
+        if any(token in target for token in WORKS_LINK_EXCLUDE_KEYWORDS):
+            continue
+        _append(absolute_url)
+        if len(candidates) >= max_links:
+            break
+
+    parsed_detail = urlparse(detail_url)
+    detail_path = (parsed_detail.path or "").rstrip("/")
+    if not detail_path.endswith("/works"):
+        works_url = parsed_detail._replace(path=f"{detail_path}/works").geturl()
+        _append(works_url)
+    else:
+        _append(detail_url)
+
+    return candidates[:max_links]
+
+
 def should_reject_image_candidate(candidate_url: str, attrs: dict[str, str], parent_name: str) -> tuple[bool, int]:
     url_lower = candidate_url.lower()
     parsed = urlparse(candidate_url)
@@ -656,6 +722,18 @@ def main() -> int:
             summary["notes"].append(f"dns_probe_failed:{DNS_PROBE_HOST}:{dns_probe_error}")
 
         targets = load_artist_targets(target_year)
+        only_fair_slug = str(args.only_fair_slug or "").strip().lower()
+        only_gallery_name = str(args.only_gallery_name or "").strip().lower()
+        only_source_url = str(args.only_source_url or "").strip()
+        if only_fair_slug:
+            targets = [row for row in targets if str(row.get("fair_slug") or "").strip().lower() == only_fair_slug]
+            summary["notes"].append(f"filter_only_fair_slug:{only_fair_slug}")
+        if only_gallery_name:
+            targets = [row for row in targets if str(row.get("gallery_name_en") or "").strip().lower() == only_gallery_name]
+            summary["notes"].append(f"filter_only_gallery_name:{only_gallery_name}")
+        if only_source_url:
+            targets = [row for row in targets if str(row.get("source_url") or "").strip() == only_source_url]
+            summary["notes"].append(f"filter_only_source_url:{only_source_url}")
         summary["seed_artist_count"] = len(targets)
         summary["max_artists_per_gallery_for_collect"] = MAX_ARTISTS_PER_GALLERY_FOR_COLLECT
         summary["notes"].append("artist_collect_source_rule=detail_pages_only")
@@ -756,25 +834,63 @@ def main() -> int:
                             case_notes.append(html_error)
                             continue
                         any_detail_fetch_ok = True
-                        candidates = extract_image_candidates(detail_url, html)
-                        if not candidates:
-                            case_notes.append(f"no_image_candidates_on_detail:{normalize_domain(detail_url)}")
-                            continue
-                        any_image_candidate_found = True
-                        for candidate in candidates:
+                        works_urls = extract_works_candidate_urls(detail_url, html)
+                        case_notes.append(f"works_page_tried:{len(works_urls)}")
+                        if works_urls:
+                            case_notes.append(f"works_page_found:{len(works_urls)}")
+
+                        works_candidates_count = 0
+                        works_candidates_found = False
+                        for works_url in works_urls:
                             if saved_count >= target_images_per_artist:
                                 break
-                            image_url = str(candidate.get("url") or "").strip()
-                            if not image_url:
+                            ok_works_html, works_html, works_error = fetch_html(session, works_url)
+                            if not ok_works_html:
+                                case_notes.append(works_error)
                                 continue
-                            ok_image, payload, ext, image_error = fetch_image(session, image_url)
-                            if not ok_image:
-                                case_notes.append(image_error)
+                            works_candidates = extract_image_candidates(works_url, works_html)
+                            works_candidates_count += len(works_candidates)
+                            if not works_candidates:
                                 continue
-                            file_path = fair_dir / f"{artist_key}__img_{next_index:02d}{ext}"
-                            file_path.write_bytes(payload)
-                            saved_count += 1
-                            next_index += 1
+                            works_candidates_found = True
+                            any_image_candidate_found = True
+                            for candidate in works_candidates:
+                                if saved_count >= target_images_per_artist:
+                                    break
+                                image_url = str(candidate.get("url") or "").strip()
+                                if not image_url:
+                                    continue
+                                ok_image, payload, ext, image_error = fetch_image(session, image_url)
+                                if not ok_image:
+                                    case_notes.append(image_error)
+                                    continue
+                                file_path = fair_dir / f"{artist_key}__img_{next_index:02d}{ext}"
+                                file_path.write_bytes(payload)
+                                saved_count += 1
+                                next_index += 1
+                        case_notes.append(f"works_candidates_count:{works_candidates_count}")
+
+                        if saved_count < target_images_per_artist and not works_candidates_found:
+                            case_notes.append("works_not_found_fallback_used")
+                            fallback_candidates = extract_image_candidates(detail_url, html)
+                            if not fallback_candidates:
+                                case_notes.append(f"no_image_candidates_on_detail:{normalize_domain(detail_url)}")
+                                continue
+                            any_image_candidate_found = True
+                            for candidate in fallback_candidates:
+                                if saved_count >= target_images_per_artist:
+                                    break
+                                image_url = str(candidate.get("url") or "").strip()
+                                if not image_url:
+                                    continue
+                                ok_image, payload, ext, image_error = fetch_image(session, image_url)
+                                if not ok_image:
+                                    case_notes.append(image_error)
+                                    continue
+                                file_path = fair_dir / f"{artist_key}__img_{next_index:02d}{ext}"
+                                file_path.write_bytes(payload)
+                                saved_count += 1
+                                next_index += 1
                     if saved_count < target_images_per_artist and not case_reason:
                         if not any_detail_fetch_ok:
                             case_reason = "artist_detail_fetch_failed"

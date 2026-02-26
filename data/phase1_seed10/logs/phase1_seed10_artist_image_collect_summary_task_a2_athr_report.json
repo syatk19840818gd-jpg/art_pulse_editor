@@ -1,0 +1,156 @@
+{
+  "artifact_kind": "phase1_seed10_artist_image_collect_report",
+  "schema_name": "phase1_seed10_artist_image_collect_report",
+  "schema_version": "v1",
+  "generated_at": "2026-02-26T10:50:56Z",
+  "generated_by": "run_phase1_seed10_artist_image_collect_report.py",
+  "source_cli": "run_phase1_seed10_artist_image_collect_report.py",
+  "source_summary_path_requested": "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2_athr.json",
+  "latest_resolved": false,
+  "summary_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2_athr.json",
+  "seed_artist_count": 1,
+  "artists_with_ge_target_images": 0,
+  "success_rate_ge_target": 0.0,
+  "success_rate_ge_target_pct": 0.0,
+  "threshold_passed": false,
+  "target_images_per_artist": 5,
+  "success_threshold": 0.7,
+  "fair_breakdown": [
+    {
+      "fair_slug": "frieze_london",
+      "artist_count": 1,
+      "artists_with_ge_1_image": 0,
+      "artists_with_ge_target_images": 0,
+      "images_saved_total": 0,
+      "success_rate_ge_target": 0.0,
+      "success_rate_ge_target_pct": 0.0
+    }
+  ],
+  "gallery_breakdown": [
+    {
+      "fair_slug": "frieze_london",
+      "gallery_name_en": "Adams and Ollman",
+      "artist_count": 0,
+      "artists_with_ge_1_image": 0,
+      "artists_with_ge_target_images": 0,
+      "images_saved_total": 0,
+      "success_rate_ge_target": 0.0,
+      "success_rate_ge_target_pct": 0.0
+    },
+    {
+      "fair_slug": "frieze_london",
+      "gallery_name_en": "The Approach",
+      "artist_count": 0,
+      "artists_with_ge_1_image": 0,
+      "artists_with_ge_target_images": 0,
+      "images_saved_total": 0,
+      "success_rate_ge_target": 0.0,
+      "success_rate_ge_target_pct": 0.0
+    },
+    {
+      "fair_slug": "frieze_london",
+      "gallery_name_en": "Arcadia Missa",
+      "artist_count": 0,
+      "artists_with_ge_1_image": 0,
+      "artists_with_ge_target_images": 0,
+      "images_saved_total": 0,
+      "success_rate_ge_target": 0.0,
+      "success_rate_ge_target_pct": 0.0
+    },
+    {
+      "fair_slug": "frieze_london",
+      "gallery_name_en": "Athr",
+      "artist_count": 1,
+      "artists_with_ge_1_image": 0,
+      "artists_with_ge_target_images": 0,
+      "images_saved_total": 0,
+      "success_rate_ge_target": 0.0,
+      "success_rate_ge_target_pct": 0.0
+    },
+    {
+      "fair_slug": "frieze_london",
+      "gallery_name_en": "Gallery Baton",
+      "artist_count": 0,
+      "artists_with_ge_1_image": 0,
+      "artists_with_ge_target_images": 0,
+      "images_saved_total": 0,
+      "success_rate_ge_target": 0.0,
+      "success_rate_ge_target_pct": 0.0
+    },
+    {
+      "fair_slug": "liste",
+      "gallery_name_en": "A+ Works of Art",
+      "artist_count": 0,
+      "artists_with_ge_1_image": 0,
+      "artists_with_ge_target_images": 0,
+      "images_saved_total": 0,
+      "success_rate_ge_target": 0.0,
+      "success_rate_ge_target_pct": 0.0
+    },
+    {
+      "fair_slug": "liste",
+      "gallery_name_en": "Addis Fine Art",
+      "artist_count": 0,
+      "artists_with_ge_1_image": 0,
+      "artists_with_ge_target_images": 0,
+      "images_saved_total": 0,
+      "success_rate_ge_target": 0.0,
+      "success_rate_ge_target_pct": 0.0
+    },
+    {
+      "fair_slug": "liste",
+      "gallery_name_en": "Afriart Gallery",
+      "artist_count": 0,
+      "artists_with_ge_1_image": 0,
+      "artists_with_ge_target_images": 0,
+      "images_saved_total": 0,
+      "success_rate_ge_target": 0.0,
+      "success_rate_ge_target_pct": 0.0
+    },
+    {
+      "fair_slug": "liste",
+      "gallery_name_en": "Amanita",
+      "artist_count": 0,
+      "artists_with_ge_1_image": 0,
+      "artists_with_ge_target_images": 0,
+      "images_saved_total": 0,
+      "success_rate_ge_target": 0.0,
+      "success_rate_ge_target_pct": 0.0
+    },
+    {
+      "fair_slug": "liste",
+      "gallery_name_en": "Anca Poteraşu Gallery",
+      "artist_count": 0,
+      "artists_with_ge_1_image": 0,
+      "artists_with_ge_target_images": 0,
+      "images_saved_total": 0,
+      "success_rate_ge_target": 0.0,
+      "success_rate_ge_target_pct": 0.0
+    }
+  ],
+  "top_failed_reasons": [
+    {
+      "reason": "artist_detail_fetch_failed",
+      "count": 1
+    }
+  ],
+  "top_failed_domains": [
+    {
+      "domain": "athrart.com",
+      "count": 1
+    }
+  ],
+  "notes": [
+    "dns_probe_failed:example.com:[Errno -2] Name or service not known",
+    "filter_only_fair_slug:frieze_london",
+    "filter_only_gallery_name:athr",
+    "artist_collect_source_rule=detail_pages_only",
+    "local_image_cache_layout=fair_only_flat_files",
+    "threshold_not_met:0/1<0.70",
+    "count_mode=effective_images_after_run",
+    "breakdown_mode=fair_and_gallery"
+  ],
+  "warnings": [],
+  "report_exit_code": 0,
+  "exit_reason": "report_generated"
+}

@@ -1,6 +1,6 @@
 # 04_TASK_PROGRESS_LOG.md
 
-最終更新: 2026-02-26 13:22 JST  
+最終更新: 2026-02-26 20:53 JST  
 対象プロジェクト: ART_PULSE_EDITOR（Phase1 seed10 / Guard運用整備）  
 位置づけ: 実装進捗ログ（01=SSOT、02=索引、03=現行運用タスクの補助ログ）
 
@@ -2675,3 +2675,219 @@ _trash 運用方針:
   - 01/02/03へ「暫定1→段階引き上げ→最終80復帰」ルールを追記
 - 備考:
   - 実削除なし。安定確認後に段階引き上げタスクを実施する。
+
+## 92. TASK A-1（内訳可視化固定: 0件ギャラリー補完）
+
+- 変更ファイル:
+  - `run_phase1_seed10_artist_image_collect_report.py`
+  - `docs/RAG_EXTRACTION_BREAKDOWN_JA.md`
+  - `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md`
+  - `docs/04_TASK_PROGRESS_LOG.md`
+- 実装内容:
+  - report生成時に seed10対象CSV（frieze/liste各先頭5）を読み、`gallery_breakdown` を0件補完する処理を追加。
+  - 既存の重複追記防止は維持（同一summary_pathは再追記しない）。
+- 実行コマンドとexit:
+  - `python run_phase1_seed10_artist_image_collect_report.py --latest` → exit 0
+- 確認結果:
+  - consoleの `gallery_breakdown` に 10ギャラリー表示（0件含む）
+  - `docs/RAG_EXTRACTION_BREAKDOWN_JA.md` の最新RUN節でも0件ギャラリー行を反映
+- CLEANUP_CANDIDATES_MASTER:
+  - 今回新規候補なし（実削除/実移動なし）
+
+## 93. TASK A-2（Athr / works優先抽出）
+
+- 変更ファイル:
+  - `run_phase1_seed10_artist_image_collect.py`
+  - `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md`
+  - `docs/04_TASK_PROGRESS_LOG.md`
+- 実装内容（最小差分）:
+  - works優先抽出を追加（`extract_works_candidate_urls`）
+  - 優先順: worksリンク（href/anchorにworks）→ `artist_detail_url/works` → 0件時のみ詳細ページfallback
+  - 除外優先: exhibitions/profile/bio/about/news/press/contact 系リンク
+  - 失敗ノート拡張: `works_page_tried` / `works_page_found` / `works_candidates_count` / `works_not_found_fallback_used`
+  - Athr限定検証用フィルタ引数を追加: `--only-fair-slug` / `--only-gallery-name` / `--only-source-url`
+- 実行コマンドとexit:
+  - `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5 --only-fair-slug frieze_london --only-gallery-name Athr --output-json data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2_athr.json` → exit 0
+  - `python run_phase1_seed10_artist_image_collect_report.py --summary-path data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2_athr.json --output-json data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2_athr_report.json` → exit 0
+- 生成物:
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2_athr.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2_athr_report.json`
+- 確認メモ:
+  - この実行環境では `athrart.com` が `html_fetch_failed:dns_resolution_error` で詳細ページ未取得。
+  - works優先ロジックの実ドメイン検証は到達可能環境で再確認が必要。
+- CLEANUP_CANDIDATES_MASTER:
+  - 今回新規候補なし（実削除/実移動なし）
+
+## 94. TASK D0（DNS恒久化 + preflight強制運用）
+
+- 参照章ID:
+  - 01: 4-0 / 6-3 / SSOT整合ゲート / Codex Efficiency Protocol
+  - 02: CARD_ID 09 / 14 / 16
+- 恒久化設定確認:
+  - `/etc/wsl.conf` に `generateResolvConf=false`
+  - `/etc/resolv.conf` に `nameserver 1.1.1.1`, `nameserver 8.8.8.8`, `options timeout:2 attempts:2`
+  - `~/.bashrc` に `SSL_CERT_FILE` / `REQUESTS_CA_BUNDLE` 固定済み
+  - `.venv_art_pulse_editor/bin/activate` に同環境変数を追記（今回）
+- 実行コマンドとexit:
+  - `python -c "import socket; print(socket.gethostbyname('example.com'))"` → exit 1
+  - `curl -I --max-time 15 https://example.com` → exit 6
+  - `python run_phase1_network_preflight.py` → exit 1
+  - `python run_phase1_network_preflight.py`（再実行） → exit 1
+  - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+- 生成物:
+  - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260226T105901Z.json`
+  - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260226T105956Z.json`
+  - `data/phase1_seed10/logs/phase1_guard_summary_2025_20260226T110007Z.json`
+- 判定:
+  - `dns_ok_rate=0.000 (0/21)` が連続のため、preflight fail-fast規約で本体抽出は停止。
+  - TASK D0は完了ではなく「環境ブロッカー継続（preflight連続PASS待ち）」。
+- CLEANUP_CANDIDATES_MASTER:
+  - 今回新規候補なし（実削除/実移動なし）
+
+## 95. TASK D0-2（DNS復旧再確認 + preflight連続PASS判定）
+
+- 参照章ID:
+  - 01: 4-0 / 6-3 / SSOT整合ゲート / Codex Efficiency Protocol
+  - 02: CARD_ID 09 / 14 / 16
+- 実行コマンドとexit:
+  - `python -c "import socket; print(socket.gethostbyname('example.com'))"` → exit 1
+  - `curl -I --max-time 15 https://example.com` → exit 6
+  - `python run_phase1_network_preflight.py` → exit 1
+  - `python run_phase1_network_preflight.py`（再実行） → exit 1
+  - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+- 生成物:
+  - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260226T110249Z.json`（同秒実行で2回目が上書き）
+  - `data/phase1_seed10/logs/phase1_guard_summary_2025_20260226T110306Z.json`
+- 判定:
+  - preflight 2連続PASS未達（`dns_ok_rate=0.000 (0/21)` 継続）。
+  - fail-fast規約により本体抽出は未実行。
+  - 環境ブロッカー継続（DNS復旧待ち）。
+- CLEANUP_CANDIDATES_MASTER:
+  - 今回新規候補なし（実削除/実移動なし）
+
+## 96. TASK D0-3（DNS実機切り分け + preflight連続PASS判定）
+
+- 実行コマンドとexit:
+  - `cat /etc/wsl.conf` → exit 0
+  - `cat /etc/resolv.conf` → exit 0
+  - `python -c "import socket; print(socket.gethostbyname('example.com'))"` → exit 1
+  - `curl -I --max-time 15 https://example.com` → exit 6
+  - `python -c "import requests; print(requests.get('https://example.com', timeout=15).status_code)"` → exit 1
+  - `python run_phase1_network_preflight.py` → exit 1
+  - `python run_phase1_network_preflight.py`（再実行） → exit 1
+- 生成物:
+  - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260226T110720Z.json`
+  - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260226T110731Z.json`
+- 判定:
+  - DNS解決失敗が継続（socket/curl/requests/preflight 全系統でNG）。
+  - preflight fail-fast規約により本体抽出（seed10 fetch / image collect / guard）は未実行。
+  - ゲート解除不可、環境ブロッカー継続。
+- CLEANUP_CANDIDATES_MASTER:
+  - 今回新規候補なし（実削除/実移動なし）
+
+## 97. TASK D0-4（Windows側ネットワーク要因切り分け）
+
+- 実行コマンドとexit:
+  - `powershell.exe -NoProfile -Command "Get-ItemProperty ... Internet Settings ..."` → exit 0
+  - `powershell.exe -NoProfile -Command "Get-DnsClientServerAddress ..."` → exit 0
+  - `powershell.exe -NoProfile -Command "Resolve-DnsName example.com ..."` → exit 0
+  - `python -c "import socket; print(socket.gethostbyname('example.com'))"` → exit 1
+  - `curl -I --max-time 15 https://example.com` → exit 6
+  - `python -c "import requests; print(requests.get('https://example.com', timeout=15).status_code)"` → exit 1
+  - `python run_phase1_network_preflight.py` → exit 1
+  - `python run_phase1_network_preflight.py`（再実行） → exit 1
+- 生成物:
+  - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260226T110720Z.json`
+  - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260226T110731Z.json`
+- 主要判定:
+  - Windowsホスト側DNSは解決できる一方、WSL側（この実行環境）で名前解決失敗が継続。
+  - preflight 2連続PASS未達のため、fail-fast規約で本体抽出は未実行。
+- CLEANUP_CANDIDATES_MASTER:
+  - 今回新規候補なし（実削除/実移動なし）
+
+## 98. TASK D0-5（Windows側DNS干渉要因の切り分け）
+
+- 実行コマンドとexit:
+  - `powershell.exe ... Internet Settings / WinHTTP / DNS` → exit 0
+  - `python -c "import socket; print(socket.gethostbyname('example.com'))"` → exit 1
+  - `curl -I --max-time 10 https://example.com` → exit 6
+  - `python -c "import requests; print(requests.get('https://example.com', timeout=15).status_code)"` → exit 1
+  - `python run_phase1_network_preflight.py` → exit 1
+  - `python run_phase1_network_preflight.py`（再実行） → exit 1
+- 生成物:
+  - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260226T111235Z.json`
+  - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260226T111236Z.json`
+- 判定:
+  - Windows側ではDNS解決成功（Resolve-DnsName）だが、WSL側のみ名前解決失敗が継続。
+  - preflight 2連続PASS未達のため本体抽出は未実行（fail-fast維持）。
+- CLEANUP_CANDIDATES_MASTER:
+  - 今回新規候補なし（実削除/実移動なし）
+
+## 99. TASK D0-6（Windows側干渉停止タスクの実行前切り分け）
+
+- 実行コマンドとexit:
+  - `powershell.exe ... Internet Settings / WinHTTP / DNS / adapters` → exit 0
+  - `powershell.exe ... Get-Service (VPN/セキュリティ絞り込み)` → exit 0（該当なし）
+  - `powershell.exe ... Get-Process (vpn/secure絞り込み)` → exit 0（`Secure System` 以外なし）
+- 判定:
+  - Windows側ではDNS解決成功だが、WSL側のみ名前解決失敗が継続。
+  - 停止対象を自動特定できないため、手動で VPN/セキュリティDNS保護の停止確認が必要。
+  - `wsl --shutdown` を伴う復旧はユーザー操作が必要（このセッションでは実行不可）。
+- 参照生成物:
+  - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260226T111235Z.json`
+  - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260226T111236Z.json`
+- CLEANUP_CANDIDATES_MASTER:
+  - 今回新規候補なし（実削除/実移動なし）
+
+## 100. TASK D0-6.1（preflight 2連続PASSの正本確定 + 恒久化）
+
+- ユーザー端末での実行結果（正本）:
+  - `cat /etc/wsl.conf` → `generateResolvConf = false`
+  - `cat /etc/resolv.conf` → `1.1.1.1 / 8.8.8.8`
+  - `python -c "import socket; print(socket.gethostbyname('example.com'))"` → 成功
+  - `curl -I --max-time 15 https://example.com` → 成功（HTTP/2 200）
+  - `python run_phase1_network_preflight.py` → success
+  - `python run_phase1_network_preflight.py` → success
+- 正本ログ:
+  - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260226T112859Z.json`
+  - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260226T112908Z.json`
+- 恒久化設定:
+  - Windows側 `C:\Users\syatk\.wslconfig` を作成:
+    - `[wsl2]`
+    - `dnsTunneling=true`
+    - `autoProxy=true`
+- 判定:
+  - D0ゲート解除（preflight連続PASS達成）。
+  - 次タスクは A-2（Athr works優先の実ドメイン再検証）へ再開。
+- CLEANUP_CANDIDATES_MASTER:
+  - 今回新規候補なし（実削除/実移動なし）
+
+## 101. TASK A-2R（Athr works優先 再検証）
+
+- 実行コマンドとexit:
+  - `python run_phase1_network_preflight.py` → exit 1
+  - `sleep 1; python run_phase1_network_preflight.py` → exit 1
+- 生成物:
+  - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260226T115105Z.json`
+  - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260226T115106Z.json`
+- 判定:
+  - preflight 2連続PASS未達（`dns_ok_rate=0.000 (0/21)`）
+  - fail-fast規約により Athr本体抽出（collect/report/guard）は未実行
+  - A-2Rは継続（DNSブロッカー再発）
+- CLEANUP_CANDIDATES_MASTER:
+  - 今回新規候補なし（実削除/実移動なし）
+
+## 102. TASK D0-7（preflight再取得 + A-2R即再開判定）
+
+- 実行コマンドとexit:
+  - `python run_phase1_network_preflight.py` → exit 1
+  - `sleep 1; python run_phase1_network_preflight.py` → exit 1
+- 生成物:
+  - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260226T115331Z.json`
+  - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260226T115342Z.json`
+- 判定:
+  - preflight 2連続PASS未達（`dns_ok_rate=0.000 (0/21)`）
+  - fail-fast規約により A-2R本体（Athr collect/report/guard）は未実行
+  - D0ブロッカー継続
+- CLEANUP_CANDIDATES_MASTER:
+  - 今回新規候補なし（実削除/実移動なし）

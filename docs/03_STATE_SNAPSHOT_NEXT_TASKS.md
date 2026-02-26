@@ -13,7 +13,7 @@ STREAMLIT_ENTRYPOINT（固定）
 - Local run: streamlit run app.py
 
 SOURCE_SSOT: 01_PROJECT_SPEC_CURRENT_FULL.docx
-LAST_UPDATED: 2026-02-26 18:18 JST
+LAST_UPDATED: 2026-02-26 20:53 JST
 
 
 ========================
@@ -6484,3 +6484,139 @@ TASK109 実施結果（DNS preflightゲート継続）
 - `python run_phase1_network_preflight.py` が exit 1（dns_ok_rate=0.000, http_probe_ok=false）。
 - ゲート規約どおり、本体（seed10 fetch / image collect）は未実行で停止。
 - 判定: TASK109は [x] ではなく「環境ブロッカー継続（preflight pass待ち）」。
+
+---
+TASK A-1 実施結果（内訳可視化固定）
+- `run_phase1_seed10_artist_image_collect_report.py` で seed10対象CSV（frieze/liste各先頭5）を基準に `gallery_breakdown` を補完し、0件ギャラリーを必ず出力するよう修正。
+- 0件の `frieze_london/Adams and Ollman` と `frieze_london/Arcadia Missa` を内訳に表示できることを確認。
+
+---
+TASK A-2 実施結果（Athr 1ギャラリー1アーティスト / works優先実装）
+- `run_phase1_seed10_artist_image_collect.py` に works優先抽出を追加（worksリンク探索 → `.../works` 試行 → 0件時のみ詳細ページfallback）。
+- 失敗可視化として `failed_cases[].notes` に `works_page_tried` / `works_page_found` / `works_candidates_count` / `works_not_found_fallback_used` を記録する実装を追加。
+- Athr限定実行は実施できたが、この実行環境では `athrart.com` がDNS失敗となり `artist_detail_fetch_failed` で停止（works段まで未到達）。
+- 判定: ロジック実装は完了、実ドメインでの効果確認はネットワーク到達環境で再確認が必要。
+
+---
+TASK D0 実施結果（DNS恒久化＋preflight強制運用）
+- 恒久化設定確認:
+  - `/etc/wsl.conf`: `generateResolvConf=false`
+  - `/etc/resolv.conf`: `nameserver 1.1.1.1`, `8.8.8.8`, `options timeout:2 attempts:2`
+  - `~/.bashrc`: `SSL_CERT_FILE` / `REQUESTS_CA_BUNDLE` を固定済み
+  - `.venv_art_pulse_editor/bin/activate` に同環境変数を追記（venv有効化時の固定化）
+- 安定性検証:
+  - `python run_phase1_network_preflight.py` を連続2回実行したが、`dns_ok_rate=0.000 (0/21)` で連続fail。
+  - preflight fail-fast規約により、本体抽出は未実行で停止。
+- 判定:
+  - TASK D0は [x] ではなく「環境ブロッカー継続（preflight連続PASS待ち）」。
+  - 次タスクは A-2再検証ではなく、D0継続（DNS復旧確認）を最優先とする。
+
+---
+TASK D0-2 実施結果（DNS復旧確認・preflight連続PASS判定）
+- DNS/TLS確認:
+  - `python -c "import socket; print(socket.gethostbyname('example.com'))"` は `socket.gaierror` で失敗。
+  - `curl -I --max-time 15 https://example.com` は `Could not resolve host` で失敗（exit 6）。
+- preflight連続実行:
+  - `python run_phase1_network_preflight.py` を2回実行し、いずれも `dns_ok_rate=0.000 (0/21)` / exit 1。
+  - 同秒実行のため summary は同一ファイルへ上書き保存。
+- ゲート判定:
+  - preflight 2連続PASS条件を満たさないため、本体抽出（seed10 fetch/image collect）は未実行で停止。
+  - TASK D0-2 は [x] ではなく「環境ブロッカー継続（DNS復旧待ち）」。
+
+---
+TASK D0-3 実施結果（DNS実機切り分け・preflight連続PASS判定）
+- 実機切り分け結果:
+  - `/etc/wsl.conf` は `generateResolvConf=false`。
+  - `/etc/resolv.conf` は `1.1.1.1 / 8.8.8.8` 固定。
+  - `socket.gethostbyname('example.com')` は `gaierror` で失敗。
+  - `curl -I https://example.com` は `Could not resolve host` で失敗。
+  - `requests.get('https://example.com')` も `NameResolutionError` で失敗。
+- preflight連続実行:
+  - `python run_phase1_network_preflight.py` を2回実行し、いずれも exit 1（`dns_ok_rate=0.000 (0/21)`）。
+- ゲート判定:
+  - preflight 2連続PASS未達のため、seed10本体再開は未実施（fail-fast運用を維持）。
+  - TASK D0-3は [x] ではなく「環境ブロッカー継続（DNS層復旧待ち）」。
+
+---
+TASK D0-4 実施結果（Windows側ネットワーク要因切り分け）
+- Windows側確認:
+  - `ProxyEnable=0`（明示Proxy無効）
+  - `Resolve-DnsName example.com` は応答あり（Windowsホスト側のDNS解決は成功）
+  - Wi-Fi DNSは `192.168.188.1`（ルーター）
+- WSL側確認:
+  - `/etc/wsl.conf` は `generateResolvConf=false`
+  - `/etc/resolv.conf` は `1.1.1.1 / 8.8.8.8` 固定
+  - `socket/curl/requests` は全て名前解決失敗
+- preflight判定:
+  - `python run_phase1_network_preflight.py` 2回とも exit 1（`dns_ok_rate=0.000`）
+  - fail-fast規約により本体抽出は未実行
+- 結論:
+  - ゲート未解除。D0継続（DNS層の復旧待ち）。
+
+---
+TASK D0-5 実施結果（Windows側DNS干渉一時停止の切り分け）
+- Windows側確認（読み取り）:
+  - Internet Settings: `ProxyEnable=0`（明示Proxy無効）
+  - WinHTTP proxy: 直接アクセス
+  - DNSサーバー: Wi-Fi は `192.168.188.1`（ルーター）
+  - `Resolve-DnsName example.com` はWindows側で成功
+- WSL側確認:
+  - `socket.gethostbyname('example.com')` / `curl` / `requests` はすべて名前解決失敗
+  - `python run_phase1_network_preflight.py` 2回とも exit 1（`dns_ok_rate=0.000`）
+- 判定:
+  - preflight連続PASS未達のためゲート解除不可。
+  - 本体抽出は未実行（fail-fast規約維持）。
+  - D0-5は [x] ではなく、Windows側のDNS干渉要因（VPN/セキュリティDNS保護/DoH）の手動一時停止確認が未了。
+
+---
+TASK D0-6 実施結果（Windows側干渉停止 + WSL再起動前切り分け）
+- 切り分け結果:
+  - Internet Proxy: 無効（`ProxyEnable=0`）
+  - WinHTTP proxy: 直接アクセス
+  - Windows DNS確認: `Resolve-DnsName example.com` は成功
+  - WSL側は `socket/curl/requests` が継続して名前解決失敗
+  - VPN/セキュリティ系サービス/プロセスは明示ヒットなし（停止対象を自動特定できず）
+- preflight判定:
+  - 直近2回の preflight（`20260226T111235Z`, `20260226T111236Z`）はいずれも fail。
+  - fail-fast規約により本体抽出は未実行。
+- 結論:
+  - D0-6は継続（手動で Windows側の VPN/DNS保護停止 + `wsl --shutdown` 後の再検証が必要）。
+
+---
+TASK D0-6.1 実施結果（ユーザー端末PASSログを正本化）
+- ユーザー端末実測（正本）:
+  - `python -c "import socket; print(socket.gethostbyname('example.com'))"` 成功
+  - `curl -I --max-time 15 https://example.com` 成功（HTTP/2 200）
+  - `python run_phase1_network_preflight.py` 2連続成功（`dns_ok_rate=1.000 (21/21)`）
+  - summary:
+    - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260226T112859Z.json`
+    - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260226T112908Z.json`
+- 恒久化対策:
+  - Windows側 `C:\Users\syatk\.wslconfig` を新規作成し、`dnsTunneling=true` / `autoProxy=true` を設定済み。
+- 判定:
+  - D0ゲート解除（preflight連続PASS達成）。
+  - 次タスクから A-2（Athr works優先の実ドメイン再検証）へ再開可能。
+
+---
+TASK A-2R 実施結果（Athr works優先 再検証）
+- DNSゲート確認:
+  - `python run_phase1_network_preflight.py` → exit 1（`data/phase1_seed10/logs/phase1_network_preflight_summary_20260226T115105Z.json`）
+  - `sleep 1; python run_phase1_network_preflight.py` → exit 1（`data/phase1_seed10/logs/phase1_network_preflight_summary_20260226T115106Z.json`）
+- ゲート判定:
+  - 2連続PASS未達のため、fail-fast規約により Athr本体抽出は未実行。
+- 互換確認:
+  - 本体未実行のため今回は guard 比較は省略（既存最新は pass 維持）。
+- 結論:
+  - A-2Rは [x] ではなく「DNSブロッカー再発で継続」。
+  - 次は D0系（preflight安定化）を優先し、PASS後にA-2Rを再開する。
+
+---
+TASK D0-7 実施結果（preflight再取得 + A-2R即再開判定）
+- preflight確認:
+  - `python run_phase1_network_preflight.py` → exit 1（`data/phase1_seed10/logs/phase1_network_preflight_summary_20260226T115331Z.json`）
+  - `sleep 1; python run_phase1_network_preflight.py` → exit 1（`data/phase1_seed10/logs/phase1_network_preflight_summary_20260226T115342Z.json`）
+- 判定:
+  - 2連続PASS未達（`dns_ok_rate=0.000`）
+  - fail-fast規約により A-2R（Athr本体実行）は未着手
+- 結論:
+  - D0-7は [x] ではなく「DNSブロッカー継続」。
