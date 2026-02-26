@@ -616,9 +616,16 @@ def main() -> int:
         "gallery_breakdown": [],
         "notes": [],
         "wrapper_exit_code": 0,
+        "network_dns_probe_host": DNS_PROBE_HOST,
+        "network_dns_probe_ok": None,
     }
 
     try:
+        dns_probe_ok, dns_probe_error = can_resolve_hostname(DNS_PROBE_HOST)
+        summary["network_dns_probe_ok"] = dns_probe_ok
+        if not dns_probe_ok:
+            summary["notes"].append(f"dns_probe_failed:{DNS_PROBE_HOST}:{dns_probe_error}")
+
         targets = load_artist_targets(target_year)
         summary["seed_artist_count"] = len(targets)
         summary["notes"].append("artist_collect_source_rule=detail_pages_only")
@@ -664,12 +671,6 @@ def main() -> int:
             session.mount("http://", adapter)
         else:
             summary["notes"].append("retry_adapter_unavailable")
-
-        dns_probe_ok, dns_probe_error = can_resolve_hostname(DNS_PROBE_HOST)
-        summary["network_dns_probe_host"] = DNS_PROBE_HOST
-        summary["network_dns_probe_ok"] = dns_probe_ok
-        if not dns_probe_ok:
-            summary["notes"].append(f"dns_probe_failed:{DNS_PROBE_HOST}:{dns_probe_error}")
 
         for target in targets:
             artist_id = str(target["artist_id"])

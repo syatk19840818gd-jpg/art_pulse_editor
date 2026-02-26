@@ -806,6 +806,10 @@ def parse_iso_utc(value: str | None) -> datetime | None:
 def should_skip_failed_url(entry: dict[str, Any], now: datetime) -> tuple[bool, str]:
     reason_code = str(entry.get("reason_code") or "REQUEST_ERROR")
     retry_count = int(entry.get("retry_count", 0))
+    # DNS障害は環境要因の一時ブロッカーになりやすいため、
+    # 回復後に即再試行できるよう max-retry / cooldown による恒久スキップを適用しない。
+    if reason_code == "DNS_ERROR":
+        return False, ""
     if reason_code in NON_RETRYABLE_FAILURE_REASON_CODES and retry_count >= 1:
         return True, "KNOWN_FAILED_URL_NON_RETRYABLE"
     if retry_count >= MAX_FAILURE_RETRIES_PER_URL:

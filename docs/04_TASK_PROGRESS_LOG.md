@@ -2521,3 +2521,70 @@
 _trash 運用方針:
 - 削除候補はまず `_trash/<timestamp>_cleanup_candidates/` へ移動し、一定期間の参照確認後に手動削除する。
 - 自動大量削除は行わない。削除実行時は都度、候補一覧と影響範囲を確認する。
+
+## 83. 運用ルール更新（RAG内訳の日本語集約ファイル化）
+
+- 背景:
+  - 回答本文に内訳を毎回展開するとトークン増になるため、確認用内訳を1ファイルへ集約する運用へ変更。
+- 追加ファイル:
+  - `docs/RAG_EXTRACTION_BREAKDOWN_JA.md`
+- 運用ルール:
+  - RAG抽出タスクごとに、上記ファイルへ見出し追記。
+  - 最低内訳: fair/gallery単位の対象人数・成功人数・取得件数（画像枚数/テキスト件数）・成功率%。
+- 初回反映:
+  - `data/phase1_seed10/logs/run_summary_seed10_2025.json` を基に TASK106 相当の内訳を記録。
+
+## 84. 運用ルール更新（Codex Efficiency Protocol 導入）
+
+- Codex Efficiency Protocol導入（往復削減・短縮プロンプト・ゲート・MODEL_HINT 4段階）を運用固定。
+- 既存の `CLEANUP_CANDIDATES_MASTER` / `_trash` 方針は維持（今回も実削除なし）。
+
+
+## 85. TASK107 ゲート発動対応（原因分解＋最小修正）
+
+- 参照章ID:
+  - 01: 4-0 / 4-4 / 5-8 / 6-3 / Codex Efficiency Protocol
+  - 02: CARD_ID 09 / 10 / 11 / 14
+- 変更ファイル:
+  - `run_phase1_seed10.py`
+  - `run_phase1_seed10_artist_image_collect.py`
+  - `docs/RAG_EXTRACTION_BREAKDOWN_JA.md`
+  - `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md`
+  - `docs/04_TASK_PROGRESS_LOG.md`
+- 実行コマンドとexit:
+  - `curl -I --max-time 15 https://example.com` → exit 6（Could not resolve host）
+  - `python run_phase1_seed10.py --include-artists-text` → exit 0（saved=0, artists_failed_new=10）
+  - `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5` → exit 0（no targets）
+  - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+- 失敗理由上位（今回）:
+  - artists_text: DNS_ERROR 10件
+  - exhibitions_text: DNS_ERROR 10件
+  - artists失敗段: 一覧URLフェーズ 9件 / 詳細URLフェーズ 1件
+- ゲート判定（定量）:
+  - `artists_failed_fetches_new_in_run / artists_text_seed_gallery_count = 10/10 = 100%`（>20%）
+  - `records_saved_total=0` かつ `artists_records_saved_total=0`
+- 最小修正内容:
+  - `run_phase1_seed10.py`: `should_skip_failed_url` で `DNS_ERROR` は max-retry/cooldown スキップ対象から除外
+  - `run_phase1_seed10_artist_image_collect.py`: no-target早期終了でも `network_dns_probe_ok` を必ずsummary記録
+- 生成物:
+  - `data/phase1_seed10/logs/run_summary_seed10_2025.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260226T074456Z.json`
+  - `data/phase1_seed10/logs/phase1_guard_summary_2025_20260226T074456Z.json`
+- CLEANUP_CANDIDATES_MASTER:
+  - 今回新規候補なし（実削除/実移動なし）
+
+## 86. 運用ルール再設計（SSOT整合ゲートの恒久化）
+
+- 目的:
+  - 01未準拠の実装（一覧URL直抽出、上限値の流用など）の再発を防止する。
+- 反映先:
+  - 01: `SSOT整合ゲート（再発防止・強制運用）` を追加
+  - 02: `CARD_ID: 16_SSOT_COMPLIANCE_GATE` を追加
+  - 03: `SSOT整合チェック（再発防止：必須）` を追加
+- 固定した運用:
+  - 実装前に 01章ID/02 CARD_ID/変更対象関数の対応を明示
+  - Artistsは「一覧URL→詳細URL→詳細ページ抽出」を必須化（一覧URL直抽出禁止）
+  - カテゴリ上限値の流用ミス禁止
+  - 実装後に内訳メモと失敗理由上位を 03/04 へ必ず記録
+- 備考:
+  - 実削除・実移動は実施せず（CLEANUP_CANDIDATES_MASTER / _trash 方針維持）
