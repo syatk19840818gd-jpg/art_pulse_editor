@@ -1,0 +1,33 @@
+{
+  "artifact_kind": "phase1_seed10_artist_image_collect_retry_run_summary",
+  "schema_name": "phase1_seed10_artist_image_collect_retry_run_summary",
+  "schema_version": "v1",
+  "generated_at": "2026-02-26T02:31:25Z",
+  "generated_by": "run_phase1_seed10_artist_image_collect_retry_run.py",
+  "source_cli": "run_phase1_seed10_artist_image_collect_retry_run.py",
+  "started_at": "2026-02-26T02:31:25Z",
+  "completed_at": "2026-02-26T02:31:25Z",
+  "retry_manifest_path_requested": "/tmp/phase1_seed10_artist_image_collect_retry_manifest_empty_task104.json",
+  "retry_manifest_latest_resolved": false,
+  "retry_manifest_path": "/tmp/phase1_seed10_artist_image_collect_retry_manifest_empty_task104.json",
+  "retry_manifest_case_count": 0,
+  "executed_cases": 0,
+  "target_year": 2025,
+  "target_images_per_artist_requested": 5,
+  "target_images_per_artist_effective": 5,
+  "collect_run_started": false,
+  "collect_run_executed": false,
+  "child_collect_exit_code": 0,
+  "child_collect_command": [],
+  "child_collect_stdout_tail": "",
+  "child_collect_stderr_tail": "",
+  "child_collect_summaries": [],
+  "all_passed": true,
+  "wrapper_exit_code": 0,
+  "notes": [
+    "no_retry_cases_in_manifest",
+    "no_retry_cases_selected"
+  ],
+  "output_summary_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_seed10_artist_image_collect_retry_run_summary_20260226T023125Z.json",
+  "retry_run_mode": "noop_empty_retry_manifest"
+}

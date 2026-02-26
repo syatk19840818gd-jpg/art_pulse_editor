@@ -7,6 +7,51 @@ from pathlib import Path
 from typing import Any
 
 ARTIFACT_REGISTRY: dict[str, dict[str, Any]] = {
+    "phase1_seed10_artist_image_collect_summary": {
+        "artifact_kind": "phase1_seed10_artist_image_collect_summary",
+        "schema_name": "phase1_seed10_artist_image_collect_summary",
+        "schema_version": "v1",
+        "glob_pattern": "phase1_seed10_artist_image_collect_summary_*.json",
+        "required_prefix": "phase1_seed10_artist_image_collect_summary_",
+        "required_suffix": ".json",
+        "exclude_substrings": ["_report.json"],
+    },
+    "phase1_seed10_artist_image_collect_report": {
+        "artifact_kind": "phase1_seed10_artist_image_collect_report",
+        "schema_name": "phase1_seed10_artist_image_collect_report",
+        "schema_version": "v1",
+        "glob_pattern": "phase1_seed10_artist_image_collect_summary_*_report.json",
+        "required_prefix": "phase1_seed10_artist_image_collect_summary_",
+        "required_suffix": "_report.json",
+        "exclude_substrings": [],
+    },
+    "phase1_seed10_artist_image_collect_report_rollup": {
+        "artifact_kind": "phase1_seed10_artist_image_collect_report_rollup",
+        "schema_name": "phase1_seed10_artist_image_collect_report_rollup",
+        "schema_version": "v1",
+        "glob_pattern": "phase1_seed10_artist_image_collect_report_rollup_*.json",
+        "required_prefix": "phase1_seed10_artist_image_collect_report_rollup_",
+        "required_suffix": ".json",
+        "exclude_substrings": ["_retry_manifest.json"],
+    },
+    "phase1_seed10_artist_image_collect_retry_manifest": {
+        "artifact_kind": "phase1_seed10_artist_image_collect_retry_manifest",
+        "schema_name": "phase1_seed10_artist_image_collect_retry_manifest",
+        "schema_version": "v1",
+        "glob_pattern": "phase1_seed10_artist_image_collect_report_rollup_*_retry_manifest.json",
+        "required_prefix": "phase1_seed10_artist_image_collect_report_rollup_",
+        "required_suffix": "_retry_manifest.json",
+        "exclude_substrings": [],
+    },
+    "phase1_seed10_artist_image_collect_retry_run_summary": {
+        "artifact_kind": "phase1_seed10_artist_image_collect_retry_run_summary",
+        "schema_name": "phase1_seed10_artist_image_collect_retry_run_summary",
+        "schema_version": "v1",
+        "glob_pattern": "phase1_seed10_artist_image_collect_retry_run_summary_*.json",
+        "required_prefix": "phase1_seed10_artist_image_collect_retry_run_summary_",
+        "required_suffix": ".json",
+        "exclude_substrings": ["_report.json"],
+    },
     "retry_run_summary_from_rollup": {
         "artifact_kind": "retry_run_summary_from_rollup",
         "schema_name": "artists_answer_qa_daily_recovery_retry_run_from_rollup_summary",

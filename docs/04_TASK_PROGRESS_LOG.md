@@ -1,6 +1,6 @@
 # 04_TASK_PROGRESS_LOG.md
 
-最終更新: 2026-02-26 01:59 JST  
+最終更新: 2026-02-26 11:31 JST  
 対象プロジェクト: ART_PULSE_EDITOR（Phase1 seed10 / Guard運用整備）  
 位置づけ: 実装進捗ログ（01=SSOT、02=索引、03=現行運用タスクの補助ログ）
 
@@ -29,8 +29,8 @@
 
 ## 2. 全体の進捗サマリ（現時点）
 
-- 完了: **TASK 1 ～ TASK 98**
-- 次の予定: **TASK 100**
+- 完了: **TASK 1 ～ TASK 104**
+- 次の予定: **TASK 105**
 - 直近の重点:
   - TarutaniRAG 側で比較/guard の「型」を作成 → Phase1本体（Exhibitions/Artists）へ横展開
   - Phase1 guard 本体 / history 比較 / fixture / matrix / schema文書化 / category文脈まで整備
@@ -463,7 +463,7 @@
 
 ---
 
-## 10. 現在の次タスク（TASK100）
+## 10. 現在の次タスク（TASK105）
 
 [x] 99) artists回答QA retry-run daily chain recovery chain report rollup起点retry-run summary の軽量レポートCLIを追加し、failed/recovered run を `--latest` で即確認できるようにする（本体前進）
 - 目的：
@@ -476,15 +476,67 @@
   - `--latest` で最新 `artists_answer_qa_daily_recovery_retry_run_from_rollup_summary_*.json` を自動解決できる
   - report JSONに `retry_manifest_path` / `executed_runs` / `failed_runs` / `failed_case_ids` / `child_daily_summaries_to_check` / `notes`（同等）を保存できる
 
-[ ] 100) artists回答QA retry-run daily chain recovery chain report rollup起点retry-run summary report のrollup CLIを追加し、failed/recovered run推移を `--latest-n` で即確認できるようにする（本体前進）
+[x] 100) Phase1 seed10 の artists画像収集（実測）CLIを追加し、5枚/人・70%超えの達成状況を summary で可視化する（本体前進）
 - 目的：
-  - TASK99で生成される `artists_answer_qa_daily_recovery_retry_run_from_rollup_summary_*_report.json` を最新N件で集約し、failed run推移と参照先daily summaryを1ファイルで確認できるようにする
+  - seed10（artists対象）で画像収集を実行し、現状の取得率（目標: 1人あたり5枚 / 取得率70%超）を実測で把握する
 - 制約：
   - 取得ループ内LLM加工は追加しない（Post-fetch分離）
-  - 既存retry-run/report本体ロジックは変更せず、rollup CLI追加のみに限定する
+  - 既存Exhibitions/Tarutani/guard/history/lint/matrixの既存処理を壊さない
+  - ドメイン専用ハードコードを増やさない
 - 成立条件：
-  - `python run_aqa_retry_run_daily_chain_recovery_chain_retry_run_from_report_rollup_manifest_report_rollup.py --latest-n 20`（例）が実行できる
-  - rollup JSONに `total_reports` / `failed_run_count` / `failed_runs[]`（`summary_path` / `failed_case_count` / `failed_case_ids` / `child_daily_summaries_to_check`）を保存できる
+  - `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5` が実行できる
+  - summary JSONに `seed_artist_count` / `artists_with_ge_target_images` / `success_rate_ge_target` / `threshold_passed` / `failed_cases` を保存できる
+
+[x] 101) artists画像収集実測summaryの軽量レポートCLIを追加し、5枚達成率/失敗理由上位/ドメイン別失敗を1コマンドで確認できるようにする（本体前進）
+- 目的：
+  - TASK100のsummaryを短く集約し、改善優先順位（どこで失敗しているか）を日次で即判断できるようにする
+- 制約：
+  - 取得ループ内LLM加工は追加しない（Post-fetch分離）
+  - 画像収集本体ロジックは変更せず、report CLI追加のみに限定する
+- 成立条件：
+  - `python run_phase1_seed10_artist_image_collect_report.py --summary-path "..."`（例）が実行できる
+  - `--latest` で最新 `phase1_seed10_artist_image_collect_summary_*.json` を自動解決できる
+  - report JSONに `seed_artist_count` / `artists_with_ge_target_images` / `success_rate_ge_target` / `threshold_passed` / `top_failed_reasons` / `top_failed_domains`（同等）を保存できる
+
+[x] 102) artists画像収集実測reportのrollup CLIを追加し、直近N回の達成率推移と失敗理由変化を1コマンドで抽出できるようにする（本体前進）
+- 目的：
+  - TASK101のreportを複数回集約し、改善施策の効き目（達成率/失敗要因変化）を時系列で確認できるようにする
+- 制約：
+  - 取得ループ内LLM加工は追加しない（Post-fetch分離）
+  - 画像収集本体・report本体ロジックは変更せず、rollup CLI追加のみに限定する
+- 成立条件：
+  - `python run_phase1_seed10_artist_image_collect_report_rollup.py --latest-n 20`（例）が実行できる
+  - rollup JSONに `total_reports` / `threshold_passed_rate` / `success_rate_trend` / `top_failed_reasons_trend`（同等）を保存できる
+
+[x] 103) artists画像収集実測rollupから優先再収集manifestを生成し、失敗理由/ドメイン上位への再試行入口を短縮する（本体前進）
+- 目的：
+  - TASK102のrollupを起点に再収集対象を抽出し、改善ループの実行手順を短縮する
+- 制約：
+  - 取得ループ内LLM加工は追加しない（Post-fetch分離）
+  - 画像収集本体/報告/rollupロジックは変更せず、manifest生成CLI追加のみに限定する
+- 成立条件：
+  - `python run_phase1_seed10_artist_image_collect_retry_manifest.py --latest`（例）が実行できる
+  - manifestに `source_rollup_path` / `cases[]`（`artist_id/source_url/reason/domain`）を保存できる
+
+[x] 104) artists画像収集retry manifestをワンショット実行するCLIを追加し、再収集導線を1コマンド化する（本体前進）
+- 目的：
+  - TASK103で作成したretry manifestを直接実行し、再収集手順を短縮する
+- 制約：
+  - 取得ループ内LLM加工は追加しない（Post-fetch分離）
+  - 画像収集本体ロジックは変更せず、実行ラッパー追加のみに限定する
+- 成立条件：
+  - `python run_phase1_seed10_artist_image_collect_retry_run.py --latest`（例）が実行できる
+  - summaryに `retry_manifest_path` / `executed_cases` / `wrapper_exit_code`（同等）を保存できる
+
+[ ] 105) artists画像収集retry-run summaryの軽量レポートCLIを追加し、failed/recoveredと参照先summaryを `--latest` で即確認できるようにする（本体前進）
+- 目的：
+  - TASK104のretry-run summaryを短く集約し、失敗時の参照先を1コマンドで確認できるようにする
+- 制約：
+  - 取得ループ内LLM加工は追加しない（Post-fetch分離）
+  - 画像収集本体/ retry-run 本体ロジックは変更せず、report CLI追加のみに限定する
+- 成立条件：
+  - `python run_phase1_seed10_artist_image_collect_retry_run_report.py --latest`（例）が実行できる
+  - reportに `retry_manifest_path` / `executed_cases` / `wrapper_exit_code` / `child_collect_summaries_to_check`（同等）を保存できる
 
 ---
 
@@ -1992,6 +2044,151 @@
   - `/tmp/task99_retry_summary_manifest_mismatch_report.json`
   - `data/phase1_seed10/logs/phase1_guard_summary_2025_20260225T165825Z.json`
 
+## 69. TASK100 実行ログ（Phase1 seed10 artists画像収集 実測CLI）
+
+[x] 100) Phase1 seed10 の artists画像収集（実測）CLIを追加し、5枚/人・70%超えの達成状況を summary で可視化する（本体前進）
+- 変更ファイル：
+  - `run_phase1_seed10_artist_image_collect.py`（新規）
+  - `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md`
+  - `docs/04_TASK_PROGRESS_LOG.md`
+- 実装内容：
+  - seed10 artists raw（`artists_*_2025.jsonl`）を対象に画像候補を抽出し、`target_images_per_artist` まで保存する実測CLIを追加
+  - summaryへ `seed_artist_count` / `artists_with_ge_target_images` / `success_rate_ge_target` / `threshold_passed` / `failed_cases` / `domain_stats` を保存
+  - summaryに schema識別メタ（`artifact_kind` / `schema_name` / `schema_version` / `generated_at` / `generated_by`）を付与
+- 動作確認（2026-02-26 JST）：
+  - `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5` → exit 0
+  - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+- 実測結果（summary）：
+  - `seed_artist_count=81`
+  - `artists_with_ge_target_images=0`
+  - `success_rate_ge_target=0.0`
+  - `threshold_passed=false`
+  - `failed_cases=81`（先頭理由例: DNS解決失敗）
+- 生成物：
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260225T232825Z.json`
+  - `data/phase1_seed10/logs/phase1_guard_summary_2025_20260225T232825Z.json`
+
+## 70. TASK101 実行ログ（artists画像収集実測summary 軽量レポートCLI）
+
+[x] 101) artists画像収集実測summaryの軽量レポートCLIを追加し、5枚達成率/失敗理由上位/ドメイン別失敗を1コマンドで確認できるようにする（本体前進）
+- 変更ファイル：
+  - `run_phase1_seed10_artist_image_collect_report.py`（新規）
+  - `qa_artifact_utils.py`
+  - `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md`
+  - `docs/04_TASK_PROGRESS_LOG.md`
+- 実装内容：
+  - `--summary-path` / `--latest` で artists画像収集summaryを読み、軽量reportを生成するCLIを追加
+  - `qa_artifact_utils.resolve_latest_artifact(...)` で `phase1_seed10_artist_image_collect_summary_*.json` の `--latest` 解決を共通化
+  - reportへ `seed_artist_count` / `artists_with_ge_target_images` / `success_rate_ge_target` / `threshold_passed` / `top_failed_reasons` / `top_failed_domains` / `notes` を保存
+  - `qa_artifact_utils.build_artifact_header(...)` で schema識別メタ（`artifact_kind/schema_name/schema_version/generated_at/generated_by`）を付与
+- 動作確認（2026-02-26 JST）：
+  - `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5` → exit 0
+  - `python run_phase1_seed10_artist_image_collect_report.py --latest` → exit 0
+  - `python run_phase1_seed10_artist_image_collect_report.py --summary-path "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260225T233537Z.json"` → exit 0
+  - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+- 実測レポート要点：
+  - `seed_artist_count=81`
+  - `artists_with_ge_target_images=0`
+  - `success_rate_ge_target=0.0`
+  - `threshold_passed=false`
+  - `top_failed_reasons=[{\"reason\":\"html_fetch_failed\",\"count\":81}]`
+- 生成物：
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260225T233537Z.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260225T233537Z_report.json`
+  - `data/phase1_seed10/logs/phase1_guard_summary_2025_20260225T233602Z.json`
+
+## 71. TASK102 実行ログ（artists画像収集実測report rollup CLI）
+
+[x] 102) artists画像収集実測reportのrollup CLIを追加し、直近N回の達成率推移と失敗理由変化を1コマンドで抽出できるようにする（本体前進）
+- 変更ファイル：
+  - `run_phase1_seed10_artist_image_collect_report_rollup.py`（新規）
+  - `qa_artifact_utils.py`
+  - `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md`
+  - `docs/04_TASK_PROGRESS_LOG.md`
+- 実装内容：
+  - `--latest-n` / `--search-dir` / `--glob` / `--output-json` で report集計できる rollup CLI を追加
+  - `qa_artifact_utils.list_candidate_artifacts(...)` で `phase1_seed10_artist_image_collect_summary_*_report.json` の最新N件を共通解決
+  - rollupへ `total_reports` / `threshold_passed_count` / `threshold_passed_rate` / `success_rate_trend` / `top_failed_reasons_trend` / `top_failed_domains_trend` を保存
+  - schema識別メタ（`artifact_kind` / `schema_name` / `schema_version` / `generated_at` / `generated_by`）を付与
+- 動作確認（2026-02-26 JST）：
+  - `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5` → exit 0
+  - `python run_phase1_seed10_artist_image_collect_report.py --latest` → exit 0
+  - `python run_phase1_seed10_artist_image_collect_report_rollup.py --latest-n 20` → exit 0
+  - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+- 実測rollup要点：
+  - `total_reports=2`
+  - `threshold_passed_count=0`
+  - `threshold_passed_rate=0.0`
+  - `top_failed_reasons_aggregate=[{\"reason\":\"html_fetch_failed\",\"count\":162}]`
+- 生成物：
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260225T234412Z.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260225T234412Z_report.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_report_rollup_20260225T234417Z.json`
+  - `data/phase1_seed10/logs/phase1_guard_summary_2025_20260225T234417Z.json`
+
+## 72. TASK103 実行ログ（artists画像収集実測rollup起点retry manifest生成CLI）
+
+[x] 103) artists画像収集実測rollupから優先再収集manifestを生成し、失敗理由/ドメイン上位への再試行入口を短縮する（本体前進）
+- 変更ファイル：
+  - `run_phase1_seed10_artist_image_collect_retry_manifest.py`（新規）
+  - `qa_artifact_utils.py`
+  - `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md`
+  - `docs/04_TASK_PROGRESS_LOG.md`
+- 実装内容：
+  - `--rollup-json` / `--latest`（排他）で rollupを入力し、再収集対象 `cases[]` を生成するCLIを追加
+  - `--max-cases` / `--min-failed-count` / `--failed-reasons` / `--failed-domains` で対象抽出を調整可能化
+  - `qa_artifact_utils.resolve_latest_artifact(...)` を再利用して `--latest` 解決を共通化
+  - manifestへ `source_rollup_path` / `failed_reason_filter` / `failed_domain_filter` / `cases[]`（`artist_id` / `source_url` / `reason` / `domain`）を保存
+  - schema識別メタ（`artifact_kind` / `schema_name` / `schema_version` / `generated_at` / `generated_by`）を付与
+  - failedケース0件時は `notes=[\"no_retry_cases_selected\"]` を残して exit 0 を維持
+- 動作確認（2026-02-26 JST）：
+  - `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5` → exit 0
+  - `python run_phase1_seed10_artist_image_collect_report.py --latest` → exit 0
+  - `python run_phase1_seed10_artist_image_collect_report_rollup.py --latest-n 20` → exit 0
+  - `python run_phase1_seed10_artist_image_collect_retry_manifest.py --latest` → exit 0
+  - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+- 実測manifest要点：
+  - `source_rollup_path=.../phase1_seed10_artist_image_collect_report_rollup_20260225T234417Z.json`
+  - `failed_reason_filter=[\"html_fetch_failed\"]`
+  - `failed_domain_filter` は上位10ドメインを自動採用
+  - `selected_case_count=50`
+- 生成物：
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260225T235137Z.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260225T235137Z_report.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_report_rollup_20260225T235146Z.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_report_rollup_20260225T234417Z_retry_manifest.json`
+  - `data/phase1_seed10/logs/phase1_guard_summary_2025_20260225T235146Z.json`
+
+## 73. TASK104 実行ログ（artists画像収集retry manifestワンショット実行CLI）
+
+[x] 104) artists画像収集retry manifestをワンショット実行するCLIを追加し、再収集導線を1コマンド化する（本体前進）
+- 変更ファイル：
+  - `run_phase1_seed10_artist_image_collect_retry_run.py`（新規）
+  - `qa_artifact_utils.py`
+  - `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md`
+  - `docs/04_TASK_PROGRESS_LOG.md`
+- 実装内容：
+  - `--retry-manifest` / `--latest`（排他）で retry manifest を入力し、既存 `run_phase1_seed10_artist_image_collect.py` を subprocess 委譲実行する薄いラッパーを追加
+  - `qa_artifact_utils.resolve_latest_artifact(...)` で最新 manifest を解決
+  - wrapper summary に `retry_manifest_path` / `executed_cases` / `wrapper_exit_code` / `child_collect_summaries` と schema識別メタを保存
+  - no-op（`cases=[]`）時は `executed_cases=0` / `notes=["no_retry_cases_in_manifest","no_retry_cases_selected"]` で exit 0
+  - `qa_artifact_utils.py` の `phase1_seed10_artist_image_collect_report_rollup` へ `_retry_manifest.json` 除外を追加し、`--latest` の誤判定を防止
+  - `qa_artifact_utils.py` に `phase1_seed10_artist_image_collect_retry_run_summary` artifact定義を追加
+- 動作確認（2026-02-26 JST）：
+  - `python run_phase1_seed10_artist_image_collect_report_rollup.py --latest-n 20` → exit 0
+  - `python run_phase1_seed10_artist_image_collect_retry_manifest.py --latest` → exit 0
+  - `python run_phase1_seed10_artist_image_collect_retry_run.py --latest` → exit 0
+  - `python run_phase1_seed10_artist_image_collect_retry_run.py --retry-manifest "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_report_rollup_20260226T023049Z_retry_manifest.json"` → exit 0
+  - `python run_phase1_seed10_artist_image_collect_retry_run.py --retry-manifest /tmp/phase1_seed10_artist_image_collect_retry_manifest_empty_task104.json` → exit 0（no-op）
+  - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+- 生成物：
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_report_rollup_20260226T023049Z.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_report_rollup_20260226T023049Z_retry_manifest.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_retry_run_summary_20260226T023102Z.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_retry_run_summary_20260226T023109Z.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_retry_run_summary_20260226T023125Z.json`
+  - `data/phase1_seed10/logs/phase1_guard_summary_2025_20260226T023115Z.json`
+
 ## CLEANUP_CANDIDATES_MASTER（集約管理）
 
 本節は削除候補の棚卸し専用。2026-02-25 からは「候補は `_trash` へ先に退避」を実運用化。
@@ -2011,6 +2208,18 @@
   - 今回の実装では新規の削除候補追加なし（実削除/実移動とも未実施）
 - 2026-02-26（TASK99）:
   - 今回の実装では新規の削除候補追加なし（実削除/実移動とも未実施）
+- 2026-02-26（TASK100）:
+  - 今回の実装では新規の削除候補追加なし（実削除/実移動とも未実施）
+- 2026-02-26（TASK101）:
+  - 今回の実装では新規の削除候補追加なし（実削除/実移動とも未実施）
+- 2026-02-26（TASK102）:
+  - 今回の実装では新規の削除候補追加なし（実削除/実移動とも未実施）
+- 2026-02-26（TASK103）:
+  - 今回の実装では新規の削除候補追加なし（実削除/実移動とも未実施）
+- 2026-02-26（TASK104）:
+  - path: `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_report_rollup_20260225T235146Z_retry_manifest_retry_manifest.json`
+    - 理由: TASK104実装途中で `--latest` 誤判定（rollupが retry_manifest を拾う）時に生成された中間manifest
+    - 状態: 削除候補（実削除/実移動は未実施）
 
 - path: `/tmp/artists_retry_run_report_rollup_empty_task87_retry_manifest.json`
   - 理由: no-op検証専用の一時manifest

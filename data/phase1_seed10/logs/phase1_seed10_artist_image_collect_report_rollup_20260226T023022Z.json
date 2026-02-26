@@ -1,0 +1,183 @@
+{
+  "artifact_kind": "phase1_seed10_artist_image_collect_report_rollup",
+  "schema_name": "phase1_seed10_artist_image_collect_report_rollup",
+  "schema_version": "v1",
+  "generated_at": "2026-02-26T02:30:22Z",
+  "generated_by": "run_phase1_seed10_artist_image_collect_report_rollup.py",
+  "source_cli": "run_phase1_seed10_artist_image_collect_report_rollup.py",
+  "search_dir": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs",
+  "glob": "",
+  "latest_n": 20,
+  "total_reports": 3,
+  "threshold_passed_count": 0,
+  "threshold_passed_rate": 0.0,
+  "success_rate_trend": [
+    {
+      "report_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260225T233537Z_report.json",
+      "summary_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260225T233537Z.json",
+      "success_rate_ge_target": 0.0,
+      "threshold_passed": false
+    },
+    {
+      "report_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260225T234412Z_report.json",
+      "summary_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260225T234412Z.json",
+      "success_rate_ge_target": 0.0,
+      "threshold_passed": false
+    },
+    {
+      "report_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260225T235137Z_report.json",
+      "summary_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260225T235137Z.json",
+      "success_rate_ge_target": 0.0,
+      "threshold_passed": false
+    }
+  ],
+  "top_failed_reasons_trend": [
+    {
+      "report_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260225T233537Z_report.json",
+      "summary_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260225T233537Z.json",
+      "top_failed_reasons": [
+        {
+          "reason": "html_fetch_failed",
+          "count": 81
+        }
+      ]
+    },
+    {
+      "report_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260225T234412Z_report.json",
+      "summary_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260225T234412Z.json",
+      "top_failed_reasons": [
+        {
+          "reason": "html_fetch_failed",
+          "count": 81
+        }
+      ]
+    },
+    {
+      "report_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260225T235137Z_report.json",
+      "summary_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260225T235137Z.json",
+      "top_failed_reasons": [
+        {
+          "reason": "html_fetch_failed",
+          "count": 81
+        }
+      ]
+    }
+  ],
+  "top_failed_domains_trend": [
+    {
+      "report_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260225T233537Z_report.json",
+      "summary_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260225T233537Z.json",
+      "top_failed_domains": [
+        {
+          "domain": "theapproach.co.uk",
+          "count": 10
+        },
+        {
+          "domain": "athrart.com",
+          "count": 10
+        },
+        {
+          "domain": "gallerybaton.com",
+          "count": 10
+        },
+        {
+          "domain": "aplusart.asia",
+          "count": 10
+        },
+        {
+          "domain": "afriartgallery.org",
+          "count": 10
+        }
+      ]
+    },
+    {
+      "report_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260225T234412Z_report.json",
+      "summary_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260225T234412Z.json",
+      "top_failed_domains": [
+        {
+          "domain": "theapproach.co.uk",
+          "count": 10
+        },
+        {
+          "domain": "athrart.com",
+          "count": 10
+        },
+        {
+          "domain": "gallerybaton.com",
+          "count": 10
+        },
+        {
+          "domain": "aplusart.asia",
+          "count": 10
+        },
+        {
+          "domain": "afriartgallery.org",
+          "count": 10
+        }
+      ]
+    },
+    {
+      "report_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260225T235137Z_report.json",
+      "summary_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260225T235137Z.json",
+      "top_failed_domains": [
+        {
+          "domain": "theapproach.co.uk",
+          "count": 10
+        },
+        {
+          "domain": "athrart.com",
+          "count": 10
+        },
+        {
+          "domain": "gallerybaton.com",
+          "count": 10
+        },
+        {
+          "domain": "aplusart.asia",
+          "count": 10
+        },
+        {
+          "domain": "afriartgallery.org",
+          "count": 10
+        }
+      ]
+    }
+  ],
+  "top_failed_reasons_aggregate": [
+    {
+      "reason": "html_fetch_failed",
+      "count": 243
+    }
+  ],
+  "top_failed_domains_aggregate": [
+    {
+      "domain": "theapproach.co.uk",
+      "count": 30
+    },
+    {
+      "domain": "athrart.com",
+      "count": 30
+    },
+    {
+      "domain": "gallerybaton.com",
+      "count": 30
+    },
+    {
+      "domain": "aplusart.asia",
+      "count": 30
+    },
+    {
+      "domain": "afriartgallery.org",
+      "count": 30
+    }
+  ],
+  "source_report_paths": [
+    "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260225T235137Z_report.json",
+    "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260225T234412Z_report.json",
+    "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260225T233537Z_report.json"
+  ],
+  "warnings": [],
+  "notes": [],
+  "rollup_exit_code": 0,
+  "exit_reason": "rollup_generated"
+}

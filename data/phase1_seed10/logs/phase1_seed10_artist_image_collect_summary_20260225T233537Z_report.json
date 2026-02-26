@@ -1,0 +1,52 @@
+{
+  "artifact_kind": "phase1_seed10_artist_image_collect_report",
+  "schema_name": "phase1_seed10_artist_image_collect_report",
+  "schema_version": "v1",
+  "generated_at": "2026-02-25T23:35:58Z",
+  "generated_by": "run_phase1_seed10_artist_image_collect_report.py",
+  "source_cli": "run_phase1_seed10_artist_image_collect_report.py",
+  "source_summary_path_requested": "--latest",
+  "latest_resolved": true,
+  "summary_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260225T233537Z.json",
+  "seed_artist_count": 81,
+  "artists_with_ge_target_images": 0,
+  "success_rate_ge_target": 0.0,
+  "threshold_passed": false,
+  "target_images_per_artist": 5,
+  "success_threshold": 0.7,
+  "top_failed_reasons": [
+    {
+      "reason": "html_fetch_failed",
+      "count": 81
+    }
+  ],
+  "top_failed_domains": [
+    {
+      "domain": "theapproach.co.uk",
+      "count": 10
+    },
+    {
+      "domain": "athrart.com",
+      "count": 10
+    },
+    {
+      "domain": "gallerybaton.com",
+      "count": 10
+    },
+    {
+      "domain": "aplusart.asia",
+      "count": 10
+    },
+    {
+      "domain": "afriartgallery.org",
+      "count": 10
+    }
+  ],
+  "notes": [
+    "threshold_not_met:0/81<0.70",
+    "count_mode=effective_images_after_run"
+  ],
+  "warnings": [],
+  "report_exit_code": 0,
+  "exit_reason": "report_generated"
+}

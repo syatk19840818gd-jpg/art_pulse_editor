@@ -1,0 +1,29 @@
+{
+  "artifact_kind": "phase1_seed10_artist_image_collect_retry_manifest",
+  "schema_name": "phase1_seed10_artist_image_collect_retry_manifest",
+  "schema_version": "v1",
+  "generated_at": "2026-02-26T02:30:22Z",
+  "generated_by": "run_phase1_seed10_artist_image_collect_retry_manifest.py",
+  "source_cli": "run_phase1_seed10_artist_image_collect_retry_manifest.py",
+  "source_rollup_path_requested": null,
+  "source_rollup_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_seed10_artist_image_collect_report_rollup_20260225T235146Z_retry_manifest.json",
+  "source_rollup_latest_resolved": true,
+  "retry_manifest_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_seed10_artist_image_collect_report_rollup_20260225T235146Z_retry_manifest_retry_manifest.json",
+  "max_cases": 50,
+  "min_failed_count": 1,
+  "failed_reason_filter_requested": [],
+  "failed_domain_filter_requested": [],
+  "failed_reason_filter": [],
+  "failed_domain_filter": [],
+  "source_summary_paths": [],
+  "candidate_failed_case_count": 0,
+  "selected_case_count": 0,
+  "reason_counts": [],
+  "domain_counts": [],
+  "cases": [],
+  "notes": [
+    "no_summary_paths_in_rollup",
+    "no_retry_cases_selected"
+  ],
+  "warnings": []
+}
