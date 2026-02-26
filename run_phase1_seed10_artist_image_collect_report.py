@@ -11,6 +11,7 @@ from urllib.parse import urlparse
 from qa_artifact_utils import build_artifact_header, resolve_latest_artifact
 
 DEFAULT_SEARCH_DIR = Path("data/phase1_seed10/logs")
+BREAKDOWN_DOC_PATH = Path("docs/RAG_EXTRACTION_BREAKDOWN_JA.md")
 SOURCE_CLI = "run_phase1_seed10_artist_image_collect_report.py"
 INPUT_ARTIFACT_KIND = "phase1_seed10_artist_image_collect_summary"
 OUTPUT_ARTIFACT_KIND = "phase1_seed10_artist_image_collect_report"
@@ -59,7 +60,81 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--glob", default="", help="optional glob override for --latest")
     parser.add_argument("--output-json", default="", help="optional output report path")
     parser.add_argument("--top-n", type=int, default=5, help="max items for top lists (default: 5)")
+    parser.add_argument(
+        "--skip-breakdown-doc",
+        action="store_true",
+        help="skip auto append to docs/RAG_EXTRACTION_BREAKDOWN_JA.md",
+    )
     return parser.parse_args()
+
+
+def append_breakdown_doc(report: dict[str, Any], report_path: Path) -> str:
+    summary_path = str(report.get("summary_path") or "")
+    if not summary_path:
+        return "skipped:no_summary_path"
+
+    marker = f"- `{summary_path}`"
+    existing = BREAKDOWN_DOC_PATH.read_text(encoding="utf-8") if BREAKDOWN_DOC_PATH.exists() else ""
+    if marker in existing:
+        return "skipped:already_recorded"
+
+    lines: list[str] = []
+    lines.append("\n---")
+    lines.append(f"## RUN {str(report.get('generated_at') or '')} artists画像収集")
+    lines.append("")
+    lines.append("参照元:")
+    lines.append(f"- `{summary_path}`")
+    lines.append(f"- `{report_path}`")
+    lines.append("")
+    lines.append("### サマリー")
+    lines.append(f"- 対象人数: {report.get('seed_artist_count')}")
+    lines.append(f"- 5枚達成人数: {report.get('artists_with_ge_target_images')}")
+    lines.append(
+        f"- 達成率(>= {report.get('target_images_per_artist')}枚): "
+        f"{report.get('success_rate_ge_target_pct')}%"
+    )
+    lines.append(f"- 閾値通過(70%): {report.get('threshold_passed')}")
+    lines.append("")
+    lines.append("### fair/gallery内訳")
+    lines.append("| fair | gallery | 対象人数 | 成功人数(>=1枚) | 取得件数(画像枚数) | 成功率(>=5枚) |")
+    lines.append("|---|---|---:|---:|---:|---:|")
+    gallery_rows = report.get("gallery_breakdown", [])
+    if isinstance(gallery_rows, list) and gallery_rows:
+        for row in gallery_rows:
+            if not isinstance(row, dict):
+                continue
+            lines.append(
+                f"| {row.get('fair_slug')} | {row.get('gallery_name_en')} | "
+                f"{row.get('artist_count')} | {row.get('artists_with_ge_1_image')} | "
+                f"{row.get('images_saved_total')} | {row.get('success_rate_ge_target_pct')}% |"
+            )
+    else:
+        lines.append("| - | - | 0 | 0 | 0 | 0.0% |")
+
+    top_reasons = report.get("top_failed_reasons", [])
+    top_domains = report.get("top_failed_domains", [])
+    lines.append("")
+    lines.append("### 失敗理由上位")
+    if isinstance(top_reasons, list) and top_reasons:
+        for item in top_reasons:
+            if isinstance(item, dict):
+                lines.append(f"- {item.get('reason')}: {item.get('count')}件")
+    else:
+        lines.append("- なし")
+
+    lines.append("")
+    lines.append("### 失敗ドメイン上位")
+    if isinstance(top_domains, list) and top_domains:
+        for item in top_domains:
+            if isinstance(item, dict):
+                lines.append(f"- {item.get('domain')}: {item.get('count')}件")
+    else:
+        lines.append("- なし")
+
+    BREAKDOWN_DOC_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with BREAKDOWN_DOC_PATH.open("a", encoding="utf-8") as handle:
+        handle.write("\n".join(lines) + "\n")
+    return "appended"
 
 
 def main() -> int:
@@ -183,6 +258,9 @@ def main() -> int:
     report["report_exit_code"] = 0
     report["exit_reason"] = "report_generated"
     write_json(output_path, report)
+    if not args.skip_breakdown_doc:
+        result = append_breakdown_doc(report, output_path)
+        print(f"[REPORT] breakdown_doc={BREAKDOWN_DOC_PATH} status={result}")
 
     print(
         "[REPORT] "

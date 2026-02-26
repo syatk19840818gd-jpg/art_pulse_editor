@@ -1,0 +1,174 @@
+{
+  "artifact_kind": "phase1_network_preflight_summary",
+  "schema_name": "phase1_network_preflight_summary",
+  "schema_version": "v1",
+  "generated_at": "2026-02-26T08:46:22Z",
+  "generated_by": "run_phase1_network_preflight.py",
+  "dns_total": 21,
+  "dns_ok_count": 21,
+  "dns_ok_rate": 1.0,
+  "http_probe_url": "https://example.com",
+  "http_probe_ok": true,
+  "seed_hosts": [
+    "example.com",
+    "adamsandollman.com",
+    "theapproach.co.uk",
+    "arcadiamissa.com",
+    "athrart.com",
+    "gallerybaton.com",
+    "liviabenavides.com",
+    "blankprojects.com",
+    "peterblumgallery.com",
+    "matthewbrowngallery.com",
+    "ceciliabrunsonprojects.com",
+    "galeriecapitain.de",
+    "carlosishikawa.com",
+    "casadosantapau.com",
+    "pedrocera.com",
+    "jamescohan.com",
+    "sadiecoles.com",
+    "thomasdanegallery.com",
+    "dastan.gallery",
+    "anatebgi.com",
+    "edelassanti.com"
+  ],
+  "dns_results": [
+    {
+      "host": "example.com",
+      "dns_ok": true,
+      "ip": "104.18.26.120",
+      "error": ""
+    },
+    {
+      "host": "adamsandollman.com",
+      "dns_ok": true,
+      "ip": "3.215.100.79",
+      "error": ""
+    },
+    {
+      "host": "theapproach.co.uk",
+      "dns_ok": true,
+      "ip": "75.2.60.5",
+      "error": ""
+    },
+    {
+      "host": "arcadiamissa.com",
+      "dns_ok": true,
+      "ip": "46.30.215.119",
+      "error": ""
+    },
+    {
+      "host": "athrart.com",
+      "dns_ok": true,
+      "ip": "34.38.167.82",
+      "error": ""
+    },
+    {
+      "host": "gallerybaton.com",
+      "dns_ok": true,
+      "ip": "35.240.51.139",
+      "error": ""
+    },
+    {
+      "host": "liviabenavides.com",
+      "dns_ok": true,
+      "ip": "192.185.16.180",
+      "error": ""
+    },
+    {
+      "host": "blankprojects.com",
+      "dns_ok": true,
+      "ip": "3.234.189.133",
+      "error": ""
+    },
+    {
+      "host": "peterblumgallery.com",
+      "dns_ok": true,
+      "ip": "3.170.19.47",
+      "error": ""
+    },
+    {
+      "host": "matthewbrowngallery.com",
+      "dns_ok": true,
+      "ip": "3.170.42.107",
+      "error": ""
+    },
+    {
+      "host": "ceciliabrunsonprojects.com",
+      "dns_ok": true,
+      "ip": "104.199.44.94",
+      "error": ""
+    },
+    {
+      "host": "galeriecapitain.de",
+      "dns_ok": true,
+      "ip": "149.126.4.111",
+      "error": ""
+    },
+    {
+      "host": "carlosishikawa.com",
+      "dns_ok": true,
+      "ip": "92.205.175.138",
+      "error": ""
+    },
+    {
+      "host": "casadosantapau.com",
+      "dns_ok": true,
+      "ip": "89.46.89.5",
+      "error": ""
+    },
+    {
+      "host": "pedrocera.com",
+      "dns_ok": true,
+      "ip": "185.12.116.100",
+      "error": ""
+    },
+    {
+      "host": "jamescohan.com",
+      "dns_ok": true,
+      "ip": "18.165.83.46",
+      "error": ""
+    },
+    {
+      "host": "sadiecoles.com",
+      "dns_ok": true,
+      "ip": "94.247.142.1",
+      "error": ""
+    },
+    {
+      "host": "thomasdanegallery.com",
+      "dns_ok": true,
+      "ip": "34.79.149.83",
+      "error": ""
+    },
+    {
+      "host": "dastan.gallery",
+      "dns_ok": true,
+      "ip": "104.155.89.108",
+      "error": ""
+    },
+    {
+      "host": "anatebgi.com",
+      "dns_ok": true,
+      "ip": "35.208.178.20",
+      "error": ""
+    },
+    {
+      "host": "edelassanti.com",
+      "dns_ok": true,
+      "ip": "35.187.100.199",
+      "error": ""
+    }
+  ],
+  "http_results": [
+    {
+      "url": "https://example.com",
+      "http_ok": true,
+      "status_code": 200,
+      "error": ""
+    }
+  ],
+  "notes": [],
+  "passed": true,
+  "wrapper_exit_code": 0
+}

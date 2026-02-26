@@ -1,0 +1,259 @@
+{
+  "artifact_kind": "phase1_seed10_artist_image_collect_report_rollup",
+  "schema_name": "phase1_seed10_artist_image_collect_report_rollup",
+  "schema_version": "v1",
+  "generated_at": "2026-02-26T08:54:37Z",
+  "generated_by": "run_phase1_seed10_artist_image_collect_report_rollup.py",
+  "source_cli": "run_phase1_seed10_artist_image_collect_report_rollup.py",
+  "search_dir": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs",
+  "glob": "",
+  "latest_n": 20,
+  "total_reports": 1,
+  "threshold_passed_count": 1,
+  "threshold_passed_rate": 1.0,
+  "success_rate_trend": [
+    {
+      "report_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260226T085100Z_report.json",
+      "summary_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260226T085100Z.json",
+      "success_rate_ge_target": 0.825,
+      "threshold_passed": true
+    }
+  ],
+  "top_failed_reasons_trend": [
+    {
+      "report_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260226T085100Z_report.json",
+      "summary_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260226T085100Z.json",
+      "top_failed_reasons": [
+        {
+          "reason": "no_image_candidates_found_on_artist_detail",
+          "count": 7
+        },
+        {
+          "reason": "insufficient_image_candidates_after_download",
+          "count": 7
+        }
+      ]
+    }
+  ],
+  "top_failed_domains_trend": [
+    {
+      "report_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260226T085100Z_report.json",
+      "summary_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260226T085100Z.json",
+      "top_failed_domains": [
+        {
+          "domain": "athrart.com",
+          "count": 10
+        },
+        {
+          "domain": "spazioamanita.com",
+          "count": 3
+        },
+        {
+          "domain": "aplusart.asia",
+          "count": 1
+        }
+      ]
+    }
+  ],
+  "gallery_breakdown_trend": [
+    {
+      "report_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260226T085100Z_report.json",
+      "summary_path": "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260226T085100Z.json",
+      "gallery_breakdown": [
+        {
+          "fair_slug": "frieze_london",
+          "gallery_name_en": "Athr",
+          "artist_count": 10,
+          "artists_with_ge_1_image": 3,
+          "artists_with_ge_target_images": 0,
+          "images_saved_total": 3,
+          "success_rate_ge_target": 0.0,
+          "success_rate_ge_target_pct": 0.0
+        },
+        {
+          "fair_slug": "frieze_london",
+          "gallery_name_en": "Gallery Baton",
+          "artist_count": 10,
+          "artists_with_ge_1_image": 10,
+          "artists_with_ge_target_images": 10,
+          "images_saved_total": 50,
+          "success_rate_ge_target": 1.0,
+          "success_rate_ge_target_pct": 100.0
+        },
+        {
+          "fair_slug": "frieze_london",
+          "gallery_name_en": "The Approach",
+          "artist_count": 10,
+          "artists_with_ge_1_image": 10,
+          "artists_with_ge_target_images": 10,
+          "images_saved_total": 50,
+          "success_rate_ge_target": 1.0,
+          "success_rate_ge_target_pct": 100.0
+        },
+        {
+          "fair_slug": "liste",
+          "gallery_name_en": "A+ Works of Art",
+          "artist_count": 10,
+          "artists_with_ge_1_image": 10,
+          "artists_with_ge_target_images": 9,
+          "images_saved_total": 46,
+          "success_rate_ge_target": 0.9,
+          "success_rate_ge_target_pct": 90.0
+        },
+        {
+          "fair_slug": "liste",
+          "gallery_name_en": "Addis Fine Art",
+          "artist_count": 10,
+          "artists_with_ge_1_image": 10,
+          "artists_with_ge_target_images": 10,
+          "images_saved_total": 50,
+          "success_rate_ge_target": 1.0,
+          "success_rate_ge_target_pct": 100.0
+        },
+        {
+          "fair_slug": "liste",
+          "gallery_name_en": "Afriart Gallery",
+          "artist_count": 10,
+          "artists_with_ge_1_image": 10,
+          "artists_with_ge_target_images": 10,
+          "images_saved_total": 50,
+          "success_rate_ge_target": 1.0,
+          "success_rate_ge_target_pct": 100.0
+        },
+        {
+          "fair_slug": "liste",
+          "gallery_name_en": "Amanita",
+          "artist_count": 10,
+          "artists_with_ge_1_image": 10,
+          "artists_with_ge_target_images": 7,
+          "images_saved_total": 47,
+          "success_rate_ge_target": 0.7,
+          "success_rate_ge_target_pct": 70.0
+        },
+        {
+          "fair_slug": "liste",
+          "gallery_name_en": "Anca Poteraşu Gallery",
+          "artist_count": 10,
+          "artists_with_ge_1_image": 10,
+          "artists_with_ge_target_images": 10,
+          "images_saved_total": 50,
+          "success_rate_ge_target": 1.0,
+          "success_rate_ge_target_pct": 100.0
+        }
+      ]
+    }
+  ],
+  "latest_gallery_breakdown": [
+    {
+      "fair_slug": "frieze_london",
+      "gallery_name_en": "Athr",
+      "artist_count": 10,
+      "artists_with_ge_1_image": 3,
+      "artists_with_ge_target_images": 0,
+      "images_saved_total": 3,
+      "success_rate_ge_target": 0.0,
+      "success_rate_ge_target_pct": 0.0
+    },
+    {
+      "fair_slug": "frieze_london",
+      "gallery_name_en": "Gallery Baton",
+      "artist_count": 10,
+      "artists_with_ge_1_image": 10,
+      "artists_with_ge_target_images": 10,
+      "images_saved_total": 50,
+      "success_rate_ge_target": 1.0,
+      "success_rate_ge_target_pct": 100.0
+    },
+    {
+      "fair_slug": "frieze_london",
+      "gallery_name_en": "The Approach",
+      "artist_count": 10,
+      "artists_with_ge_1_image": 10,
+      "artists_with_ge_target_images": 10,
+      "images_saved_total": 50,
+      "success_rate_ge_target": 1.0,
+      "success_rate_ge_target_pct": 100.0
+    },
+    {
+      "fair_slug": "liste",
+      "gallery_name_en": "A+ Works of Art",
+      "artist_count": 10,
+      "artists_with_ge_1_image": 10,
+      "artists_with_ge_target_images": 9,
+      "images_saved_total": 46,
+      "success_rate_ge_target": 0.9,
+      "success_rate_ge_target_pct": 90.0
+    },
+    {
+      "fair_slug": "liste",
+      "gallery_name_en": "Addis Fine Art",
+      "artist_count": 10,
+      "artists_with_ge_1_image": 10,
+      "artists_with_ge_target_images": 10,
+      "images_saved_total": 50,
+      "success_rate_ge_target": 1.0,
+      "success_rate_ge_target_pct": 100.0
+    },
+    {
+      "fair_slug": "liste",
+      "gallery_name_en": "Afriart Gallery",
+      "artist_count": 10,
+      "artists_with_ge_1_image": 10,
+      "artists_with_ge_target_images": 10,
+      "images_saved_total": 50,
+      "success_rate_ge_target": 1.0,
+      "success_rate_ge_target_pct": 100.0
+    },
+    {
+      "fair_slug": "liste",
+      "gallery_name_en": "Amanita",
+      "artist_count": 10,
+      "artists_with_ge_1_image": 10,
+      "artists_with_ge_target_images": 7,
+      "images_saved_total": 47,
+      "success_rate_ge_target": 0.7,
+      "success_rate_ge_target_pct": 70.0
+    },
+    {
+      "fair_slug": "liste",
+      "gallery_name_en": "Anca Poteraşu Gallery",
+      "artist_count": 10,
+      "artists_with_ge_1_image": 10,
+      "artists_with_ge_target_images": 10,
+      "images_saved_total": 50,
+      "success_rate_ge_target": 1.0,
+      "success_rate_ge_target_pct": 100.0
+    }
+  ],
+  "top_failed_reasons_aggregate": [
+    {
+      "reason": "no_image_candidates_found_on_artist_detail",
+      "count": 7
+    },
+    {
+      "reason": "insufficient_image_candidates_after_download",
+      "count": 7
+    }
+  ],
+  "top_failed_domains_aggregate": [
+    {
+      "domain": "athrart.com",
+      "count": 10
+    },
+    {
+      "domain": "spazioamanita.com",
+      "count": 3
+    },
+    {
+      "domain": "aplusart.asia",
+      "count": 1
+    }
+  ],
+  "source_report_paths": [
+    "/home/syatk/my_projects/art_pulse_editor/data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260226T085100Z_report.json"
+  ],
+  "warnings": [],
+  "notes": [],
+  "rollup_exit_code": 0,
+  "exit_reason": "rollup_generated"
+}

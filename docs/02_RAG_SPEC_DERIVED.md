@@ -267,6 +267,8 @@ SSOT_TAG: 01>「SSOT整合ゲート（再発防止・強制運用）」
 - 実装前に、01章ID + 02 CARD_ID の対応を明示してから変更する。
 - Artistsは「一覧URL→詳細URL抽出→詳細ページ抽出」以外を禁止（一覧URL直抽出を禁止）。
 - カテゴリ別上限値の流用ミスを禁止（Exhibitions用上限をArtistsに流用しない）。
+- Artist Works Images のローカル作業キャッシュは FAIR_SLUG 単位で一本化し、gallery単位ディレクトリ分割は行わない（識別はファイル名/メタデータで保持）。
+- 暫定運用（2026-02-26）：artists抽出上限は安定化まで各gallery 1件。安定確認後に段階引き上げし、最終80へ戻す。
 - 実装後は、失敗理由上位・対象内訳を 03/04 と `docs/RAG_EXTRACTION_BREAKDOWN_JA.md` に記録する。
 
 運用ゲート（増殖防止）

@@ -1,30 +1,31 @@
 {
-  "started_at": "2026-02-26T08:19:40Z",
-  "completed_at": "2026-02-26T08:19:40Z",
+  "started_at": "2026-02-26T08:48:50Z",
+  "completed_at": "2026-02-26T08:50:59Z",
   "target_year": 2025,
   "seed_per_fair": 5,
-  "html_parser_backend": "stdlib_html_parser_fallback",
+  "html_parser_backend": "bs4_lxml",
   "max_exhibition_links_per_gallery": 10,
   "failure_retry_cooldown_seconds": 3600,
   "max_failure_retries_per_url": 3,
-  "records_saved_total": 0,
+  "records_saved_total": 33,
   "existing_records_total": 64,
-  "new_records_saved_total": 0,
-  "records_total_after_run": 64,
+  "new_records_saved_total": 33,
+  "records_total_after_run": 97,
   "records_saved_by_fair": {
-    "frieze_london": 0,
-    "liste": 0
+    "frieze_london": 25,
+    "liste": 8
   },
-  "failed_fetches_new_in_run": 10,
-  "failed_fetches_total_ledger": 10,
-  "failed_fetches_reason_counts": {
-    "DNS_ERROR": 10
+  "failed_fetches_new_in_run": 0,
+  "failed_fetches_total_ledger": 0,
+  "failed_fetches_reason_counts": {},
+  "visited_pages_total_ledger": 81,
+  "skipped_total": 45,
+  "skipped_known_saved_page": 30,
+  "skipped_out_of_year": 15,
+  "skipped_by_reason": {
+    "OUT_OF_YEAR": 15,
+    "DUPLICATE_TEXT_HASH_EXISTING": 30
   },
-  "visited_pages_total_ledger": 78,
-  "skipped_total": 0,
-  "skipped_known_saved_page": 0,
-  "skipped_out_of_year": 0,
-  "skipped_by_reason": {},
   "existing_text_hashes_by_fair": {
     "frieze_london": 28,
     "liste": 36
@@ -36,19 +37,19 @@
   "failed_fetches_path": "data/phase1_seed10/logs/failed_fetches_seed10_2025.json",
   "visited_pages_path": "data/phase1_seed10/logs/visited_pages_seed10_2025.json",
   "artists_enabled": true,
-  "artists_records_saved_total": 0,
+  "artists_records_saved_total": 80,
   "artists_existing_records_total": 0,
-  "artists_records_total_after_run": 0,
+  "artists_records_total_after_run": 80,
   "artists_records_saved_by_fair": {
-    "frieze_london": 0,
-    "liste": 0
+    "frieze_london": 30,
+    "liste": 50
   },
-  "artists_failed_fetches_new_in_run": 10,
-  "artists_failed_fetches_total_ledger": 10,
+  "artists_failed_fetches_new_in_run": 2,
+  "artists_failed_fetches_total_ledger": 2,
   "artists_failed_fetches_reason_counts": {
-    "DNS_ERROR": 10
+    "NO_ARTIST_DETAIL_LINKS": 2
   },
-  "artists_visited_pages_total_ledger": 10,
+  "artists_visited_pages_total_ledger": 90,
   "artists_skipped_total": 0,
   "artists_skipped_by_reason": {},
   "artists_list_source_counts": {
@@ -79,19 +80,19 @@
       "category": "exhibitions_text",
       "fair_slug": "frieze_london",
       "target_gallery_count": 5,
-      "successful_gallery_count": 0,
-      "records_saved_total": 0,
-      "success_rate_ge_1_record": 0.0,
-      "success_rate_ge_1_record_pct": 0.0
+      "successful_gallery_count": 3,
+      "records_saved_total": 25,
+      "success_rate_ge_1_record": 0.6,
+      "success_rate_ge_1_record_pct": 60.0
     },
     {
       "category": "exhibitions_text",
       "fair_slug": "liste",
       "target_gallery_count": 5,
-      "successful_gallery_count": 0,
-      "records_saved_total": 0,
-      "success_rate_ge_1_record": 0.0,
-      "success_rate_ge_1_record_pct": 0.0
+      "successful_gallery_count": 1,
+      "records_saved_total": 8,
+      "success_rate_ge_1_record": 0.2,
+      "success_rate_ge_1_record_pct": 20.0
     }
   ],
   "exhibitions_text_gallery_breakdown": [
@@ -120,30 +121,30 @@
       "fair_slug": "frieze_london",
       "gallery_name_en": "Athr",
       "target_gallery_count": 1,
-      "successful_gallery_count": 0,
-      "records_saved_total": 0,
-      "success_rate_ge_1_record": 0.0,
-      "success_rate_ge_1_record_pct": 0.0
+      "successful_gallery_count": 1,
+      "records_saved_total": 8,
+      "success_rate_ge_1_record": 1.0,
+      "success_rate_ge_1_record_pct": 100.0
     },
     {
       "category": "exhibitions_text",
       "fair_slug": "frieze_london",
       "gallery_name_en": "Gallery Baton",
       "target_gallery_count": 1,
-      "successful_gallery_count": 0,
-      "records_saved_total": 0,
-      "success_rate_ge_1_record": 0.0,
-      "success_rate_ge_1_record_pct": 0.0
+      "successful_gallery_count": 1,
+      "records_saved_total": 8,
+      "success_rate_ge_1_record": 1.0,
+      "success_rate_ge_1_record_pct": 100.0
     },
     {
       "category": "exhibitions_text",
       "fair_slug": "frieze_london",
       "gallery_name_en": "The Approach",
       "target_gallery_count": 1,
-      "successful_gallery_count": 0,
-      "records_saved_total": 0,
-      "success_rate_ge_1_record": 0.0,
-      "success_rate_ge_1_record_pct": 0.0
+      "successful_gallery_count": 1,
+      "records_saved_total": 9,
+      "success_rate_ge_1_record": 1.0,
+      "success_rate_ge_1_record_pct": 100.0
     },
     {
       "category": "exhibitions_text",
@@ -160,10 +161,10 @@
       "fair_slug": "liste",
       "gallery_name_en": "Addis Fine Art",
       "target_gallery_count": 1,
-      "successful_gallery_count": 0,
-      "records_saved_total": 0,
-      "success_rate_ge_1_record": 0.0,
-      "success_rate_ge_1_record_pct": 0.0
+      "successful_gallery_count": 1,
+      "records_saved_total": 8,
+      "success_rate_ge_1_record": 1.0,
+      "success_rate_ge_1_record_pct": 100.0
     },
     {
       "category": "exhibitions_text",
@@ -197,27 +198,27 @@
     }
   ],
   "exhibitions_text_seed_gallery_count": 10,
-  "exhibitions_text_galleries_with_ge_1_record": 0,
-  "exhibitions_text_success_rate_ge_1_record": 0.0,
-  "exhibitions_text_success_rate_ge_1_record_pct": 0.0,
+  "exhibitions_text_galleries_with_ge_1_record": 4,
+  "exhibitions_text_success_rate_ge_1_record": 0.4,
+  "exhibitions_text_success_rate_ge_1_record_pct": 40.0,
   "artists_text_fair_breakdown": [
     {
       "category": "artists_text",
       "fair_slug": "frieze_london",
       "target_gallery_count": 5,
-      "successful_gallery_count": 0,
-      "records_saved_total": 0,
-      "success_rate_ge_1_record": 0.0,
-      "success_rate_ge_1_record_pct": 0.0
+      "successful_gallery_count": 3,
+      "records_saved_total": 30,
+      "success_rate_ge_1_record": 0.6,
+      "success_rate_ge_1_record_pct": 60.0
     },
     {
       "category": "artists_text",
       "fair_slug": "liste",
       "target_gallery_count": 5,
-      "successful_gallery_count": 0,
-      "records_saved_total": 0,
-      "success_rate_ge_1_record": 0.0,
-      "success_rate_ge_1_record_pct": 0.0
+      "successful_gallery_count": 5,
+      "records_saved_total": 50,
+      "success_rate_ge_1_record": 1.0,
+      "success_rate_ge_1_record_pct": 100.0
     }
   ],
   "artists_text_gallery_breakdown": [
@@ -246,99 +247,101 @@
       "fair_slug": "frieze_london",
       "gallery_name_en": "Athr",
       "target_gallery_count": 1,
-      "successful_gallery_count": 0,
-      "records_saved_total": 0,
-      "success_rate_ge_1_record": 0.0,
-      "success_rate_ge_1_record_pct": 0.0
+      "successful_gallery_count": 1,
+      "records_saved_total": 10,
+      "success_rate_ge_1_record": 1.0,
+      "success_rate_ge_1_record_pct": 100.0
     },
     {
       "category": "artists_text",
       "fair_slug": "frieze_london",
       "gallery_name_en": "Gallery Baton",
       "target_gallery_count": 1,
-      "successful_gallery_count": 0,
-      "records_saved_total": 0,
-      "success_rate_ge_1_record": 0.0,
-      "success_rate_ge_1_record_pct": 0.0
+      "successful_gallery_count": 1,
+      "records_saved_total": 10,
+      "success_rate_ge_1_record": 1.0,
+      "success_rate_ge_1_record_pct": 100.0
     },
     {
       "category": "artists_text",
       "fair_slug": "frieze_london",
       "gallery_name_en": "The Approach",
       "target_gallery_count": 1,
-      "successful_gallery_count": 0,
-      "records_saved_total": 0,
-      "success_rate_ge_1_record": 0.0,
-      "success_rate_ge_1_record_pct": 0.0
+      "successful_gallery_count": 1,
+      "records_saved_total": 10,
+      "success_rate_ge_1_record": 1.0,
+      "success_rate_ge_1_record_pct": 100.0
     },
     {
       "category": "artists_text",
       "fair_slug": "liste",
       "gallery_name_en": "A+ Works of Art",
       "target_gallery_count": 1,
-      "successful_gallery_count": 0,
-      "records_saved_total": 0,
-      "success_rate_ge_1_record": 0.0,
-      "success_rate_ge_1_record_pct": 0.0
+      "successful_gallery_count": 1,
+      "records_saved_total": 10,
+      "success_rate_ge_1_record": 1.0,
+      "success_rate_ge_1_record_pct": 100.0
     },
     {
       "category": "artists_text",
       "fair_slug": "liste",
       "gallery_name_en": "Addis Fine Art",
       "target_gallery_count": 1,
-      "successful_gallery_count": 0,
-      "records_saved_total": 0,
-      "success_rate_ge_1_record": 0.0,
-      "success_rate_ge_1_record_pct": 0.0
+      "successful_gallery_count": 1,
+      "records_saved_total": 10,
+      "success_rate_ge_1_record": 1.0,
+      "success_rate_ge_1_record_pct": 100.0
     },
     {
       "category": "artists_text",
       "fair_slug": "liste",
       "gallery_name_en": "Afriart Gallery",
       "target_gallery_count": 1,
-      "successful_gallery_count": 0,
-      "records_saved_total": 0,
-      "success_rate_ge_1_record": 0.0,
-      "success_rate_ge_1_record_pct": 0.0
+      "successful_gallery_count": 1,
+      "records_saved_total": 10,
+      "success_rate_ge_1_record": 1.0,
+      "success_rate_ge_1_record_pct": 100.0
     },
     {
       "category": "artists_text",
       "fair_slug": "liste",
       "gallery_name_en": "Amanita",
       "target_gallery_count": 1,
-      "successful_gallery_count": 0,
-      "records_saved_total": 0,
-      "success_rate_ge_1_record": 0.0,
-      "success_rate_ge_1_record_pct": 0.0
+      "successful_gallery_count": 1,
+      "records_saved_total": 10,
+      "success_rate_ge_1_record": 1.0,
+      "success_rate_ge_1_record_pct": 100.0
     },
     {
       "category": "artists_text",
       "fair_slug": "liste",
       "gallery_name_en": "Anca Poteraşu Gallery",
       "target_gallery_count": 1,
-      "successful_gallery_count": 0,
-      "records_saved_total": 0,
-      "success_rate_ge_1_record": 0.0,
-      "success_rate_ge_1_record_pct": 0.0
+      "successful_gallery_count": 1,
+      "records_saved_total": 10,
+      "success_rate_ge_1_record": 1.0,
+      "success_rate_ge_1_record_pct": 100.0
     }
   ],
   "artists_text_seed_gallery_count": 10,
-  "artists_text_galleries_with_ge_1_record": 0,
-  "artists_text_success_rate_ge_1_record": 0.0,
-  "artists_text_success_rate_ge_1_record_pct": 0.0,
+  "artists_text_galleries_with_ge_1_record": 8,
+  "artists_text_success_rate_ge_1_record": 0.8,
+  "artists_text_success_rate_ge_1_record_pct": 80.0,
   "notes": [
     "text_breakdown_mode=fair_and_gallery_with_records_and_success_rate_pct",
     "artists_source_rule=artist_list_url_to_artist_detail_pages_only"
   ],
   "artists_enrichment_mode": "post_fetch_requests_only",
-  "artists_enrichment_candidates_total": 0,
-  "artists_enrichment_requests_created": 0,
+  "artists_enrichment_candidates_total": 80,
+  "artists_enrichment_requests_created": 80,
   "artists_enrichment_requests_output_path": "data/phase1_seed10/derived/artists_enrichment_requests_2025.jsonl",
-  "artists_enrichment_raw_records_total": 0,
+  "artists_enrichment_raw_records_total": 80,
   "artists_enrichment_raw_records_by_fair": {
-    "frieze_london": 0,
-    "liste": 0
+    "frieze_london": 30,
+    "liste": 50
   },
-  "artists_enrichment_counters": {},
+  "artists_enrichment_counters": {
+    "candidates_new": 80
+  },
   "artists_enrichment_warnings": []
 }

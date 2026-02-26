@@ -24,6 +24,9 @@ SOURCE_CLI = "run_phase1_seed10_artist_image_collect.py"
 TARGET_YEAR_DEFAULT = 2025
 TARGET_IMAGES_PER_ARTIST_DEFAULT = 5
 SUCCESS_THRESHOLD_DEFAULT = 0.70
+# TEMPORARY TEST CAP:
+# Keep image collection target list aligned with current artists extraction cap (1 per gallery).
+MAX_ARTISTS_PER_GALLERY_FOR_COLLECT = 1
 REQUEST_TIMEOUT_SECONDS = 15
 USER_AGENT = "art-pulse-editor/phase1-seed10-artist-image-collect"
 REQUEST_RETRY_TOTAL = 2
@@ -32,7 +35,7 @@ DNS_PROBE_HOST = "example.com"
 
 RAW_DIR = Path("data/phase1_seed10/raw")
 LOG_DIR = Path("data/phase1_seed10/logs")
-IMAGE_ROOT_DIR = Path("data/phase1_seed10/derived/images/artists_text")
+IMAGE_ROOT_DIR = Path("data/phase1_seed10/derived/images/artist_works_images")
 
 SCHEMA_NAME = "phase1_seed10_artist_image_collect_summary"
 SCHEMA_VERSION = "v1"
@@ -183,7 +186,10 @@ def load_artist_targets(target_year: int) -> list[dict[str, Any]]:
     seen_target_keys: set[tuple[str, str]] = set()
     for (_fair_slug, _gallery_name_en), rows in grouped_rows.items():
         has_detail_row = any(not _is_listing_url(str(item.get("source_url") or "")) for item in rows)
+        added_for_gallery = 0
         for item in rows:
+            if added_for_gallery >= MAX_ARTISTS_PER_GALLERY_FOR_COLLECT:
+                break
             source_url = str(item.get("source_url") or "").strip()
             if not source_url:
                 continue
@@ -204,6 +210,7 @@ def load_artist_targets(target_year: int) -> list[dict[str, Any]]:
                     "source_url": source_url,
                 }
             )
+            added_for_gallery += 1
     return targets
 
 
@@ -212,6 +219,28 @@ def normalize_domain(url: str) -> str:
     if host.startswith("www."):
         host = host[4:]
     return host or "unknown"
+
+
+def slugify_token(value: str, fallback: str = "unknown", max_len: int = 80) -> str:
+    lowered = (value or "").strip().lower()
+    lowered = re.sub(r"[^a-z0-9]+", "-", lowered).strip("-")
+    if not lowered:
+        return fallback
+    return lowered[:max_len]
+
+
+def artist_slug_from_source_url(source_url: str) -> str:
+    parsed = urlparse(source_url)
+    path = (parsed.path or "").strip("/")
+    if not path:
+        return "artist"
+    parts = [part for part in path.split("/") if part]
+    if not parts:
+        return "artist"
+    candidate = parts[-1]
+    if not candidate and len(parts) >= 2:
+        candidate = parts[-2]
+    return slugify_token(candidate, fallback="artist")
 
 
 def normalize_url_for_link_compare(url: str) -> str:
@@ -628,7 +657,9 @@ def main() -> int:
 
         targets = load_artist_targets(target_year)
         summary["seed_artist_count"] = len(targets)
+        summary["max_artists_per_gallery_for_collect"] = MAX_ARTISTS_PER_GALLERY_FOR_COLLECT
         summary["notes"].append("artist_collect_source_rule=detail_pages_only")
+        summary["notes"].append("local_image_cache_layout=fair_only_flat_files")
         if not targets:
             summary["notes"].append(f"no_artist_raw_records_found:artists_*_{target_year}.jsonl")
             write_json(summary_path, summary)
@@ -680,12 +711,17 @@ def main() -> int:
             domain = normalize_domain(source_url)
             domain_stats[domain]["target_artist_count"] += 1
 
-            artist_dir = artists_image_root / artist_id
-            artist_dir.mkdir(parents=True, exist_ok=True)
+            fair_slug_safe = slugify_token(fair_slug, fallback="unknown-fair")
+            gallery_slug = slugify_token(gallery_name_en, fallback="unknown-gallery")
+            artist_slug = artist_slug_from_source_url(source_url)
+            artist_key = f"{gallery_slug}__{artist_slug}__{artist_id[:8]}"
+
+            fair_dir = artists_image_root / fair_slug_safe
+            fair_dir.mkdir(parents=True, exist_ok=True)
             existing_images = sorted(
                 [
                     p
-                    for p in artist_dir.glob("image_*")
+                    for p in fair_dir.glob(f"{artist_key}__img_*")
                     if p.is_file() and p.suffix.lower() not in DISALLOWED_EXTENSIONS and p.stat().st_size > 0
                 ]
             )
@@ -735,7 +771,7 @@ def main() -> int:
                             if not ok_image:
                                 case_notes.append(image_error)
                                 continue
-                            file_path = artist_dir / f"image_{next_index:02d}{ext}"
+                            file_path = fair_dir / f"{artist_key}__img_{next_index:02d}{ext}"
                             file_path.write_bytes(payload)
                             saved_count += 1
                             next_index += 1
@@ -763,6 +799,7 @@ def main() -> int:
             summary["per_artist_counts"].append(
                 {
                     "artist_id": artist_id,
+                    "artist_storage_key": artist_key,
                     "source_url": source_url,
                     "detail_urls_considered": detail_urls_considered,
                     "fair_slug": fair_slug,

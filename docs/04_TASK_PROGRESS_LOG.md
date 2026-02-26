@@ -2588,3 +2588,90 @@ _trash 運用方針:
   - 実装後に内訳メモと失敗理由上位を 03/04 へ必ず記録
 - 備考:
   - 実削除・実移動は実施せず（CLEANUP_CANDIDATES_MASTER / _trash 方針維持）
+
+
+## 87. TASK108 再実測（DNS回復確認）
+
+- 実行コマンドとexit:
+  - `curl -I --max-time 15 https://example.com` → exit 6
+  - `python -c "import socket; print(socket.gethostbyname('example.com'))"` → exit 1
+  - `python run_phase1_seed10.py --include-artists-text` → exit 0
+  - `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5` → exit 0
+  - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+- 生成物:
+  - `data/phase1_seed10/logs/run_summary_seed10_2025.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_20260226T081940Z.json`
+  - `data/phase1_seed10/logs/phase1_guard_summary_2025_20260226T081949Z.json`
+- ゲート再判定（定量）:
+  - `artists_failed_fetches_new_in_run / artists_text_seed_gallery_count = 10/10 = 100%`
+  - `records_saved_total=0`, `artists_records_saved_total=0`
+  - `artists_with_ge_1_image=0`, `total_images_saved=0`
+- 失敗理由上位:
+  - artists_text: DNS_ERROR 10件
+  - exhibitions_text: DNS_ERROR 10件
+  - 段階切り分け（artists）: 一覧URL段 9件 / 詳細URL段 1件
+- 結論:
+  - 環境ブロッカー継続。コード追加は広げず、DNS回復後に再実測を再開する。
+- CLEANUP_CANDIDATES_MASTER:
+  - 今回新規候補なし（実削除/実移動なし）
+
+## 88. DNS運用固定化（preflight fail-fast導入）
+
+- 追加ファイル:
+  - `run_phase1_network_preflight.py`
+- 目的:
+  - DNS不安定時に本体実行を止め、原因切り分けを先に完了させる。
+- 実行コマンドとexit:
+  - `python run_phase1_network_preflight.py` → exit 1（この実行環境では DNS/HTTP 到達不可）
+- 生成物:
+  - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260226T082637Z.json`
+- 運用固定:
+  - preflight失敗時は fetch/collect を回さない。
+  - 環境復旧後に preflight から再開する。
+- CLEANUP_CANDIDATES_MASTER:
+  - 今回新規候補なし（実削除/実移動なし）
+
+## 89. TASK109 DNS preflightゲート判定（本体停止）
+
+- 参照章ID:
+  - 01: 4-0 / 4-4 / 5-8 / 6-3 / SSOT整合ゲート / Codex Efficiency Protocol
+  - 02: CARD_ID 09 / 10 / 11 / 14 / 16
+- 実行コマンドとexit:
+  - `python run_phase1_network_preflight.py` → exit 1
+  - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+- 生成物:
+  - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260226T083115Z.json`
+  - `data/phase1_seed10/logs/phase1_guard_summary_2025_20260226T083134Z.json`
+- ゲート判定:
+  - `dns_ok_rate=0.000 (0/21)`
+  - `http_probe_ok=false`
+  - preflight fail のため本体実行を停止（空回り防止）
+- 失敗理由上位:
+  - `http_probe_failed:example.com`
+  - `dns_ok_rate_below_threshold:0.000`
+- CLEANUP_CANDIDATES_MASTER:
+  - 今回新規候補なし（実削除/実移動なし）
+
+## 90. 保存運用ルール更新（Artist画像ローカルキャッシュの階層固定）
+
+- 方針:
+  - Artist Works Images のローカル作業キャッシュは `FAIR_SLUG` 単位で一本化する。
+  - gallery単位ディレクトリ分割は行わず、識別はファイル名/メタデータで保持する。
+- 反映先:
+  - `docs/01_PROJECT_SPEC_CURRENT_FULL.docx`（SSOT整合ゲート + 5-4注記）
+  - `docs/02_RAG_SPEC_DERIVED.md`（CARD_ID:16）
+  - `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md`（SSOT整合チェック）
+- 備考:
+  - 実削除・実移動なし（既存 `_trash` / CLEANUP_CANDIDATES_MASTER 方針を維持）
+
+## 91. 暫定運用固定（artists抽出上限を各gallery 1件へ）
+
+- 背景:
+  - 抽出品質が不安定なため、検証フェーズは対象を各gallery 1アーティストに限定して安定化を優先。
+- 反映:
+  - `run_phase1_seed10.py`: `MAX_ARTISTS_PER_GALLERY=1`（暫定）
+  - `run_phase1_seed10_artist_image_collect.py`: `MAX_ARTISTS_PER_GALLERY_FOR_COLLECT=1`（暫定）
+  - summaryへ `artists_per_gallery_cap_mode=temporary_test_cap` / `max_artists_per_gallery_for_collect=1` を記録
+  - 01/02/03へ「暫定1→段階引き上げ→最終80復帰」ルールを追記
+- 備考:
+  - 実削除なし。安定確認後に段階引き上げタスクを実施する。

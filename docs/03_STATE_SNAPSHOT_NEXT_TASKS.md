@@ -13,7 +13,7 @@ STREAMLIT_ENTRYPOINT（固定）
 - Local run: streamlit run app.py
 
 SOURCE_SSOT: 01_PROJECT_SPEC_CURRENT_FULL.docx
-LAST_UPDATED: 2026-02-26 17:13 JST
+LAST_UPDATED: 2026-02-26 18:18 JST
 
 
 ========================
@@ -66,6 +66,8 @@ LAST_UPDATED: 2026-02-26 17:13 JST
 - 実装前に必ず「01章ID」「02 CARD_ID」「変更対象関数」を1対1対応で明示する。
 - Artists抽出は「一覧URL→詳細URL抽出→詳細ページ抽出」を必須とし、一覧URL直抽出は禁止。
 - パラメータはカテゴリ別正本を使用し、Exhibitions用上限のArtists流用を禁止する。
+- Artist Works Images のローカル作業キャッシュは FAIR_SLUG 単位で一本化し、gallery単位のディレクトリ分割は行わない（識別はファイル名/メタデータで保持）。
+- 暫定運用: artists抽出上限は各gallery 1件（安定化まで）。安定確認後、段階的に引き上げて最終80へ戻す。
 - 実装後に `docs/RAG_EXTRACTION_BREAKDOWN_JA.md` へ内訳追記し、03/04へ失敗理由上位を記録する。
 
 
@@ -6462,3 +6464,23 @@ TASK107 実施結果（ゲート発動・ブロッカー継続）
 - 原因上位: `DNS_ERROR`（artists/exhibitionsともに10件）。
 - 最小修正: `run_phase1_seed10.py` で `DNS_ERROR` は max-retry/cooldown で恒久スキップしないよう修正（回復後即再試行可能化）。
 - 結果: 環境DNS未回復のため抽出再開は未達。TASK107はブロッカー継続として記録。
+
+
+---
+TASK108 実施結果（ゲート継続）
+- 通信確認: `example.com` DNS解決失敗（curl/socketともNG）。
+- 再実測: `records_saved_total=0` / `artists_records_saved_total=0` 継続。
+- ゲート判定: `artists_failed_fetches_new_in_run / artists_text_seed_gallery_count = 10/10 = 100%`（20%超）で継続発動。
+- 失敗理由上位: artists/exhibitionsともに `DNS_ERROR` のみ。
+- 判定: TASK108は [x] ではなく「環境ブロッカー継続（再実測待ち）」。
+
+---
+DNS運用固定メモ（2026-02-26）
+- 本体実行前に `python run_phase1_network_preflight.py` を必須化し、失敗時は fetch/collect を実行しない（fail-fast）。
+- preflight失敗時は「コード改修を増やさず」環境復旧（DNS/curl確認）を先に行い、復旧後に同コマンドから再開する。
+
+---
+TASK109 実施結果（DNS preflightゲート継続）
+- `python run_phase1_network_preflight.py` が exit 1（dns_ok_rate=0.000, http_probe_ok=false）。
+- ゲート規約どおり、本体（seed10 fetch / image collect）は未実行で停止。
+- 判定: TASK109は [x] ではなく「環境ブロッカー継続（preflight pass待ち）」。

@@ -25,6 +25,10 @@ RAG_CATEGORY = "exhibitions_text"
 RAG_CATEGORY_ARTISTS = "artists_text"
 SEED_PER_FAIR = 5
 MAX_EXHIBITION_LINKS_PER_GALLERY = 10
+# TEMPORARY TEST CAP:
+# User-requested operational override for stability testing.
+# SSOT default target remains 80, but current runs are intentionally capped to 1 per gallery.
+MAX_ARTISTS_PER_GALLERY = 1
 REQUEST_TIMEOUT_SECONDS = 12
 USER_AGENT = "art-pulse-editor/phase1-seed10"
 MAX_FAILURE_RETRIES_PER_URL = 3
@@ -404,7 +408,7 @@ def extract_candidate_exhibition_urls(list_page_url: str, list_page_html: str) -
             continue
         seen.add(normalized)
         candidates.append(normalized)
-        if len(candidates) >= MAX_EXHIBITION_LINKS_PER_GALLERY:
+        if len(candidates) >= MAX_ARTISTS_PER_GALLERY:
             break
 
     if not candidates:
@@ -1490,6 +1494,8 @@ def main() -> int:
         "seed_per_fair": SEED_PER_FAIR,
         "html_parser_backend": "bs4_lxml" if BeautifulSoup is not None else "stdlib_html_parser_fallback",
         "max_exhibition_links_per_gallery": MAX_EXHIBITION_LINKS_PER_GALLERY,
+        "max_artists_per_gallery": MAX_ARTISTS_PER_GALLERY,
+        "artists_per_gallery_cap_mode": "temporary_test_cap",
         "failure_retry_cooldown_seconds": FAILURE_RETRY_COOLDOWN_SECONDS,
         "max_failure_retries_per_url": MAX_FAILURE_RETRIES_PER_URL,
         "records_saved_total": new_records_saved_total,
