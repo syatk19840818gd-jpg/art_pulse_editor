@@ -279,3 +279,70 @@
 
 ### works関連ノート
 - `works_page_tried` / `works_page_found` / `works_candidates_count` は本体未実行のため今回未生成
+
+---
+## RUN 2026-02-26T15:32:43Z artists画像収集
+
+参照元:
+- `C:\Users\tarutani tomoaki\Pictures\Dev\my_projects\art_pulse_editor\data\phase1_seed10\logs\phase1_seed10_artist_image_collect_summary_20260226T153152Z.json`
+- `C:\Users\tarutani tomoaki\Pictures\Dev\my_projects\art_pulse_editor\data\phase1_seed10\logs\phase1_seed10_artist_image_collect_summary_20260226T153152Z_report.json`
+
+### サマリー
+- 対象人数: 8
+- 5枚達成人数: 6
+- 達成率(>= 5枚): 75.0%
+- 閾値通過(70%): True
+
+### fair/gallery内訳
+| fair | gallery | 対象人数 | 成功人数(>=1枚) | 取得件数(画像枚数) | 成功率(>=5枚) |
+|---|---|---:|---:|---:|---:|
+| frieze_london | Adams and Ollman | 0 | 0 | 0 | 0.0% |
+| frieze_london | The Approach | 1 | 1 | 5 | 100.0% |
+| frieze_london | Arcadia Missa | 0 | 0 | 0 | 0.0% |
+| frieze_london | Athr | 1 | 0 | 0 | 0.0% |
+| frieze_london | Gallery Baton | 1 | 1 | 5 | 100.0% |
+| liste | A+ Works of Art | 1 | 1 | 5 | 100.0% |
+| liste | Addis Fine Art | 1 | 1 | 5 | 100.0% |
+| liste | Afriart Gallery | 1 | 1 | 5 | 100.0% |
+| liste | Amanita | 1 | 1 | 4 | 0.0% |
+| liste | Anca Poteraşu Gallery | 1 | 1 | 5 | 100.0% |
+
+### 失敗理由上位
+- no_image_candidates_found_on_artist_detail: 1件
+- insufficient_image_candidates_after_download: 1件
+
+### 失敗ドメイン上位
+- athrart.com: 1件
+- spazioamanita.com: 1件
+
+---
+## PREP 2026-02-27T02:14:40Z image reset + git scope fix (before A-2R)
+
+Refs:
+- SSOT 01: 4-0 / 4-4 / 5-7 / 5-8 / 6-3
+- DERIVED 02: CARD_ID 10 / 11 / 14 / 16
+
+Summary:
+- Goal: reset mixed image state before running issue 1-5 as one-gallery/one-artist tasks.
+- Moved 34 files from `data/phase1_seed10/derived/images/artist_works_images/2025/*` to `_trash/artist_works_images_cleanup_20260227T021440Z`.
+- Current source folder count: 0 files.
+- Added `.gitignore` rule: `data/phase1_seed10/`.
+- Ran `git rm -r --cached data/phase1_seed10` (index-only untrack; local files remain).
+
+Fair/gallery breakdown (moved files):
+| fair | gallery_group | before_count | after_count |
+|---|---|---:|---:|
+| frieze_london | frieze-london folder | 10 | 0 |
+| liste | liste folder | 24 | 0 |
+
+Extraction KPI for this prep task:
+- target_artists: 0 (no extraction in this task)
+- success_artists: 0
+- images_saved: 0
+- success_rate: 0.0%
+
+Top failure reasons:
+- none (this prep task only did reset + git scope fix)
+
+Next action:
+- Resume TASK A-2R after preflight passes twice consecutively.

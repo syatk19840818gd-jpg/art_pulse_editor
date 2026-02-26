@@ -6620,3 +6620,21 @@ TASK D0-7 実施結果（preflight再取得 + A-2R即再開判定）
   - fail-fast規約により A-2R（Athr本体実行）は未着手
 - 結論:
   - D0-7は [x] ではなく「DNSブロッカー継続」。
+
+---
+TASK PREP-20260227 result (before issue 1-5 rerun)
+- Problem:
+  - Mixed images existed because a prior run captured multiple galleries at once.
+- Actions:
+  - Moved 34 image files from `data/phase1_seed10/derived/images/artist_works_images/2025/*` to `_trash/artist_works_images_cleanup_20260227T021440Z`.
+  - Confirmed source folder image count is now 0.
+  - Added `.gitignore` rule: `data/phase1_seed10/`.
+  - Untracked existing RAG files from git index via `git rm -r --cached data/phase1_seed10` (local files kept).
+- SSOT alignment:
+  - Aligned with 01 section 5-7/5-8 (R2 as source of truth + local cache) and git policy for logs/data body.
+- Fixed execution rule for issue 1-5:
+  - one task = one gallery = one artist
+  - do not run multiple galleries in one extraction run
+  - update `docs/RAG_EXTRACTION_BREAKDOWN_JA.md`, 03, and 04 after each task
+- Next highest priority:
+  - TASK A-2R (issue 1-1 recheck: frieze_london / Athr)

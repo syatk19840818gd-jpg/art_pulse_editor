@@ -103,3 +103,7 @@ data/Tarutani_data/
 
 # デバッグ用アーカイブ
 debug_bundle_*.tgz
+############################################################
+# RAG runtime data (SSOT 5-7/5-8/6-3): keep in R2/local cache, not Git
+############################################################
+data/phase1_seed10/

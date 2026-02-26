@@ -2891,3 +2891,24 @@ _trash 運用方針:
   - D0ブロッカー継続
 - CLEANUP_CANDIDATES_MASTER:
   - 今回新規候補なし（実削除/実移動なし）
+
+---
+## PREP-20260227 result (re-understand + operational fix before start)
+
+- SSOT references checked:
+  - 4-0) common extraction rules
+  - 4-4) artist works images
+  - 5-7) storage
+  - 5-8) R2 source of truth + local cache
+  - 6-2) no domain-specific hardcode proliferation
+  - 6-3) quality line and required breakdown records
+- Re-understood problems:
+  - Prior run mixed outputs from multiple galleries, making issue 1-5 root-cause isolation hard.
+  - RAG runtime data under `data/phase1_seed10` was still git-tracked, conflicting with SSOT operation.
+- Fixes applied:
+  - Moved 34 files to `_trash/artist_works_images_cleanup_20260227T021440Z`.
+  - Verified `data/phase1_seed10/derived/images/artist_works_images/2025/` is now 0 files.
+  - Added `.gitignore` entry: `data/phase1_seed10/`.
+  - Executed `git rm -r --cached data/phase1_seed10` (483 files untracked from index; local files remain).
+- Next:
+  - Start A-2R with fail-fast gate (preflight x2 PASS required), and run Athr only as one-gallery/one-artist.
