@@ -346,3 +346,36 @@ Top failure reasons:
 
 Next action:
 - Resume TASK A-2R after preflight passes twice consecutively.
+
+---
+## PREP 2026-02-26T18:10:20Z phase1 R2 sync fixed (before issue 1-5)
+
+Summary:
+- Added `run_phase1_seed10_r2_sync.py` for phase1 R2 synchronization.
+- Verified dry-run and apply before starting issue 1-5.
+- issue 1-5 extraction itself is still NOT started.
+
+Commands:
+- `python run_phase1_seed10_r2_sync.py --scope all --dry-run`
+- `python run_phase1_seed10_r2_sync.py --scope all`
+
+Artifacts:
+- `data/phase1_seed10/logs/phase1_seed10_r2_sync_all_20260226T181020Z.json`
+- `data/phase1_seed10/derived/phase1_seed10_artifact_manifest.json`
+
+Result:
+- status: OK
+- uploaded: 360
+- skipped: 134
+- failed: 0
+- manifest upload: `phase1_seed10/derived/phase1_seed10_artifact_manifest.json` (uploaded=true)
+
+Notes:
+- This task is operational preparation only (R2 sync path + manifest). No issue 1-5 extraction run was executed.
+
+
+### Re-apply consistency check (latest)
+- Command: `python run_phase1_seed10_r2_sync.py --scope all`
+- Summary: `data/phase1_seed10/logs/phase1_seed10_r2_sync_all_20260226T181511Z.json`
+- Result: status=OK, uploaded=1, skipped=494, failed=0
+- Manifest: `data/phase1_seed10/derived/phase1_seed10_artifact_manifest.json` with `failed_count=0`, `records_count=495`

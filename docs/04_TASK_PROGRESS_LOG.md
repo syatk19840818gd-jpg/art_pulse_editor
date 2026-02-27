@@ -2912,3 +2912,30 @@ _trash 運用方針:
   - Executed `git rm -r --cached data/phase1_seed10` (483 files untracked from index; local files remain).
 - Next:
   - Start A-2R with fail-fast gate (preflight x2 PASS required), and run Athr only as one-gallery/one-artist.
+
+---
+## PREP-R2-SYNC ?????phase1 R2????????
+
+- ??????:
+  - `run_phase1_seed10_r2_sync.py`????
+- ????:
+  - phase1? `raw/derived/enrichment/logs` ?????R2???????CLI????
+  - `--dry-run` / `--scope` / `--target-year` / `--manifest-path` / `--manifest-r2-key` ????
+  - apply?? `phase1_seed10_artifact_manifest.json` ?????????R2??????????
+- ???????exit:
+  - `python run_phase1_seed10_r2_sync.py --scope all --dry-run` ? exit 0
+  - `python run_phase1_seed10_r2_sync.py --scope all` ? exit 0
+- ???:
+  - `data/phase1_seed10/logs/phase1_seed10_r2_sync_all_20260226T181020Z.json`
+  - `data/phase1_seed10/derived/phase1_seed10_artifact_manifest.json`
+- ????:
+  - status=OK, uploaded=360, skipped=134, failed=0
+  - manifest upload: `phase1_seed10/derived/phase1_seed10_artifact_manifest.json` (uploaded=true)
+- ??:
+  - ??????????????????????????
+
+- ????????????:
+  - `python run_phase1_seed10_r2_sync.py --scope all` ? exit 0
+  - `data/phase1_seed10/logs/phase1_seed10_r2_sync_all_20260226T181511Z.json`
+  - ??: uploaded=1 / skipped=494 / failed=0
+  - `data/phase1_seed10/derived/phase1_seed10_artifact_manifest.json` ? `failed_count=0` ???

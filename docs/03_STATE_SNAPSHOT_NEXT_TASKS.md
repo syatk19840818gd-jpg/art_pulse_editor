@@ -6638,3 +6638,23 @@ TASK PREP-20260227 result (before issue 1-5 rerun)
   - update `docs/RAG_EXTRACTION_BREAKDOWN_JA.md`, 03, and 04 after each task
 - Next highest priority:
   - TASK A-2R (issue 1-1 recheck: frieze_london / Athr)
+
+---
+TASK PREP-R2-SYNC ???????????????????
+- ????:
+  - `run_phase1_seed10_r2_sync.py` ????scope: raw/derived/enrichment/logs/all, dry-run/apply ????
+  - apply?? `data/phase1_seed10/derived/phase1_seed10_artifact_manifest.json` ?????R2??????????
+- ????:
+  - `python run_phase1_seed10_r2_sync.py --scope all --dry-run` ? exit 0
+  - `python run_phase1_seed10_r2_sync.py --scope all` ? exit 0
+  - summary: `data/phase1_seed10/logs/phase1_seed10_r2_sync_all_20260226T181020Z.json`
+  - uploaded=360 / skipped=134 / failed=0 / manifest_upload=true
+- ??:
+  - ????????????????????
+- ????????:
+  - TASK A-2R??-1???: frieze_london / Athr?
+
+- ???????:
+  - `python run_phase1_seed10_r2_sync.py --scope all` ??????`uploaded=1 / skipped=494 / failed=0` ????
+  - ??summary: `data/phase1_seed10/logs/phase1_seed10_r2_sync_all_20260226T181511Z.json`
+  - ??manifest: `data/phase1_seed10/derived/phase1_seed10_artifact_manifest.json`?`failed_count=0`?
