@@ -379,3 +379,333 @@ Notes:
 - Summary: `data/phase1_seed10/logs/phase1_seed10_r2_sync_all_20260226T181511Z.json`
 - Result: status=OK, uploaded=1, skipped=494, failed=0
 - Manifest: `data/phase1_seed10/derived/phase1_seed10_artifact_manifest.json` with `failed_count=0`, `records_count=495`
+
+
+---
+## TASK A-2R?Athr works?? ??? / 2026-02-27?
+
+??:
+- 01: 4-0 / 4-4 / 6-2 / 6-3 / SSOT?????
+- 02: CARD_ID 10 / 11 / 14 / 16
+
+????:
+- `data/phase1_seed10/logs/phase1_network_preflight_summary_20260227T020117Z.json`
+- `data/phase1_seed10/logs/phase1_network_preflight_summary_20260227T020135Z.json`
+
+??????:
+- preflight #1: `passed=False`, `dns_ok_rate=1.000 (21/21)`, `http_probe_ok=False`, `wrapper_exit_code=1`
+- preflight #2: `passed=False`, `dns_ok_rate=1.000 (21/21)`, `http_probe_ok=False`, `wrapper_exit_code=1`
+- fail-fast????? Athr???collect/report/guard?????
+
+### fair/gallery??
+| fair | gallery | ???? | ????(>=1?) | ????(????) | ???(>=5?) |
+|---|---|---:|---:|---:|---:|
+| frieze_london | Athr | 1 | 0 | 0 | 0.0% |
+
+### ??????
+- `preflight_failed:http_probe_failed:example.com`
+
+### works?????
+- ??collect???????`failed_cases[].notes` ? `works_page_tried / works_page_found / works_candidates_count` ?????
+- ??? preflight 2??PASS ?? Athr??collect??????works?????????
+
+### ??0??????
+- ????????Athr??? preflight ?????
+
+
+---
+## TASK D0-A2R-BLOCKER-ROOTCAUSE?2026-02-27 preflight????????? + ?????
+
+??:
+- 01: 4-0 / 6-3 / SSOT?????
+- 02: CARD_ID 14 / 16
+
+### ?????????????
+- preflight ? `https://example.com` ??URL? HTTP/TLS ???????????
+- 2026-02-27 ??????? DNS ????`dns_ok_rate=1.000`????`example.com` ? TLS ???????
+- ?????????????????? fail-fast ????????????
+
+### ????
+- fail:
+  - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260227T020117Z.json`
+  - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260227T020135Z.json`
+  - HTTP error: `SSLCertVerificationError: CERTIFICATE_VERIFY_FAILED`
+- fix? pass:
+  - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260227T021906Z.json`
+  - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260227T021937Z.json`
+
+### ??????????
+- `run_phase1_network_preflight.py` ???URL??????URL??????????
+  - probe??: Google / GitHub / Cloudflare??????????
+  - pass??: `http_ok_count >= http_required_successes` ?? `dns_ok_rate >= dns_threshold`
+- ????????`tls_cert_verify_failed` ????????????????
+- preflight??? `config/phase1_network_preflight_profile.json` ?????
+- ??2????????????????????????????????????
+
+### fair/gallery?????????????????
+| fair | gallery | ???? | ????(>=1?) | ????(????) | ???(>=5?) |
+|---|---|---:|---:|---:|---:|
+| N/A | preflight system task | 0 | 0 | 0 | 0.0% |
+
+### ??????
+- pre-fix: `single_probe_tls_failure(example.com)`
+- post-fix: ???2??PASS?
+
+### ??0??????
+- N/A?????????????
+
+---
+## RUN 2026-02-27T02:27:16Z artists画像収集
+
+参照元:
+- `C:\Users\tarutani tomoaki\Pictures\Dev\my_projects\art_pulse_editor\data\phase1_seed10\logs\phase1_seed10_artist_image_collect_summary_task_a2r_restart_athr.json`
+- `C:\Users\tarutani tomoaki\Pictures\Dev\my_projects\art_pulse_editor\data\phase1_seed10\logs\phase1_seed10_artist_image_collect_summary_task_a2r_restart_athr_report.json`
+
+### サマリー
+- 対象人数: 1
+- 5枚達成人数: 0
+- 達成率(>= 5枚): 0.0%
+- 閾値通過(70%): False
+
+### fair/gallery内訳
+| fair | gallery | 対象人数 | 成功人数(>=1枚) | 取得件数(画像枚数) | 成功率(>=5枚) |
+|---|---|---:|---:|---:|---:|
+| frieze_london | Adams and Ollman | 0 | 0 | 0 | 0.0% |
+| frieze_london | The Approach | 0 | 0 | 0 | 0.0% |
+| frieze_london | Arcadia Missa | 0 | 0 | 0 | 0.0% |
+| frieze_london | Athr | 1 | 0 | 0 | 0.0% |
+| frieze_london | Gallery Baton | 0 | 0 | 0 | 0.0% |
+| liste | A+ Works of Art | 0 | 0 | 0 | 0.0% |
+| liste | Addis Fine Art | 0 | 0 | 0 | 0.0% |
+| liste | Afriart Gallery | 0 | 0 | 0 | 0.0% |
+| liste | Amanita | 0 | 0 | 0 | 0.0% |
+| liste | Anca Poteraşu Gallery | 0 | 0 | 0 | 0.0% |
+
+### 失敗理由上位
+- no_image_candidates_found_on_artist_detail: 1件
+
+### 失敗ドメイン上位
+- athrart.com: 1件
+
+
+---
+## TASK A-2R-RESTART?Athr works?? ??? / 2026-02-27?
+
+??:
+- 01: 4-0 / 4-4 / 6-2 / 6-3 / SSOT?????
+- 02: CARD_ID 10 / 11 / 14 / 16
+
+??????:
+- `python run_phase1_network_preflight.py`?PASS?
+- `python run_phase1_network_preflight.py`?PASS?
+- `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5 --only-fair-slug frieze_london --only-gallery-name Athr --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2r_restart_athr.json"`
+- `python run_phase1_seed10_artist_image_collect_report.py --summary-path "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2r_restart_athr.json" --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2r_restart_athr_report.json"`
+- `PYTHONUTF8=1` ? report ????cp932????????
+- `python run_compare_phase1_guard.py --target-year 2025`?PASS?
+
+???:
+- `data/phase1_seed10/logs/phase1_network_preflight_summary_20260227T022556Z.json`
+- `data/phase1_seed10/logs/phase1_network_preflight_summary_20260227T022617Z.json`
+- `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2r_restart_athr.json`
+- `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2r_restart_athr_report.json`
+- `data/phase1_seed10/logs/phase1_guard_summary_2025_20260227T022757Z.json`
+
+### fair/gallery??
+| fair | gallery | ???? | ????(>=1?) | ????(????) | ???(>=5?) |
+|---|---|---:|---:|---:|---:|
+| frieze_london | Athr | 1 | 0 | 0 | 0.0% |
+
+### ??????
+- `no_image_candidates_found_on_artist_detail`: 1?
+- domain: `athrart.com`?1??
+
+### works??????failed_cases[].notes?
+- `works_page_tried:3`
+- `works_page_found:3`
+- `works_candidates_count:0`
+- `works_not_found_fallback_used`
+- `no_image_candidates_on_detail:athrart.com`
+
+### ??0??????
+- ???????? Athr ?????
+
+---
+## RUN 2026-02-27T02:37:37Z artists画像収集
+
+参照元:
+- `C:\Users\tarutani tomoaki\Pictures\Dev\my_projects\art_pulse_editor\data\phase1_seed10\logs\phase1_seed10_artist_image_collect_summary_task_a2r_fix_athr.json`
+- `C:\Users\tarutani tomoaki\Pictures\Dev\my_projects\art_pulse_editor\data\phase1_seed10\logs\phase1_seed10_artist_image_collect_summary_task_a2r_fix_athr_report.json`
+
+### サマリー
+- 対象人数: 1
+- 5枚達成人数: 1
+- 達成率(>= 5枚): 100.0%
+- 閾値通過(70%): True
+
+### fair/gallery内訳
+| fair | gallery | 対象人数 | 成功人数(>=1枚) | 取得件数(画像枚数) | 成功率(>=5枚) |
+|---|---|---:|---:|---:|---:|
+| frieze_london | Adams and Ollman | 0 | 0 | 0 | 0.0% |
+| frieze_london | The Approach | 0 | 0 | 0 | 0.0% |
+| frieze_london | Arcadia Missa | 0 | 0 | 0 | 0.0% |
+| frieze_london | Athr | 1 | 1 | 5 | 100.0% |
+| frieze_london | Gallery Baton | 0 | 0 | 0 | 0.0% |
+| liste | A+ Works of Art | 0 | 0 | 0 | 0.0% |
+| liste | Addis Fine Art | 0 | 0 | 0 | 0.0% |
+| liste | Afriart Gallery | 0 | 0 | 0 | 0.0% |
+| liste | Amanita | 0 | 0 | 0 | 0.0% |
+| liste | Anca Poteraşu Gallery | 0 | 0 | 0 | 0.0% |
+
+### 失敗理由上位
+- なし
+
+### 失敗ドメイン上位
+- なし
+
+
+---
+## TASK A-2R-FIX?Athr works candidates=0 ???? + ???? / 2026-02-27?
+
+??:
+- 01: 4-0 / 4-4 / 6-2 / 6-3 / SSOT?????
+- 02: CARD_ID 10 / 11 / 14 / 16
+
+????:
+- Athr works????????URL? `<img src="...shim.gif" data-lazy="https://...jpg">` ???
+- ?? `extract_image_candidates(...)` ? `data-lazy` ??????????????????
+  works???? `img` ??????????0????????
+
+????????:
+- `run_phase1_seed10_artist_image_collect.py`
+  - ??????? `data-lazy` ????
+- `run_phase1_seed10_artist_image_collect_report.py`
+  - Windows cp932 ??????????????`sys.stdout.reconfigure(errors='backslashreplace')` ????
+
+??????:
+- `python run_phase1_network_preflight.py`?PASS?
+- `python run_phase1_network_preflight.py`?PASS?
+- `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5 --only-fair-slug frieze_london --only-gallery-name Athr --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2r_fix_athr.json"`
+- `python run_phase1_seed10_artist_image_collect_report.py --summary-path "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2r_fix_athr.json" --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2r_fix_athr_report.json"`
+- `python run_compare_phase1_guard.py --target-year 2025`
+
+???:
+- `data/phase1_seed10/logs/phase1_network_preflight_summary_20260227T023327Z.json`
+- `data/phase1_seed10/logs/phase1_network_preflight_summary_20260227T023343Z.json`
+- `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2r_fix_athr.json`
+- `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2r_fix_athr_report.json`
+- `data/phase1_seed10/logs/phase1_guard_summary_2025_20260227T023851Z.json`
+
+### fair/gallery??
+| fair | gallery | ???? | ????(>=1?) | ????(????) | ???(>=5?) |
+|---|---|---:|---:|---:|---:|
+| frieze_london | Athr | 1 | 1 | 5 | 100.0% |
+
+### ??????
+- ??
+
+### works?????
+- ????A-2R-RESTART??? `failed_cases[].notes` ?
+  - `works_page_tried:3`
+  - `works_page_found:3`
+  - `works_candidates_count:0`
+  ????works??????????????????0??????????
+- ????A-2R-FIX??????? `failed_cases` ???0??
+
+### ??0??????
+- Athr????????
+
+---
+## RUN 2026-02-27T03:05:46Z artists画像収集
+
+参照元:
+- `C:\Users\tarutani tomoaki\Pictures\Dev\my_projects\art_pulse_editor\data\phase1_seed10\logs\phase1_seed10_artist_image_collect_summary_task_a2r_fix1_athr_sara_abdu.json`
+- `C:\Users\tarutani tomoaki\Pictures\Dev\my_projects\art_pulse_editor\data\phase1_seed10\logs\phase1_seed10_artist_image_collect_summary_task_a2r_fix1_athr_sara_abdu_report.json`
+
+### サマリー
+- 対象人数: 1
+- 5枚達成人数: 1
+- 達成率(>= 5枚): 100.0%
+- 閾値通過(70%): True
+
+### fair/gallery内訳
+| fair | gallery | 対象人数 | 成功人数(>=1枚) | 取得件数(画像枚数) | 成功率(>=5枚) |
+|---|---|---:|---:|---:|---:|
+| frieze_london | Adams and Ollman | 0 | 0 | 0 | 0.0% |
+| frieze_london | The Approach | 0 | 0 | 0 | 0.0% |
+| frieze_london | Arcadia Missa | 0 | 0 | 0 | 0.0% |
+| frieze_london | Athr | 1 | 1 | 5 | 100.0% |
+| frieze_london | Gallery Baton | 0 | 0 | 0 | 0.0% |
+| liste | A+ Works of Art | 0 | 0 | 0 | 0.0% |
+| liste | Addis Fine Art | 0 | 0 | 0 | 0.0% |
+| liste | Afriart Gallery | 0 | 0 | 0 | 0.0% |
+| liste | Amanita | 0 | 0 | 0 | 0.0% |
+| liste | Anca Poteraşu Gallery | 0 | 0 | 0 | 0.0% |
+
+### 失敗理由上位
+- なし
+
+### 失敗ドメイン上位
+- なし
+
+
+---
+## TASK A-2R-FIX-1?Athr?????? + Sara Abdu Works????? / 2026-02-27?
+
+??:
+- 01: 4-0 / 4-4 / 5-4 / 6-2 / 6-3 / 10 / SSOT?????
+- 02: CARD_ID 10 / 11 / 14 / 16
+
+### ???????????????
+- ???:
+  - `data/phase1_seed10/derived/images/artist_works_images/2025/frieze-london/athr__*`
+- ???:
+  - `_trash/task_a2r_fix1_athr_reset_20260227T120334Z`
+- ??:
+  - before=5, after=0
+
+### ?????Sara Abdu ???
+- artist detail URL:
+  - `https://athrart.com/artists/33-sara-abdu/biography`
+- works candidate URLs:
+  - `https://athrart.com/artists/33-sara-abdu/works/`
+  - `https://athrart.com/artists/33/works/`
+  - `https://athrart.com/artists/33-sara-abdu/biography/works`
+- ????:
+  - works???????URL? `data-lazy` ?????????????????
+
+### ????????
+- `run_phase1_seed10_artist_image_collect.py`
+  - `extract_image_candidates` ?????? `data-lazy` ????
+  - URL??artist slug??????`biography` ???? `sara-abdu` ?????
+  - summary `per_artist_counts[]` ? `works_urls_tried` ???????URL????
+- `run_phase1_seed10_artist_image_collect_report.py`
+  - Windows???????????????stdout reconfigure??
+
+### ????Sara Abdu ???
+- preflight:
+  - `phase1_network_preflight_summary_20260227T030220Z.json`?PASS?
+  - `phase1_network_preflight_summary_20260227T030241Z.json`?PASS?
+- collect summary:
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2r_fix1_athr_sara_abdu.json`
+- report:
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2r_fix1_athr_sara_abdu_report.json`
+- guard:
+  - `data/phase1_seed10/logs/phase1_guard_summary_2025_20260227T030932Z.json`?guard_passed=true?
+
+### fair/gallery??
+| fair | gallery | ???? | ????(>=1?) | ????(????) | ???(>=5?) |
+|---|---|---:|---:|---:|---:|
+| frieze_london | Athr | 1 | 1 | 5 | 100.0% |
+
+### ????????SSOT 5-4???artist?????
+- `athr__sara-abdu__6a828828__img_01.jpg`
+- `athr__sara-abdu__6a828828__img_02.jpg`
+- `athr__sara-abdu__6a828828__img_03.jpg`
+- `athr__sara-abdu__6a828828__img_04.jpg`
+- `athr__sara-abdu__6a828828__img_05.jpg`
+
+### ??????
+- ??
+
+### ??0??????
+- Athr????????

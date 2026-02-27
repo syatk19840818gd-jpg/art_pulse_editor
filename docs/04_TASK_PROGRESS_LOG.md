@@ -2939,3 +2939,99 @@ _trash 運用方針:
   - `data/phase1_seed10/logs/phase1_seed10_r2_sync_all_20260226T181511Z.json`
   - ??: uploaded=1 / skipped=494 / failed=0
   - `data/phase1_seed10/derived/phase1_seed10_artifact_manifest.json` ? `failed_count=0` ???
+
+
+## 103. TASK A-2R?Athr works?? ??? / 2026-02-27?
+
+- ???????exit:
+  - `python run_phase1_network_preflight.py` ? exit 1
+  - `python run_phase1_network_preflight.py` ? exit 1
+- ???:
+  - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260227T020117Z.json`
+  - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260227T020135Z.json`
+- ??:
+  - 2??PASS????????`passed=False`, `http_probe_ok=False`?
+  - fail-fast????? Athr???collect/report/guard?????
+- ??:
+  - ?????: `http_probe_failed:example.com`
+  - 03/04/RAG??? blocker-only ?????
+
+
+## 104. TASK D0-A2R-BLOCKER-ROOTCAUSE?preflight????????? + ?????
+
+- ????:
+  - `run_phase1_network_preflight.py` ? `https://example.com` ??probe??????
+    DNS???? `CERTIFICATE_VERIFY_FAILED` 1????fail???????
+- ????:
+  - `run_phase1_network_preflight.py`
+    - ??URL???????Google/GitHub/Cloudflare?
+    - `--profile-json` / `--probe-url` / `--dns-threshold` / `--http-required-successes`
+    - `failure_kind` ??HTTP????
+    - ??????????`_01`, `_02` ???
+  - `config/phase1_network_preflight_profile.json`????
+- ??????:
+  - `python run_phase1_network_preflight.py` ? exit 0
+  - `python run_phase1_network_preflight.py` ? exit 0
+- ???:
+  - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260227T021906Z.json`
+  - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260227T021937Z.json`
+- ??:
+  - `dns_ok_rate=1.000`, `http_ok_count=3/3`, `http_required_successes=2`
+  - fail-fast???2??PASS?????
+
+
+## 105. TASK A-2R-RESTART?Athr works?? ????
+
+- ???????exit:
+  - `python run_phase1_network_preflight.py` ? exit 0
+  - `python run_phase1_network_preflight.py` ? exit 0
+  - `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5 --only-fair-slug frieze_london --only-gallery-name Athr --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2r_restart_athr.json"` ? exit 0
+  - `python run_phase1_seed10_artist_image_collect_report.py --summary-path "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2r_restart_athr.json" --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2r_restart_athr_report.json"` ? exit 1?cp932?????
+  - `$env:PYTHONUTF8='1'; python run_phase1_seed10_artist_image_collect_report.py ...` ? exit 0
+  - `python run_compare_phase1_guard.py --target-year 2025` ? exit 0
+- ???:
+  - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260227T022556Z.json`
+  - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260227T022617Z.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2r_restart_athr.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2r_restart_athr_report.json`
+  - `data/phase1_seed10/logs/phase1_guard_summary_2025_20260227T022757Z.json`
+- ??:
+  - Athr: seed_artist_count=1, artists_with_ge_target_images=0, total_images_saved=0
+  - failed reason: `no_image_candidates_found_on_artist_detail`?domain=`athrart.com`?
+  - works notes: `works_page_tried:3` / `works_page_found:3` / `works_candidates_count:0`
+  - guard??: `guard_passed=True`
+
+
+## 106. TASK A-2R-FIX?Athr works candidates=0 ???? + ?????
+
+- ???????exit:
+  - `python run_phase1_network_preflight.py` ? exit 0
+  - `python run_phase1_network_preflight.py` ? exit 0
+  - `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5 --only-fair-slug frieze_london --only-gallery-name Athr --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2r_fix_athr.json"` ? exit 0
+  - `python run_phase1_seed10_artist_image_collect_report.py --summary-path "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2r_fix_athr.json" --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2r_fix_athr_report.json"` ? exit 0
+  - `python run_compare_phase1_guard.py --target-year 2025` ? exit 0
+- ??:
+  - `run_phase1_seed10_artist_image_collect.py`: `extract_image_candidates` ?????? `data-lazy` ????
+  - `run_phase1_seed10_artist_image_collect_report.py`: Windows console??????????
+- ??:
+  - Athr: seed_artist_count=1 / artists_with_ge_target_images=1 / total_images_saved=5
+  - guard_passed=true?mismatches=0?
+
+
+## 107. TASK A-2R-FIX-1?Athr????? + Sara Abdu Works??????
+
+- ???????exit:
+  - `python run_phase1_network_preflight.py` ? exit 0
+  - `python run_phase1_network_preflight.py` ? exit 0
+  - `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5 --only-fair-slug frieze_london --only-gallery-name Athr --only-source-url "https://athrart.com/artists/33-sara-abdu/biography" --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2r_fix1_athr_sara_abdu.json"` ? exit 0
+  - `python run_phase1_seed10_artist_image_collect_report.py --summary-path "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2r_fix1_athr_sara_abdu.json" --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2r_fix1_athr_sara_abdu_report.json"` ? exit 0
+  - `python run_compare_phase1_guard.py --target-year 2025` ? exit 0
+- ????:
+  - before=5 / after=0
+  - `_trash/task_a2r_fix1_athr_reset_20260227T120334Z`
+- ??:
+  - `run_phase1_seed10_artist_image_collect.py`?`data-lazy`???artist slug???`works_urls_tried`???
+  - `run_phase1_seed10_artist_image_collect_report.py`?stdout encoding???
+- ??:
+  - Athr/Sara Abdu: images_saved=5, target_met=true
+  - guard_passed=true

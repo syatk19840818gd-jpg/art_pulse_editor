@@ -111,6 +111,19 @@ ARTIST_LIST_PATH_PATTERNS = (
     "/category/artists",
 )
 
+ARTIST_URL_NON_NAME_SEGMENTS = {
+    "artist",
+    "artists",
+    "biography",
+    "bio",
+    "profile",
+    "works",
+    "work",
+    "overview",
+    "news",
+    "contact",
+}
+
 
 def utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
@@ -252,9 +265,22 @@ def artist_slug_from_source_url(source_url: str) -> str:
     parts = [part for part in path.split("/") if part]
     if not parts:
         return "artist"
-    candidate = parts[-1]
-    if not candidate and len(parts) >= 2:
-        candidate = parts[-2]
+
+    candidate = ""
+    for part in reversed(parts):
+        lowered = part.lower()
+        if lowered in ARTIST_URL_NON_NAME_SEGMENTS:
+            continue
+        if lowered.isdigit():
+            continue
+        candidate = part
+        break
+    if not candidate:
+        candidate = parts[-1]
+
+    match = re.match(r"^\d+[-_]+(.+)$", candidate.strip())
+    if match:
+        candidate = match.group(1)
     return slugify_token(candidate, fallback="artist")
 
 
@@ -508,7 +534,7 @@ def extract_image_candidates(page_url: str, html: str) -> list[dict[str, Any]]:
         tag_html = match.group(0)
         attrs = parse_img_attrs(tag_html)
         candidate_values: list[str] = []
-        for attr_name in ("src", "data-src", "data-original", "data-lazy-src"):
+        for attr_name in ("src", "data-src", "data-original", "data-lazy-src", "data-lazy"):
             value = str(attrs.get(attr_name) or "").strip()
             if value:
                 candidate_values.append(value)
@@ -807,6 +833,7 @@ def main() -> int:
             case_notes: list[str] = []
             case_reason = ""
             detail_urls_considered: list[str] = []
+            works_urls_tried_all: list[str] = []
 
             if saved_count < target_images_per_artist:
                 if looks_like_artist_listing_url(source_url):
@@ -844,6 +871,9 @@ def main() -> int:
                         for works_url in works_urls:
                             if saved_count >= target_images_per_artist:
                                 break
+                            if works_url not in works_urls_tried_all:
+                                works_urls_tried_all.append(works_url)
+                            case_notes.append(f"works_url:{works_url}")
                             ok_works_html, works_html, works_error = fetch_html(session, works_url)
                             if not ok_works_html:
                                 case_notes.append(works_error)
@@ -918,6 +948,7 @@ def main() -> int:
                     "artist_storage_key": artist_key,
                     "source_url": source_url,
                     "detail_urls_considered": detail_urls_considered,
+                    "works_urls_tried": works_urls_tried_all,
                     "fair_slug": fair_slug,
                     "gallery_name_en": gallery_name_en,
                     "saved_images": saved_count,
