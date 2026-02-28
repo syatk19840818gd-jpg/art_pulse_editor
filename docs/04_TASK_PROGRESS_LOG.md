@@ -32,7 +32,7 @@
 ## 2. 全体の進捗サマリ（現時点）
 
 - 完了: **TASK 1 ～ TASK 104**
-- 次の予定: **TASK 108（10ギャラリー Exhibitions画像抽出を最小スコープで開始）**
+- 次の予定: **TASK 108（10ギャラリー Artistsテキスト完了ゲート）**
 - 直近の重点:
   - TarutaniRAG 側で比較/guard の「型」を作成 → Phase1本体（Exhibitions/Artists）へ横展開
   - Phase1 guard 本体 / history 比較 / fixture / matrix / schema文書化 / category文脈まで整備
@@ -4354,3 +4354,17 @@ _trash 運用方針:
   - `max_artists_per_gallery=1`
   - artists_text: `artists_records_saved_total=0` / `artists_existing_records_total=225` / `artists_skipped_total=8`（既存重複）
   - R2同期: auto-sync `phase1_all status=ok`、手動raw同期 `uploaded=0 / skipped=6 / pruned=0`
+
+## TASK T-107-ARTISTS-TEXT-FOLLOWUP (2026-02-28)
+- 原因修正:
+  - `run_phase1_seed10.py` で `max-artists-per-gallery` の適用位置を修正
+  - 変更前: 候補URL抽出段階でcap適用（既存重複に当たると新規0になりやすい）
+  - 変更後: 候補は広めに走査し、保存成功件数でcap適用
+- 再実測:
+  - `python run_phase1_seed10.py --include-artists-text --max-artists-per-gallery 80` -> exit 0
+  - `python run_compare_phase1_guard.py --target-year 2025` -> exit 0 (`guard_passed=true`)
+- 結果:
+  - artists_text 新規 +4
+    - The Approach: +3（Rezi Van Lankveld / John Maclean / Hana Miletic）
+    - Gallery Baton: +1（Germaine Kruip）
+  - `total_artist_text_records=232`（run後）

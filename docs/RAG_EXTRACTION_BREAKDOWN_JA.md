@@ -3488,6 +3488,18 @@ Notes:
   - `python run_phase1_seed10_r2_sync.py --scope raw --dry-run --prune` -> exit 0
   - `python run_phase1_seed10_r2_sync.py --scope raw --prune --require-dry-run-log --max-prune 600` -> exit 0（uploaded=0 / skipped=6 / pruned=0）
 
+### フォローアップ（原因修正後）
+- 0件要因:
+  - `max-artists-per-gallery` を候補URL抽出段階で先に適用しており、既存重複に当たると新規保存に到達しないケースがあった。
+- 修正:
+  - cap適用を「保存成功件数段階」に変更（候補は広めに走査）。
+- 再実測:
+  - `python run_phase1_seed10.py --include-artists-text --max-artists-per-gallery 80`
+  - 結果: 新規 +4
+    - The Approach: Rezi Van Lankveld / John Maclean / Hana Miletic
+    - Gallery Baton: Germaine Kruip
+  - guard: `python run_compare_phase1_guard.py --target-year 2025` -> `guard_passed=true`
+
 ---
 ## RUN 2026-02-28T10:45:22Z artists画像収集
 

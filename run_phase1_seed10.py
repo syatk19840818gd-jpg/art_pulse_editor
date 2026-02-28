@@ -491,6 +491,10 @@ def extract_candidate_artist_urls(
 ) -> list[str]:
     candidates: list[str] = []
     seen: set[str] = set()
+    # Cap should be applied on "saved artists", not on first discovered links.
+    # For small caps (e.g. 1 in initial smoke), scan a wider window to avoid
+    # stopping at already-saved duplicates.
+    candidate_scan_limit = min(200, max(max_artists_per_gallery, max_artists_per_gallery * 20))
 
     for href, anchor_text_raw in extract_links_from_html(list_page_html):
         href = href.strip()
@@ -517,7 +521,7 @@ def extract_candidate_artist_urls(
             continue
         seen.add(normalized)
         candidates.append(normalized)
-        if len(candidates) >= max_artists_per_gallery:
+        if len(candidates) >= candidate_scan_limit:
             break
 
     return candidates
@@ -1535,6 +1539,7 @@ def main() -> int:
 
     if include_artists_text:
         for gallery in seed_galleries:
+            artists_saved_in_gallery = 0
             artists_list_url, artists_list_source = resolve_artists_list_url(gallery)
             artists_list_source_counter[artists_list_source] += 1
             artists_list_source_counter_by_fair[gallery.fair_slug][artists_list_source] += 1
@@ -1616,6 +1621,8 @@ def main() -> int:
                 continue
 
             for page_url in candidate_urls:
+                if artists_saved_in_gallery >= max_artists_per_gallery:
+                    break
                 artist_name_en_candidate = build_artist_name_en_from_source_url(page_url)
                 artist_name_key_candidate = build_artist_name_key(artist_name_en_candidate, page_url)
                 artist_identity_key_candidate = build_artist_identity_key(
@@ -1819,6 +1826,7 @@ def main() -> int:
                     parent_source_url=list_page_url,
                     category=RAG_CATEGORY_ARTISTS,
                 )
+                artists_saved_in_gallery += 1
 
     output_files: dict[str, str] = {}
     for fair_slug in CSV_PATHS:
