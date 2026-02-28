@@ -7092,3 +7092,7 @@ TASK A-3A-CLOSE-1 実施結果（2026-02-27 / Adams and Ollman）
 - 2026-02-28：TASK MAX5-CLOSE-GATE-1 実施。Arcadia Missa は seed供給上限（3/5）として確定、A+ Works は Gan=closed_seed_invalid / Ha Ninh・Ho Rui An=closed_candidate_limit で打ち切り確定。
 - 2026-02-28：reextract_targets_task_max5_unresolved_1.csv は closed reason_code に凍結済み。gallery skip registry への追加は行わない。
 - 次: max=5本流タスクへ復帰（新規ギャラリー/新規artist拡張を優先）。
+
+- 2026-02-28：MAX_ARTISTS_PER_GALLERY=80（01正本値）で10ギャラリー対象のartists画像RAG抽出を実行。processed=180 / ge_target=145 / success_rate=80.56% / threshold_passed=true。
+- 2026-02-28：skip運用が反映（Adams and Ollman / Arcadia Missa は自動スキップ）し、他8ギャラリーで抽出実行。
+- 2026-02-28：次の主タスクは A+ Works of Art の未達整理（closed対象を除いた残件の方針確定）。

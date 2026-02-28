@@ -44,7 +44,7 @@ TARGET_IMAGES_PER_ARTIST_DEFAULT = 5
 SUCCESS_THRESHOLD_DEFAULT = 0.70
 # TEMPORARY TEST CAP:
 # Keep image collection target list aligned with current artists extraction cap (5 per gallery).
-MAX_ARTISTS_PER_GALLERY_FOR_COLLECT = 5
+MAX_ARTISTS_PER_GALLERY_FOR_COLLECT = 80
 REQUEST_TIMEOUT_SECONDS = 15
 USER_AGENT = "art-pulse-editor/phase1-seed10-artist-image-collect"
 REQUEST_RETRY_TOTAL = 2

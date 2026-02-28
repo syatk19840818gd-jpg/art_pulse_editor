@@ -4317,3 +4317,21 @@ _trash 運用方針:
   - reextract csv reason_code を closed_* へ更新し凍結
   - skip registry は未更新（gallery丸ごとskip扱いにしないため）
 - 補助出力: data/phase1_seed10/logs/phase1_seed10_max5_close_gate_1_decision.json
+
+
+## TASK MAX80-RUN-ALL-1 (2026-02-28)
+- 参照: 01(4-0,4-0-A,4-4,5-4,6-2,6-3,10) / 02(CARD 10,11,14,16) / 03 / 04
+- 設定変更:
+  - run_phase1_seed10.py: MAX_ARTISTS_PER_GALLERY=80
+  - run_phase1_seed10_artist_image_collect.py: MAX_ARTISTS_PER_GALLERY_FOR_COLLECT=80
+- preflight: 2連続PASS
+- 実行:
+  - python run_phase1_seed10.py --include-artists-text
+  - python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5 --force-retry-failed --output-json data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_max80_all_20260228.json
+  - python run_phase1_seed10_artist_image_collect_report.py --summary-path ...task_max80_all_20260228.json --output-json ...task_max80_all_20260228_report.json
+  - python run_compare_phase1_guard.py --target-year 2025
+- 結果:
+  - processed=180 / ge_target=145 / success_rate=80.56% / threshold_passed=true
+  - gallery: Athr 100%, Gallery Baton 100%, The Approach 100%, Addis 73.91%, Afriart 93.33%, Amanita 64.29%, Anca 87.5%, A+ Works 25.0%
+  - skip反映: Adams and Ollman / Arcadia Missa は抽出対象0（自動スキップ）
+  - guard_passed=true

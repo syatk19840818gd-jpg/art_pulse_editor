@@ -3806,3 +3806,88 @@ Notes:
   - A+ Works: Ganの有効detail URLが再供給される、またはworks導線に新規候補が増える、または仕様変更
 - 運用
   - 今回は gallery丸ごとskip ではないため skip registry へは追記しない。
+
+---
+## RUN 2026-02-28T12:53:35Z artists画像収集
+
+参照元:
+- `C:\Users\tarutani tomoaki\Pictures\Dev\my_projects\art_pulse_editor\data\phase1_seed10\logs\phase1_seed10_artist_image_collect_summary_task_max80_all_20260228.json`
+- `C:\Users\tarutani tomoaki\Pictures\Dev\my_projects\art_pulse_editor\data\phase1_seed10\logs\phase1_seed10_artist_image_collect_summary_task_max80_all_20260228_report.json`
+
+### サマリー
+- 対象人数: 182
+- 5枚達成人数: 145
+- 達成率(>= 5枚): 80.56%
+- 閾値通過(70%): True
+- seed供給不足(gallery): 10
+
+### fair/gallery内訳
+| fair | gallery | 対象人数 | 成功人数(>=1枚) | 取得件数(画像枚数) | 成功率(>=5枚) |
+|---|---|---:|---:|---:|---:|
+| frieze_london | Adams and Ollman | 0 | 0 | 0 | 0.0% |
+| frieze_london | The Approach | 30 | 30 | 150 | 100.0% |
+| frieze_london | Arcadia Missa | 0 | 0 | 0 | 0.0% |
+| frieze_london | Athr | 14 | 14 | 70 | 100.0% |
+| frieze_london | Gallery Baton | 40 | 40 | 200 | 100.0% |
+| liste | A+ Works of Art | 28 | 19 | 55 | 25.0% |
+| liste | Addis Fine Art | 23 | 22 | 99 | 73.91% |
+| liste | Afriart Gallery | 15 | 15 | 74 | 93.33% |
+| liste | Amanita | 14 | 14 | 64 | 64.29% |
+| liste | Anca Poteraşu Gallery | 16 | 16 | 78 | 87.5% |
+
+### 失敗理由上位
+- insufficient_image_candidates_after_download: 29件
+- target_not_met: 4件
+- no_new_images_ge_max_year_seen: 1件
+- seed_invalid_redirected_to_listing: 1件
+
+### 失敗ドメイン上位
+- aplusart.asia: 21件
+- addisfineart.com: 6件
+- spazioamanita.com: 5件
+- ancapoterasu.com: 2件
+- afriartgallery.org: 1件
+
+### seed供給不足（cap未満）
+- frieze_london/Adams and Ollman: detail_seed=1 cap=80
+- frieze_london/Arcadia Missa: detail_seed=3 cap=80
+- frieze_london/Athr: detail_seed=16 cap=80
+- frieze_london/Gallery Baton: detail_seed=50 cap=80
+- frieze_london/The Approach: detail_seed=39 cap=80
+- liste/A+ Works of Art: detail_seed=28 cap=80
+- liste/Addis Fine Art: detail_seed=23 cap=80
+- liste/Afriart Gallery: detail_seed=25 cap=80
+- liste/Amanita: detail_seed=24 cap=80
+- liste/Anca Poteraşu Gallery: detail_seed=16 cap=80
+
+### 年抽出（作品画像）
+- frieze_london/The Approach the-approach__phillip-allen__261b72a7: works_top5=[] selected_top5=[None, None, None, None, 2025] desc_ok=False
+  - year=None evidence_text=ooks-and-editions Books & Editions img
+  - year=None evidence_text=img
+  - year=None evidence_text=929311b38-4000x2666.jpg? img
+  - year=None evidence_text=062433779-4000x2666.jpg? img
+  - year=2025 evidence_text=3692265ed56572d84bfef-2666x1500.jpg? data-v-2ece09e4 Phillip Allen dry chord, wet edge (solar guest version) , 2025 O...
+- frieze_london/The Approach the-approach__tom-allen__72951a84: works_top5=[] selected_top5=[None, None, None, 1956, None] desc_ok=False
+  - year=None evidence_text=v img
+  - year=None evidence_text=c68693ba7-3000x1688.jpg? img
+  - year=None evidence_text=07edd5b7c-3000x1687.jpg? img
+  - year=1956 evidence_text=3e0dd7c9f-3476x1956.jpg? img
+  - year=None evidence_text=/artists/tom-allen/press Press img
+- frieze_london/The Approach the-approach__helene-appel__3a8b864d: works_top5=[] selected_top5=[None, 2023, 2021, 2000, 1928] desc_ok=False
+  - year=None evidence_text=ooks-and-editions Books & Editions img
+  - year=2023 evidence_text=e86370ac4-2023x2910.jpg? img
+  - year=2021 evidence_text=4492a6c36-4444x2500.jpg? Gehweg (pavement) , 2021 Pencil on Cotton 372 x 124 cm 146 15/32 x 48 13/16 i
+  - year=2000 evidence_text=5fd545dfa-2000x1125.jpg? img
+  - year=1928 evidence_text=ff5be5e28-3942x2218.jpg? img
+- frieze_london/The Approach the-approach__sara-barker__4b0f99e7: works_top5=[] selected_top5=[None, None, None, None, 2020] desc_ok=False
+  - year=None evidence_text=ooks-and-editions Books & Editions img
+  - year=None evidence_text=img
+  - year=None evidence_text=23064236e-2666x1500.jpg? img
+  - year=None evidence_text=b3e749add-2666x1500.jpg? img
+  - year=2020 evidence_text=ad05abbbc-4016x6016.jpg? Gap , 2020 Plywood, gouache, oil, stainless steel, tin foil 45 x 55 x 6 cm 17
+- frieze_london/The Approach the-approach__anderson-borba__ae13de88: works_top5=[] selected_top5=[None, None, None, None, 2025] desc_ok=False
+  - year=None evidence_text=sts/anderson-borba/press Press img
+  - year=None evidence_text=img
+  - year=None evidence_text=dc6ea87c3-3600x2400.jpg? img
+  - year=None evidence_text=6edd6271a-4000x2667.jpg? img
+  - year=2025 evidence_text=d9f75bfe6-4000x2667.jpg? Anderson Borba Analog Ghost , 2025 Wood, paper, stone, plaster, pigment, oil pastel, sawdust...

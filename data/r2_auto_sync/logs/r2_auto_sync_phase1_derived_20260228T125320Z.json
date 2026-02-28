@@ -1,0 +1,86 @@
+{
+  "status": "ok",
+  "target": "phase1_derived",
+  "trigger": "run_phase1_seed10_artist_image_collect.py",
+  "started_at": "2026-02-28T12:43:57Z",
+  "finished_at": "2026-02-28T12:53:20Z",
+  "steps": [
+    {
+      "command": [
+        "C:\\Users\\syatk\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
+        "run_phase1_seed10_r2_sync.py",
+        "--scope",
+        "derived",
+        "--dry-run",
+        "--prune"
+      ],
+      "exit_code": 0,
+      "stdout_tail": [
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/frieze-london/arcadia-missa__brad-kronz__7503a3e4__img_03.jpg size=85350 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/frieze-london/arcadia-missa__brad-kronz__7503a3e4__img_04.jpg size=72887 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/frieze-london/arcadia-missa__brad-kronz__7503a3e4__img_05.jpg size=38206 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/frieze-london/arcadia-missa__hannah-black__80563f22__img_01.jpg size=69352 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/frieze-london/arcadia-missa__hannah-black__80563f22__img_02.jpg size=97038 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/frieze-london/arcadia-missa__hannah-black__80563f22__img_03.jpg size=96792 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/frieze-london/arcadia-missa__hannah-black__80563f22__img_04.jpg size=85174 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/frieze-london/arcadia-missa__hannah-black__80563f22__img_05.jpg size=60280 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/frieze-london/arcadia-missa__jesse-darling__0fd78f9c__img_01.jpg size=85227 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/frieze-london/arcadia-missa__jesse-darling__0fd78f9c__img_02.jpg size=98517 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/frieze-london/arcadia-missa__jesse-darling__0fd78f9c__img_03.jpg size=80356 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/frieze-london/arcadia-missa__jesse-darling__0fd78f9c__img_04.jpg size=78039 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/frieze-london/arcadia-missa__jesse-darling__0fd78f9c__img_05.jpg size=96841 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/liste/amanita__craig-boagey__7d69f3c4__img_01.jpg size=92158 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/liste/amanita__eva-beresin__5606bc83__img_01.jpg size=88907 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__anetta-mona-chisa-2__ea7614cd__img_01.jpg size=91988 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__aurora-kiraly__3ef1b6fb__img_04.jpg size=86200 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[DONE] status=DRY_RUN_OK uploaded=0 skipped=0 failed=0 pruned=0 prune_failed=0",
+        "[DONE] manifest_local=data/phase1_seed10/derived/phase1_seed10_artifact_manifest.json",
+        "[DONE] summary=data/phase1_seed10/logs/phase1_seed10_r2_sync_derived_20260228T124408Z.json"
+      ],
+      "stderr_tail": [],
+      "name": "dry_run_prune"
+    },
+    {
+      "command": [
+        "C:\\Users\\syatk\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
+        "run_phase1_seed10_r2_sync.py",
+        "--scope",
+        "derived",
+        "--require-dry-run-log",
+        "--max-prune",
+        "600"
+      ],
+      "exit_code": 0,
+      "stdout_tail": [
+        "[UPLOAD] [derived] phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__orit-ishay-2__fd8d2a04__img_05.jpg size=99102 sha256=7a42311de8c9...",
+        "[UPLOAD] [derived] phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__sebastian-hosu-2__b75a1464__img_01.jpg size=99262 sha256=1c767adf73d9...",
+        "[UPLOAD] [derived] phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__sebastian-hosu-2__b75a1464__img_02.jpg size=98450 sha256=6e30fddc0f0e...",
+        "[UPLOAD] [derived] phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__sebastian-hosu-2__b75a1464__img_03.jpg size=100308 sha256=cce3a7415a35...",
+        "[UPLOAD] [derived] phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__sebastian-hosu-2__b75a1464__img_04.jpg size=102287 sha256=8d36f5ab3ef9...",
+        "[UPLOAD] [derived] phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__sebastian-hosu-2__b75a1464__img_05.jpg size=99305 sha256=cce17717b54e...",
+        "[UPLOAD] [derived] phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__yasmina-assbane-2__f660419e__img_01.jpg size=92503 sha256=6ac632ac06bb...",
+        "[UPLOAD] [derived] phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__yasmina-assbane-2__f660419e__img_02.jpg size=95097 sha256=8dfafeabe5c3...",
+        "[UPLOAD] [derived] phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__yasmina-assbane-2__f660419e__img_03.jpg size=95119 sha256=5a4f6a252eae...",
+        "[UPLOAD] [derived] phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__yasmina-assbane-2__f660419e__img_04.jpg size=32242 sha256=6a07f2e7c1b1...",
+        "[UPLOAD] [derived] phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__yasmina-assbane-2__f660419e__img_05.jpg size=75794 sha256=6bfcb95805b7...",
+        "[SKIP] [derived] phase1_seed10/derived/vector/artists_text_artifact_manifest_2025.json reason=EXISTS_SAME_SIZE_AND_SHA256 size=853",
+        "[SKIP] [derived] phase1_seed10/derived/vector/artists_text_index_2025.npy reason=EXISTS_SAME_SIZE_AND_SHA256 size=491648",
+        "[SKIP] [derived] phase1_seed10/derived/vector/artists_text_meta_2025.jsonl reason=EXISTS_SAME_SIZE_AND_SHA256 size=42949",
+        "[SKIP] [derived] phase1_seed10/derived/vector/artists_text_vectorize_failed_2025.jsonl reason=EXISTS_SAME_SIZE_AND_SHA256 size=0",
+        "[SKIP] [derived] phase1_seed10/derived/vector/artists_text_vectorize_summary_2025.json reason=EXISTS_SAME_SIZE_AND_SHA256 size=1224",
+        "[UPLOAD] [manifest] phase1_seed10/derived/phase1_seed10_artifact_manifest.json size=383646 sha256=8c1cd20c1809...",
+        "[DONE] status=OK uploaded=614 skipped=184 failed=0 pruned=0 prune_failed=0",
+        "[DONE] manifest_local=data/phase1_seed10/derived/phase1_seed10_artifact_manifest.json",
+        "[DONE] summary=data/phase1_seed10/logs/phase1_seed10_r2_sync_derived_20260228T125319Z.json"
+      ],
+      "stderr_tail": [],
+      "name": "apply_guarded_without_prune"
+    }
+  ],
+  "dry_run_summary_path": "data/phase1_seed10/logs/phase1_seed10_r2_sync_derived_20260228T124408Z.json",
+  "apply_summary_path": "data/phase1_seed10/logs/phase1_seed10_r2_sync_derived_20260228T125319Z.json",
+  "delete_policy": "prune_deferred_first_seen",
+  "prune_candidates_count": 21,
+  "prune_stable_hits": 1,
+  "prune_ready": false
+}

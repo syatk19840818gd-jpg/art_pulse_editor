@@ -1,0 +1,86 @@
+{
+  "status": "ok",
+  "target": "phase1_all",
+  "trigger": "run_phase1_seed10.py",
+  "started_at": "2026-02-28T11:54:56Z",
+  "finished_at": "2026-02-28T11:57:28Z",
+  "steps": [
+    {
+      "command": [
+        "C:\\Users\\syatk\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
+        "run_phase1_seed10_r2_sync.py",
+        "--scope",
+        "all",
+        "--dry-run",
+        "--prune"
+      ],
+      "exit_code": 0,
+      "stdout_tail": [
+        "[DRY-RUN] [raw] data/phase1_seed10/raw/exhibitions_frieze_london_2025.jsonl -> phase1_seed10/source/exhibitions_frieze_london_2025.jsonl (647579 bytes)",
+        "[DRY-RUN] [raw] data/phase1_seed10/raw/exhibitions_liste_2025.jsonl -> phase1_seed10/source/exhibitions_liste_2025.jsonl (341911 bytes)",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/frieze-london/arcadia-missa__brad-kronz__7503a3e4__img_01.jpg size=84746 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/frieze-london/arcadia-missa__brad-kronz__7503a3e4__img_02.jpg size=85034 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/frieze-london/arcadia-missa__brad-kronz__7503a3e4__img_03.jpg size=85350 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/frieze-london/arcadia-missa__brad-kronz__7503a3e4__img_04.jpg size=72887 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/frieze-london/arcadia-missa__brad-kronz__7503a3e4__img_05.jpg size=38206 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/frieze-london/arcadia-missa__hannah-black__80563f22__img_01.jpg size=69352 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/frieze-london/arcadia-missa__hannah-black__80563f22__img_02.jpg size=97038 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/frieze-london/arcadia-missa__hannah-black__80563f22__img_03.jpg size=96792 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/frieze-london/arcadia-missa__hannah-black__80563f22__img_04.jpg size=85174 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/frieze-london/arcadia-missa__hannah-black__80563f22__img_05.jpg size=60280 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/frieze-london/arcadia-missa__jesse-darling__0fd78f9c__img_01.jpg size=85227 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/frieze-london/arcadia-missa__jesse-darling__0fd78f9c__img_02.jpg size=98517 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/frieze-london/arcadia-missa__jesse-darling__0fd78f9c__img_03.jpg size=80356 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/frieze-london/arcadia-missa__jesse-darling__0fd78f9c__img_04.jpg size=78039 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/frieze-london/arcadia-missa__jesse-darling__0fd78f9c__img_05.jpg size=96841 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[DONE] status=DRY_RUN_OK uploaded=0 skipped=0 failed=0 pruned=0 prune_failed=0",
+        "[DONE] manifest_local=data/phase1_seed10/derived/phase1_seed10_artifact_manifest.json",
+        "[DONE] summary=data/phase1_seed10/logs/phase1_seed10_r2_sync_all_20260228T115502Z.json"
+      ],
+      "stderr_tail": [],
+      "name": "dry_run_prune"
+    },
+    {
+      "command": [
+        "C:\\Users\\syatk\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
+        "run_phase1_seed10_r2_sync.py",
+        "--scope",
+        "all",
+        "--require-dry-run-log",
+        "--max-prune",
+        "600"
+      ],
+      "exit_code": 0,
+      "stdout_tail": [
+        "[UPLOAD] [logs] phase1_seed10/logs/phase1_seed10_r2_sync_derived_20260228T111925Z.json size=1982 sha256=20547b3340f3...",
+        "[UPLOAD] [logs] phase1_seed10/logs/phase1_seed10_r2_sync_derived_20260228T112000Z.json size=100408 sha256=afba06d2989b...",
+        "[UPLOAD] [logs] phase1_seed10/logs/phase1_seed10_r2_sync_derived_20260228T112019Z.json size=1982 sha256=1499c33b7f23...",
+        "[UPLOAD] [logs] phase1_seed10/logs/phase1_seed10_r2_sync_derived_20260228T112055Z.json size=100408 sha256=541178263e10...",
+        "[SKIP] [logs] phase1_seed10/logs/phase1_seed10_r2_sync_logs_20260227T121741Z.json reason=EXISTS_SAME_SIZE_AND_SHA256 size=184755",
+        "[SKIP] [logs] phase1_seed10/logs/r2_sync_runbook_summary_20260227T123817Z.json reason=EXISTS_SAME_SIZE_AND_SHA256 size=1187",
+        "[SKIP] [logs] phase1_seed10/logs/run_log_seed10.txt reason=EXISTS_SAME_SIZE_AND_SHA256 size=394",
+        "[UPLOAD] [logs] phase1_seed10/logs/run_summary_seed10_2025.json size=12042 sha256=59e02d84a4aa...",
+        "[UPLOAD] [logs] phase1_seed10/logs/visited_pages_artists_seed10_2025.json size=132753 sha256=c81a54c2dd09...",
+        "[UPLOAD] [logs] phase1_seed10/logs/visited_pages_seed10_2025.json size=47075 sha256=173936f97954...",
+        "[UPLOAD] [raw] phase1_seed10/source/artists_frieze_london_2025.jsonl size=677044 sha256=3cdfc2f12950...",
+        "[SKIP] [raw] phase1_seed10/source/artists_frieze_london_2025.jsonl.bak_20260227_222406 reason=EXISTS_SAME_SIZE_AND_SHA256 size=198565",
+        "[SKIP] [raw] phase1_seed10/source/artists_frieze_london_2025.jsonl.bak_20260227_232746 reason=EXISTS_SAME_SIZE_AND_SHA256 size=199006",
+        "[UPLOAD] [raw] phase1_seed10/source/artists_liste_2025.jsonl size=655277 sha256=17a190b7668b...",
+        "[SKIP] [raw] phase1_seed10/source/exhibitions_frieze_london_2025.jsonl reason=EXISTS_SAME_SIZE_AND_SHA256 size=647579",
+        "[SKIP] [raw] phase1_seed10/source/exhibitions_liste_2025.jsonl reason=EXISTS_SAME_SIZE_AND_SHA256 size=341911",
+        "[UPLOAD] [manifest] phase1_seed10/derived/phase1_seed10_artifact_manifest.json size=234249 sha256=e7b346c2e187...",
+        "[DONE] status=OK uploaded=134 skipped=413 failed=0 pruned=0 prune_failed=0",
+        "[DONE] manifest_local=data/phase1_seed10/derived/phase1_seed10_artifact_manifest.json",
+        "[DONE] summary=data/phase1_seed10/logs/phase1_seed10_r2_sync_all_20260228T115728Z.json"
+      ],
+      "stderr_tail": [],
+      "name": "apply_guarded_without_prune"
+    }
+  ],
+  "dry_run_summary_path": "data/phase1_seed10/logs/phase1_seed10_r2_sync_all_20260228T115502Z.json",
+  "apply_summary_path": "data/phase1_seed10/logs/phase1_seed10_r2_sync_all_20260228T115728Z.json",
+  "delete_policy": "prune_deferred_first_seen",
+  "prune_candidates_count": 15,
+  "prune_stable_hits": 1,
+  "prune_ready": false
+}
