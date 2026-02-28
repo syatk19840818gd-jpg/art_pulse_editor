@@ -4224,3 +4224,96 @@ _trash 運用方針:
   - `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md`
   - `docs/04_TASK_PROGRESS_LOG.md`
   - `data/gallery_lists/reextract_targets_task_a_repro_check_all_1.csv`
+
+
+## 149. TASK MAX5-ROLLUP (2026-02-28 10:06:08Z)
+- SSOT??: 01(4-0,4-4,5-4,6-2,6-3,10) / 02(CARD 10,11,14,16) / 03 / 04
+- ??:
+  - run_phase1_seed10.py: MAX_ARTISTS_PER_GALLERY 3 -> 5
+  - run_phase1_seed10_artist_image_collect.py: MAX_ARTISTS_PER_GALLERY_FOR_COLLECT 3 -> 5
+  - run_phase1_seed10_artist_image_collect.py: works404 fallback?? / dedupe / index?????????
+- preflight:
+  - python run_phase1_network_preflight.py -> exit 0 (2?PASS)
+- ???:
+  - python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5 --force-retry-failed --output-json data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_max5_all_20260228.json -> exit 0
+- report/guard:
+  - python run_phase1_seed10_artist_image_collect_report.py --summary-path data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_max5_all_20260228.json --output-json data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_max5_all_20260228_report.json -> exit 0
+  - python run_compare_phase1_guard.py --target-year 2025 -> exit 0 (guard_passed=true)
+- ??:
+  - processed=43, ge_target=32, success_rate=74.42%
+  - gallery breakdown: Arcadia 100%, Athr 100%, Gallery Baton 100%, The Approach 0%, A+ Works 20%, Addis 100%, Afriart 100%, Amanita 60%, Anca 100%
+- ??:
+  - ??????????????
+  - Adams and Ollman ? skip registry ??? auto-skip?
+
+
+## 150. TASK MAX5-STABILITY-1 (2026-02-28 10:46:02Z)
+- ??: 01(4-0,4-0-A,4-4,5-4,6-2,6-3,10) / 02(CARD 10,11,14,16) / 03 / 04
+- ??????:
+  - `run_phase1_seed10_artist_image_collect.py`
+    - orphan??? `_trash/orphan_artist_images_<ts>/...` ???????cleaner??
+    - works 404 ?? detail fallback ??? lenient artist match ????????if???
+    - seed_supply_by_gallery / seed_supply_under_cap ? summary???
+    - ??metadata????? local_path ?????
+  - `run_phase1_seed10_artist_image_collect_report.py`
+    - seed?????cap???? report/breakdown ???
+- preflight:
+  - `python run_phase1_network_preflight.py` x2 -> PASS
+- ????:
+  - The Approach
+    - `python run_phase1_seed10_artist_image_collect.py ... --only-gallery-name "The Approach" ...` -> exit 0
+    - result: processed=5 / ge_target=2 / images=17
+  - Arcadia Missa
+    - `... --only-gallery-name "Arcadia Missa" ...` -> exit 0
+    - result: processed=3 / ge_target=3 / images=15
+  - A+ Works of Art
+    - `... --only-gallery-name "A+ Works of Art" ...` -> exit 0
+    - result: processed=5 / ge_target=1 / images=9
+  - report 3? + `python run_compare_phase1_guard.py --target-year 2025` -> guard_passed=true
+- ??:
+  - Tom Allen ? payload???3??????????orphan cleanup ???????????
+  - Arcadia ??????? seed?????3/5?????????
+
+
+## TASK THE-APPROACH-REFETCH-FIX-1 (2026-02-28)
+- 目的: The Approachでtom/phillipが全体実行時に再低下する再現性崩れを、汎用ロジックのみで修正。
+- 実装: run_phase1_seed10_artist_image_collect.py に metadata不足時の再fetch条件を追加。
+- 実測: preflight PASS後、tom=5/5, phillip=5/5、さらにThe Approach全体5名で5/5達成。
+- 判定: 個別ifなしで回復。guard_passed=true。
+
+
+## TASK MAX5-UNRESOLVED-1 (2026-02-28)
+- 参照: 01(4-0,4-0-A,4-4,5-4,6-2,6-3,10) / 02(CARD 10,11,14,16) / 03 / 04
+- preflight: 2連続PASS
+- 入力summary: data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_max5_all_20260228.json
+- 再抽出CSV: data/gallery_lists/reextract_targets_task_max5_unresolved_1.csv
+  - 最小化結果: 3件（A+ Worksのみ）
+  - 除外: skip registry登録済み / The Approachは回復確認済み / Amanita 4枚許容
+- 再抽出実行（1件=1artist）:
+  - Gan Chin Lee: 0/5（seed_invalid_redirected_to_listing）
+  - Ha Ninh Pham: 1/5（insufficient_image_candidates_after_download）
+  - Ho Rui An: 0/5（insufficient_image_candidates_after_download）
+- 統合summary: data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_max5_unresolved_1.json
+- report/guard:
+  - report: ..._task_max5_unresolved_1_report.json
+  - guard: phase1_guard_summary_2025_20260228T112231Z.json (guard_passed=true)
+- 判定: 未達件数は減少せず。A+ Worksのseed/導線側課題として継続。
+
+
+## TASK MAX5-CLOSE-GATE-1 (2026-02-28)
+- 参照: 01(4-0,4-0-A,4-4,5-4,6-2,6-3,10) / 02(CARD 10,11,14,16) / 03 / 04
+- preflight: 2連続PASS
+- 固定入力:
+  - max5_all: data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_max5_all_20260228.json
+  - unresolved: data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_max5_unresolved_1.json
+  - unresolved_report: data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_max5_unresolved_1_report.json
+  - reextract_csv: data/gallery_lists/reextract_targets_task_max5_unresolved_1.csv
+- 判定:
+  - Arcadia Missa: detail_seed_total=3 / configured_cap=5 -> closed_supply_cap（供給上限確定）
+  - A+ Works:
+    - Gan: seed_invalid_redirected_to_listing 連続継続 -> closed_seed_invalid
+    - Ha Ninh / Ho Rui An: insufficient_image_candidates_after_download 連続継続 -> closed_candidate_limit
+- 反映:
+  - reextract csv reason_code を closed_* へ更新し凍結
+  - skip registry は未更新（gallery丸ごとskip扱いにしないため）
+- 補助出力: data/phase1_seed10/logs/phase1_seed10_max5_close_gate_1_decision.json

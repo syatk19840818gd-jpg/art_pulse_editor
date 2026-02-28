@@ -40,8 +40,8 @@ SEED_PER_FAIR = 5
 MAX_EXHIBITION_LINKS_PER_GALLERY = 10
 # TEMPORARY TEST CAP:
 # User-requested operational override for stability testing.
-# SSOT default target remains 80, but current runs are intentionally capped to 3 per gallery.
-MAX_ARTISTS_PER_GALLERY = 3
+# SSOT default target remains 80, but current runs are intentionally capped to 5 per gallery.
+MAX_ARTISTS_PER_GALLERY = 5
 REQUEST_TIMEOUT_SECONDS = 12
 USER_AGENT = "art-pulse-editor/phase1-seed10"
 MAX_FAILURE_RETRIES_PER_URL = 3

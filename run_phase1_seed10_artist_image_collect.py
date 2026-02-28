@@ -43,8 +43,8 @@ TARGET_YEAR_DEFAULT = 2025
 TARGET_IMAGES_PER_ARTIST_DEFAULT = 5
 SUCCESS_THRESHOLD_DEFAULT = 0.70
 # TEMPORARY TEST CAP:
-# Keep image collection target list aligned with current artists extraction cap (3 per gallery).
-MAX_ARTISTS_PER_GALLERY_FOR_COLLECT = 3
+# Keep image collection target list aligned with current artists extraction cap (5 per gallery).
+MAX_ARTISTS_PER_GALLERY_FOR_COLLECT = 5
 REQUEST_TIMEOUT_SECONDS = 15
 USER_AGENT = "art-pulse-editor/phase1-seed10-artist-image-collect"
 REQUEST_RETRY_TOTAL = 2
@@ -576,6 +576,42 @@ def load_artist_targets(target_year: int, *, only_source_url: str = "") -> list[
     return targets
 
 
+def collect_seed_supply_by_gallery(target_year: int) -> list[dict[str, Any]]:
+    grouped_rows: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
+    for raw_path in sorted(RAW_DIR.glob(f"artists_*_{target_year}.jsonl")):
+        rows = read_jsonl_rows(raw_path)
+        fair_slug = str(raw_path.name.replace("artists_", "").replace(f"_{target_year}.jsonl", ""))
+        for row in rows:
+            source_url = str(row.get("source_url") or "").strip()
+            if not source_url:
+                continue
+            key = (
+                str(row.get("fair_slug") or fair_slug),
+                str(row.get("gallery_name_en") or ""),
+            )
+            grouped_rows[key].append(row)
+
+    snapshots: list[dict[str, Any]] = []
+    for (fair_slug, gallery_name_en), rows in sorted(grouped_rows.items()):
+        raw_total = len(rows)
+        detail_total = 0
+        for row in rows:
+            source_url = str(row.get("source_url") or "").strip()
+            if source_url and not looks_like_artist_listing_url(source_url):
+                detail_total += 1
+        snapshots.append(
+            {
+                "fair_slug": fair_slug,
+                "gallery_name_en": gallery_name_en,
+                "raw_seed_total": raw_total,
+                "detail_seed_total": detail_total,
+                "configured_cap": MAX_ARTISTS_PER_GALLERY_FOR_COLLECT,
+                "supply_under_cap": bool(detail_total < MAX_ARTISTS_PER_GALLERY_FOR_COLLECT),
+            }
+        )
+    return snapshots
+
+
 def normalize_domain(url: str) -> str:
     host = (urlparse(url).hostname or "").lower()
     if host.startswith("www."):
@@ -847,6 +883,30 @@ def candidate_matches_artist(candidate: dict[str, Any], source_url: str, page_ur
                 candidate_year=normalize_candidate_year(candidate.get("year")),
                 evidence_text=evidence_text,
             )
+        return False
+    return True
+
+
+def candidate_matches_artist_lenient_scoped(candidate: dict[str, Any], source_url: str, page_url: str) -> bool:
+    source_path = (urlparse(source_url).path or "").lower().rstrip("/")
+    page_path = (urlparse(page_url).path or "").lower().rstrip("/")
+    if not source_path.startswith("/artists/"):
+        return False
+    if not page_path.startswith(source_path):
+        return False
+
+    candidate_url = str(candidate.get("url") or "")
+    evidence_text = str(candidate.get("evidence_text") or "")
+    artist_tokens = artist_match_tokens_from_source_url(source_url)
+    if has_foreign_person_slug(candidate_url, artist_tokens):
+        return False
+    if has_foreign_person_name_text(evidence_text, artist_tokens):
+        return False
+
+    attrs_raw = candidate.get("attrs")
+    attrs = attrs_raw if isinstance(attrs_raw, dict) else {}
+    parent_tag = str(candidate.get("parent_tag") or "")
+    if has_strong_hero_signal(candidate_url, attrs, parent_tag):
         return False
     return True
 
@@ -1661,6 +1721,13 @@ def extract_image_candidates(page_url: str, html: str) -> list[dict[str, Any]]:
                 "year": candidate_year,
                 "year_candidates": year_candidates[:5],
                 "evidence_text": evidence_text,
+                "attrs": {
+                    "alt": str(attrs.get("alt") or ""),
+                    "class": str(attrs.get("class") or ""),
+                    "width": str(attrs.get("width") or ""),
+                    "height": str(attrs.get("height") or ""),
+                },
+                "parent_tag": parent_name,
                 "page_order": first_seen_order.get(absolute_url, 0),
             }
 
@@ -2127,6 +2194,7 @@ def build_valid_existing_metadata_items(
     target_images_per_artist: int,
 ) -> list[dict[str, Any]]:
     items: list[dict[str, Any]] = []
+    seen_local_paths: set[str] = set()
     for url_hash in existing_meta_hashes:
         if len(items) >= target_images_per_artist:
             break
@@ -2135,9 +2203,13 @@ def build_valid_existing_metadata_items(
         local_path = resolve_local_cache_path(local_path_text)
         if local_path is None or not local_path.exists():
             continue
+        local_path_key = str(local_path.resolve())
+        if local_path_key in seen_local_paths:
+            continue
         ok_cached, _cached_reason = validate_cached_image_file(local_path)
         if not ok_cached:
             continue
+        seen_local_paths.add(local_path_key)
         items.append(
             {
                 "url": str(prev.get("url") or ""),
@@ -2152,6 +2224,33 @@ def build_valid_existing_metadata_items(
             }
         )
     return items
+
+
+def quarantine_orphan_artist_images(
+    files: list[Path],
+    *,
+    fair_slug_safe: str,
+    target_year: int,
+    artist_key: str,
+    run_ts: str,
+) -> int:
+    moved = 0
+    if not files:
+        return moved
+    dst_root = TRASH_ROOT / f"orphan_artist_images_{run_ts}" / str(target_year) / fair_slug_safe / artist_key
+    dst_root.mkdir(parents=True, exist_ok=True)
+    for src in files:
+        if not src.exists() or not src.is_file():
+            continue
+        dst = dst_root / src.name
+        if dst.exists():
+            dst = dst_root / f"{src.stem}__dup{src.suffix}"
+        try:
+            shutil.move(str(src), str(dst))
+            moved += 1
+        except Exception:
+            continue
+    return moved
 
 
 def build_candidate_evidence(candidate: dict[str, Any]) -> dict[str, Any]:
@@ -2203,6 +2302,8 @@ def main() -> int:
         "domain_stats": {},
         "fair_breakdown": [],
         "gallery_breakdown": [],
+        "seed_supply_by_gallery": [],
+        "seed_supply_under_cap": [],
         "notes": [],
         "wrapper_exit_code": 0,
         "network_dns_probe_host": DNS_PROBE_HOST,
@@ -2236,6 +2337,17 @@ def main() -> int:
         only_fair_slug = str(args.only_fair_slug or "").strip().lower()
         only_gallery_name = str(args.only_gallery_name or "").strip().lower()
         only_source_url = str(args.only_source_url or "").strip()
+
+        seed_supply_snapshot = collect_seed_supply_by_gallery(target_year)
+        summary["seed_supply_by_gallery"] = seed_supply_snapshot
+        under_cap_rows = [row for row in seed_supply_snapshot if bool(row.get("supply_under_cap"))]
+        summary["seed_supply_under_cap"] = under_cap_rows
+        for row in under_cap_rows:
+            summary["notes"].append(
+                "seed_supply_under_cap:"
+                f"{row.get('fair_slug')}/{row.get('gallery_name_en')}:"
+                f"detail={row.get('detail_seed_total')}<cap={row.get('configured_cap')}"
+            )
 
         targets = load_artist_targets(target_year, only_source_url=only_source_url)
         if only_fair_slug:
@@ -2678,7 +2790,16 @@ def main() -> int:
             any_known_year_candidate = False
             download_fail_count = 0
 
-            if saved_count < target_images_per_artist:
+            metadata_cover_count = len(valid_existing_metadata_items_for_seen)
+            should_refetch_for_metadata_gap = (
+                saved_count > 0 and metadata_cover_count < min(saved_count, target_images_per_artist)
+            )
+            if should_refetch_for_metadata_gap:
+                case_notes.append(
+                    f"metadata_refetch_required:cached={saved_count},meta={metadata_cover_count}"
+                )
+
+            if saved_count < target_images_per_artist or should_refetch_for_metadata_gap:
                 if looks_like_artist_listing_url(source_url):
                     skip_source_url, skip_source_reason = maybe_skip_failed_url(source_url, case_notes=case_notes)
                     if skip_source_url:
@@ -2743,8 +2864,10 @@ def main() -> int:
 
                         works_candidates_count = 0
                         works_candidates_found = False
+                        works_fetch_404_detected = False
                         artist_mismatch_filtered_total = 0
                         works_only_filtered_total = 0
+                        lenient_artist_match_used = 0
                         for works_url in works_urls:
                             if saved_count >= target_images_per_artist:
                                 break
@@ -2757,6 +2880,8 @@ def main() -> int:
                             ok_works_html, works_html, works_error = fetch_html(session, works_url)
                             if not ok_works_html:
                                 case_notes.append(works_error)
+                                if "HTTP_404" in str(works_error):
+                                    works_fetch_404_detected = True
                                 record_failed_url(
                                     kind="page",
                                     raw_url=works_url,
@@ -2897,8 +3022,14 @@ def main() -> int:
                                     continue
                                 if candidate_violates_works_only(candidate):
                                     continue
-                                if not candidate_matches_artist(candidate, source_url, detail_url):
-                                    continue
+                                strict_match = candidate_matches_artist(candidate, source_url, detail_url)
+                                if not strict_match:
+                                    if works_fetch_404_detected and candidate_matches_artist_lenient_scoped(
+                                        candidate, source_url, detail_url
+                                    ):
+                                        lenient_artist_match_used += 1
+                                    else:
+                                        continue
                                 normalized_candidate_url = normalize_image_url_for_dedupe(image_url)
                                 if normalized_candidate_url and normalized_candidate_url in seen_image_url_identities:
                                     continue
@@ -2979,6 +3110,8 @@ def main() -> int:
                                 )
                                 selected_image_hashes.append(selected_url_hash)
                                 saved_count += 1
+                        if lenient_artist_match_used > 0:
+                            case_notes.append(f"works404_lenient_artist_match_used:{lenient_artist_match_used}")
                     if saved_count < target_images_per_artist and not case_reason:
                         if not any_detail_fetch_ok:
                             if seed_redirected_to_listing:
@@ -3076,6 +3209,25 @@ def main() -> int:
                         payload_seen.add(existing_payload_hash)
                     if len(metadata_items) >= target_images_per_artist:
                         break
+
+            if metadata_items:
+                kept_local_paths: set[Path] = set()
+                for item in metadata_items:
+                    local_path = resolve_local_cache_path(str(item.get("local_path") or ""))
+                    if local_path is not None and local_path.exists():
+                        kept_local_paths.add(local_path.resolve())
+                current_artist_files = list_existing_artist_images(fair_dir, artist_key)
+                orphan_files = [p for p in current_artist_files if p.resolve() not in kept_local_paths]
+                if orphan_files:
+                    moved_orphans = quarantine_orphan_artist_images(
+                        orphan_files,
+                        fair_slug_safe=fair_slug_safe,
+                        target_year=target_year,
+                        artist_key=artist_key,
+                        run_ts=run_ts,
+                    )
+                    if moved_orphans > 0:
+                        case_notes.append(f"orphan_images_quarantined:{moved_orphans}")
 
             if metadata_items:
                 saved_count = len(metadata_items)
@@ -3196,6 +3348,7 @@ def main() -> int:
                         current_topn_hashes,
                         max_items=WORKS_IMAGE_RANK_WINDOW,
                     ),
+                    "notes": case_notes[:20],
                 }
             )
             summary["year_sort_audit"].append(

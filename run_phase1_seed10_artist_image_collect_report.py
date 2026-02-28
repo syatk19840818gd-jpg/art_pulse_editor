@@ -170,6 +170,9 @@ def append_breakdown_doc(report: dict[str, Any], report_path: Path) -> str:
         f"{report.get('success_rate_ge_target_pct')}%"
     )
     lines.append(f"- 閾値通過(70%): {report.get('threshold_passed')}")
+    seed_supply_under_cap = report.get("seed_supply_under_cap")
+    if isinstance(seed_supply_under_cap, list):
+        lines.append(f"- seed供給不足(gallery): {len(seed_supply_under_cap)}")
     lines.append("")
     lines.append("### fair/gallery内訳")
     lines.append("| fair | gallery | 対象人数 | 成功人数(>=1枚) | 取得件数(画像枚数) | 成功率(>=5枚) |")
@@ -204,6 +207,20 @@ def append_breakdown_doc(report: dict[str, Any], report_path: Path) -> str:
         for item in top_domains:
             if isinstance(item, dict):
                 lines.append(f"- {item.get('domain')}: {item.get('count')}件")
+    else:
+        lines.append("- なし")
+
+    lines.append("")
+    lines.append("### seed供給不足（cap未満）")
+    if isinstance(seed_supply_under_cap, list) and seed_supply_under_cap:
+        for item in seed_supply_under_cap:
+            if not isinstance(item, dict):
+                continue
+            lines.append(
+                "- "
+                f"{item.get('fair_slug')}/{item.get('gallery_name_en')}: "
+                f"detail_seed={item.get('detail_seed_total')} cap={item.get('configured_cap')}"
+            )
     else:
         lines.append("- なし")
 
@@ -263,6 +280,8 @@ def main() -> int:
         "success_threshold": None,
         "fair_breakdown": [],
         "gallery_breakdown": [],
+        "seed_supply_by_gallery": [],
+        "seed_supply_under_cap": [],
         "year_sort_audit": [],
         "top_failed_reasons": [],
         "top_failed_domains": [],
@@ -329,6 +348,8 @@ def main() -> int:
         "success_threshold",
         "fair_breakdown",
         "gallery_breakdown",
+        "seed_supply_by_gallery",
+        "seed_supply_under_cap",
         "year_sort_audit",
     ):
         report[key] = summary.get(key)
@@ -412,6 +433,20 @@ def main() -> int:
             )
     else:
         print("[REPORT] gallery_breakdown: none")
+
+    seed_under_cap = report.get("seed_supply_under_cap")
+    if isinstance(seed_under_cap, list) and seed_under_cap:
+        print("[REPORT] seed_supply_under_cap:")
+        for item in seed_under_cap:
+            if not isinstance(item, dict):
+                continue
+            print(
+                "  - "
+                f"{item.get('fair_slug')}/{item.get('gallery_name_en')}: "
+                f"detail_seed={item.get('detail_seed_total')} cap={item.get('configured_cap')}"
+            )
+    else:
+        print("[REPORT] seed_supply_under_cap: none")
 
     print(f"[DONE] report={output_path}")
     return 0

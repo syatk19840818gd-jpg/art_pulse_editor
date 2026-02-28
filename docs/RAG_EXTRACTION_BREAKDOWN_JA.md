@@ -3327,3 +3327,482 @@ Notes:
   - year=2025 evidence_text=adiamissa.com/wp-content/uploads/2024/11/AM_Jesse-Darling_VANITAS_Installation-view_3-600x375.jpg 600w Installation v...
   - year=2024 evidence_text=diamissa.com/wp-content/uploads/2024/11/AM_Jesse-Darling_VANITAS_Installation-view_30-600x400.jpg 600w Installation v...
   - year=2024 evidence_text=cadiamissa.com/wp-content/uploads/2024/11/AM_Jesse-Darling_VANITAS_Installation-view_10-scaled.jpg 2048w Installation...
+
+---
+## RUN 2026-02-28T10:05:08Z artists画像収集
+
+参照元:
+- `C:\Users\tarutani tomoaki\Pictures\Dev\my_projects\art_pulse_editor\data\phase1_seed10\logs\phase1_seed10_artist_image_collect_summary_task_max5_all_20260228.json`
+- `C:\Users\tarutani tomoaki\Pictures\Dev\my_projects\art_pulse_editor\data\phase1_seed10\logs\phase1_seed10_artist_image_collect_summary_task_max5_all_20260228_report.json`
+
+### サマリー
+- 対象人数: 43
+- 5枚達成人数: 32
+- 達成率(>= 5枚): 74.42%
+- 閾値通過(70%): True
+
+### fair/gallery内訳
+| fair | gallery | 対象人数 | 成功人数(>=1枚) | 取得件数(画像枚数) | 成功率(>=5枚) |
+|---|---|---:|---:|---:|---:|
+| frieze_london | Adams and Ollman | 0 | 0 | 0 | 0.0% |
+| frieze_london | The Approach | 5 | 5 | 9 | 0.0% |
+| frieze_london | Arcadia Missa | 3 | 3 | 15 | 100.0% |
+| frieze_london | Athr | 5 | 5 | 25 | 100.0% |
+| frieze_london | Gallery Baton | 5 | 5 | 25 | 100.0% |
+| liste | A+ Works of Art | 5 | 3 | 9 | 20.0% |
+| liste | Addis Fine Art | 5 | 5 | 25 | 100.0% |
+| liste | Afriart Gallery | 5 | 5 | 25 | 100.0% |
+| liste | Amanita | 5 | 5 | 23 | 60.0% |
+| liste | Anca Poteraşu Gallery | 5 | 5 | 25 | 100.0% |
+
+### 失敗理由上位
+- insufficient_image_candidates_after_download: 6件
+- target_not_met: 3件
+- no_new_images_ge_max_year_seen: 1件
+- seed_invalid_redirected_to_listing: 1件
+
+### 失敗ドメイン上位
+- theapproach.co.uk: 5件
+- aplusart.asia: 4件
+- spazioamanita.com: 2件
+
+### 年抽出（作品画像）
+- frieze_london/The Approach the-approach__phillip-allen__261b72a7: works_top5=[] selected_top5=[2025] desc_ok=True
+  - year=2025 evidence_text=3692265ed56572d84bfef-2666x1500.jpg? data-v-2ece09e4 Phillip Allen dry chord, wet edge (solar guest version) , 2025 O...
+- frieze_london/The Approach the-approach__tom-allen__72951a84: works_top5=[] selected_top5=[1956, None] desc_ok=True
+  - year=1956 evidence_text=3e0dd7c9f-3476x1956.jpg? img
+  - year=None evidence_text=/artists/tom-allen/press Press img
+- frieze_london/The Approach the-approach__helene-appel__3a8b864d: works_top5=[] selected_top5=[2023, 2021, 2000, 1928] desc_ok=True
+  - year=2023 evidence_text=e86370ac4-2023x2910.jpg? img
+  - year=2021 evidence_text=4492a6c36-4444x2500.jpg? Gehweg (pavement) , 2021 Pencil on Cotton 372 x 124 cm 146 15/32 x 48 13/16 i
+  - year=2000 evidence_text=5fd545dfa-2000x1125.jpg? img
+  - year=1928 evidence_text=ff5be5e28-3942x2218.jpg? img
+- frieze_london/The Approach the-approach__sara-barker__4b0f99e7: works_top5=[] selected_top5=[2020] desc_ok=True
+  - year=2020 evidence_text=ad05abbbc-4016x6016.jpg? Gap , 2020 Plywood, gouache, oil, stainless steel, tin foil 45 x 55 x 6 cm 17
+- frieze_london/The Approach the-approach__anderson-borba__ae13de88: works_top5=[] selected_top5=[2025] desc_ok=True
+  - year=2025 evidence_text=d9f75bfe6-4000x2667.jpg? Anderson Borba Analog Ghost , 2025 Wood, paper, stone, plaster, pigment, oil pastel, sawdust...
+
+
+## TASK MAX5-ROLLUP (2026-02-28)
+- max artists per gallery ? 5 ??????????????
+- summary: `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_max5_all_20260228.json`
+- report: `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_max5_all_20260228_report.json`
+- guard: `data/phase1_seed10/logs/phase1_guard_summary_2025_20260228T100508Z.json` (pass)
+- ???: 74.42% (threshold pass)
+- ?????????: `theapproach.co.uk`, `aplusart.asia`, `spazioamanita.com`
+- ?FIX??? The Approach ????
+
+---
+## RUN 2026-02-28T10:45:22Z artists画像収集
+
+参照元:
+- `C:\Users\tarutani tomoaki\Pictures\Dev\my_projects\art_pulse_editor\data\phase1_seed10\logs\phase1_seed10_artist_image_collect_summary_task_max5_stability1_the_approach.json`
+- `C:\Users\tarutani tomoaki\Pictures\Dev\my_projects\art_pulse_editor\data\phase1_seed10\logs\phase1_seed10_artist_image_collect_summary_task_max5_stability1_the_approach_report.json`
+
+### サマリー
+- 対象人数: 5
+- 5枚達成人数: 2
+- 達成率(>= 5枚): 40.0%
+- 閾値通過(70%): False
+- seed供給不足(gallery): 2
+
+### fair/gallery内訳
+| fair | gallery | 対象人数 | 成功人数(>=1枚) | 取得件数(画像枚数) | 成功率(>=5枚) |
+|---|---|---:|---:|---:|---:|
+| frieze_london | Adams and Ollman | 0 | 0 | 0 | 0.0% |
+| frieze_london | The Approach | 5 | 5 | 17 | 40.0% |
+| frieze_london | Arcadia Missa | 0 | 0 | 0 | 0.0% |
+| frieze_london | Athr | 0 | 0 | 0 | 0.0% |
+| frieze_london | Gallery Baton | 0 | 0 | 0 | 0.0% |
+| liste | A+ Works of Art | 0 | 0 | 0 | 0.0% |
+| liste | Addis Fine Art | 0 | 0 | 0 | 0.0% |
+| liste | Afriart Gallery | 0 | 0 | 0 | 0.0% |
+| liste | Amanita | 0 | 0 | 0 | 0.0% |
+| liste | Anca Poteraşu Gallery | 0 | 0 | 0 | 0.0% |
+
+### 失敗理由上位
+- target_not_met: 3件
+
+### 失敗ドメイン上位
+- theapproach.co.uk: 3件
+
+### seed供給不足（cap未満）
+- frieze_london/Adams and Ollman: detail_seed=1 cap=5
+- frieze_london/Arcadia Missa: detail_seed=3 cap=5
+
+### 年抽出（作品画像）
+- frieze_london/The Approach the-approach__phillip-allen__261b72a7: works_top5=[] selected_top5=[2025] desc_ok=True
+  - year=2025 evidence_text=3692265ed56572d84bfef-2666x1500.jpg? data-v-2ece09e4 Phillip Allen dry chord, wet edge (solar guest version) , 2025 O...
+- frieze_london/The Approach the-approach__tom-allen__72951a84: works_top5=[] selected_top5=[1956, None] desc_ok=True
+  - year=1956 evidence_text=3e0dd7c9f-3476x1956.jpg? img
+  - year=None evidence_text=/artists/tom-allen/press Press img
+- frieze_london/The Approach the-approach__helene-appel__3a8b864d: works_top5=[] selected_top5=[2023, 2021, 2000, 1928] desc_ok=True
+  - year=2023 evidence_text=e86370ac4-2023x2910.jpg? img
+  - year=2021 evidence_text=4492a6c36-4444x2500.jpg? Gehweg (pavement) , 2021 Pencil on Cotton 372 x 124 cm 146 15/32 x 48 13/16 i
+  - year=2000 evidence_text=5fd545dfa-2000x1125.jpg? img
+  - year=1928 evidence_text=ff5be5e28-3942x2218.jpg? img
+- frieze_london/The Approach the-approach__sara-barker__4b0f99e7: works_top5=[] selected_top5=[None, None, None, None, 2020] desc_ok=False
+  - year=None evidence_text=ooks-and-editions Books & Editions img
+  - year=None evidence_text=img
+  - year=None evidence_text=23064236e-2666x1500.jpg? img
+  - year=None evidence_text=b3e749add-2666x1500.jpg? img
+  - year=2020 evidence_text=ad05abbbc-4016x6016.jpg? Gap , 2020 Plywood, gouache, oil, stainless steel, tin foil 45 x 55 x 6 cm 17
+- frieze_london/The Approach the-approach__anderson-borba__ae13de88: works_top5=[] selected_top5=[None, None, None, None, 2025] desc_ok=False
+  - year=None evidence_text=sts/anderson-borba/press Press img
+  - year=None evidence_text=img
+  - year=None evidence_text=dc6ea87c3-3600x2400.jpg? img
+  - year=None evidence_text=6edd6271a-4000x2667.jpg? img
+  - year=2025 evidence_text=d9f75bfe6-4000x2667.jpg? Anderson Borba Analog Ghost , 2025 Wood, paper, stone, plaster, pigment, oil pastel, sawdust...
+
+---
+## RUN 2026-02-28T10:45:22Z artists画像収集
+
+参照元:
+- `C:\Users\tarutani tomoaki\Pictures\Dev\my_projects\art_pulse_editor\data\phase1_seed10\logs\phase1_seed10_artist_image_collect_summary_task_max5_stability1_arcadia.json`
+- `C:\Users\tarutani tomoaki\Pictures\Dev\my_projects\art_pulse_editor\data\phase1_seed10\logs\phase1_seed10_artist_image_collect_summary_task_max5_stability1_arcadia_report.json`
+
+### サマリー
+- 対象人数: 3
+- 5枚達成人数: 3
+- 達成率(>= 5枚): 100.0%
+- 閾値通過(70%): True
+- seed供給不足(gallery): 2
+
+### fair/gallery内訳
+| fair | gallery | 対象人数 | 成功人数(>=1枚) | 取得件数(画像枚数) | 成功率(>=5枚) |
+|---|---|---:|---:|---:|---:|
+| frieze_london | Adams and Ollman | 0 | 0 | 0 | 0.0% |
+| frieze_london | The Approach | 0 | 0 | 0 | 0.0% |
+| frieze_london | Arcadia Missa | 3 | 3 | 15 | 100.0% |
+| frieze_london | Athr | 0 | 0 | 0 | 0.0% |
+| frieze_london | Gallery Baton | 0 | 0 | 0 | 0.0% |
+| liste | A+ Works of Art | 0 | 0 | 0 | 0.0% |
+| liste | Addis Fine Art | 0 | 0 | 0 | 0.0% |
+| liste | Afriart Gallery | 0 | 0 | 0 | 0.0% |
+| liste | Amanita | 0 | 0 | 0 | 0.0% |
+| liste | Anca Poteraşu Gallery | 0 | 0 | 0 | 0.0% |
+
+### 失敗理由上位
+- なし
+
+### 失敗ドメイン上位
+- なし
+
+### seed供給不足（cap未満）
+- frieze_london/Adams and Ollman: detail_seed=1 cap=5
+- frieze_london/Arcadia Missa: detail_seed=3 cap=5
+
+### 年抽出（作品画像）
+- frieze_london/Arcadia Missa arcadia-missa__brad-kronz__7503a3e4: works_top5=[] selected_top5=[2026, 2026, 2026, 2026, 2025] desc_ok=True
+  - year=2026 evidence_text=om/wp-content/uploads/2026/01/AM_Brad-Kronz_Artists-Space_Installation-view_05-600x400.jpg 600w Installation view, Br...
+  - year=2026 evidence_text=nt-width img 1024w, https://arcadiamissa.com/wp-content/uploads/2026/01/AM_Brad-Kronz_Artists-Space_Installation-view...
+  - year=2026 evidence_text=fabric, paper, board, screws and bolts, mc cable, leaves, Speaker and Stool: 105.4 x 44.5 x 27.9 cm (41 1/2 x 17 1/2...
+  - year=2026 evidence_text=m/wp-content/uploads/2026/01/AM_Brad-Kronz_Artists-Space_Installation-view_012-600x400.jpg 600w Installation view, Br...
+  - year=2025 evidence_text=s-70s_2025_1-2-600x400.jpg 600w Brad Kronz, 80’s, 70’s , 2024, Graphite on paper, cedar, screws and masking tape, 60...
+- frieze_london/Arcadia Missa arcadia-missa__hannah-black__80563f22: works_top5=[] selected_top5=[2025, 2025, 2025, 2025, 2025] desc_ok=True
+  - year=2025 evidence_text=kt-mobile-layout-row kt-row-valign-top kb-theme-content-width Installation view, HUSH MR GIANT , Arcadia Missa, Londo...
+  - year=2025 evidence_text=n Hannah Black, No one shall be subjected to torture or to cruel, inhuman or degrading treatment or punishment (Alger...
+  - year=2025 evidence_text=t/uploads/2025/03/AM_Hannah-Black_The-Directions_Vleeshal_Installation-view_1-600x400.jpg 600w Installation view, The...
+  - year=2025 evidence_text=t/uploads/2025/03/AM_Hannah-Black_The-Directions_Vleeshal_Installation-view_8-600x400.jpg 600w Installation view, The...
+  - year=2025 evidence_text=/uploads/2025/03/AM_Hannah-Black_The-Directions_Vleeshal_Installation-view_10-600x400.jpg 600w Installation view, The...
+- frieze_london/Arcadia Missa arcadia-missa__jesse-darling__0fd78f9c: works_top5=[] selected_top5=[2025, 2025, 2025, 2024, 2024] desc_ok=True
+  - year=2025 evidence_text=kt-mobile-layout-row kt-row-valign-top kb-theme-content-width Installation view, Chi esce entra , Bibliotheca Hertzia...
+  - year=2025 evidence_text=ng_Chi-esce-entra_Installation-view_03.jpg 2000w Installation view, Chi esce entra , Bibliotheca Hertziana – Max Plan...
+  - year=2025 evidence_text=adiamissa.com/wp-content/uploads/2024/11/AM_Jesse-Darling_VANITAS_Installation-view_3-600x375.jpg 600w Installation v...
+  - year=2024 evidence_text=diamissa.com/wp-content/uploads/2024/11/AM_Jesse-Darling_VANITAS_Installation-view_30-600x400.jpg 600w Installation v...
+  - year=2024 evidence_text=cadiamissa.com/wp-content/uploads/2024/11/AM_Jesse-Darling_VANITAS_Installation-view_10-scaled.jpg 2048w Installation...
+
+---
+## RUN 2026-02-28T10:45:22Z artists画像収集
+
+参照元:
+- `C:\Users\tarutani tomoaki\Pictures\Dev\my_projects\art_pulse_editor\data\phase1_seed10\logs\phase1_seed10_artist_image_collect_summary_task_max5_stability1_a_plus_works.json`
+- `C:\Users\tarutani tomoaki\Pictures\Dev\my_projects\art_pulse_editor\data\phase1_seed10\logs\phase1_seed10_artist_image_collect_summary_task_max5_stability1_a_plus_works_report.json`
+
+### サマリー
+- 対象人数: 5
+- 5枚達成人数: 1
+- 達成率(>= 5枚): 20.0%
+- 閾値通過(70%): False
+- seed供給不足(gallery): 2
+
+### fair/gallery内訳
+| fair | gallery | 対象人数 | 成功人数(>=1枚) | 取得件数(画像枚数) | 成功率(>=5枚) |
+|---|---|---:|---:|---:|---:|
+| frieze_london | Adams and Ollman | 0 | 0 | 0 | 0.0% |
+| frieze_london | The Approach | 0 | 0 | 0 | 0.0% |
+| frieze_london | Arcadia Missa | 0 | 0 | 0 | 0.0% |
+| frieze_london | Athr | 0 | 0 | 0 | 0.0% |
+| frieze_london | Gallery Baton | 0 | 0 | 0 | 0.0% |
+| liste | A+ Works of Art | 5 | 3 | 9 | 20.0% |
+| liste | Addis Fine Art | 0 | 0 | 0 | 0.0% |
+| liste | Afriart Gallery | 0 | 0 | 0 | 0.0% |
+| liste | Amanita | 0 | 0 | 0 | 0.0% |
+| liste | Anca Poteraşu Gallery | 0 | 0 | 0 | 0.0% |
+
+### 失敗理由上位
+- insufficient_image_candidates_after_download: 2件
+- no_new_images_ge_max_year_seen: 1件
+- seed_invalid_redirected_to_listing: 1件
+
+### 失敗ドメイン上位
+- aplusart.asia: 4件
+
+### seed供給不足（cap未満）
+- frieze_london/Adams and Ollman: detail_seed=1 cap=5
+- frieze_london/Arcadia Missa: detail_seed=3 cap=5
+
+### 年抽出（作品画像）
+- liste/A+ Works of Art a-works-of-art__ahmad-fuad-osman__92ed6306: works_top5=[] selected_top5=[] desc_ok=True
+- liste/A+ Works of Art a-works-of-art__chong-kim-chiew__3441be17: works_top5=[2023, 2022, 2022] selected_top5=[] desc_ok=True
+- liste/A+ Works of Art a-works-of-art__gan-chin-lee__9b6389f4: works_top5=[] selected_top5=[] desc_ok=True
+- liste/A+ Works of Art a-works-of-art__ha-ninh-pham__417e1f22: works_top5=[] selected_top5=[2022] desc_ok=True
+  - year=2022 evidence_text=321f4f1cf16faa927e82f3a6ad9p/a-worksofart-h-ninh-pham-checkpoint-2-2022.png', '1000': 'https://static-assets.artlogic...
+- liste/A+ Works of Art a-works-of-art__ho-rui-an__73911cd6: works_top5=[] selected_top5=[] desc_ok=True
+
+
+## TASK MAX5-STABILITY-1?2026-02-28?
+- ??: max=5????????????????????
+- ??:
+  - orphan cleanup?metadata???????????
+  - works404???????artist detail fallback???lenient???
+  - seed_supply?????summary/report? cap??????
+- ?? summary:
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_max5_stability1_the_approach.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_max5_stability1_arcadia.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_max5_stability1_a_plus_works.json`
+- ????:
+  - The Approach: ge_target 2/5 ?????Tom????
+  - Arcadia Missa: 3/3 ? 5??????? seed?? 3/5 ????
+  - A+ Works: ge_target 1/5?Gan seed????????????
+
+---
+## RUN 2026-02-28T11:04:58Z artists画像収集
+
+参照元:
+- `C:\Users\tarutani tomoaki\Pictures\Dev\my_projects\art_pulse_editor\data\phase1_seed10\logs\phase1_seed10_artist_image_collect_summary_task_the_approach_tom_recover_20260228.json`
+- `C:\Users\tarutani tomoaki\Pictures\Dev\my_projects\art_pulse_editor\data\phase1_seed10\logs\phase1_seed10_artist_image_collect_summary_task_the_approach_tom_recover_20260228_report.json`
+
+### サマリー
+- 対象人数: 1
+- 5枚達成人数: 1
+- 達成率(>= 5枚): 100.0%
+- 閾値通過(70%): True
+- seed供給不足(gallery): 2
+
+### fair/gallery内訳
+| fair | gallery | 対象人数 | 成功人数(>=1枚) | 取得件数(画像枚数) | 成功率(>=5枚) |
+|---|---|---:|---:|---:|---:|
+| frieze_london | Adams and Ollman | 0 | 0 | 0 | 0.0% |
+| frieze_london | The Approach | 1 | 1 | 5 | 100.0% |
+| frieze_london | Arcadia Missa | 0 | 0 | 0 | 0.0% |
+| frieze_london | Athr | 0 | 0 | 0 | 0.0% |
+| frieze_london | Gallery Baton | 0 | 0 | 0 | 0.0% |
+| liste | A+ Works of Art | 0 | 0 | 0 | 0.0% |
+| liste | Addis Fine Art | 0 | 0 | 0 | 0.0% |
+| liste | Afriart Gallery | 0 | 0 | 0 | 0.0% |
+| liste | Amanita | 0 | 0 | 0 | 0.0% |
+| liste | Anca Poteraşu Gallery | 0 | 0 | 0 | 0.0% |
+
+### 失敗理由上位
+- なし
+
+### 失敗ドメイン上位
+- なし
+
+### seed供給不足（cap未満）
+- frieze_london/Adams and Ollman: detail_seed=1 cap=5
+- frieze_london/Arcadia Missa: detail_seed=3 cap=5
+
+### 年抽出（作品画像）
+- frieze_london/The Approach the-approach__tom-allen__72951a84: works_top5=[] selected_top5=[None, None, None, 1956, None] desc_ok=False
+  - year=None evidence_text=img
+  - year=None evidence_text=c68693ba7-3000x1688.jpg? img
+  - year=None evidence_text=07edd5b7c-3000x1687.jpg? img
+  - year=1956 evidence_text=3e0dd7c9f-3476x1956.jpg? img
+  - year=None evidence_text=/artists/tom-allen/press Press img
+
+---
+## RUN 2026-02-28T11:04:58Z artists画像収集
+
+参照元:
+- `C:\Users\tarutani tomoaki\Pictures\Dev\my_projects\art_pulse_editor\data\phase1_seed10\logs\phase1_seed10_artist_image_collect_summary_task_the_approach_phillip_recover_20260228.json`
+- `C:\Users\tarutani tomoaki\Pictures\Dev\my_projects\art_pulse_editor\data\phase1_seed10\logs\phase1_seed10_artist_image_collect_summary_task_the_approach_phillip_recover_20260228_report.json`
+
+### サマリー
+- 対象人数: 1
+- 5枚達成人数: 1
+- 達成率(>= 5枚): 100.0%
+- 閾値通過(70%): True
+- seed供給不足(gallery): 2
+
+### fair/gallery内訳
+| fair | gallery | 対象人数 | 成功人数(>=1枚) | 取得件数(画像枚数) | 成功率(>=5枚) |
+|---|---|---:|---:|---:|---:|
+| frieze_london | Adams and Ollman | 0 | 0 | 0 | 0.0% |
+| frieze_london | The Approach | 1 | 1 | 5 | 100.0% |
+| frieze_london | Arcadia Missa | 0 | 0 | 0 | 0.0% |
+| frieze_london | Athr | 0 | 0 | 0 | 0.0% |
+| frieze_london | Gallery Baton | 0 | 0 | 0 | 0.0% |
+| liste | A+ Works of Art | 0 | 0 | 0 | 0.0% |
+| liste | Addis Fine Art | 0 | 0 | 0 | 0.0% |
+| liste | Afriart Gallery | 0 | 0 | 0 | 0.0% |
+| liste | Amanita | 0 | 0 | 0 | 0.0% |
+| liste | Anca Poteraşu Gallery | 0 | 0 | 0 | 0.0% |
+
+### 失敗理由上位
+- なし
+
+### 失敗ドメイン上位
+- なし
+
+### seed供給不足（cap未満）
+- frieze_london/Adams and Ollman: detail_seed=1 cap=5
+- frieze_london/Arcadia Missa: detail_seed=3 cap=5
+
+### 年抽出（作品画像）
+- frieze_london/The Approach the-approach__phillip-allen__261b72a7: works_top5=[] selected_top5=[None, None, None, None, 2025] desc_ok=False
+  - year=None evidence_text=ooks-and-editions Books & Editions img
+  - year=None evidence_text=img
+  - year=None evidence_text=929311b38-4000x2666.jpg? img
+  - year=None evidence_text=062433779-4000x2666.jpg? img
+  - year=2025 evidence_text=3692265ed56572d84bfef-2666x1500.jpg? data-v-2ece09e4 Phillip Allen dry chord, wet edge (solar guest version) , 2025 O...
+
+---
+## RUN 2026-02-28T11:10:23Z artists画像収集
+
+参照元:
+- `C:\Users\tarutani tomoaki\Pictures\Dev\my_projects\art_pulse_editor\data\phase1_seed10\logs\phase1_seed10_artist_image_collect_summary_task_the_approach_all_verify_after_refetchfix_20260228.json`
+- `C:\Users\tarutani tomoaki\Pictures\Dev\my_projects\art_pulse_editor\data\phase1_seed10\logs\phase1_seed10_artist_image_collect_summary_task_the_approach_all_verify_after_refetchfix_20260228_report.json`
+
+### サマリー
+- 対象人数: 5
+- 5枚達成人数: 5
+- 達成率(>= 5枚): 100.0%
+- 閾値通過(70%): True
+- seed供給不足(gallery): 2
+
+### fair/gallery内訳
+| fair | gallery | 対象人数 | 成功人数(>=1枚) | 取得件数(画像枚数) | 成功率(>=5枚) |
+|---|---|---:|---:|---:|---:|
+| frieze_london | Adams and Ollman | 0 | 0 | 0 | 0.0% |
+| frieze_london | The Approach | 5 | 5 | 25 | 100.0% |
+| frieze_london | Arcadia Missa | 0 | 0 | 0 | 0.0% |
+| frieze_london | Athr | 0 | 0 | 0 | 0.0% |
+| frieze_london | Gallery Baton | 0 | 0 | 0 | 0.0% |
+| liste | A+ Works of Art | 0 | 0 | 0 | 0.0% |
+| liste | Addis Fine Art | 0 | 0 | 0 | 0.0% |
+| liste | Afriart Gallery | 0 | 0 | 0 | 0.0% |
+| liste | Amanita | 0 | 0 | 0 | 0.0% |
+| liste | Anca Poteraşu Gallery | 0 | 0 | 0 | 0.0% |
+
+### 失敗理由上位
+- なし
+
+### 失敗ドメイン上位
+- なし
+
+### seed供給不足（cap未満）
+- frieze_london/Adams and Ollman: detail_seed=1 cap=5
+- frieze_london/Arcadia Missa: detail_seed=3 cap=5
+
+### 年抽出（作品画像）
+- frieze_london/The Approach the-approach__phillip-allen__261b72a7: works_top5=[] selected_top5=[None, None, None, None, 2025] desc_ok=False
+  - year=None evidence_text=ooks-and-editions Books & Editions img
+  - year=None evidence_text=img
+  - year=None evidence_text=929311b38-4000x2666.jpg? img
+  - year=None evidence_text=062433779-4000x2666.jpg? img
+  - year=2025 evidence_text=3692265ed56572d84bfef-2666x1500.jpg? data-v-2ece09e4 Phillip Allen dry chord, wet edge (solar guest version) , 2025 O...
+- frieze_london/The Approach the-approach__tom-allen__72951a84: works_top5=[] selected_top5=[None, None, None, 1956, None] desc_ok=False
+  - year=None evidence_text=v img
+  - year=None evidence_text=c68693ba7-3000x1688.jpg? img
+  - year=None evidence_text=07edd5b7c-3000x1687.jpg? img
+  - year=1956 evidence_text=3e0dd7c9f-3476x1956.jpg? img
+  - year=None evidence_text=/artists/tom-allen/press Press img
+- frieze_london/The Approach the-approach__helene-appel__3a8b864d: works_top5=[] selected_top5=[None, 2023, 2021, 2000, 1928] desc_ok=False
+  - year=None evidence_text=ooks-and-editions Books & Editions img
+  - year=2023 evidence_text=e86370ac4-2023x2910.jpg? img
+  - year=2021 evidence_text=4492a6c36-4444x2500.jpg? Gehweg (pavement) , 2021 Pencil on Cotton 372 x 124 cm 146 15/32 x 48 13/16 i
+  - year=2000 evidence_text=5fd545dfa-2000x1125.jpg? img
+  - year=1928 evidence_text=ff5be5e28-3942x2218.jpg? img
+- frieze_london/The Approach the-approach__sara-barker__4b0f99e7: works_top5=[] selected_top5=[None, None, None, None, 2020] desc_ok=False
+  - year=None evidence_text=ooks-and-editions Books & Editions img
+  - year=None evidence_text=img
+  - year=None evidence_text=23064236e-2666x1500.jpg? img
+  - year=None evidence_text=b3e749add-2666x1500.jpg? img
+  - year=2020 evidence_text=ad05abbbc-4016x6016.jpg? Gap , 2020 Plywood, gouache, oil, stainless steel, tin foil 45 x 55 x 6 cm 17
+- frieze_london/The Approach the-approach__anderson-borba__ae13de88: works_top5=[] selected_top5=[None, None, None, None, 2025] desc_ok=False
+  - year=None evidence_text=sts/anderson-borba/press Press img
+  - year=None evidence_text=img
+  - year=None evidence_text=dc6ea87c3-3600x2400.jpg? img
+  - year=None evidence_text=6edd6271a-4000x2667.jpg? img
+  - year=2025 evidence_text=d9f75bfe6-4000x2667.jpg? Anderson Borba Analog Ghost , 2025 Wood, paper, stone, plaster, pigment, oil pastel, sawdust...
+
+---
+## RUN 2026-02-28T11:22:32Z artists画像収集
+
+参照元:
+- `C:\Users\tarutani tomoaki\Pictures\Dev\my_projects\art_pulse_editor\data\phase1_seed10\logs\phase1_seed10_artist_image_collect_summary_task_max5_unresolved_1.json`
+- `C:\Users\tarutani tomoaki\Pictures\Dev\my_projects\art_pulse_editor\data\phase1_seed10\logs\phase1_seed10_artist_image_collect_summary_task_max5_unresolved_1_report.json`
+
+### サマリー
+- 対象人数: 3
+- 5枚達成人数: 0
+- 達成率(>= 5枚): 0.0%
+- 閾値通過(70%): False
+- seed供給不足(gallery): 2
+
+### fair/gallery内訳
+| fair | gallery | 対象人数 | 成功人数(>=1枚) | 取得件数(画像枚数) | 成功率(>=5枚) |
+|---|---|---:|---:|---:|---:|
+| frieze_london | Adams and Ollman | 0 | 0 | 0 | 0.0% |
+| frieze_london | The Approach | 0 | 0 | 0 | 0.0% |
+| frieze_london | Arcadia Missa | 0 | 0 | 0 | 0.0% |
+| frieze_london | Athr | 0 | 0 | 0 | 0.0% |
+| frieze_london | Gallery Baton | 0 | 0 | 0 | 0.0% |
+| liste | A+ Works of Art | 3 | 1 | 1 | 0.0% |
+| liste | Addis Fine Art | 0 | 0 | 0 | 0.0% |
+| liste | Afriart Gallery | 0 | 0 | 0 | 0.0% |
+| liste | Amanita | 0 | 0 | 0 | 0.0% |
+| liste | Anca Poteraşu Gallery | 0 | 0 | 0 | 0.0% |
+
+### 失敗理由上位
+- insufficient_image_candidates_after_download: 2件
+- seed_invalid_redirected_to_listing: 1件
+
+### 失敗ドメイン上位
+- aplusart.asia: 3件
+
+### seed供給不足（cap未満）
+- frieze_london/Adams and Ollman: detail_seed=1 cap=5
+- frieze_london/Arcadia Missa: detail_seed=3 cap=5
+
+### 年抽出（作品画像）
+- liste/A+ Works of Art a-works-of-art__gan-chin-lee__9b6389f4: works_top5=[] selected_top5=[] desc_ok=True
+- liste/A+ Works of Art a-works-of-art__ha-ninh-pham__417e1f22: works_top5=[] selected_top5=[2022] desc_ok=True
+  - year=2022 evidence_text=321f4f1cf16faa927e82f3a6ad9p/a-worksofart-h-ninh-pham-checkpoint-2-2022.png', '1000': 'https://static-assets.artlogic...
+- liste/A+ Works of Art a-works-of-art__ho-rui-an__73911cd6: works_top5=[] selected_top5=[] desc_ok=True
+
+
+## TASK MAX5-CLOSE-GATE-1
+- 判定入力（固定）
+  - max5全体: data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_max5_all_20260228.json
+  - unresolved: data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_max5_unresolved_1.json
+  - unresolved report: data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_max5_unresolved_1_report.json
+  - reextract csv: data/gallery_lists/reextract_targets_task_max5_unresolved_1.csv
+- Arcadia Missa（供給上限判定）
+  - seed_supply_under_cap: detail_seed_total=3 / configured_cap=5 / supply_under_cap=true
+  - 判定: 抽出失敗ではなく供給上限（closed_supply_cap）として確定。追加改修はしない。
+- A+ Works of Art（部分達成/打ち切り判定）
+  - Gan: seed_invalid_redirected_to_listing が max5_all -> unresolved で連続継続（改善なし）
+  - Ha Ninh / Ho Rui An: insufficient_image_candidates_after_download が連続継続（改善なし）
+  - 判定: 01 6-2準拠で打ち切り確定（closed_seed_invalid / closed_candidate_limit）
+- reextract csv 凍結
+  - Gan: closed_seed_invalid
+  - Ha Ninh: closed_candidate_limit
+  - Ho Rui An: closed_candidate_limit
+- 再開条件
+  - Arcadia: site側でartist detail seedが5件以上供給される、または仕様変更
+  - A+ Works: Ganの有効detail URLが再供給される、またはworks導線に新規候補が増える、または仕様変更
+- 運用
+  - 今回は gallery丸ごとskip ではないため skip registry へは追記しない。
