@@ -32,19 +32,19 @@
     },
     "phase1_all": {
       "prune": {
-        "fingerprint": "1d7fef52058baf11133de680a10e08acd83c63a2efecd62bdab69a6a6e89845d",
-        "stable_hits": 1,
-        "candidate_count": 15,
-        "last_seen_at": "2026-02-28T11:57:28Z"
+        "fingerprint": "",
+        "stable_hits": 0,
+        "candidate_count": 0,
+        "last_seen_at": "2026-02-28T15:59:56Z"
       },
       "last_trigger": "run_phase1_seed10.py",
-      "last_run_at": "2026-02-28T11:57:28Z",
+      "last_run_at": "2026-02-28T15:59:56Z",
       "last_status": "ok",
-      "last_delete_policy": "prune_deferred_first_seen",
-      "last_prune_candidates_count": 15,
-      "last_dry_run_summary_path": "data/phase1_seed10/logs/phase1_seed10_r2_sync_all_20260228T115502Z.json",
-      "last_apply_summary_path": "data/phase1_seed10/logs/phase1_seed10_r2_sync_all_20260228T115728Z.json"
+      "last_delete_policy": "no_prune_candidates",
+      "last_prune_candidates_count": 0,
+      "last_dry_run_summary_path": "data/phase1_seed10/logs/phase1_seed10_r2_sync_all_20260228T155654Z.json",
+      "last_apply_summary_path": "data/phase1_seed10/logs/phase1_seed10_r2_sync_all_20260228T155956Z.json"
     }
   },
-  "updated_at": "2026-02-28T12:53:20Z"
+  "updated_at": "2026-02-28T15:59:56Z"
 }

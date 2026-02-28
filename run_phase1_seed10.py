@@ -68,6 +68,7 @@ CSV_PATHS = {
     "frieze_london": Path("data/gallery_lists/gallery_list_frieze_london.csv"),
     "liste": Path("data/gallery_lists/gallery_list_liste.csv"),
 }
+SKIPPED_GALLERIES_REGISTRY_PATH = Path("data/gallery_lists/skipped_galleries_registry.csv")
 
 OUTPUT_ROOT = Path("data/phase1_seed10")
 RAW_DIR = OUTPUT_ROOT / "raw"
@@ -228,6 +229,12 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="include artists_text minimal fetch loop (default: exhibitions_text only)",
     )
+    parser.add_argument(
+        "--max-artists-per-gallery",
+        type=int,
+        default=MAX_ARTISTS_PER_GALLERY,
+        help=f"artists_text candidate cap per gallery (default: {MAX_ARTISTS_PER_GALLERY})",
+    )
     return parser.parse_args()
 
 
@@ -245,6 +252,25 @@ def parse_gallery_name(raw_name: str) -> tuple[str, str]:
     inside = match.group(2).strip()
     gallery_name_kana = inside.split("/")[0].strip()
     return gallery_name_en, gallery_name_kana
+
+
+def normalize_gallery_name_for_registry(name: str) -> str:
+    return re.sub(r"\s+", " ", (name or "").strip().lower())
+
+
+def load_skipped_gallery_name_set(path: Path) -> set[str]:
+    if not path.exists():
+        return set()
+    names: set[str] = set()
+    with path.open("r", encoding="utf-8", newline="") as handle:
+        reader = csv.reader(handle)
+        for row in reader:
+            if not row:
+                continue
+            name = normalize_gallery_name_for_registry(row[0])
+            if name:
+                names.add(name)
+    return names
 
 
 def load_seed_galleries(csv_path: Path, fair_slug: str, limit: int) -> list[GallerySeed]:
@@ -458,7 +484,11 @@ def extract_candidate_exhibition_urls(list_page_url: str, list_page_html: str) -
     return candidates
 
 
-def extract_candidate_artist_urls(list_page_url: str, list_page_html: str) -> list[str]:
+def extract_candidate_artist_urls(
+    list_page_url: str,
+    list_page_html: str,
+    max_artists_per_gallery: int,
+) -> list[str]:
     candidates: list[str] = []
     seen: set[str] = set()
 
@@ -487,7 +517,7 @@ def extract_candidate_artist_urls(list_page_url: str, list_page_html: str) -> li
             continue
         seen.add(normalized)
         candidates.append(normalized)
-        if len(candidates) >= MAX_ARTISTS_PER_GALLERY:
+        if len(candidates) >= max_artists_per_gallery:
             break
 
     return candidates
@@ -1199,6 +1229,7 @@ def main() -> int:
         sys.stdout.reconfigure(errors="backslashreplace")
     args = parse_args()
     include_artists_text = bool(args.include_artists_text)
+    max_artists_per_gallery = max(1, int(args.max_artists_per_gallery or MAX_ARTISTS_PER_GALLERY))
 
     RAW_DIR.mkdir(parents=True, exist_ok=True)
     LOG_DIR.mkdir(parents=True, exist_ok=True)
@@ -1215,6 +1246,19 @@ def main() -> int:
         galleries = load_seed_galleries(csv_path=csv_path, fair_slug=fair_slug, limit=SEED_PER_FAIR)
         seed_galleries.extend(galleries)
 
+    skipped_gallery_name_set = load_skipped_gallery_name_set(SKIPPED_GALLERIES_REGISTRY_PATH)
+    seed_gallery_count_before_registry = len(seed_galleries)
+    registry_skipped_gallery_names: list[str] = []
+    if skipped_gallery_name_set:
+        filtered_seed_galleries: list[GallerySeed] = []
+        for gallery in seed_galleries:
+            gallery_key = normalize_gallery_name_for_registry(gallery.gallery_name_en)
+            if gallery_key in skipped_gallery_name_set:
+                registry_skipped_gallery_names.append(gallery.gallery_name_en)
+                continue
+            filtered_seed_galleries.append(gallery)
+        seed_galleries = filtered_seed_galleries
+
     print(
         "[INFO] Loaded seed galleries: "
         + ", ".join(
@@ -1222,6 +1266,11 @@ def main() -> int:
             for fair_slug in CSV_PATHS
         )
     )
+    if skipped_gallery_name_set:
+        print(
+            f"[INFO] skip_registry applied: before={seed_gallery_count_before_registry} "
+            f"after={len(seed_galleries)} skipped={seed_gallery_count_before_registry - len(seed_galleries)}"
+        )
 
     output_paths_by_fair = {
         fair_slug: RAW_DIR / f"exhibitions_{fair_slug}_{TARGET_YEAR}.jsonl"
@@ -1538,6 +1587,7 @@ def main() -> int:
             candidate_urls = extract_candidate_artist_urls(
                 list_page_url=list_page_url,
                 list_page_html=list_result["html"],
+                max_artists_per_gallery=max_artists_per_gallery,
             )
             if not candidate_urls:
                 no_detail_reason = "NO_ARTIST_DETAIL_LINKS"
@@ -1859,8 +1909,15 @@ def main() -> int:
         "seed_per_fair": SEED_PER_FAIR,
         "html_parser_backend": "bs4_lxml" if BeautifulSoup is not None else "stdlib_html_parser_fallback",
         "max_exhibition_links_per_gallery": MAX_EXHIBITION_LINKS_PER_GALLERY,
-        "max_artists_per_gallery": MAX_ARTISTS_PER_GALLERY,
+        "max_artists_per_gallery": max_artists_per_gallery,
         "artists_per_gallery_cap_mode": "temporary_test_cap",
+        "skip_registry_path": str(SKIPPED_GALLERIES_REGISTRY_PATH),
+        "skip_registry_enabled": bool(skipped_gallery_name_set),
+        "skip_registry_gallery_count": len(skipped_gallery_name_set),
+        "seed_gallery_count_before_registry": seed_gallery_count_before_registry,
+        "seed_gallery_count_after_registry": len(seed_galleries),
+        "seed_gallery_registry_skipped_count": seed_gallery_count_before_registry - len(seed_galleries),
+        "seed_gallery_registry_skipped_names": sorted(set(registry_skipped_gallery_names)),
         "failure_retry_cooldown_seconds": FAILURE_RETRY_COOLDOWN_SECONDS,
         "max_failure_retries_per_url": MAX_FAILURE_RETRIES_PER_URL,
         "records_saved_total": new_records_saved_total,

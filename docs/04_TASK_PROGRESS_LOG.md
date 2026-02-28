@@ -1,6 +1,6 @@
 # 04_TASK_PROGRESS_LOG.md
 
-最終更新: 2026-02-26 20:53 JST  
+最終更新: 2026-03-01 00:42 JST  
 対象プロジェクト: ART_PULSE_EDITOR（Phase1 seed10 / Guard運用整備）  
 位置づけ: 実装進捗ログ（01=SSOT、02=索引、03=現行運用タスクの補助ログ）
 
@@ -24,17 +24,20 @@
 - 完成機能を勝手に削除/無効化しない（削除・置換・挙動変更は合意制）。
 - ドメイン専用ハードコードを増やさない（頻出ドメイン × 汎用ロジックのみ改善）。
 - 取れない分はログに残して前進する（失敗をログ化して割り切る）。
+- `data/gallery_lists/skipped_galleries_registry.csv` の登録は、Artists/Exhibitions の画像・テキスト抽出すべてに共通適用する。
+- R2保存/削除の guarded 自動同期は、Artists/Exhibitions の画像・テキスト・ベクターを含むRAG全体に共通適用する。
 
 ---
 
 ## 2. 全体の進捗サマリ（現時点）
 
 - 完了: **TASK 1 ～ TASK 104**
-- 次の予定: **TASK 107（rollup最新判定補正）**
+- 次の予定: **TASK 108（10ギャラリー Exhibitions画像抽出を最小スコープで開始）**
 - 直近の重点:
   - TarutaniRAG 側で比較/guard の「型」を作成 → Phase1本体（Exhibitions/Artists）へ横展開
   - Phase1 guard 本体 / history 比較 / fixture / matrix / schema文書化 / category文脈まで整備
   - category profile を外部設定化し、設定ミス時の安全フォールバックも実装済み
+  - 03本タスク107を「Artistsテキスト抽出（10ギャラリー）＋共通スキップ/共通R2同期確認」に軌道修正
 
 ---
 
@@ -4335,3 +4338,19 @@ _trash 運用方針:
   - gallery: Athr 100%, Gallery Baton 100%, The Approach 100%, Addis 73.91%, Afriart 93.33%, Amanita 64.29%, Anca 87.5%, A+ Works 25.0%
   - skip反映: Adams and Ollman / Arcadia Missa は抽出対象0（自動スキップ）
   - guard_passed=true
+
+## TASK T-107-ARTISTS-TEXT (2026-02-28)
+- 参照: 01(4-0,4-0-A,4-2,5-3,5-8,6-2,6-3,10) / 02(CARD 05,14,15,16) / 03 / 04
+- 初回最小化方針: `run_phase1_seed10.py` に `--max-artists-per-gallery` を追加し、初回は `1` で実行
+- 共通スキップ対応: `data/gallery_lists/skipped_galleries_registry.csv` を `run_phase1_seed10.py` で読み込み、seed10対象へ事前適用
+- 実行:
+  - `python run_phase1_network_preflight.py` x2 -> PASS
+  - `python run_phase1_seed10.py --include-artists-text --max-artists-per-gallery 1` -> exit 0
+  - `python run_compare_phase1_guard.py --target-year 2025` -> exit 0 (`guard_passed=true`)
+  - `python run_phase1_seed10_r2_sync.py --scope raw --dry-run --prune` -> exit 0
+  - `python run_phase1_seed10_r2_sync.py --scope raw --prune --require-dry-run-log --max-prune 600` -> exit 0
+- 結果:
+  - skip_registry applied: before=10, after=8, skipped=2
+  - `max_artists_per_gallery=1`
+  - artists_text: `artists_records_saved_total=0` / `artists_existing_records_total=225` / `artists_skipped_total=8`（既存重複）
+  - R2同期: auto-sync `phase1_all status=ok`、手動raw同期 `uploaded=0 / skipped=6 / pruned=0`

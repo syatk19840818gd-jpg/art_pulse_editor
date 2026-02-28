@@ -3455,6 +3455,40 @@ Notes:
   - year=2025 evidence_text=d9f75bfe6-4000x2667.jpg? Anderson Borba Analog Ghost , 2025 Wood, paper, stone, plaster, pigment, oil pastel, sawdust...
 
 ---
+
+## TASK T-107-ARTISTS-TEXT（2026-02-28）
+
+### 目的
+- 10ギャラリーの Artists テキスト抽出を、初回最小スコープで実行し、共通スキップ運用と共通R2同期運用を確認する。
+
+### 実行条件
+- preflight 2連続PASS（dns_ok_rate=1.000 / http_ok=True）。
+- 初回最小化: `--max-artists-per-gallery 1`。
+
+### 実行結果（主要）
+- コマンド: `python run_phase1_seed10.py --include-artists-text --max-artists-per-gallery 1`
+- summary: `data/phase1_seed10/logs/run_summary_seed10_2025.json`
+- 値:
+  - `max_artists_per_gallery=1`
+  - `skip_registry_enabled=true`
+  - `seed_gallery_count_before_registry=10`
+  - `seed_gallery_count_after_registry=8`
+  - `seed_gallery_registry_skipped_count=2`
+  - `artists_records_saved_total=0`
+  - `artists_existing_records_total=225`
+  - `artists_skipped_total=8`（`DUPLICATE_TEXT_HASH_EXISTING=8`）
+
+### 共通スキップ運用確認
+- `data/gallery_lists/skipped_galleries_registry.csv` 登録2件（Adams and Ollman / Arcadia Missa）が、seed10対象から除外された（10 -> 8）。
+
+### guard / R2同期確認
+- guard: `python run_compare_phase1_guard.py --target-year 2025` -> `guard_passed=true`
+- auto-sync: `data/r2_auto_sync/logs/r2_auto_sync_phase1_all_20260228T155956Z.json`（status=ok）
+- 手動確認:
+  - `python run_phase1_seed10_r2_sync.py --scope raw --dry-run --prune` -> exit 0
+  - `python run_phase1_seed10_r2_sync.py --scope raw --prune --require-dry-run-log --max-prune 600` -> exit 0（uploaded=0 / skipped=6 / pruned=0）
+
+---
 ## RUN 2026-02-28T10:45:22Z artists画像収集
 
 参照元:
