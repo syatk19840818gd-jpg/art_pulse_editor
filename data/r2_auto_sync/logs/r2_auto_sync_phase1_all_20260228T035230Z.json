@@ -1,0 +1,86 @@
+{
+  "status": "ok",
+  "target": "phase1_all",
+  "trigger": "run_phase1_seed10.py",
+  "started_at": "2026-02-28T03:51:41Z",
+  "finished_at": "2026-02-28T03:52:30Z",
+  "steps": [
+    {
+      "command": [
+        "C:\\Users\\syatk\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
+        "run_phase1_seed10_r2_sync.py",
+        "--scope",
+        "all",
+        "--dry-run",
+        "--prune"
+      ],
+      "exit_code": 0,
+      "stdout_tail": [
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/frieze-london/athr__30__f4360dcd__img_04.jpg size=93386 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/frieze-london/athr__30__f4360dcd__img_05.jpg size=95045 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/frieze-london/gallery-baton__song-burnsoo__d8948bcb__img_01.jpg size=82631 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/frieze-london/gallery-baton__song-burnsoo__d8948bcb__img_02.jpg size=67479 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/frieze-london/gallery-baton__song-burnsoo__d8948bcb__img_03.jpg size=100677 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/frieze-london/gallery-baton__song-burnsoo__d8948bcb__img_04.jpg size=97223 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/frieze-london/gallery-baton__song-burnsoo__d8948bcb__img_05.jpg size=89329 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/liste/a-works-of-art__chong-kim-chiew__3441be17__img_01.jpg size=98618 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/liste/a-works-of-art__chong-kim-chiew__3441be17__img_02.jpg size=99299 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/liste/a-works-of-art__chong-kim-chiew__3441be17__img_03.jpg size=94761 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/liste/a-works-of-art__chong-kim-chiew__3441be17__img_04.jpg size=92547 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/liste/a-works-of-art__chong-kim-chiew__3441be17__img_05.jpg size=102017 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/liste/a-works-of-art__gan-chin-lee__9b6389f4__img_01.jpg size=78215 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/liste/a-works-of-art__gan-chin-lee__9b6389f4__img_02.jpg size=89761 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/liste/a-works-of-art__gan-chin-lee__9b6389f4__img_03.jpg size=97035 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/liste/a-works-of-art__gan-chin-lee__9b6389f4__img_04.jpg size=89757 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/liste/a-works-of-art__gan-chin-lee__9b6389f4__img_05.jpg size=100192 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[DONE] status=DRY_RUN_OK uploaded=0 skipped=0 failed=0 pruned=0 prune_failed=0",
+        "[DONE] manifest_local=data/phase1_seed10/derived/phase1_seed10_artifact_manifest.json",
+        "[DONE] summary=data/phase1_seed10/logs/phase1_seed10_r2_sync_all_20260228T035145Z.json"
+      ],
+      "stderr_tail": [],
+      "name": "dry_run_prune"
+    },
+    {
+      "command": [
+        "C:\\Users\\syatk\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
+        "run_phase1_seed10_r2_sync.py",
+        "--scope",
+        "all",
+        "--require-dry-run-log",
+        "--max-prune",
+        "600"
+      ],
+      "exit_code": 0,
+      "stdout_tail": [
+        "[SKIP] [logs] phase1_seed10/logs/phase1_seed10_r2_sync_derived_20260228T022212Z.json reason=EXISTS_SAME_SIZE_AND_SHA256 size=2457",
+        "[SKIP] [logs] phase1_seed10/logs/phase1_seed10_r2_sync_derived_20260228T022330Z.json reason=EXISTS_SAME_SIZE_AND_SHA256 size=56939",
+        "[UPLOAD] [logs] phase1_seed10/logs/phase1_seed10_r2_sync_derived_20260228T023141Z.json size=2458 sha256=de7e84a5e86e...",
+        "[UPLOAD] [logs] phase1_seed10/logs/phase1_seed10_r2_sync_derived_20260228T023204Z.json size=56768 sha256=1f7cf7ba0776...",
+        "[SKIP] [logs] phase1_seed10/logs/phase1_seed10_r2_sync_logs_20260227T121741Z.json reason=EXISTS_SAME_SIZE_AND_SHA256 size=184755",
+        "[SKIP] [logs] phase1_seed10/logs/r2_sync_runbook_summary_20260227T123817Z.json reason=EXISTS_SAME_SIZE_AND_SHA256 size=1187",
+        "[SKIP] [logs] phase1_seed10/logs/run_log_seed10.txt reason=EXISTS_SAME_SIZE_AND_SHA256 size=394",
+        "[UPLOAD] [logs] phase1_seed10/logs/run_summary_seed10_2025.json size=11899 sha256=5b91f008eff0...",
+        "[UPLOAD] [logs] phase1_seed10/logs/visited_pages_artists_seed10_2025.json size=16360 sha256=bb37c68266c4...",
+        "[UPLOAD] [logs] phase1_seed10/logs/visited_pages_seed10_2025.json size=47075 sha256=9418cdae4d59...",
+        "[SKIP] [raw] phase1_seed10/source/artists_frieze_london_2025.jsonl reason=EXISTS_SAME_SIZE_AND_SHA256 size=254262",
+        "[SKIP] [raw] phase1_seed10/source/artists_frieze_london_2025.jsonl.bak_20260227_222406 reason=EXISTS_SAME_SIZE_AND_SHA256 size=198565",
+        "[SKIP] [raw] phase1_seed10/source/artists_frieze_london_2025.jsonl.bak_20260227_232746 reason=EXISTS_SAME_SIZE_AND_SHA256 size=199006",
+        "[SKIP] [raw] phase1_seed10/source/artists_liste_2025.jsonl reason=EXISTS_SAME_SIZE_AND_SHA256 size=340609",
+        "[SKIP] [raw] phase1_seed10/source/exhibitions_frieze_london_2025.jsonl reason=EXISTS_SAME_SIZE_AND_SHA256 size=647579",
+        "[SKIP] [raw] phase1_seed10/source/exhibitions_liste_2025.jsonl reason=EXISTS_SAME_SIZE_AND_SHA256 size=341911",
+        "[UPLOAD] [manifest] phase1_seed10/derived/phase1_seed10_artifact_manifest.json size=92481 sha256=2b93a1bcd5c9...",
+        "[DONE] status=OK uploaded=16 skipped=198 failed=0 pruned=0 prune_failed=0",
+        "[DONE] manifest_local=data/phase1_seed10/derived/phase1_seed10_artifact_manifest.json",
+        "[DONE] summary=data/phase1_seed10/logs/phase1_seed10_r2_sync_all_20260228T035230Z.json"
+      ],
+      "stderr_tail": [],
+      "name": "apply_guarded_without_prune"
+    }
+  ],
+  "dry_run_summary_path": "data/phase1_seed10/logs/phase1_seed10_r2_sync_all_20260228T035145Z.json",
+  "apply_summary_path": "data/phase1_seed10/logs/phase1_seed10_r2_sync_all_20260228T035230Z.json",
+  "delete_policy": "prune_deferred_first_seen",
+  "prune_candidates_count": 20,
+  "prune_stable_hits": 1,
+  "prune_ready": false
+}

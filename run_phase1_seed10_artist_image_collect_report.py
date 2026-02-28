@@ -207,6 +207,34 @@ def append_breakdown_doc(report: dict[str, Any], report_path: Path) -> str:
     else:
         lines.append("- なし")
 
+    lines.append("")
+    lines.append("### 年抽出（作品画像）")
+    year_sort_audit = report.get("year_sort_audit")
+    if isinstance(year_sort_audit, list) and year_sort_audit:
+        for item in year_sort_audit[:5]:
+            if not isinstance(item, dict):
+                continue
+            lines.append(
+                "- "
+                f"{item.get('fair_slug')}/{item.get('gallery_name_en')} "
+                f"{item.get('artist_storage_key')}: "
+                f"works_top5={item.get('works_candidate_years_top5')} "
+                f"selected_top5={item.get('selected_image_years_top5')} "
+                f"desc_ok={item.get('selected_image_year_desc_ok')}"
+            )
+            selected_evidence = item.get("selected_image_year_evidence_top5")
+            if isinstance(selected_evidence, list) and selected_evidence:
+                for evidence in selected_evidence[:5]:
+                    if not isinstance(evidence, dict):
+                        continue
+                    lines.append(
+                        "  - "
+                        f"year={evidence.get('year')} "
+                        f"evidence_text={evidence.get('evidence_text')}"
+                    )
+    else:
+        lines.append("- なし")
+
     BREAKDOWN_DOC_PATH.parent.mkdir(parents=True, exist_ok=True)
     with BREAKDOWN_DOC_PATH.open("a", encoding="utf-8") as handle:
         handle.write("\n".join(lines) + "\n")
@@ -235,6 +263,7 @@ def main() -> int:
         "success_threshold": None,
         "fair_breakdown": [],
         "gallery_breakdown": [],
+        "year_sort_audit": [],
         "top_failed_reasons": [],
         "top_failed_domains": [],
         "notes": [],
@@ -300,6 +329,7 @@ def main() -> int:
         "success_threshold",
         "fair_breakdown",
         "gallery_breakdown",
+        "year_sort_audit",
     ):
         report[key] = summary.get(key)
     report["gallery_breakdown"] = merge_gallery_breakdown_with_seed_targets(report)

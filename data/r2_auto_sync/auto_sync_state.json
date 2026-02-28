@@ -1,0 +1,50 @@
+{
+  "targets": {
+    "phase1_derived": {
+      "prune": {
+        "fingerprint": "23da896db63c083a6b2ac57d4e80ebdf468b7524c52daefb90a8112a9dc2a07d",
+        "stable_hits": 1,
+        "candidate_count": 2,
+        "last_seen_at": "2026-02-28T09:43:09Z"
+      },
+      "last_trigger": "run_phase1_seed10_artist_image_collect.py",
+      "last_run_at": "2026-02-28T09:43:09Z",
+      "last_status": "ok",
+      "last_delete_policy": "prune_deferred_first_seen",
+      "last_prune_candidates_count": 2,
+      "last_dry_run_summary_path": "data/phase1_seed10/logs/phase1_seed10_r2_sync_derived_20260228T094241Z.json",
+      "last_apply_summary_path": "data/phase1_seed10/logs/phase1_seed10_r2_sync_derived_20260228T094309Z.json"
+    },
+    "tarutani_all": {
+      "prune": {
+        "fingerprint": "",
+        "stable_hits": 0,
+        "candidate_count": 0,
+        "last_seen_at": "2026-02-27T17:51:12Z"
+      },
+      "last_trigger": "smoke_auto_sync",
+      "last_run_at": "2026-02-27T17:51:12Z",
+      "last_status": "ok",
+      "last_delete_policy": "no_prune_candidates",
+      "last_prune_candidates_count": 0,
+      "last_dry_run_summary_path": "data/Tarutani_data/logs/tarutani_r2_sync_all_20260227T175059Z.json",
+      "last_apply_summary_path": "data/Tarutani_data/logs/tarutani_r2_sync_all_20260227T175112Z.json"
+    },
+    "phase1_all": {
+      "prune": {
+        "fingerprint": "",
+        "stable_hits": 0,
+        "candidate_count": 0,
+        "last_seen_at": "2026-02-28T08:25:34Z"
+      },
+      "last_trigger": "run_phase1_seed10.py",
+      "last_run_at": "2026-02-28T08:25:34Z",
+      "last_status": "ok",
+      "last_delete_policy": "no_prune_candidates",
+      "last_prune_candidates_count": 0,
+      "last_dry_run_summary_path": "data/phase1_seed10/logs/phase1_seed10_r2_sync_all_20260228T082415Z.json",
+      "last_apply_summary_path": "data/phase1_seed10/logs/phase1_seed10_r2_sync_all_20260228T082534Z.json"
+    }
+  },
+  "updated_at": "2026-02-28T09:43:09Z"
+}

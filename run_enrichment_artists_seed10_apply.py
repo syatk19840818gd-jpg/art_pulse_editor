@@ -11,6 +11,7 @@ from typing import Any
 
 from dotenv import load_dotenv
 from openai import OpenAI
+from r2_auto_sync import auto_sync_after_job, format_auto_sync_brief
 
 TARGET_YEAR = 2025
 RAG_CATEGORY = "artists_text"
@@ -406,6 +407,11 @@ def main() -> int:
     )
     print(f"[DONE] output={output_path}")
     print(f"[DONE] summary={summary_path}")
+    auto_sync_result = auto_sync_after_job(
+        target="phase1_derived",
+        trigger="run_enrichment_artists_seed10_apply.py",
+    )
+    print(format_auto_sync_brief(auto_sync_result))
     return 0
 
 

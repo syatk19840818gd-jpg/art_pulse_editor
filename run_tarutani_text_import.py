@@ -4,11 +4,19 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-import zipfile
+import sys
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+from docx import Document
+from r2_auto_sync import auto_sync_after_job, format_auto_sync_brief
+
+try:
+    from pypdf import PdfReader
+except Exception:  # pragma: no cover
+    PdfReader = None
 
 RAG_CATEGORY = "tarutani_text"
 DATA_ROOT = Path("data")
@@ -69,29 +77,34 @@ def write_json(path: Path, obj: Any) -> None:
 
 def extract_docx_text(path: Path) -> str:
     try:
-        with zipfile.ZipFile(path) as zf:
-            xml = zf.read("word/document.xml").decode("utf-8", errors="ignore")
+        document = Document(str(path))
     except Exception:
         return ""
-
-    text = xml.replace("</w:p>", "\n")
-    text = re.sub(r"<[^>]+>", "", text)
-    for src, dst in {
-        "&amp;": "&",
-        "&lt;": "<",
-        "&gt;": ">",
-        "&quot;": '"',
-        "&#39;": "'",
-    }.items():
-        text = text.replace(src, dst)
-    lines = [re.sub(r"\s+", " ", line).strip() for line in text.splitlines()]
-    return "\n".join([line for line in lines if line])
+    lines: list[str] = []
+    for paragraph in document.paragraphs:
+        text = re.sub(r"\s+", " ", str(paragraph.text or "")).strip()
+        if text:
+            lines.append(text)
+    return "\n".join(lines)
 
 
 def extract_pdf_text(path: Path) -> tuple[str, str]:
-    # 現在の依存セットではPDF抽出ライブラリ未導入のため、
-    # SSOTに従い抽出不能PDFとして text="" で取り込む。
-    return "", "PDF_TEXT_EXTRACTOR_UNAVAILABLE"
+    if PdfReader is None:
+        return "", "PDF_TEXT_EXTRACTOR_UNAVAILABLE"
+    try:
+        reader = PdfReader(str(path))
+        page_texts: list[str] = []
+        for page in reader.pages:
+            page_text = page.extract_text() or ""
+            normalized = re.sub(r"\s+", " ", page_text).strip()
+            if normalized:
+                page_texts.append(normalized)
+        text = "\n\n".join(page_texts).strip()
+        if text:
+            return text, "PDF_TEXT_EXTRACTED"
+        return "", "PDF_TEXT_EMPTY_AFTER_EXTRACTION"
+    except Exception as exc:  # noqa: BLE001
+        return "", f"PDF_TEXT_EXTRACT_ERROR:{type(exc).__name__}"
 
 
 def parse_series_and_source_path(file_path: Path) -> tuple[str, str] | None:
@@ -114,6 +127,8 @@ def parse_series_and_source_path(file_path: Path) -> tuple[str, str] | None:
 
 
 def main() -> int:
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(errors="backslashreplace")
     started_at = utc_now_iso()
     print(f"[START] Tarutani_Text import at {started_at}")
 
@@ -212,6 +227,11 @@ def main() -> int:
     )
     print(f"[DONE] output={OUTPUT_JSONL_PATH}")
     print(f"[DONE] summary={SUMMARY_JSON_PATH}")
+    auto_sync_result = auto_sync_after_job(
+        target="tarutani_all",
+        trigger="run_tarutani_text_import.py",
+    )
+    print(format_auto_sync_brief(auto_sync_result))
     return 0
 
 

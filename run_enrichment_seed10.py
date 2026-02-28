@@ -8,6 +8,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from r2_auto_sync import auto_sync_after_job, format_auto_sync_brief
+
 TARGET_YEAR = 2025
 RAG_CATEGORY = "exhibitions_text"
 
@@ -175,6 +177,11 @@ def main() -> int:
     )
     print(f"[DONE] requests={ENRICHMENT_REQUESTS_PATH}")
     print(f"[DONE] summary={ENRICHMENT_SUMMARY_PATH}")
+    auto_sync_result = auto_sync_after_job(
+        target="phase1_derived",
+        trigger="run_enrichment_seed10.py",
+    )
+    print(format_auto_sync_brief(auto_sync_result))
     return 0
 
 

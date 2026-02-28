@@ -13,7 +13,7 @@ STREAMLIT_ENTRYPOINT（固定）
 - Local run: streamlit run app.py
 
 SOURCE_SSOT: 01_PROJECT_SPEC_CURRENT_FULL.docx
-LAST_UPDATED: 2026-02-26 20:53 JST
+LAST_UPDATED: 2026-02-27 22:10 JST
 
 
 ========================
@@ -210,6 +210,12 @@ NEXT_TASKS（次回やること）
 ========================
 優先度順（上から実行）。終わったら [x] にする。
 ※各タスクは「計画→実装→動作確認→03更新」を1セットで回す。
+※R2運用テンプレは `TASK PREP-R2-GUARD-20260227` を参照（dry-run -> apply固定）。
+※重要: RAG生成（画像/ベクター/派生JSON）だけではR2へ自動反映されない。生成タスクの完了条件に「R2同期（dry-run -> guarded apply）」を必須で含める。
+  - 例（Phase1 derived）: `python run_phase1_seed10_r2_sync.py --scope derived --dry-run --prune`
+  - 例（Phase1 derived apply）: `python run_phase1_seed10_r2_sync.py --scope derived --prune --require-dry-run-log --max-prune 600`
+※自動化（2026-02-28適用）: 生成系スクリプトの正常終了時に `r2_auto_sync` が自動実行される。削除反映は安全のため「同一prune候補の2回連続検出」後に実行。
+※追加ルール: 今後追加するテキスト抽出/変換スクリプトも同様に `auto_sync_after_job` フックを必須とする（実装抜け防止）。
 
 [x] 1) ギャラリーリストCSVを repo に配置してコミットする（完了）
     - 置き場所：data/gallery_lists/
@@ -6108,6 +6114,47 @@ CHANGELOG（このファイルの更新履歴）
 - 2026-02-24：TASK 23 実施。`run_compare_phase1_guard_history.py` の baseline探索既定を `--current-summary` 親ディレクトリ起点へ汎化し、`--summary-glob`（既定 `phase1_guard_summary_*.json`）を追加。`--baseline-summary` 明示時はauto探索を無効化（manual固定）し、summaryへ `baseline_auto_search_dir` / `summary_glob_effective` などを保存。終了コード規約（0=pass,2=regression,3=incompatible）は維持確認。次は TASK 24（guard CLI共通関数化）。
 - 2026-02-24：TASK 24 実施。`phase1_guard_common.py` を追加し、path解決/summary保存/時刻生成/終了コード説明を共通化。`run_compare_phase1_guard.py` と `run_compare_phase1_guard_history.py` は共通関数参照へ最小差し替え（比較ロジック本体は変更最小）を実施し、動作確認で exit code 規約（0/2/3）維持を確認。次は TASK 25（共通fixture/テストデータ整理）。
 - 2026-02-24：TASK 25 実施。`tests/fixtures/phase1_guard/` に pass/regression/incompatible の固定fixture、`fixture_manifest.json`、`README.md`、`run_guard_fixture_matrix.sh` を追加し、再現コマンドと期待exit code（0/2/3）を明文化。固定fixture実行で exit 0/2/3 を確認し、CLIロジック本体は変更していない。
+- 2026-02-27：TASK A-2R-FIX-2 実施。`run_phase1_seed10_artist_image_collect.py` に「作品近傍テキスト/alt/caption から年抽出→最新年降順（年不明は末尾）」を汎用実装し、summary/report に `year_sort_audit`（候補年配列と降順判定）を追加。Sara Abdu 単独再実測では `selected_image_years_top5=[2024,2024,2024,2022,2022]` / `selected_image_year_desc_ok=true` を確認。退避は `data/phase1_seed10/derived/images/artist_works_images/2025/frieze-london/athr__sara-abdu__*` から `_trash/task_a2r_fix2_sara_abdu_reset_20260227_161353` へ 5件移動し、`run_compare_phase1_guard.py --target-year 2025` は exit 0（guard_passed=true）。
+- 2026-02-27：TASK A-2R-FIX-3 実施。`run_phase1_seed10_artist_image_collect.py` の年抽出に `evidence_text`（120文字短縮）を追加し、`year_sort_audit/per_artist_counts` へ候補単位で保存。`run_phase1_seed10_artist_image_collect_report.py` は `year_sort_audit` の `evidence_text` をレポートへ転記。Sara Abdu 単独再実測で `selected_image_years_top5=[2024,2024,2024,2022,2022]` / `selected_image_year_desc_ok=true` / `selected_image_year_evidence_top5` ありを確認。退避は `_trash/task_a2r_fix3_sara_abdu_reset_20260227_162659`（5件）、guard は exit 0（`phase1_guard_summary_2025_20260227T072806Z.json`）。
+- 2026-02-27：TASK A-2R-FIX-4 実施。`run_phase1_seed10_artist_image_collect.py` に `sanitize_evidence_text` を追加し、`evidence_text` 生成時に HTML属性断片（`key=value` 形式）や壊れたエンティティ断片を除去してから120文字へ短縮するよう更新。Sara Abdu 単独再実測で `selected_image_years_top5=[2024,2024,2024,2022,2022]` / `selected_image_year_desc_ok=true` を維持し、summary/report の `selected_image_year_evidence_top5` で属性ノイズなしを確認。退避は `_trash/task_a2r_fix4_sara_abdu_reset_20260227_163444`（5件）、guard は exit 0（`phase1_guard_summary_2025_20260227T073546Z.json`）。
+- 2026-02-27：TASK A-2B-CLOSE-1 実施。Gallery Baton（Liam Gillick）を1ギャラリー=1アーティストで再実測し、`saved_images=5` / `target_met=true` / `failed_cases=0` を確認。年配列は `selected_image_years_top5=[2025,2025,2025,2025,2024]` で降順成立。selected URL/evidence に exhibition/profile/hero 混入なし。`works_urls_tried` は `/artists/35-liam-gillick`（同一URL内に作品群を持つ構成）で `/works` サフィックスURLは未出現だが、取得画像は作品画像のみ。guard は exit 0（`phase1_guard_summary_2025_20260227T080554Z.json`）。
+- 2026-02-27：TASK A-2A-CLOSE-1 実施。A+ Works of Art（Ahmad Fuad Osman）を1ギャラリー=1アーティストで再実測し、`saved_images=5` / `target_met=true` / `failed_cases=0` を確認。ただし `works_urls_tried=['https://aplusart.asia/artists/']` となり、selected URL が他作家トークン（例: `thuy-anh`, `kentaro`）を含むため「対象作家作品のみ」の完了条件は未達。混入種別は exhibition/profile/hero ではないが、artist一致性の観点で ①-3 は未解決のまま継続。guard は exit 0（`phase1_guard_summary_2025_20260227T081204Z.json`）。
+- 2026-02-27：TASK A-2A-FIX-1 実施。`run_phase1_seed10_artist_image_collect.py` に artist一致性ガード（source_url由来トークン照合）と一覧URL除外（`/artists` 直抽出回避）を追加し、A+ Works of Art（Ahmad Fuad Osman）を再実測。`works_urls_tried=['https://aplusart.asia/artists/46-ahmad-fuad-osman/works']` へ改善、`selected_image_years_top5=[2024,2023,2022,2021,2019]` で降順成立、他作家名トークン混入は再現せず。いっぽう selected URL は 5/5 が `/exhibitions/main_image_override/` のため、①-3（WORKS優先のみ）は未完のまま継続。guard は exit 0（`phase1_guard_summary_2025_20260227T082116Z.json`）。
+- 2026-02-27：TASK A-2A-FIX-2 実施。`run_phase1_seed10_artist_image_collect.py` に works-only選別ガード（`/exhibitions` / `main_image_override` / `profile` / `hero` などの汎用除外）を追加し、A+ Works of Art（Ahmad Fuad Osman）を再実測。`works_urls_tried=['https://aplusart.asia/artists/46-ahmad-fuad-osman/works']` を維持しつつ selected URL の Exhibitions/Profile/Hero 混入は 0件、`selected_image_years_top5=[1989,1953,None,None,None]` で降順判定も維持。①-3 をクローズ判定。guard は exit 0（`phase1_guard_summary_2025_20260227T083459Z.json`）。
+- 2026-02-27：ユーザー確認により、②（Athrの枚数/作品性）は解決済みとして確定。
+- 2026-02-27：TASK A-4-CLOSE-1 実施。The Approach（Phillip Allen）を1ギャラリー=1アーティストで再実測し、`saved_images=5` / `target_met=true` を確認。旧 `_trash/artist_works_images_cleanup_20260227T021440Z` のファイルは「payloadシグネチャ=.avif / 保存拡張子=.jpg」の不整合が5/5で、読込不可の主因は拡張子誤保存と特定。`run_phase1_seed10_artist_image_collect.py` に content-type優先拡張子決定 + payloadシグネチャ補正 + HTML payload除外 + 極小payload除外を汎用実装（この時点では `.avif` 保存）し、guard は exit 0（`phase1_guard_summary_2025_20260227T085012Z.json`）。※この判定は後にユーザー確認で再オープン済み。
+- 2026-02-27：ユーザー確認により A-4 を再オープン（`.avif` は閲覧環境で読めず、100KB目標も未達）。`run_phase1_seed10_artist_image_collect.py` を再修正し、(1) 画像要求ヘッダから avif/webp 優先を外す、(2) 保存前に Pillow で JPEG 正規化、(3) `IMAGE_TARGET_SIZE_KB=100` 目標で品質/縮小を段階調整、(4) 実画像サイズが小さすぎる画像（120px未満）を除外、を実装。`2025`配下の既存画像を全退避後に再収集し、最終結果は `.jpg` のみ 39枚、`max=102,358B`、`>120KB=0`、`<10KB=0`。guard は exit 0（`phase1_guard_summary_2025_20260227T091928Z.json`）。
+- 2026-02-27：運用修正。画像再検証時に「成功済み画像を全退避」しない方針へ変更し、`run_phase1_seed10_artist_image_collect.py` に「既存キャッシュの健全性検証 + 無効画像のみ `_trash/invalid_cached_images_<ts>/` へ隔離」を実装。成功画像は保持して再利用する。あわせてユーザー判断を反映し、Amanita の 4枚取得は「ページ上限による妥当結果」としてブロッカー扱いしない。
+
+========================
+臨時課題①〜⑤ロードマップ（本タスク再開前）
+========================
+前提:
+- 03の本タスク（旧番号 106/107 系）は一時停止。
+- 臨時課題①〜⑤を優先し、「1ギャラリーずつ」「1ギャラリー=1アーティスト」で進める。
+- SSOT整合ゲートを毎回適用（01章ID / 02 CARD_ID / 変更対象関数の1対1紐付けを明示）。
+
+現在地（ユーザー合意ベース）:
+- ①-1 `frieze_london / Athr`: 解決済み（ユーザー確認）
+- ①-2 `frieze_london / Gallery Baton`: 解決済み（TASK A-2B-CLOSE-1）
+- ①-3 `liste / A+ Works of Art`: 解決済み（TASK A-2A-FIX-2）
+- ② `Athr 3枚かつ作品でない`: 解決済み（ユーザー確認）
+- ③-1 `frieze_london / Adams and Ollman 0件`: 未着手
+- ③-2 `frieze_london / Arcadia Missa 0件`: 未着手
+- ④ `frieze_london / The Approach 破損画像`: 解決済み（TASK A-4-CLOSE-1）
+- ⑤ `liste / Anca Poterașu Gallery ロゴ/アイコン混入`: 未着手
+
+実行順（軽量ロードマップ）:
+- R1: ①-1 Athr（works優先の実効確定）+ ② Athr枚数/非作品問題
+- R2: ①-2 Gallery Baton（works優先）
+- R3: ①-3 A+ Works of Art（works優先）
+- R4: ④ The Approach（破損画像の原因切り分けと修正）
+- R5: ⑤ Anca Poterașu（ロゴ/アイコン抑制。6-2抵触なら理由付きスキップ）
+- R6: ③-1/③-2（0件系を順番に切り分け。6-2抵触なら理由付きスキップ）
+
+完了判定（臨時課題フェーズ）:
+- ①〜⑤の各課題で「解決」または「6-2準拠のスキップ理由記録」が完了。
+- 完了後に 03 の本タスク（NEXT_TASKS）へ復帰する。
 - 2026-02-24：TASK 26 実施。`run_compare_phase1_guard.py` に summary/ledger 数字整合の追加見張り（skip内訳合計・failed理由内訳合計・records関係）を追加。キー不足は後方互換として `missing_keys`/`skipped_checks` へ記録し、mismatchにはしない方針を明記。2025通常実行は exit 0、skip内訳を崩したコピーsummaryで `--fail-on-mismatch` exit 2 を確認。既存判定ロジックは維持。
 - 2026-02-24：TASK 27 実施。`run_compare_phase1_guard_history.py` に追加見張り項目の差分見える化（`additional_guard_checks_diff` / `additional_guard_checks_changed_fields` / `additional_guard_check_transitions`）を追加。旧summary互換として `additional_guard_checks_comparison_mode` / `additional_guard_checks_missing_in` を保存し、項目欠落でも比較継続。動作確認は pass=0 / regression=2 / incompatible=3、回帰判定ロジック自体は未変更。
 - 2026-02-24：TASK 28 実施。`docs/PHASE1_GUARD_SUMMARY_SCHEMA.md` を追加し、guard本体summary/history summaryの主要キー、exit code（0/2/3）、運用時の読む順番、fixture再現手順、後方互換メモを文書化。CLIロジック本体は未変更。
@@ -6640,111 +6687,379 @@ TASK PREP-20260227 result (before issue 1-5 rerun)
   - TASK A-2R (issue 1-1 recheck: frieze_london / Athr)
 
 ---
-TASK PREP-R2-SYNC ???????????????????
-- ????:
-  - `run_phase1_seed10_r2_sync.py` ????scope: raw/derived/enrichment/logs/all, dry-run/apply ????
-  - apply?? `data/phase1_seed10/derived/phase1_seed10_artifact_manifest.json` ?????R2??????????
-- ????:
-  - `python run_phase1_seed10_r2_sync.py --scope all --dry-run` ? exit 0
-  - `python run_phase1_seed10_r2_sync.py --scope all` ? exit 0
+TASK PREP-R2-SYNC（Phase1成果物のR2同期準備）
+- 内容:
+  - `run_phase1_seed10_r2_sync.py` を新規追加（scope: raw/derived/enrichment/logs/all、dry-run/apply 対応）
+  - apply時に `data/phase1_seed10/derived/phase1_seed10_artifact_manifest.json` を更新し、R2へ同期
+- 実行:
+  - `python run_phase1_seed10_r2_sync.py --scope all --dry-run` → exit 0
+  - `python run_phase1_seed10_r2_sync.py --scope all` → exit 0
   - summary: `data/phase1_seed10/logs/phase1_seed10_r2_sync_all_20260226T181020Z.json`
   - uploaded=360 / skipped=134 / failed=0 / manifest_upload=true
-- ??:
-  - ????????????????????
-- ????????:
-  - TASK A-2R??-1???: frieze_london / Athr?
+- 判定:
+  - R2同期CLIは実運用可能
+- 次タスク:
+  - TASK A-2R（①-1再検証: frieze_london / Athr）
 
-- ???????:
-  - `python run_phase1_seed10_r2_sync.py --scope all` ??????`uploaded=1 / skipped=494 / failed=0` ????
-  - ??summary: `data/phase1_seed10/logs/phase1_seed10_r2_sync_all_20260226T181511Z.json`
-  - ??manifest: `data/phase1_seed10/derived/phase1_seed10_artifact_manifest.json`?`failed_count=0`?
+- 再実行メモ:
+  - `python run_phase1_seed10_r2_sync.py --scope all` 実行で `uploaded=1 / skipped=494 / failed=0`
+  - summary: `data/phase1_seed10/logs/phase1_seed10_r2_sync_all_20260226T181511Z.json`
+  - manifest: `data/phase1_seed10/derived/phase1_seed10_artifact_manifest.json`（`failed_count=0`）
 
 
 ---
-TASK A-2R ?????2026-02-27 / Athr works?? ????
-- ??????:
+TASK A-2R 実施結果（2026-02-27 / Athr works優先 再検証）
+- preflight:
   - `python run_phase1_network_preflight.py` ? exit 1
   - `python run_phase1_network_preflight.py` ? exit 1
-- ???:
+- 出力:
   - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260227T020117Z.json`
   - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260227T020135Z.json`
-- ??:
-  - 2??? `passed=False`?`dns_ok_rate=1.000`, `http_probe_ok=False`?
-  - fail-fast????? Athr???collect/report/guard?????
-- ??????:
-  - HTTP probe failure ?????A-2R ?????????1?????=1?????????
+- 判定:
+  - 2回とも `passed=False`（`dns_ok_rate=1.000` だが `http_probe_ok=False`）
+  - fail-fast により Athr collect/report/guard は未実行
+- 次アクション:
+  - HTTP probe failure を先に解消し、A-2R は環境復旧後に再開
 
 
 ---
-TASK D0-A2R-BLOCKER-ROOTCAUSE ?????2026-02-27 / ??????????
-- ??:
-  - preflight ? `https://example.com` ??URL????DNS????TLS??????1??fail-fast???
-- ??:
+TASK D0-A2R-BLOCKER-ROOTCAUSE 実施結果（2026-02-27 / preflight失敗の根因切り分け）
+- 事象:
+  - preflight の `https://example.com` probe で、DNSは通るがTLS検証失敗が発生し fail-fast
+- 根拠:
   - `phase1_network_preflight_summary_20260227T020117Z.json` / `...020135Z.json`
-  - ???? `dns_ok_rate=1.000` ?? `http_probe_ok=False`?CERTIFICATE_VERIFY_FAILED?
-- ????????:
-  - `run_phase1_network_preflight.py` ???URL?????????
-  - `config/phase1_network_preflight_profile.json` ???probe URL / threshold / timeout?
-  - ?????tls/dns/timeout/proxy??summary???
-  - ?????????????????????
-- ???:
+  - `dns_ok_rate=1.000` だが `http_probe_ok=False`（CERTIFICATE_VERIFY_FAILED）
+- 修正対応:
+  - `run_phase1_network_preflight.py` に probe URL差し替え対応を追加
+  - `config/phase1_network_preflight_profile.json` に probe URL / threshold / timeout を追加
+  - summary に失敗種別（tls/dns/timeout/proxy）を記録
+  - 連続実行時のファイル衝突を避ける連番出力に修正
+- 再実行:
   - `python run_phase1_network_preflight.py` ? exit 0
     - `phase1_network_preflight_summary_20260227T021906Z.json`
   - `python run_phase1_network_preflight.py` ? exit 0
     - `phase1_network_preflight_summary_20260227T021937Z.json`
-- ??:
-  - preflight 2??PASS?????A-2R???????????
+- 判定:
+  - preflight 2連続PASSを確認し、A-2R 再開可能
 
 
 ---
-TASK A-2R-RESTART ?????2026-02-27 / Athr works?? ????
+TASK A-2R-RESTART 実施結果（2026-02-27 / Athr works優先 再開）
 - preflight:
   - `python run_phase1_network_preflight.py` ? exit 0
   - `python run_phase1_network_preflight.py` ? exit 0
 - collect:
   - `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5 --only-fair-slug frieze_london --only-gallery-name Athr --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2r_restart_athr.json"` ? exit 0
 - report:
-  - ????? cp932 ???????? exit 1?????????
-  - `PYTHONUTF8=1` ?????? exit 0
+  - 初回は cp932 文字化けで exit 1
+  - `PYTHONUTF8=1` で再実行し exit 0
 - guard:
   - `python run_compare_phase1_guard.py --target-year 2025` ? exit 0
-- ??:
-  - Athr: ??1 / ??0 / ??0 / ???0.0%
-  - `failed_cases[].notes` ? `works_page_tried:3`, `works_page_found:3`, `works_candidates_count:0` ???
-  - 0??????????????`no_image_candidates_found_on_artist_detail`, domain=`athrart.com`?
+- 判定:
+  - Athr: 対象1 / 成功0 / 画像0 / 成功率0.0%
+  - `failed_cases[].notes` に `works_page_tried:3`, `works_page_found:3`, `works_candidates_count:0`
+  - 失敗理由は `no_image_candidates_found_on_artist_detail`（domain=`athrart.com`）
 
 
 ---
-TASK A-2R-FIX ?????2026-02-27 / Athr works candidates=0 ???
+TASK A-2R-FIX 実施結果（2026-02-27 / Athr works candidates=0 修正）
 - preflight:
   - `python run_phase1_network_preflight.py` ? exit 0
   - `python run_phase1_network_preflight.py` ? exit 0
-- ??:
-  - Athr works???????URL? `data-lazy` ??????????????????
-- ??:
-  - `run_phase1_seed10_artist_image_collect.py` ? `data-lazy` ?????????????
-  - `run_phase1_seed10_artist_image_collect_report.py` ? stdout ?????????Windows cp932????
-- ???:
+- 原因:
+  - Athr works画像URLが `data-lazy` 属性にあり、既存抽出では拾えていなかった
+- 修正:
+  - `run_phase1_seed10_artist_image_collect.py` に `data-lazy` 抽出対応を追加
+  - `run_phase1_seed10_artist_image_collect_report.py` に stdoutエンコード安全化を追加（Windows cp932対策）
+- 結果:
   - collect: exit 0?Athr: 1/1 artists >=5 images, images_saved=5?
   - report: exit 0
   - guard: exit 0?guard_passed=true?
-- ??:
-  - Athr ? works candidates=0 ????
+- 判定:
+  - Athr の works candidates=0 問題は解消
 
 
 ---
-TASK A-2R-FIX-1 ?????2026-02-27 / Athr?????? + Sara Abdu???
+TASK A-2R-FIX-1 実施結果（2026-02-27 / Athr絞り込み + Sara Abdu検証）
 - preflight:
   - `python run_phase1_network_preflight.py` ? exit 0
   - `python run_phase1_network_preflight.py` ? exit 0
-- ??:
-  - `data/phase1_seed10/derived/images/artist_works_images/2025/frieze-london/athr__*` ? `_trash/task_a2r_fix1_athr_reset_20260227T120334Z` ???
+- 退避:
+  - `data/phase1_seed10/derived/images/artist_works_images/2025/frieze-london/athr__*` → `_trash/task_a2r_fix1_athr_reset_20260227T120334Z`
   - before=5 / after=0
-- ??:
-  - works??URL? `data-lazy` ?????????????????
-- ??:
-  - `run_phase1_seed10_artist_image_collect.py` ? `data-lazy` ?? + URL??artist slug?? + `works_urls_tried`??????
-- ????Sara Abdu???:
+- 修正:
+  - works画像URLの `data-lazy` 取得を維持
+  - URL由来の artist slug 判定と `works_urls_tried` 記録を追加
+- 結果（Sara Abdu）:
   - collect exit 0 / report exit 0 / guard exit 0
-  - Athr: ??1 / ??1 / ??5 / ???100%
-  - ???????? `athr__sara-abdu__...` ???artist?????
+  - Athr: 対象1 / 成功1 / 画像5 / 成功率100%
+  - 取得ファイルは `athr__sara-abdu__...` 命名で artist検索可能
+
+---
+TASK RAG-IMAGE-SSOT-REFIT-20260227 (temporary override before TASK-107)
+- scope:
+  - reimplemented Artist Works image rules to close SSOT gaps (5-4 / 4-4 update logic / hash dedupe / hero strong-signal handling)
+  - added metadata jsonl outputs:
+    - `data/phase1_seed10/derived/artist_works_images_frieze_london.jsonl`
+    - `data/phase1_seed10/derived/artist_works_images_liste.jsonl`
+- run:
+  - preflight x2 PASS
+  - moved active images to `_trash/task_rag_image_full_reextract_20260227_100225/` (39 files)
+  - full collect rerun completed (processed=8, ge_target=7, rate=87.5%)
+  - report + guard completed (guard_passed=true)
+- generated:
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_rag_full_reextract_20260227.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_rag_full_reextract_20260227_report.json`
+  - `data/phase1_seed10/logs/phase1_guard_summary_2025_20260227T100759Z.json`
+
+
+---
+TASK TARUTANI-SSOT-REFIT-20260227
+- scope:
+  - TarutaniRAG の SSOT差分修正（import / r2 sync / vector manifest）
+  - Tarutani vector を再生成
+- done:
+  - backup to _trash/task_tarutani_refit_20260227_102918/ and _trash/task_tarutani_refit_reimport_20260227_103139/
+  - un_tarutani_text_import.py rerun (16 records)
+  - headline_ja restored from backup (16 records)
+  - un_vectorize_tarutani_text.py rerun (chunks=74, embedded=74, failed=0)
+  - un_tarutani_r2_sync.py --scope source --dry-run verified source key as data/Tarutani_data/...
+- outputs:
+  - data/Tarutani_data/tarutani_text.jsonl
+  - data/Tarutani_data/vector/tarutani_text_index.npy
+  - data/Tarutani_data/vector/tarutani_text_meta.jsonl
+  - data/Tarutani_data/vector/artifact_manifest.json
+
+
+---
+TASK PREP-R2-GUARD-20260227（R2同期の安全ガード固定）
+- 目的:
+  - 01/02 準拠で、R2同期を運用依存ではなく CLI ガードで強制する。
+- 実装:
+  - `run_phase1_seed10_r2_sync.py`
+    - `--require-dry-run-log` 追加（同一scopeの直前dry-run必須）
+    - `--max-prune` 追加（削除候補上限、超過時GUARD_BLOCKED）
+  - `run_tarutani_r2_sync.py`
+    - `--require-dry-run-log` 追加
+    - `--max-prune` 追加
+    - 既定scopeを `all` に変更（source偏重の再発防止）
+- 運用テンプレ（固定）:
+  - 1コマンド運用（推奨）:
+    - `python run_r2_sync_runbook.py`
+  - Phase1:
+    - `python run_phase1_seed10_r2_sync.py --scope all --dry-run --prune`
+    - `python run_phase1_seed10_r2_sync.py --scope all --prune --require-dry-run-log --max-prune 600`
+  - Tarutani:
+    - `python run_tarutani_r2_sync.py --scope all --dry-run --prune --prune-prefix tarutani/source`
+    - `python run_tarutani_r2_sync.py --scope all --prune --prune-prefix tarutani/source --require-dry-run-log --max-prune 100`
+- 基準スナップショット（現行正）:
+  - `data/phase1_seed10/logs/phase1_seed10_r2_sync_all_20260227T121330Z.json`（apply）
+  - `data/phase1_seed10/logs/phase1_seed10_r2_sync_logs_20260227T121741Z.json`（限定prune apply）
+  - `data/Tarutani_data/logs/tarutani_r2_sync_all_20260227T121540Z.json`（apply）
+  - `data/Tarutani_data/logs/tarutani_r2_sync_all_20260227T121748Z.json`（限定prune apply）
+
+
+---
+TASK A-3A-CLOSE-1 実施結果（2026-02-27 / Adams and Ollman）
+- SSOT整合ゲート（章ID/CARD）確認:
+  - 01: 4-0, 4-4, 5-4, 6-2, 6-3, 10
+  - 02: 10_NO_HERO_IMAGES, 11_IMAGE_TARGET_LINE, 14_CATEGORY_4_0_COMMON, 16_SSOT_COMPLIANCE_GATE
+- preflight:
+  - `python run_phase1_network_preflight.py` -> exit 0
+  - `python run_phase1_network_preflight.py` -> exit 0
+  - outputs:
+    - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260227T125944Z.json`
+    - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260227T125944Z_01.json`
+- Step2特定結果:
+  - `artists_frieze_london_2025.jsonl` に `Adams and Ollman` 行が 0 件（`artists_file_hit=0`）
+  - 本タスクでは代替として `exhibitions_frieze_london_2025.jsonl` の `source_url=https://adamsandollman.com/Past-Exhibitions` を参照
+- 退避:
+  - src: `data/phase1_seed10/derived/images/artist_works_images/2025/frieze-london/adams-and-ollman__*`
+  - dst: `_trash/task_a3a_close1_adams_ollman_reset_20260227_220415/`
+  - result: moved=0, src_remaining=0
+- 再実測:
+  - collect: `phase1_seed10_artist_image_collect_summary_task_a3a_close1_adams_ollman.json` -> exit 0（`no targets`）
+  - report: `phase1_seed10_artist_image_collect_summary_task_a3a_close1_adams_ollman_report.json` -> exit 0
+  - guard: `phase1_guard_summary_2025_20260227T130507Z.json` -> exit 0（guard_passed=false）
+- 判定:
+  - 今回は「理由付きスキップ（前提データ不足）」とする
+  - 理由:
+    - 1ギャラリー=1アーティスト実測の入力源である `artists_frieze_london_2025.jsonl` に対象ギャラリーのartistレコードが未生成
+    - そのため collector が `seed_artist_count=0` となり works優先判定まで進行不可
+  - 再開条件:
+    - `artists_frieze_london_2025.jsonl` に `gallery_name_en=Adams and Ollman` のartistレコードを少なくとも1件生成してから再実測
+
+
+---
+## TASK A-3A-FIX-1 (2026-02-27)
+- Done:
+  - Added 1 artist seed for `Adams and Ollman` to `artists_frieze_london_2025.jsonl`.
+  - source_url: `https://adamsandollman.com/Jonathan-Berger-1`
+  - Re-ran `A-3A-CLOSE-1` style measurement with 1 gallery = 1 artist.
+- Result:
+  - `seed_artist_count=1` (previous `0` issue resolved)
+  - `works_urls_tried` includes `/works`
+  - `works_candidates_count=0`, `saved_images=0`, `selected_image_years_top5=[]`
+  - fail reason: `no_image_candidates_found_on_artist_detail`
+- Current status:
+  - 3-1 `frieze_london / Adams and Ollman`: seed-missing issue resolved, works-image extraction still unresolved.
+  - Next step is quick generic-logic verification; if still no improvement, move to reasoned skip under 01 section 6-2.
+
+---
+## TASK A-3A-CLOSE-2 (2026-02-27)
+- Scope:
+  - 3-1 `frieze_london / Adams and Ollman` (1 gallery = 1 artist)
+  - source_url fixed: `https://adamsandollman.com/Jonathan-Berger-1`
+- Result:
+  - preflight x2 PASS
+  - generic non-`img` candidate extraction was added and verified
+  - rerun still `works_candidates_count=0`, `saved_images=0`
+  - failed reason: `no_image_candidates_found_on_artist_detail`
+- Decision:
+  - 01 section 6-2 compliant **reasoned skip** is fixed for 3-1.
+  - reason: no extractable works image references in current public HTML/DOM without domain-specific hack.
+  - skip registry: `data/gallery_lists/skipped_galleries_registry.csv` に1行追記運用を固定。
+  - auto behavior: listed galleries are now skipped automatically by `run_phase1_seed10_artist_image_collect.py`.
+- Next priority:
+  - move to 3-2 `frieze_london / Arcadia Missa` with the same 1-gallery/1-artist rule.
+
+---
+## TASK A-3B-CLOSE-1 (2026-02-27)
+- Scope:
+  - 3-2 `frieze_london / Arcadia Missa` (1 gallery = 1 artist)
+- Result:
+  - preflight x2 PASS
+  - Arcadia Missa artist seed was missing in `artists_frieze_london_2025.jsonl`; one seed was added for `https://arcadiamissa.com/brad-kronz/`
+  - rerun result: `saved_images=5`, `target_met=true`, `failed_cases=0`
+  - `works_urls_tried=['https://arcadiamissa.com/brad-kronz/works']`
+  - `selected_image_years_top5=[2026, 2026, 2026, 2026, 2026]`, `selected_image_year_desc_ok=true`
+- Decision:
+  - ③-2 Arcadia Missa の「0件課題」は解消（skip化なし）。
+- Next priority:
+  - ⑤ `liste / anca-potera-u-gallery` のロゴ/アイコン混入判定（6-2準拠で成功 or 理由付きスキップ確定）。
+
+
+---
+## TASK A-3B-DUP-FIX-1 (2026-02-27)
+- Scope:
+  - Arcadia Missa duplicate-photo fix after A-3B-CLOSE-1.
+- Findings:
+  - duplicate root cause was URL-hash dedupe by raw URL (scaled variants treated as different).
+  - old metadata hash fallback also allowed duplicate reinjection.
+- Fix:
+  - image dedupe normalized by removing `-WxH` suffix.
+  - metadata merge now also dedupes by normalized URL identity.
+- Rerun result:
+  - duplicate eliminated (`unique selected URLs=4/4`).
+  - current saved count is 4 (target 5 unmet) due unique candidates shortage.
+- Next priority:
+  - TASK A-5-CLOSE-1 (`liste / anca-potera-u-gallery` logo/icon????) ????
+
+---
+## TASK A-3B-FIX-2 (2026-02-28)
+- Scope:
+  - Arcadia Missa / Brad Kronz の「4枚止まり」原因調査と5枚化（1ギャラリー=1アーティスト）
+- Root cause:
+  - 既存メタの全ハッシュを既知扱いしていたため、ローカル実ファイルが無い候補まで再取得対象から除外されていた。
+  - `max_year_seen` / `topN hash prev` による候補除外が、不足補充時にも効いてしまい、5枚目候補を落としていた。
+  - artist一致性判定で「artist URL配下ページなら無条件許可」していたため、他作家画像が混入し得た。
+- Fix:
+  - `run_phase1_seed10_artist_image_collect.py`
+    - `seen_image_url_hashes` を「実在かつ有効なローカルキャッシュ由来ハッシュ」のみに変更
+    - 不足補充時の候補除外（`max_year_seen` / `topN hash prev`）を撤廃
+    - artist一致性の無条件許可を削除し、URL/evidence のトークン一致で判定
+- Re-measure result:
+  - preflight x2 PASS
+  - `saved_images=5`, `target_met=true`
+  - `selected_image_years_top5=[2026, 2026, 2026, 2026, 2025]`（降順OK）
+  - 5件すべて Brad Kronz 由来URL（他作家混入なし）
+- Next priority:
+  - ④ The Approach（壊れ画像）または ⑤ Anca Poterașu（ロゴ混入）の未解決タスクへ復帰
+
+---
+## TASK A-5-CLOSE-1 (2026-02-28)
+- Scope:
+  - ⑤ `liste / Anca Poterașu Gallery` を `anetta-mona-chisa` 以外で再検証（`aurora-kiraly` 固定）
+- Result:
+  - preflight x2 PASS
+  - source_url: `https://www.ancapoterasu.com/artists/aurora-kiraly/`
+  - works URL試行: `.../aurora-kiraly/works`（404）-> detail fallbackで取得
+  - `saved_images=4`, `target_met=false`, `selected_image_years_top5=[2022, 2022, 2022, 2021]`
+  - selected画像URL/evidenceで `logo/icon/sprite/favicon/hero/profile/exhibition` 混入は確認されず
+- Note:
+  - `only-source-url` 指定時に gallery上限(1件)より前に候補絞り込みできるよう collector を修正済み。
+- Next priority:
+  - ④ `frieze_london / The Approach` の壊れ画像課題に復帰
+
+---
+## TASK A-5-CLOSE-1-UPDATE (2026-02-28)
+- Scope:
+  - `liste / Anca Poterașu Gallery` を non-anetta (`aurora-kiraly`) で再修正・再実測
+- Fix:
+  - `run_phase1_seed10_artist_image_collect.py`
+    - `only-source-url` 指定時、gallery上限適用前に source を優先してターゲット化
+    - artist一致性を汎用緩和（artist詳細URL + 姓一致 + 作品情報シグナルで許可）
+- Result:
+  - `saved_images=5`, `target_met=true`
+  - `selected_image_years_top5=[2025, 2022, 2022, 2022, 2021]`（降順OK）
+  - selected URL/evidence で logo/icon/sprite/favicon/hero/profile/exhibition 混入なし
+  - 退避していた `anetta-mona-chisa` 5枚はローカルへ復元済み
+- Next priority:
+  - ④ `frieze_london / The Approach` の壊れ画像課題を再開
+### TASK A-3A-CLOSE-3 完了（Adams and Ollman skip最終確定）
+- 日付: 2026-02-27
+- 判定: 「汎用ロジック範囲で未達のため理由付きスキップ」を正式確定
+- 根拠:
+  - skip registry 登録済み: `data/gallery_lists/skipped_galleries_registry.csv`
+  - 再実測 summary で `auto_skipped_by_registry:1` を確認
+  - 新規画像保存 0件（対象は抽出せず自動スキップ）
+- 生成物:
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a3a_close3_adams_ollman_skip_verify.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a3a_close3_adams_ollman_skip_verify_report.json`
+  - `data/phase1_seed10/logs/phase1_guard_summary_2025_20260227T185732Z.json`
+- 再開条件:
+  - 公開DOMで works 画像URLが取得可能になること
+  - またはドメイン依存なしで他ギャラリーにも効く汎用抽出要件が成立すること
+- 2026-02-28：POLICY-UPDATE-ARTIST-GLOBAL-DEDUPE 実施。01 4-0-A の方針を更新し、Artist系抽出（artists_text / artist works images）の重複抽出を「同一フェア内のみ」から「全フェア・全ギャラリー横断で禁止」へ変更。`run_phase1_seed10.py` と `run_phase1_seed10_artist_image_collect.py` に `artist_master_global.json`（`data/phase1_seed10/logs/artist_master_global.json`）を用いた自動スキップを実装。summary へ global dedupe メタを記録。※ExhibitionsRAG にはこのスキップを適用しない。
+- 2026-02-28：4-0-A 失敗リトライ運用を image collect 側へ実装。`run_phase1_seed10_artist_image_collect.py` に `failed_fetches_artist_image_collect_2025.json` を追加し、failed URL を cooldown + retry上限で自動スキップ。テスト時のみ `--force-retry-failed` / `--clear-failed-ledger target|all` を使用可能。
+- 2026-02-28：MAX_ARTISTS_PER_GALLERY を 3 に引き上げ（`run_phase1_seed10.py` / `run_phase1_seed10_artist_image_collect.py`）。10ギャラリー対象で再実行し、skip運用の Adams and Ollman を除く実質9ギャラリーに適用。既存成功画像は削除せず保持したまま不足分のみ追加抽出。
+- 2026-02-28：max=3 再実測結果。`seed_artist_count=25` / `max_artists_per_gallery_for_collect=3` / `auto_skipped_by_registry=1`。Arcadia Missa は raw artist 母数が1件（`artists_frieze_london_2025.jsonl`）のため 1名処理のまま。
+- 2026-02-28：TASK A-REPRO-FIX-1 実施。`run_phase1_seed10_artist_image_collect.py` に (1) payload hash 最終重複ガード、(2) token空 artist seed 除外、(3) `--force-retry-failed` 時の works URL 再評価を追加。再実測で `athr__30__*` 非再生成を確認。
+- 2026-02-28：A-REPRO-FIX-1 再実測メモ。Song Burnsoo は 5件ユニーク化、Chong Kim Chiew は同一実体5連続を解消し3件ユニーク、Gan Chin Lee は再抽出0件（重複再生成なし）。次段で The Approach / Afriart / Anca の未達（枚数不足）を個別に詰める。
+- 2026-02-28：TASK A-REPRO-FIX-2 実施。artist一致性のartist配下緩和、works URL抽出のartist配下優先、tiny->large/medium 画像取得を追加。再実測で `ge_target=21/24 (87.5%)` に改善。
+- 2026-02-28：A-REPRO-FIX-2 結果。The Approach / Afriart / Anca は 3名×5枚を達成。残課題は A+ Works of Art のみ（`Chong Kim Chiew=3/5`）。A+ Works の最終2件補完を次タスク最優先とする。
+- 2026-02-28：TASK A-REPRO-FIX-3 実施。`Gan Chin Lee` は seed（`artists_liste_2025.jsonl`）に実在することを確認しつつ、A+ Works で他作家混入の既存5枚を `_trash/task_a_repro_fix3_gan_reset_manual/` へ退避。再実測で `Gan=0/5`（誤混入停止）、`Chong=3/5`（未達継続）、`Ahmad=5/5`。全体は `ge_target=17/24 (70.83%)`。
+- 次の最優先：A+ Works of Art の `Chong Kim Chiew 3/5` を 5/5 に補完（works候補は取得済みのため、候補採択/ダウンロード段の汎用改善を優先）。
+- 2026-02-28：TASK A-REPRO-FIX-4 実施。`Chong Kim Chiew` 単独再実測は継続して `3/5`。`extract_image_candidates` + works-only + artist一致性を直接検証した結果、`pass_both` の正規化ユニーク画像は3件のみ（同一作品のサイズ違いを除くと増えない）を確認。
+- 2026-02-28：`the-approach__tom-allen__...__img_03.jpg` は前回の invalid cache quarantine で `_trash/invalid_cached_images_20260228T051411Z/...` へ移動されていたため、元パスへ復元済み（4枚→5枚に回復）。
+- 次の最優先：A+ Works of Art / Chong の 5枚化可否を「works-onlyの範囲で追加画像ソースが実在するか」再確認し、不可なら 6-2準拠で理由付き確定（または仕様更新提案）。
+- 2026-02-28：TASK A-REPRO-FIX-5 実施。Chong を再実測しても `3/5` 維持。works URL 5件を再監査し、works-only + artist一致性を満たす正規化ユニーク画像は 3件のみを再確認。
+- 2026-02-28：A-REPRO-FIX-5 最終判定（6-2準拠）。`A+ Works / Chong` は works-only範囲で追加ソース確認不可のため、現時点で `3/5` を上限として理由付き確定。再開条件は「works配下に新規ユニーク作品画像が追加される」または「01仕様変更で works-only 条件が緩和される」こと。
+- 2026-02-28：TASK A-2A-CLOSE-2 最終確定。`A+ Works of Art` を2名固定で再実測し、`Chong=3/5`（works_only_artist_match_unique_count=3）、`Gan=0/5`（works_only_artist_match_unique_count=0）を確認。
+- 2026-02-28：A-2A-CLOSE-2 判定（01 6-2準拠）。works-only範囲で追加ユニークソース無しのため、5枚化は現時点で不可として理由付き確定。再開条件は「サイト側でworks画像が増える」または「01仕様変更で抽出許容範囲を変更する」こと。
+- 2026-02-28：TASK A-REPRO-CHECK-ALL-1 実施。max=3 の全体再計測を再実行し、`processed=24` / `ge_target=17` / `success_rate=70.83%` を確認。`Adams and Ollman` は skip registry により自動スキップ（`auto_skipped_by_registry:1`）。
+- 2026-02-28：A-REPRO-CHECK-ALL-1 補足。`run_phase1_seed10.py` と image collect を並列実行した競合で The Approach 判定値が崩れたため、この結果は採用しない。`tom-allen__img_05` を `_trash/invalid_cached_images_20260228T061552Z/...` から復元済み。
+- 2026-02-28：TASK A-REPRO-TRIAGE-2 実施（固定入力: `...summary_task_a_repro_check_all_1.json`）。原因分類を5件で確定。
+- 2026-02-28：分類結果。Arcadia追加2枠= `SEED_INVALID`（fixed summaryの `gallery_breakdown.artist_count=1` により追加seed不在）、Athr 1枠= `SEED_INVALID`（`invalid_artist_seed_token_empty`）、A+ Works `Gan=ARTIST_CONSISTENCY_FILTERED_ALL`、`Chong=NO_NEW_IMAGES_GE_MAX_YEAR_SEEN`（上限確定）。
+- 2026-02-28：未達再抽出CSVを最小化。`data/gallery_lists/reextract_targets_task_a_repro_check_all_1.csv` は 1件（`A+ Works / Gan Chin Lee`）のみを正とする。
+- 次の最優先FIX: `TASK A-REPRO-FIX-7（A+ Works / Gan 0/5 の artist一致性全落ち解消）`。
+- 2026-02-28：TASK A-REPRO-FIX-7 実施。preflight 2連続PASS後、`A+ Works / Gan Chin Lee` を単独再実測。`works_candidates_count:27` に対し `artist_consistency_filtered:27` / `works_only_artist_match_unique:0` で `saved_images=0/5` のまま。
+- 2026-02-28：A-REPRO-FIX-7 判定（01 6-2準拠）。works-only 範囲で Gan 一致候補が現時点で確認できないため未達確定（暫定）。再開条件は「works配下のGan一致情報追加」または「01仕様変更」。
+- 次の最優先FIX: `TASK A-REPRO-FIX-8（A+ Works / Gan seed根拠再監査と、works-only整合を崩さない候補解放条件の最小修正検証）`。
+- 2026-02-28：TASK A-REPRO-FIX-8 実施。`A+ Works / Gan` の source_url は実アクセス時に `https://aplusart.asia/artists/` へリダイレクトされることを確認。
+- 2026-02-28：collectorに「artist詳細URLが汎用一覧へリダイレクトされた場合の検知」を追加。`reason=seed_invalid_redirected_to_listing` として誤候補探索を停止。
+- 2026-02-28：A-REPRO-FIX-8 判定（01 6-2準拠）。Gan 0/5 の主因は artist一致判定ではなく seed URL無効（一覧吸収）で確定。再開条件は「Ganの有効source_url再取得」。
+- 次の最優先FIX: `TASK A-REPRO-FIX-9（A+ Works の最新artists導線から Gan 有効source_url再解決 → 1アーティスト再実測）`。
+- 2026-02-28：TASK A-REPRO-FIX-9 実施。A+ Works artists導線と sitemap を再監査し、Gan候補URLは `https://aplusart.asia/artists/41-gan-chin-lee/` のみ確認（ただし実アクセスで `/artists/` へ302）。
+- 2026-02-28：Gan単独再実測結果は `reason=seed_invalid_redirected_to_listing` / `saved_images=0/5`。`seed_invalid` は継続。
+- 2026-02-28：A-REPRO-FIX-9 判定（01 6-2準拠）。現時点で有効なGan artist詳細URLを導線上で再解決できないため未達確定。再開は seed再生成（artists raw更新）を先行させる。
+- 次の最優先FIX: `TASK A-REPRO-FIX-10（A+ Works artists raw再生成→Gan seed再供給→1アーティスト再実測）`。
+- 2026-02-28：TASK A-REPRO-FIX-10 実施。`run_phase1_seed10.py --include-artists-text` で artists raw再生成を再実行したが、Gan seedは有効URLに更新されず。
+- 2026-02-28：A+ artists導線と sitemap 監査で Gan候補は `https://aplusart.asia/artists/41-gan-chin-lee/` のみ確認。ただし同URLは実アクセスで `/artists/` 一覧へ302。
+- 2026-02-28：Gan単独再実測は `reason=seed_invalid_redirected_to_listing`、`saved_images=0/5` で未達継続。
+- 次の最優先FIX: `TASK A-REPRO-FIX-11（A+ Works Gan を seed供給元起点で再取得する代替導線の設計/実装可否判定）`。
+- 2026-02-28：TASK A-REPRO-FIX-11 実施。Arcadia/Athr の 0枚枠を seed補正のみで再検証。
+- 2026-02-28：Arcadia seedを 1 -> 3 に補正（`hannah-black`, `jesse-darling` 追加）し、両者とも単独再実測 `5/5` 達成。
+- 2026-02-28：Athr は token空seedを有効URLへ置換（`30-ahaad...` ほか）し、0枚枠対象 `ahaad` で単独再実測 `5/5` 達成。
+- 2026-02-28：判定。Arcadia/Athr の未達は抽出ロジックではなく seed不備が主因で確定。0枚枠は解消。
+- 次の最優先FIX: `TASK A-REPRO-FIX-12（A+ Works / Gan のみ未解決として seed供給元起点の再設計）`。

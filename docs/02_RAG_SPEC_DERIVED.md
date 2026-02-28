@@ -133,6 +133,9 @@ SSOT_TAG: 01>「重複取得をしない（超重要）」配下
 - image_url_hash が同じなら “画像DL/保存” はスキップしてよい
 - ただし、Exhibition/Artist側の “紐づけレコード” は必ず保存し、image_url_hash を参照させる
   - 画像ファイルが同一でも「どの展示/どの作家から来たか」は別情報
+- Artist系抽出（artists_text / artist works images）の artist 重複は「全フェア・全ギャラリー横断」で禁止。
+  - `artist_master_global.json`（artist_identity_key / first_source_url）を参照し、既知artistは自動スキップする。
+  - 例外: ExhibitionsRAG 側の artist 重複は許容し、この自動スキップは適用しない。
 
 ============================================================
 CARD_ID: 07_PDF_HANDLING（PDFリンクの扱い）
@@ -269,7 +272,13 @@ SSOT_TAG: 01>「SSOT整合ゲート（再発防止・強制運用）」
 - カテゴリ別上限値の流用ミスを禁止（Exhibitions用上限をArtistsに流用しない）。
 - Artist Works Images のローカル作業キャッシュは FAIR_SLUG 単位で一本化し、gallery単位ディレクトリ分割は行わない（識別はファイル名/メタデータで保持）。
 - 暫定運用（2026-02-26）：artists抽出上限は安定化まで各gallery 1件。安定確認後に段階引き上げし、最終80へ戻す。
+- Artist系抽出（artists_text / artist works images）の重複防止は同一フェア内に限定しない。異なるフェア間でも同一artistは再抽出せず自動スキップする（ExhibitionsRAG は対象外）。
 - 実装後は、失敗理由上位・対象内訳を 03/04 と `docs/RAG_EXTRACTION_BREAKDOWN_JA.md` に記録する。
+- 理由付きスキップを確定したgalleryは `data/gallery_lists/skipped_galleries_registry.csv` に1行追記し、以後の画像抽出では自動スキップ対象とする。
+- RAG成果物（images/vector/derived）はローカル生成のみではR2へ反映されない。`run_phase1_seed10_r2_sync.py` で `dry-run -> apply` を実行して初めてR2へ反映される。
+- 自動同期運用（固定）: 生成系スクリプト完了時に `run_r2_auto_sync.py` 相当の guarded sync を自動実行する（追加/更新は即反映、削除は prune候補が2回連続一致した場合のみ実行）。
+- 実装ゲート（固定）: 新規に追加する「RAGを変更し得るスクリプト」（画像抽出/テキスト抽出/ベクター化/enrichment apply）は、終了時に `r2_auto_sync.auto_sync_after_job` を必ず呼ぶ。
+- 失敗URLの運用（固定）: image collect は failed URL ledger を永続化し、次回は cooldown + retry上限で自動スキップする。テスト時のみ `--force-retry-failed` と `--clear-failed-ledger target|all` で一時解除する。
 
 運用ゲート（増殖防止）
 - 失敗率高止まり/保存0連続時は、report/rollup/manifest追加ではなく原因分解と最小修正を優先する。

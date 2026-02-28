@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import subprocess
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -14,6 +15,7 @@ import numpy as np
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
+from r2_auto_sync import auto_sync_after_job, format_auto_sync_brief
 
 INPUT_JSONL_PATH = Path("data/Tarutani_data/tarutani_text.jsonl")
 OUTPUT_DIR = Path("data/Tarutani_data/vector")
@@ -22,6 +24,7 @@ META_PATH = OUTPUT_DIR / "tarutani_text_meta.jsonl"
 FAILED_PATH = OUTPUT_DIR / "tarutani_text_vectorize_failed.jsonl"
 SUMMARY_PATH = OUTPUT_DIR / "tarutani_text_vectorize_summary.json"
 MANIFEST_PATH = OUTPUT_DIR / "artifact_manifest.json"
+MANIFEST_R2_PREFIX = "tarutani/vectors"
 
 RAG_CATEGORY = "tarutani_text"
 EMBEDDING_MODEL_DEFAULT = "gemini-embedding-001"
@@ -167,15 +170,34 @@ def build_manifest_files(paths: list[Path]) -> list[dict[str, Any]]:
     for path in paths:
         if not path.exists():
             continue
+        try:
+            rel = path.relative_to(OUTPUT_DIR).as_posix()
+        except ValueError:
+            rel = path.name
+        r2_key = f"{MANIFEST_R2_PREFIX}/{rel}"
         files.append(
             {
-                "path": path.as_posix(),
+                "path": r2_key,
+                "local_path": path.as_posix(),
                 "etag": "",
                 "sha256": sha256_file(path),
                 "bytes": path.stat().st_size,
             }
         )
     return files
+
+
+def get_code_commit_id() -> str:
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except Exception:  # noqa: BLE001
+        return ""
+    return result.stdout.strip()
 
 
 def main() -> int:
@@ -388,6 +410,10 @@ def main() -> int:
         "embedding_model": model,
         "embedding_task_type": EMBED_TASK_TYPE,
         "embedding_dim": EMBED_OUTPUT_DIM,
+        "chunk_size_chars": CHUNK_SIZE_CHARS,
+        "chunk_overlap_chars": CHUNK_OVERLAP_CHARS,
+        "records_count": len(meta_rows),
+        "code_commit_id": get_code_commit_id(),
     }
     write_json(MANIFEST_PATH, manifest)
 
@@ -436,6 +462,11 @@ def main() -> int:
     print(f"[DONE] meta={META_PATH}")
     print(f"[DONE] summary={SUMMARY_PATH}")
     print(f"[DONE] manifest={MANIFEST_PATH}")
+    auto_sync_result = auto_sync_after_job(
+        target="tarutani_all",
+        trigger="run_vectorize_tarutani_text.py",
+    )
+    print(format_auto_sync_brief(auto_sync_result))
     return 0
 
 

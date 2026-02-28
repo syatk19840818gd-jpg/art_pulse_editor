@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 from __future__ import annotations
 
 import argparse
@@ -236,6 +236,74 @@ def write_json(path: Path, payload: dict[str, Any]) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def load_json_dict(path: Path) -> dict[str, Any]:
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if isinstance(data, dict):
+        return data
+    raise ValueError(f"json_root_not_object:{path}")
+
+
+def resolve_latest_sync_summary(log_dir: Path, scope: str) -> Path | None:
+    pattern = f"phase1_seed10_r2_sync_{scope}_*.json"
+    candidates = sorted(log_dir.glob(pattern))
+    if not candidates:
+        return None
+    return candidates[-1]
+
+
+def validate_required_dry_run_log(
+    *,
+    log_dir: Path,
+    scope: str,
+    require_prune: bool,
+) -> tuple[bool, dict[str, Any]]:
+    guard: dict[str, Any] = {
+        "enabled": True,
+        "ok": False,
+        "reason": "",
+        "log_path": "",
+        "log_mode": "",
+        "log_scope": "",
+        "log_prune_enabled": False,
+        "log_prune_candidates_count": 0,
+    }
+    latest = resolve_latest_sync_summary(log_dir=log_dir, scope=scope)
+    if latest is None:
+        guard["reason"] = f"dry_run_log_not_found_for_scope:{scope}"
+        return False, guard
+
+    try:
+        payload = load_json_dict(latest)
+    except Exception as exc:  # noqa: BLE001
+        guard["reason"] = f"dry_run_log_load_failed:{exc}"
+        guard["log_path"] = latest.as_posix()
+        return False, guard
+
+    guard["log_path"] = latest.as_posix()
+    guard["log_mode"] = str(payload.get("mode") or "")
+    guard["log_scope"] = str(payload.get("scope") or "")
+    guard["log_prune_enabled"] = bool(payload.get("prune_enabled"))
+    guard["log_prune_candidates_count"] = int(payload.get("prune_candidates_count") or 0)
+
+    if guard["log_mode"] != "dry-run":
+        guard["reason"] = f"latest_log_is_not_dry_run:{guard['log_mode']}"
+        return False, guard
+    if guard["log_scope"] != scope:
+        guard["reason"] = f"latest_log_scope_mismatch:{guard['log_scope']}"
+        return False, guard
+    status_value = str(payload.get("status") or "")
+    if not status_value.startswith("DRY_RUN"):
+        guard["reason"] = f"latest_dry_run_status_invalid:{status_value}"
+        return False, guard
+    if require_prune and not guard["log_prune_enabled"]:
+        guard["reason"] = "latest_dry_run_log_missing_prune"
+        return False, guard
+
+    guard["ok"] = True
+    guard["reason"] = "ok"
+    return True, guard
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Sync phase1_seed10 artifacts to R2 (raw/derived/enrichment/logs)."
@@ -257,6 +325,23 @@ def parse_args() -> argparse.Namespace:
         help=(
             "Delete remote-only objects under managed prefixes. "
             "Use with --dry-run first to inspect planned deletions."
+        ),
+    )
+    parser.add_argument(
+        "--require-dry-run-log",
+        action="store_true",
+        help=(
+            "Require latest same-scope dry-run summary in log-dir before apply. "
+            "If --prune is set, latest dry-run must also be prune-enabled."
+        ),
+    )
+    parser.add_argument(
+        "--max-prune",
+        type=int,
+        default=-1,
+        help=(
+            "Maximum allowed prune candidates. "
+            "Set -1 to disable limit (default: -1)."
         ),
     )
     parser.add_argument(
@@ -312,6 +397,29 @@ def build_manifest_payload(
 def main() -> int:
     args = parse_args()
     started_at = utc_now_iso()
+    guard_blocked = False
+    dry_run_guard: dict[str, Any] = {
+        "enabled": bool(args.require_dry_run_log),
+        "ok": not bool(args.require_dry_run_log) or bool(args.dry_run),
+        "reason": "disabled" if not args.require_dry_run_log else ("skip_for_dry_run_mode" if args.dry_run else ""),
+        "log_path": "",
+        "log_mode": "",
+        "log_scope": "",
+        "log_prune_enabled": False,
+        "log_prune_candidates_count": 0,
+    }
+
+    if args.require_dry_run_log and not args.dry_run:
+        ok, dry_run_guard = validate_required_dry_run_log(
+            log_dir=args.log_dir,
+            scope=args.scope,
+            require_prune=bool(args.prune),
+        )
+        if not ok:
+            print(f"[GUARD-FAIL] require_dry_run_log: {dry_run_guard['reason']}")
+            if dry_run_guard.get("log_path"):
+                print(f"[GUARD-FAIL] checked_log={dry_run_guard['log_path']}")
+            return 2
 
     targets, categories = collect_targets(PHASE1_ROOT, args.scope, args.manifest_path)
     total_bytes = sum(t.size_bytes for t in targets)
@@ -519,8 +627,20 @@ def main() -> int:
                 }
             )
         prune_result["candidate_count"] = len(prune_candidates)
+        max_prune_limit = args.max_prune if args.max_prune >= 0 else None
 
-        if args.dry_run:
+        if max_prune_limit is not None and len(prune_candidates) > max_prune_limit:
+            prune_result["attempted"] = True
+            prune_result["executed"] = False
+            prune_result["reason"] = "max_prune_exceeded"
+            prune_result["max_prune"] = max_prune_limit
+            prune_result["candidate_count"] = len(prune_candidates)
+            guard_blocked = not args.dry_run
+            print(
+                f"[PRUNE-BLOCK] candidate_count={len(prune_candidates)} "
+                f"exceeds max_prune={max_prune_limit}"
+            )
+        elif args.dry_run:
             prune_result["attempted"] = True
             prune_result["executed"] = False
             prune_result["reason"] = "dry_run_no_delete"
@@ -566,8 +686,10 @@ def main() -> int:
     completed_at = utc_now_iso()
     if args.dry_run:
         status = "DRY_RUN_OK"
+    elif guard_blocked and not failed and not prune_failed:
+        status = "GUARD_BLOCKED"
     else:
-        has_failures = bool(failed or prune_failed)
+        has_failures = bool(failed or prune_failed or guard_blocked)
         status = "PARTIAL_FAIL" if has_failures else "OK"
     summary = {
         "artifact_kind": "phase1_seed10_r2_sync_summary",
@@ -591,6 +713,10 @@ def main() -> int:
         "skipped_count": len(skipped),
         "failed_count": len(failed),
         "prune_enabled": bool(args.prune),
+        "require_dry_run_log": bool(args.require_dry_run_log),
+        "dry_run_guard": dry_run_guard,
+        "max_prune": args.max_prune,
+        "guard_blocked": guard_blocked,
         "prune_result": prune_result,
         "prune_candidates_count": len(prune_candidates),
         "pruned_count": len(pruned),
@@ -615,7 +741,7 @@ def main() -> int:
     print(f"[DONE] manifest_local={args.manifest_path.as_posix()}")
     print(f"[DONE] summary={summary_path.as_posix()}")
 
-    return 0 if (args.dry_run or not failed and not prune_failed) else 1
+    return 0 if (args.dry_run or (not failed and not prune_failed and not guard_blocked)) else 1
 
 
 if __name__ == "__main__":

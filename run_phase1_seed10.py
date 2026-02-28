@@ -5,7 +5,9 @@ import argparse
 import csv
 import hashlib
 import json
+import os
 import re
+import sys
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -15,10 +17,21 @@ from typing import Any
 from urllib.parse import ParseResult, urljoin, urlparse
 
 import requests
+from r2_auto_sync import auto_sync_after_job, format_auto_sync_brief
 try:
     from bs4 import BeautifulSoup
 except ModuleNotFoundError:  # pragma: no cover - environment fallback
     BeautifulSoup = None
+try:
+    from playwright.sync_api import (
+        Error as PlaywrightError,
+        TimeoutError as PlaywrightTimeoutError,
+        sync_playwright,
+    )
+except Exception:  # pragma: no cover - optional runtime dependency
+    PlaywrightError = Exception
+    PlaywrightTimeoutError = Exception
+    sync_playwright = None
 
 TARGET_YEAR = 2025
 RAG_CATEGORY = "exhibitions_text"
@@ -27,12 +40,19 @@ SEED_PER_FAIR = 5
 MAX_EXHIBITION_LINKS_PER_GALLERY = 10
 # TEMPORARY TEST CAP:
 # User-requested operational override for stability testing.
-# SSOT default target remains 80, but current runs are intentionally capped to 1 per gallery.
-MAX_ARTISTS_PER_GALLERY = 1
+# SSOT default target remains 80, but current runs are intentionally capped to 3 per gallery.
+MAX_ARTISTS_PER_GALLERY = 3
 REQUEST_TIMEOUT_SECONDS = 12
 USER_AGENT = "art-pulse-editor/phase1-seed10"
 MAX_FAILURE_RETRIES_PER_URL = 3
 FAILURE_RETRY_COOLDOWN_SECONDS = 3600
+USE_PLAYWRIGHT_HTML_FETCH = os.getenv("PHASE1_USE_PLAYWRIGHT", "1").strip().lower() not in {
+    "0",
+    "false",
+    "no",
+    "off",
+}
+PLAYWRIGHT_NAV_TIMEOUT_MS = max(5000, REQUEST_TIMEOUT_SECONDS * 1000)
 
 # 一度失敗したら再試行価値が低いものは即スキップ対象にする。
 NON_RETRYABLE_FAILURE_REASON_CODES = {
@@ -53,6 +73,11 @@ OUTPUT_ROOT = Path("data/phase1_seed10")
 RAW_DIR = OUTPUT_ROOT / "raw"
 LOG_DIR = OUTPUT_ROOT / "logs"
 DERIVED_DIR = OUTPUT_ROOT / "derived"
+ARTIST_MASTER_GLOBAL_PATH = LOG_DIR / "artist_master_global.json"
+
+_PLAYWRIGHT_MANAGER = None
+_PLAYWRIGHT_BROWSER = None
+_PLAYWRIGHT_CONTEXT = None
 
 LINK_KEYWORDS = (
     "exhibition",
@@ -86,6 +111,23 @@ ARTIST_LIST_PATH_PATTERNS = (
     "/category/artist",
     "/category/artists",
 )
+
+ARTIST_URL_NON_NAME_SEGMENTS = {
+    "artist",
+    "artists",
+    "works",
+    "work",
+    "biography",
+    "bio",
+    "profile",
+    "about",
+    "overview",
+    "detail",
+    "details",
+    "viewing-room",
+    "viewingroom",
+    "index",
+}
 
 
 class LinkHTMLParser(HTMLParser):
@@ -408,7 +450,7 @@ def extract_candidate_exhibition_urls(list_page_url: str, list_page_html: str) -
             continue
         seen.add(normalized)
         candidates.append(normalized)
-        if len(candidates) >= MAX_ARTISTS_PER_GALLERY:
+        if len(candidates) >= MAX_EXHIBITION_LINKS_PER_GALLERY:
             break
 
     if not candidates:
@@ -445,7 +487,7 @@ def extract_candidate_artist_urls(list_page_url: str, list_page_html: str) -> li
             continue
         seen.add(normalized)
         candidates.append(normalized)
-        if len(candidates) >= MAX_EXHIBITION_LINKS_PER_GALLERY:
+        if len(candidates) >= MAX_ARTISTS_PER_GALLERY:
             break
 
     return candidates
@@ -483,7 +525,137 @@ def reason_code_from_error_text(error_text: str | None) -> str:
     return "REQUEST_ERROR"
 
 
+def _playwright_enabled() -> bool:
+    return bool(USE_PLAYWRIGHT_HTML_FETCH and sync_playwright is not None)
+
+
+def _ensure_playwright_context():
+    global _PLAYWRIGHT_MANAGER, _PLAYWRIGHT_BROWSER, _PLAYWRIGHT_CONTEXT
+    if _PLAYWRIGHT_CONTEXT is not None:
+        return _PLAYWRIGHT_CONTEXT
+    if not _playwright_enabled():
+        return None
+    try:
+        _PLAYWRIGHT_MANAGER = sync_playwright().start()
+        _PLAYWRIGHT_BROWSER = _PLAYWRIGHT_MANAGER.chromium.launch(headless=True)
+        _PLAYWRIGHT_CONTEXT = _PLAYWRIGHT_BROWSER.new_context(user_agent=USER_AGENT)
+        return _PLAYWRIGHT_CONTEXT
+    except Exception:
+        _PLAYWRIGHT_CONTEXT = None
+        if _PLAYWRIGHT_BROWSER is not None:
+            try:
+                _PLAYWRIGHT_BROWSER.close()
+            except Exception:
+                pass
+            _PLAYWRIGHT_BROWSER = None
+        if _PLAYWRIGHT_MANAGER is not None:
+            try:
+                _PLAYWRIGHT_MANAGER.stop()
+            except Exception:
+                pass
+            _PLAYWRIGHT_MANAGER = None
+        return None
+
+
+def fetch_html_with_playwright(url: str) -> dict[str, Any]:
+    context = _ensure_playwright_context()
+    if context is None:
+        return {
+            "ok": False,
+            "url": url,
+            "final_url": url,
+            "status_code": None,
+            "reason_code": "PLAYWRIGHT_UNAVAILABLE",
+            "error": "playwright_context_unavailable",
+            "html": "",
+        }
+
+    page = None
+    try:
+        page = context.new_page()
+        response = page.goto(url, wait_until="domcontentloaded", timeout=PLAYWRIGHT_NAV_TIMEOUT_MS)
+        final_url = page.url or url
+        status_code = response.status if response is not None else None
+        content_type = ""
+        if response is not None:
+            headers = response.headers or {}
+            content_type = str(headers.get("content-type") or "").lower()
+        if status_code is not None and status_code >= 400:
+            return {
+                "ok": False,
+                "url": url,
+                "final_url": final_url,
+                "status_code": status_code,
+                "reason_code": reason_code_from_status(status_code),
+                "error": f"PLAYWRIGHT_HTTP_{status_code}",
+                "html": "",
+            }
+        if content_type and "text/html" not in content_type and "application/xhtml+xml" not in content_type:
+            return {
+                "ok": False,
+                "url": url,
+                "final_url": final_url,
+                "status_code": status_code,
+                "reason_code": "UNSUPPORTED_CONTENT_TYPE",
+                "error": f"UNSUPPORTED_CONTENT_TYPE:{content_type}",
+                "html": "",
+            }
+        html = page.content()
+        return {
+            "ok": True,
+            "url": url,
+            "final_url": final_url,
+            "status_code": status_code,
+            "reason_code": None,
+            "error": None,
+            "html": html,
+        }
+    except PlaywrightTimeoutError as exc:
+        return {
+            "ok": False,
+            "url": url,
+            "final_url": page.url if page is not None else url,
+            "status_code": None,
+            "reason_code": "TIMEOUT",
+            "error": f"playwright_timeout:{exc}",
+            "html": "",
+        }
+    except PlaywrightError as exc:
+        reason_code = reason_code_from_error_text(str(exc))
+        return {
+            "ok": False,
+            "url": url,
+            "final_url": page.url if page is not None else url,
+            "status_code": None,
+            "reason_code": reason_code,
+            "error": f"playwright_error:{exc}",
+            "html": "",
+        }
+    except Exception as exc:  # noqa: BLE001
+        reason_code = reason_code_from_error_text(str(exc))
+        return {
+            "ok": False,
+            "url": url,
+            "final_url": page.url if page is not None else url,
+            "status_code": None,
+            "reason_code": reason_code,
+            "error": f"playwright_error:{exc}",
+            "html": "",
+        }
+    finally:
+        if page is not None:
+            try:
+                page.close()
+            except Exception:
+                pass
+
+
 def fetch_html(session: requests.Session, url: str) -> dict[str, Any]:
+    if _playwright_enabled():
+        playwright_result = fetch_html_with_playwright(url)
+        if playwright_result["ok"]:
+            return playwright_result
+
     try:
         response = session.get(url, timeout=REQUEST_TIMEOUT_SECONDS, allow_redirects=True)
         response.raise_for_status()
@@ -559,6 +731,128 @@ def compute_text_hash(text: str, source_url: str, rag_category: str = RAG_CATEGO
     else:
         payload = f"{rag_category}\n{normalize_url_for_hash(source_url)}"
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def artist_slug_from_source_url(source_url: str) -> str:
+    parsed = urlparse(source_url)
+    path = (parsed.path or "").strip("/")
+    if not path:
+        return "artist"
+    parts = [part for part in path.split("/") if part]
+    if not parts:
+        return "artist"
+    candidate = ""
+    for part in reversed(parts):
+        lowered = part.lower()
+        if lowered in ARTIST_URL_NON_NAME_SEGMENTS:
+            continue
+        if lowered.isdigit():
+            continue
+        candidate = part
+        break
+    if not candidate:
+        candidate = parts[-1]
+    match = re.match(r"^\d+[-_]+(.+)$", candidate.strip())
+    if match:
+        candidate = match.group(1)
+    candidate = re.sub(r"[^a-z0-9]+", "-", candidate.strip().lower()).strip("-")
+    return candidate or "artist"
+
+
+def build_artist_name_en_from_source_url(source_url: str) -> str:
+    slug = artist_slug_from_source_url(source_url)
+    if slug == "artist":
+        return "Unknown Artist"
+    return " ".join(part.capitalize() for part in slug.split("-") if part)
+
+
+def build_artist_name_key(artist_name_en: str, source_url: str) -> str:
+    normalized_name = re.sub(r"\s+", " ", str(artist_name_en or "").strip().lower())
+    if normalized_name:
+        seed = f"artist_name_en:{normalized_name}"
+    else:
+        seed = f"source_url:{normalize_url_for_hash(source_url)}"
+    return hashlib.sha256(seed.encode("utf-8")).hexdigest()
+
+
+def build_artist_identity_key(artist_name_key: str, artist_name_en: str, source_url: str) -> str:
+    normalized_key = str(artist_name_key or "").strip().lower()
+    if normalized_key:
+        return normalized_key
+    return build_artist_name_key(artist_name_en, source_url).lower()
+
+
+def _build_artist_master_entry(
+    *,
+    identity_key: str,
+    artist_name_key: str,
+    artist_name_en: str,
+    source_url: str,
+    fair_slug: str,
+    gallery_name_en: str,
+    seen_at: str,
+) -> dict[str, Any]:
+    return {
+        "artist_identity_key": identity_key,
+        "artist_name_key": str(artist_name_key or "").strip(),
+        "artist_name_en": str(artist_name_en or "").strip(),
+        "first_source_url": str(source_url or "").strip(),
+        "first_fair_slug": str(fair_slug or "").strip(),
+        "first_gallery_name_en": str(gallery_name_en or "").strip(),
+        "first_seen_at": str(seen_at or "").strip(),
+        "updated_at": str(seen_at or "").strip(),
+    }
+
+
+def load_artist_master_global(path: Path) -> dict[str, dict[str, Any]]:
+    payload = read_json(path)
+    if not isinstance(payload, dict):
+        return {}
+    records = payload.get("records")
+    if not isinstance(records, list):
+        return {}
+    out: dict[str, dict[str, Any]] = {}
+    for item in records:
+        if not isinstance(item, dict):
+            continue
+        key = str(item.get("artist_identity_key") or "").strip().lower()
+        if not key:
+            continue
+        out[key] = item
+    return out
+
+
+def merge_artist_master_from_artists_raw(master: dict[str, dict[str, Any]], *, target_year: int) -> None:
+    for raw_path in sorted(RAW_DIR.glob(f"artists_*_{target_year}.jsonl")):
+        rows = read_jsonl_rows(raw_path)
+        for row in rows:
+            source_url = str(row.get("source_url") or "").strip()
+            if not source_url:
+                continue
+            artist_name_en = str(row.get("artist_name_en") or "").strip() or build_artist_name_en_from_source_url(source_url)
+            artist_name_key = str(row.get("artist_name_key") or "").strip() or build_artist_name_key(artist_name_en, source_url)
+            identity_key = build_artist_identity_key(artist_name_key, artist_name_en, source_url)
+            if identity_key in master:
+                continue
+            master[identity_key] = _build_artist_master_entry(
+                identity_key=identity_key,
+                artist_name_key=artist_name_key,
+                artist_name_en=artist_name_en,
+                source_url=source_url,
+                fair_slug=str(row.get("fair_slug") or ""),
+                gallery_name_en=str(row.get("gallery_name_en") or ""),
+                seen_at=str(row.get("extracted_at") or ""),
+            )
+
+
+def write_artist_master_global(path: Path, master: dict[str, dict[str, Any]]) -> None:
+    payload = {
+        "schema_name": "artist_master_global",
+        "schema_version": "v1",
+        "generated_at": utc_now_iso(),
+        "records": sorted(master.values(), key=lambda x: str(x.get("artist_identity_key") or "")),
+    }
+    write_json(path, payload)
 
 
 def looks_like_target_year(page_url: str, html: str) -> bool:
@@ -901,6 +1195,8 @@ def upsert_failed_fetch(
 
 
 def main() -> int:
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(errors="backslashreplace")
     args = parse_args()
     include_artists_text = bool(args.include_artists_text)
 
@@ -979,11 +1275,15 @@ def main() -> int:
     artists_list_source_counter_by_fair: dict[str, Counter[str]] = {
         fair_slug: Counter() for fair_slug in CSV_PATHS
     }
+    artist_master_global = load_artist_master_global(ARTIST_MASTER_GLOBAL_PATH)
+    merge_artist_master_from_artists_raw(artist_master_global, target_year=TARGET_YEAR)
+    artists_seen_identity_keys_in_run: set[str] = set()
     if include_artists_text:
         print(
             f"[INFO] Artists ledgers: visited={len(artists_visited_pages_ledger)} "
             f"failed={len(artists_failed_fetches_ledger)} "
-            f"existing_text_hashes={sum(len(v) for v in artists_existing_text_hashes_by_fair.values())}"
+            f"existing_text_hashes={sum(len(v) for v in artists_existing_text_hashes_by_fair.values())} "
+            f"artist_master_global={len(artist_master_global)}"
         )
 
     session = requests.Session()
@@ -1266,6 +1566,48 @@ def main() -> int:
                 continue
 
             for page_url in candidate_urls:
+                artist_name_en_candidate = build_artist_name_en_from_source_url(page_url)
+                artist_name_key_candidate = build_artist_name_key(artist_name_en_candidate, page_url)
+                artist_identity_key_candidate = build_artist_identity_key(
+                    artist_name_key_candidate,
+                    artist_name_en_candidate,
+                    page_url,
+                )
+                existing_artist = artist_master_global.get(artist_identity_key_candidate)
+                existing_artist_source = (
+                    normalize_url_for_hash(str(existing_artist.get("first_source_url") or ""))
+                    if existing_artist is not None
+                    else ""
+                )
+                current_artist_source = normalize_url_for_hash(page_url)
+                if existing_artist is not None and existing_artist_source and existing_artist_source != current_artist_source:
+                    upsert_visited_page(
+                        artists_visited_pages_ledger,
+                        url=page_url,
+                        fair_slug=gallery.fair_slug,
+                        gallery_name_en=gallery.gallery_name_en,
+                        decision="skipped",
+                        reason_code="DUPLICATE_ARTIST_GLOBAL_EXISTING",
+                        parent_source_url=list_page_url,
+                        category=RAG_CATEGORY_ARTISTS,
+                    )
+                    artists_skip_reason_counter["DUPLICATE_ARTIST_GLOBAL_EXISTING"] += 1
+                    continue
+                if artist_identity_key_candidate in artists_seen_identity_keys_in_run:
+                    upsert_visited_page(
+                        artists_visited_pages_ledger,
+                        url=page_url,
+                        fair_slug=gallery.fair_slug,
+                        gallery_name_en=gallery.gallery_name_en,
+                        decision="skipped",
+                        reason_code="DUPLICATE_ARTIST_GLOBAL_IN_RUN",
+                        parent_source_url=list_page_url,
+                        category=RAG_CATEGORY_ARTISTS,
+                    )
+                    artists_skip_reason_counter["DUPLICATE_ARTIST_GLOBAL_IN_RUN"] += 1
+                    continue
+                artists_seen_identity_keys_in_run.add(artist_identity_key_candidate)
+
                 page_url_hash = compute_page_url_hash(page_url)
                 failed_page_entry = artists_failed_fetches_ledger.get(page_url_hash)
                 now = datetime.now(timezone.utc)
@@ -1328,6 +1670,9 @@ def main() -> int:
                     continue
 
                 source_url = page_result["final_url"]
+                artist_name_en = build_artist_name_en_from_source_url(source_url)
+                artist_name_key = build_artist_name_key(artist_name_en, source_url)
+                artist_identity_key = build_artist_identity_key(artist_name_key, artist_name_en, source_url)
                 clear_failed_fetch(artists_failed_fetches_ledger, page_url)
                 clear_failed_fetch(artists_failed_fetches_ledger, source_url)
                 text = extract_text(page_result["html"])
@@ -1385,6 +1730,9 @@ def main() -> int:
                     "gallery_name_en": gallery.gallery_name_en,
                     "gallery_name_kana": gallery.gallery_name_kana,
                     "source_url": source_url,
+                    "artist_name_en": artist_name_en,
+                    "artist_name_key": artist_name_key,
+                    "artist_identity_key": artist_identity_key,
                     "text": text,
                     "text_hash": text_hash,
                     "headline_ja": "",
@@ -1395,6 +1743,22 @@ def main() -> int:
                     "rag_category": RAG_CATEGORY_ARTISTS,
                 }
                 artists_records_by_fair[gallery.fair_slug].append(record)
+                existing_master = artist_master_global.get(artist_identity_key)
+                if existing_master is None:
+                    artist_master_global[artist_identity_key] = _build_artist_master_entry(
+                        identity_key=artist_identity_key,
+                        artist_name_key=artist_name_key,
+                        artist_name_en=artist_name_en,
+                        source_url=source_url,
+                        fair_slug=gallery.fair_slug,
+                        gallery_name_en=gallery.gallery_name_en,
+                        seen_at=str(record.get("extracted_at") or ""),
+                    )
+                else:
+                    existing_master["artist_name_en"] = artist_name_en
+                    existing_master["artist_name_key"] = artist_name_key
+                    existing_master["updated_at"] = str(record.get("extracted_at") or "")
+                    artist_master_global[artist_identity_key] = existing_master
                 upsert_visited_page(
                     artists_visited_pages_ledger,
                     url=source_url,
@@ -1418,6 +1782,7 @@ def main() -> int:
             output_path = artists_output_paths_by_fair[fair_slug]
             append_jsonl(output_path, artists_records_by_fair.get(fair_slug, []))
             artists_output_files[fair_slug] = str(output_path)
+        write_artist_master_global(ARTIST_MASTER_GLOBAL_PATH, artist_master_global)
 
     artists_enrichment_requests_path = DERIVED_DIR / f"artists_enrichment_requests_{TARGET_YEAR}.jsonl"
     artists_enrichment_summary: dict[str, Any] = {
@@ -1543,6 +1908,11 @@ def main() -> int:
         "artists_list_url_exhibitions_fallback_used": int(
             artists_list_source_counter.get("exhibitions_url_fallback", 0)
         ),
+        "artists_global_dedupe_scope": "all_fairs_all_galleries",
+        "artists_global_dedupe_exhibitions_excluded": True,
+        "artist_master_global_path": str(ARTIST_MASTER_GLOBAL_PATH),
+        "artist_master_global_record_count": len(artist_master_global),
+        "artists_global_dedupe_in_run_seen_count": len(artists_seen_identity_keys_in_run),
         "artists_existing_text_hashes_by_fair": {
             fair_slug: len(artists_existing_text_hashes_by_fair.get(fair_slug, set()))
             for fair_slug in CSV_PATHS
@@ -1605,6 +1975,8 @@ def main() -> int:
     if isinstance(summary["notes"], list):
         summary["notes"].append("text_breakdown_mode=fair_and_gallery_with_records_and_success_rate_pct")
         summary["notes"].append("artists_source_rule=artist_list_url_to_artist_detail_pages_only")
+        summary["notes"].append("artists_global_dedupe_scope=all_fairs_all_galleries")
+        summary["notes"].append("artists_global_dedupe_exhibitions_excluded=true")
 
     summary.update(artists_enrichment_summary)
     summary_path = LOG_DIR / f"run_summary_seed10_{TARGET_YEAR}.json"
@@ -1686,6 +2058,11 @@ def main() -> int:
         )
         if summary["artists_enrichment_requests_output_path"]:
             print(f"[DONE][artists_enrichment] requests={summary['artists_enrichment_requests_output_path']}")
+    auto_sync_result = auto_sync_after_job(
+        target="phase1_all",
+        trigger="run_phase1_seed10.py",
+    )
+    print(format_auto_sync_brief(auto_sync_result))
     print(f"[DONE] summary={summary_path}")
     return 0
 

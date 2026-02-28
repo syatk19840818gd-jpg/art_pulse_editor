@@ -14,6 +14,7 @@ import numpy as np
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
+from r2_auto_sync import auto_sync_after_job, format_auto_sync_brief
 
 TARGET_YEAR = 2025
 RAG_CATEGORY = "artists_text"
@@ -29,6 +30,7 @@ META_PATH = OUTPUT_DIR / "artists_text_meta_2025.jsonl"
 FAILED_PATH = OUTPUT_DIR / "artists_text_vectorize_failed_2025.jsonl"
 SUMMARY_PATH = OUTPUT_DIR / "artists_text_vectorize_summary_2025.json"
 MANIFEST_PATH = OUTPUT_DIR / "artists_text_artifact_manifest_2025.json"
+MANIFEST_R2_PREFIX = "phase1_seed10/derived/vector"
 
 EMBEDDING_MODEL_DEFAULT = "gemini-embedding-001"
 EMBED_TASK_TYPE = "RETRIEVAL_DOCUMENT"
@@ -141,9 +143,15 @@ def build_manifest_files(paths: list[Path]) -> list[dict[str, Any]]:
     for path in paths:
         if not path.exists():
             continue
+        try:
+            rel = path.relative_to(OUTPUT_DIR).as_posix()
+        except ValueError:
+            rel = path.name
+        r2_key = f"{MANIFEST_R2_PREFIX}/{rel}"
         files.append(
             {
-                "path": path.as_posix(),
+                "path": r2_key,
+                "local_path": path.as_posix(),
                 "etag": "",
                 "sha256": sha256_file(path),
                 "bytes": path.stat().st_size,
@@ -371,6 +379,11 @@ def main() -> int:
     print(f"[DONE] meta={META_PATH}")
     print(f"[DONE] summary={SUMMARY_PATH}")
     print(f"[DONE] manifest={MANIFEST_PATH}")
+    auto_sync_result = auto_sync_after_job(
+        target="phase1_derived",
+        trigger="run_vectorize_artists_seed10.py",
+    )
+    print(format_auto_sync_brief(auto_sync_result))
     return 0
 
 

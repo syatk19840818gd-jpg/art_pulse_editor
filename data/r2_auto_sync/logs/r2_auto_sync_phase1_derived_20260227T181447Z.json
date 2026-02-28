@@ -1,0 +1,86 @@
+{
+  "status": "ok",
+  "target": "phase1_derived",
+  "trigger": "run_phase1_seed10_artist_image_collect.py",
+  "started_at": "2026-02-27T18:14:23Z",
+  "finished_at": "2026-02-27T18:14:47Z",
+  "steps": [
+    {
+      "command": [
+        "C:\\Users\\syatk\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
+        "run_phase1_seed10_r2_sync.py",
+        "--scope",
+        "derived",
+        "--dry-run",
+        "--prune"
+      ],
+      "exit_code": 0,
+      "stdout_tail": [
+        "[DRY-RUN] [derived] data/phase1_seed10/derived/images/artist_works_images/2025/liste/amanita__eva-beresin__5606bc83__img_02.jpg -> phase1_seed10/derived/images/artist_works_images/2025/liste/amanita__eva-beresin__5606bc83__img_02.jpg (99877 bytes)",
+        "[DRY-RUN] [derived] data/phase1_seed10/derived/images/artist_works_images/2025/liste/amanita__eva-beresin__5606bc83__img_03.jpg -> phase1_seed10/derived/images/artist_works_images/2025/liste/amanita__eva-beresin__5606bc83__img_03.jpg (89059 bytes)",
+        "[DRY-RUN] [derived] data/phase1_seed10/derived/images/artist_works_images/2025/liste/amanita__eva-beresin__5606bc83__img_04.jpg -> phase1_seed10/derived/images/artist_works_images/2025/liste/amanita__eva-beresin__5606bc83__img_04.jpg (100504 bytes)",
+        "[DRY-RUN] [derived] data/phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__aurora-kiraly__3ef1b6fb__img_01.jpg -> phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__aurora-kiraly__3ef1b6fb__img_01.jpg (95283 bytes)",
+        "[DRY-RUN] [derived] data/phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__aurora-kiraly__3ef1b6fb__img_02.jpg -> phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__aurora-kiraly__3ef1b6fb__img_02.jpg (95482 bytes)",
+        "[DRY-RUN] [derived] data/phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__aurora-kiraly__3ef1b6fb__img_03.jpg -> phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__aurora-kiraly__3ef1b6fb__img_03.jpg (92860 bytes)",
+        "[DRY-RUN] [derived] data/phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__aurora-kiraly__3ef1b6fb__img_04.jpg -> phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__aurora-kiraly__3ef1b6fb__img_04.jpg (86200 bytes)",
+        "[DRY-RUN] [derived] data/phase1_seed10/derived/vector/artists_text_artifact_manifest_2025.json -> phase1_seed10/derived/vector/artists_text_artifact_manifest_2025.json (853 bytes)",
+        "[DRY-RUN] [derived] data/phase1_seed10/derived/vector/artists_text_index_2025.npy -> phase1_seed10/derived/vector/artists_text_index_2025.npy (491648 bytes)",
+        "[DRY-RUN] [derived] data/phase1_seed10/derived/vector/artists_text_meta_2025.jsonl -> phase1_seed10/derived/vector/artists_text_meta_2025.jsonl (42949 bytes)",
+        "[DRY-RUN] [derived] data/phase1_seed10/derived/vector/artists_text_vectorize_failed_2025.jsonl -> phase1_seed10/derived/vector/artists_text_vectorize_failed_2025.jsonl (0 bytes)",
+        "[DRY-RUN] [derived] data/phase1_seed10/derived/vector/artists_text_vectorize_summary_2025.json -> phase1_seed10/derived/vector/artists_text_vectorize_summary_2025.json (1224 bytes)",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__anetta-mona-chisa-2__ea7614cd__img_01.jpg size=91988 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__anetta-mona-chisa-2__ea7614cd__img_02.jpg size=100375 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__anetta-mona-chisa-2__ea7614cd__img_03.jpg size=101585 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__anetta-mona-chisa-2__ea7614cd__img_04.jpg size=87954 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__anetta-mona-chisa-2__ea7614cd__img_05.jpg size=102355 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[DONE] status=DRY_RUN_OK uploaded=0 skipped=0 failed=0 pruned=0 prune_failed=0",
+        "[DONE] manifest_local=data/phase1_seed10/derived/phase1_seed10_artifact_manifest.json",
+        "[DONE] summary=data/phase1_seed10/logs/phase1_seed10_r2_sync_derived_20260227T181425Z.json"
+      ],
+      "stderr_tail": [],
+      "name": "dry_run_prune"
+    },
+    {
+      "command": [
+        "C:\\Users\\syatk\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
+        "run_phase1_seed10_r2_sync.py",
+        "--scope",
+        "derived",
+        "--require-dry-run-log",
+        "--max-prune",
+        "600"
+      ],
+      "exit_code": 0,
+      "stdout_tail": [
+        "[SKIP] [derived] phase1_seed10/derived/images/artist_works_images/2025/liste/afriart-gallery__kaleab-abate__02377132__img_03.jpg reason=EXISTS_SAME_SIZE_AND_SHA256 size=93056",
+        "[SKIP] [derived] phase1_seed10/derived/images/artist_works_images/2025/liste/afriart-gallery__kaleab-abate__02377132__img_04.jpg reason=EXISTS_SAME_SIZE_AND_SHA256 size=97163",
+        "[SKIP] [derived] phase1_seed10/derived/images/artist_works_images/2025/liste/afriart-gallery__kaleab-abate__02377132__img_05.jpg reason=EXISTS_SAME_SIZE_AND_SHA256 size=98217",
+        "[SKIP] [derived] phase1_seed10/derived/images/artist_works_images/2025/liste/amanita__eva-beresin__5606bc83__img_01.jpg reason=EXISTS_SAME_SIZE_AND_SHA256 size=88907",
+        "[SKIP] [derived] phase1_seed10/derived/images/artist_works_images/2025/liste/amanita__eva-beresin__5606bc83__img_02.jpg reason=EXISTS_SAME_SIZE_AND_SHA256 size=99877",
+        "[SKIP] [derived] phase1_seed10/derived/images/artist_works_images/2025/liste/amanita__eva-beresin__5606bc83__img_03.jpg reason=EXISTS_SAME_SIZE_AND_SHA256 size=89059",
+        "[SKIP] [derived] phase1_seed10/derived/images/artist_works_images/2025/liste/amanita__eva-beresin__5606bc83__img_04.jpg reason=EXISTS_SAME_SIZE_AND_SHA256 size=100504",
+        "[UPLOAD] [derived] phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__aurora-kiraly__3ef1b6fb__img_01.jpg size=95283 sha256=84cbfabdabb7...",
+        "[UPLOAD] [derived] phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__aurora-kiraly__3ef1b6fb__img_02.jpg size=95482 sha256=901e29a7503c...",
+        "[UPLOAD] [derived] phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__aurora-kiraly__3ef1b6fb__img_03.jpg size=92860 sha256=5c098107709e...",
+        "[UPLOAD] [derived] phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__aurora-kiraly__3ef1b6fb__img_04.jpg size=86200 sha256=bb0e8a6a250a...",
+        "[SKIP] [derived] phase1_seed10/derived/vector/artists_text_artifact_manifest_2025.json reason=EXISTS_SAME_SIZE_AND_SHA256 size=853",
+        "[SKIP] [derived] phase1_seed10/derived/vector/artists_text_index_2025.npy reason=EXISTS_SAME_SIZE_AND_SHA256 size=491648",
+        "[SKIP] [derived] phase1_seed10/derived/vector/artists_text_meta_2025.jsonl reason=EXISTS_SAME_SIZE_AND_SHA256 size=42949",
+        "[SKIP] [derived] phase1_seed10/derived/vector/artists_text_vectorize_failed_2025.jsonl reason=EXISTS_SAME_SIZE_AND_SHA256 size=0",
+        "[SKIP] [derived] phase1_seed10/derived/vector/artists_text_vectorize_summary_2025.json reason=EXISTS_SAME_SIZE_AND_SHA256 size=1224",
+        "[UPLOAD] [manifest] phase1_seed10/derived/phase1_seed10_artifact_manifest.json size=23903 sha256=a6c8b2625ce7...",
+        "[DONE] status=OK uploaded=5 skipped=46 failed=0 pruned=0 prune_failed=0",
+        "[DONE] manifest_local=data/phase1_seed10/derived/phase1_seed10_artifact_manifest.json",
+        "[DONE] summary=data/phase1_seed10/logs/phase1_seed10_r2_sync_derived_20260227T181447Z.json"
+      ],
+      "stderr_tail": [],
+      "name": "apply_guarded_without_prune"
+    }
+  ],
+  "dry_run_summary_path": "data/phase1_seed10/logs/phase1_seed10_r2_sync_derived_20260227T181425Z.json",
+  "apply_summary_path": "data/phase1_seed10/logs/phase1_seed10_r2_sync_derived_20260227T181447Z.json",
+  "delete_policy": "prune_deferred_first_seen",
+  "prune_candidates_count": 5,
+  "prune_stable_hits": 1,
+  "prune_ready": false
+}

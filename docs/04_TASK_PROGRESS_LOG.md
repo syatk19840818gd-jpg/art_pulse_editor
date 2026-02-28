@@ -2914,124 +2914,1313 @@ _trash 運用方針:
   - Start A-2R with fail-fast gate (preflight x2 PASS required), and run Athr only as one-gallery/one-artist.
 
 ---
-## PREP-R2-SYNC ?????phase1 R2????????
+## PREP-R2-SYNC（Phase1 R2同期CLIの導入）
 
-- ??????:
-  - `run_phase1_seed10_r2_sync.py`????
-- ????:
-  - phase1? `raw/derived/enrichment/logs` ?????R2???????CLI????
-  - `--dry-run` / `--scope` / `--target-year` / `--manifest-path` / `--manifest-r2-key` ????
-  - apply?? `phase1_seed10_artifact_manifest.json` ?????????R2??????????
-- ???????exit:
+- 変更ファイル:
+  - `run_phase1_seed10_r2_sync.py` 追加
+- 実装内容:
+  - phase1 の `raw/derived/enrichment/logs` を対象にR2同期するCLIを実装
+  - `--dry-run` / `--scope` / `--target-year` / `--manifest-path` / `--manifest-r2-key` を実装
+  - apply時に `phase1_seed10_artifact_manifest.json` を更新し、R2へアップロード
+- 実行コマンド/exit:
   - `python run_phase1_seed10_r2_sync.py --scope all --dry-run` ? exit 0
   - `python run_phase1_seed10_r2_sync.py --scope all` ? exit 0
-- ???:
+- 生成物:
   - `data/phase1_seed10/logs/phase1_seed10_r2_sync_all_20260226T181020Z.json`
   - `data/phase1_seed10/derived/phase1_seed10_artifact_manifest.json`
-- ????:
+- 実行結果:
   - status=OK, uploaded=360, skipped=134, failed=0
   - manifest upload: `phase1_seed10/derived/phase1_seed10_artifact_manifest.json` (uploaded=true)
-- ??:
-  - ??????????????????????????
+- 判定:
+  - R2同期基盤を導入し、以降のタスクで再利用可能
 
-- ????????????:
+- 追記（再実行結果）:
   - `python run_phase1_seed10_r2_sync.py --scope all` ? exit 0
   - `data/phase1_seed10/logs/phase1_seed10_r2_sync_all_20260226T181511Z.json`
-  - ??: uploaded=1 / skipped=494 / failed=0
-  - `data/phase1_seed10/derived/phase1_seed10_artifact_manifest.json` ? `failed_count=0` ???
+  - 結果: uploaded=1 / skipped=494 / failed=0
+  - `data/phase1_seed10/derived/phase1_seed10_artifact_manifest.json` の `failed_count=0` を確認
 
 
-## 103. TASK A-2R?Athr works?? ??? / 2026-02-27?
+## 103. TASK A-2R（Athr works優先 再検証）/ 2026-02-27
 
-- ???????exit:
+- 実行コマンド/exit:
   - `python run_phase1_network_preflight.py` ? exit 1
   - `python run_phase1_network_preflight.py` ? exit 1
-- ???:
+- 生成物:
   - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260227T020117Z.json`
   - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260227T020135Z.json`
-- ??:
-  - 2??PASS????????`passed=False`, `http_probe_ok=False`?
-  - fail-fast????? Athr???collect/report/guard?????
-- ??:
-  - ?????: `http_probe_failed:example.com`
-  - 03/04/RAG??? blocker-only ?????
+- 結果:
+  - 2回ともPASS条件未達（`passed=False`, `http_probe_ok=False`）
+  - fail-fast により Athr collect/report/guard は未実行
+- 備考:
+  - 主因: `http_probe_failed:example.com`
+  - 03/04/RAG には blocker-only で記録
 
 
-## 104. TASK D0-A2R-BLOCKER-ROOTCAUSE?preflight????????? + ?????
+## 104. TASK D0-A2R-BLOCKER-ROOTCAUSE（preflight失敗の根因切り分け + 修正）
 
-- ????:
-  - `run_phase1_network_preflight.py` ? `https://example.com` ??probe??????
-    DNS???? `CERTIFICATE_VERIFY_FAILED` 1????fail???????
-- ????:
+- 事象:
+  - `run_phase1_network_preflight.py` の `https://example.com` probe で
+    DNS成功でも `CERTIFICATE_VERIFY_FAILED` が1件で fail 判定
+- 修正内容:
   - `run_phase1_network_preflight.py`
-    - ??URL???????Google/GitHub/Cloudflare?
+    - probe URLを安定先（Google/GitHub/Cloudflare）へ切替可能に
     - `--profile-json` / `--probe-url` / `--dns-threshold` / `--http-required-successes`
-    - `failure_kind` ??HTTP????
-    - ??????????`_01`, `_02` ???
-  - `config/phase1_network_preflight_profile.json`????
-- ??????:
+    - `failure_kind` とHTTP詳細をsummaryへ追加
+    - 同秒実行時の衝突回避で `_01`, `_02` 連番出力を追加
+  - `config/phase1_network_preflight_profile.json` 更新
+- 再実行:
   - `python run_phase1_network_preflight.py` ? exit 0
   - `python run_phase1_network_preflight.py` ? exit 0
-- ???:
+- 生成物:
   - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260227T021906Z.json`
   - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260227T021937Z.json`
-- ??:
+- 判定:
   - `dns_ok_rate=1.000`, `http_ok_count=3/3`, `http_required_successes=2`
-  - fail-fast???2??PASS?????
+  - fail-fast 条件（2連続PASS）を満たす
 
 
-## 105. TASK A-2R-RESTART?Athr works?? ????
+## 105. TASK A-2R-RESTART（Athr works優先 再開）
 
-- ???????exit:
+- 実行コマンド/exit:
   - `python run_phase1_network_preflight.py` ? exit 0
   - `python run_phase1_network_preflight.py` ? exit 0
   - `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5 --only-fair-slug frieze_london --only-gallery-name Athr --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2r_restart_athr.json"` ? exit 0
-  - `python run_phase1_seed10_artist_image_collect_report.py --summary-path "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2r_restart_athr.json" --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2r_restart_athr_report.json"` ? exit 1?cp932?????
-  - `$env:PYTHONUTF8='1'; python run_phase1_seed10_artist_image_collect_report.py ...` ? exit 0
+  - `python run_phase1_seed10_artist_image_collect_report.py --summary-path "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2r_restart_athr.json" --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2r_restart_athr_report.json"` ? exit 1（cp932文字化け）
+  - `set PYTHONUTF8=1 && python run_phase1_seed10_artist_image_collect_report.py ...` ? exit 0
   - `python run_compare_phase1_guard.py --target-year 2025` ? exit 0
-- ???:
+- 生成物:
   - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260227T022556Z.json`
   - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260227T022617Z.json`
   - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2r_restart_athr.json`
   - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2r_restart_athr_report.json`
   - `data/phase1_seed10/logs/phase1_guard_summary_2025_20260227T022757Z.json`
-- ??:
+- 結果:
   - Athr: seed_artist_count=1, artists_with_ge_target_images=0, total_images_saved=0
-  - failed reason: `no_image_candidates_found_on_artist_detail`?domain=`athrart.com`?
+  - failed reason: `no_image_candidates_found_on_artist_detail`（domain=`athrart.com`）
   - works notes: `works_page_tried:3` / `works_page_found:3` / `works_candidates_count:0`
-  - guard??: `guard_passed=True`
+  - guard結果: `guard_passed=True`
 
 
-## 106. TASK A-2R-FIX?Athr works candidates=0 ???? + ?????
+## 106. TASK A-2R-FIX（Athr works candidates=0 修正 + 再検証）
 
-- ???????exit:
+- 実行コマンド/exit:
   - `python run_phase1_network_preflight.py` ? exit 0
   - `python run_phase1_network_preflight.py` ? exit 0
   - `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5 --only-fair-slug frieze_london --only-gallery-name Athr --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2r_fix_athr.json"` ? exit 0
   - `python run_phase1_seed10_artist_image_collect_report.py --summary-path "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2r_fix_athr.json" --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2r_fix_athr_report.json"` ? exit 0
   - `python run_compare_phase1_guard.py --target-year 2025` ? exit 0
-- ??:
-  - `run_phase1_seed10_artist_image_collect.py`: `extract_image_candidates` ?????? `data-lazy` ????
-  - `run_phase1_seed10_artist_image_collect_report.py`: Windows console??????????
-- ??:
+- 修正:
+  - `run_phase1_seed10_artist_image_collect.py`: `extract_image_candidates` に `data-lazy` 対応を追加
+  - `run_phase1_seed10_artist_image_collect_report.py`: Windows consoleのエンコード対策を追加
+- 結果:
   - Athr: seed_artist_count=1 / artists_with_ge_target_images=1 / total_images_saved=5
-  - guard_passed=true?mismatches=0?
+  - guard_passed=true（mismatches=0）
 
 
-## 107. TASK A-2R-FIX-1?Athr????? + Sara Abdu Works??????
+## 107. TASK A-2R-FIX-1（Athr絞り込み + Sara Abdu Works再検証）
 
-- ???????exit:
+- 実行コマンド/exit:
   - `python run_phase1_network_preflight.py` ? exit 0
   - `python run_phase1_network_preflight.py` ? exit 0
   - `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5 --only-fair-slug frieze_london --only-gallery-name Athr --only-source-url "https://athrart.com/artists/33-sara-abdu/biography" --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2r_fix1_athr_sara_abdu.json"` ? exit 0
   - `python run_phase1_seed10_artist_image_collect_report.py --summary-path "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2r_fix1_athr_sara_abdu.json" --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2r_fix1_athr_sara_abdu_report.json"` ? exit 0
   - `python run_compare_phase1_guard.py --target-year 2025` ? exit 0
-- ????:
+- 退避:
   - before=5 / after=0
   - `_trash/task_a2r_fix1_athr_reset_20260227T120334Z`
-- ??:
-  - `run_phase1_seed10_artist_image_collect.py`?`data-lazy`???artist slug???`works_urls_tried`???
-  - `run_phase1_seed10_artist_image_collect_report.py`?stdout encoding???
-- ??:
+- 修正:
+  - `run_phase1_seed10_artist_image_collect.py` の `data-lazy` 対応、artist slug判定、`works_urls_tried` 記録
+  - `run_phase1_seed10_artist_image_collect_report.py` の stdout encoding 対応
+- 結果:
   - Athr/Sara Abdu: images_saved=5, target_met=true
   - guard_passed=true
+
+## 108. TASK A-2R-FIX-2（Athr / Sara Abdu 年抽出ルール実装 + 再検証）
+
+- 実行コマンドとexit:
+  - `python run_phase1_network_preflight.py` → exit 0
+  - `python run_phase1_network_preflight.py` → exit 0
+  - `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5 --only-fair-slug frieze_london --only-gallery-name Athr --only-source-url "https://athrart.com/artists/33-sara-abdu/biography" --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2r_fix2_athr_sara_abdu.json"` → exit 0
+  - `python run_phase1_seed10_artist_image_collect_report.py --summary-path data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2r_fix2_athr_sara_abdu.json --output-json data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2r_fix2_athr_sara_abdu_report.json` → exit 0
+  - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+- 退避:
+  - 退避元: `data/phase1_seed10/derived/images/artist_works_images/2025/frieze-london/athr__sara-abdu__*`
+  - 退避先: `_trash/task_a2r_fix2_sara_abdu_reset_20260227_161353`
+  - 退避件数: 5（退避後 `athr__sara-abdu__*` は 0件）
+- 実装:
+  - `run_phase1_seed10_artist_image_collect.py`
+    - 作品画像候補ごとに worksページ近傍テキスト/alt/figcaption から年を抽出
+    - 並び順を `year desc`（年不明は末尾）へ変更
+    - summaryに `year_sort_audit` と `*_years_top5` / `*_year_desc_ok` を保存
+  - `run_phase1_seed10_artist_image_collect_report.py`
+    - reportへ `year_sort_audit` を転記
+    - breakdown追記時に年抽出監査行を出力
+- 年抽出検証（Sara Abdu）:
+  - works候補上位5年: `[2024, 2024, 2024, 2022, 2022]`
+  - 保存画像上位5年: `[2024, 2024, 2024, 2022, 2022]`
+  - 降順判定: `works_candidate_year_desc_ok=true` / `selected_image_year_desc_ok=true`
+- 生成物:
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2r_fix2_athr_sara_abdu.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2r_fix2_athr_sara_abdu_report.json`
+  - `data/phase1_seed10/logs/phase1_guard_summary_2025_20260227T071428Z.json`
+- 補足:
+  - report内「失敗0件ギャラリー」は 9件（Athr以外は images_saved_total=0）
+
+## 109. TASK A-2R-FIX-3（年抽出 evidence_text 保存 + 再検証）
+
+- 実行コマンドとexit:
+  - `python run_phase1_network_preflight.py` → exit 0
+  - `python run_phase1_network_preflight.py` → exit 0
+  - 退避: `athr__sara-abdu__*` → `_trash/task_a2r_fix3_sara_abdu_reset_20260227_162659`（5件、退避後0件）→ exit 0
+  - `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5 --only-fair-slug frieze_london --only-gallery-name Athr --only-source-url "https://athrart.com/artists/33-sara-abdu/biography" --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2r_fix3_athr_sara_abdu.json"` → exit 0
+  - `python run_phase1_seed10_artist_image_collect_report.py --summary-path data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2r_fix3_athr_sara_abdu.json --output-json data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2r_fix3_athr_sara_abdu_report.json` → exit 0
+  - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+- 実装:
+  - `run_phase1_seed10_artist_image_collect.py`
+    - 年抽出時のコンテキストから `evidence_text`（120文字）を生成
+    - `works_candidate_year_evidence_top5` / `selected_image_year_evidence_top5` に `evidence_text` を保存
+  - `run_phase1_seed10_artist_image_collect_report.py`
+    - `year_sort_audit` の `selected_image_year_evidence_top5[].evidence_text` を RAG内訳へ転記
+- 検証:
+  - `selected_image_years_top5=[2024, 2024, 2024, 2022, 2022]`
+  - `selected_image_year_desc_ok=true`
+  - summary/report とも `selected_image_year_evidence_top5[].evidence_text` を確認
+- 生成物:
+  - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260227T072648Z.json`
+  - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260227T072648Z_01.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2r_fix3_athr_sara_abdu.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2r_fix3_athr_sara_abdu_report.json`
+  - `data/phase1_seed10/logs/phase1_guard_summary_2025_20260227T072806Z.json`
+
+## 110. TASK A-2R-FIX-4（evidence_text ノイズ除去 + 再検証）
+
+- 実行コマンドとexit:
+  - `python run_phase1_network_preflight.py` → exit 0
+  - `python run_phase1_network_preflight.py` → exit 0
+  - 退避: `athr__sara-abdu__*` → `_trash/task_a2r_fix4_sara_abdu_reset_20260227_163444`（5件、退避後0件）→ exit 0
+  - `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5 --only-fair-slug frieze_london --only-gallery-name Athr --only-source-url "https://athrart.com/artists/33-sara-abdu/biography" --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2r_fix4_athr_sara_abdu.json"` → exit 0
+  - `python run_phase1_seed10_artist_image_collect_report.py --summary-path data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2r_fix4_athr_sara_abdu.json --output-json data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2r_fix4_athr_sara_abdu_report.json` → exit 0
+  - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+- 実装:
+  - `run_phase1_seed10_artist_image_collect.py`
+    - `sanitize_evidence_text` を追加
+    - `evidence_text` 生成時に `key=value` 形式の属性断片・壊れたentity断片・不要記号を除去
+    - 120文字短縮ルールは維持
+  - `run_phase1_seed10_artist_image_collect_report.py`
+    - 既存の evidence_text 転記ロジックは維持（挙動変更なし）
+- 検証:
+  - `selected_image_years_top5=[2024, 2024, 2024, 2022, 2022]`
+  - `selected_image_year_desc_ok=true`
+  - `selected_image_year_evidence_top5` は summary/report とも属性ノイズ判定 `False`
+- 生成物:
+  - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260227T073427Z.json`
+  - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260227T073427Z_01.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2r_fix4_athr_sara_abdu.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2r_fix4_athr_sara_abdu_report.json`
+  - `data/phase1_seed10/logs/phase1_guard_summary_2025_20260227T073546Z.json`
+
+## 111. TASK A-2B-CLOSE-1（Gallery Baton works優先検証）
+
+- SSOT整合ゲート（実装前確認）:
+  - 01章ID: 4-0 / 4-4 / 5-4 / 6-2 / 6-3 / 10
+  - 02 CARD_ID: 10 / 11 / 14 / 16
+  - 変更対象: `run_phase1_seed10_artist_image_collect.py` / `run_phase1_seed10_artist_image_collect_report.py` / `docs/03,04,RAG`
+- 実行コマンドとexit:
+  - 存在確認4件 → すべて OK
+  - `python run_phase1_network_preflight.py` → exit 0
+  - `python run_phase1_network_preflight.py` → exit 0
+  - 対象artist特定: `https://gallerybaton.com/artists/35-liam-gillick`（`artist_id_hint=f0c2c137...`）
+  - 退避: `gallery-baton__*` → `_trash/task_a2b_close1_gallery_baton_reset_20260227_170505`（moved=0, remain=0）→ exit 0
+  - `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5 --only-fair-slug frieze_london --only-gallery-name "Gallery Baton" --only-source-url "https://gallerybaton.com/artists/35-liam-gillick" --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2b_close1_gallery_baton.json"` → exit 0
+  - `python run_phase1_seed10_artist_image_collect_report.py --summary-path data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2b_close1_gallery_baton.json --output-json data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2b_close1_gallery_baton_report.json` → exit 0
+  - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+- 判定:
+  - `saved_images=5`, `target_met=true`, `failed_cases=0`
+  - `selected_image_years_top5=[2025, 2025, 2025, 2025, 2024]`, `selected_image_year_desc_ok=true`
+  - selected URL/evidence で `exhibition/profile/hero` 混入は 0件
+  - `works_urls_tried=['https://gallerybaton.com/artists/35-liam-gillick']`
+    - `/works` サフィックスURLは未出現だが、同一URL内の作品群から抽出できているため ①-2 は実運用上クリア判定
+- 生成物:
+  - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260227T080417Z.json`
+  - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260227T080417Z_01.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2b_close1_gallery_baton.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2b_close1_gallery_baton_report.json`
+  - `data/phase1_seed10/logs/phase1_guard_summary_2025_20260227T080554Z.json`
+
+## 112. TASK A-2A-CLOSE-1（A+ Works of Art works優先検証）
+
+- SSOT整合ゲート（実装前確認）:
+  - 01章ID: 4-0 / 4-4 / 5-4 / 6-2 / 6-3 / 10
+  - 02 CARD_ID: 10 / 11 / 14 / 16
+  - 変更対象: `run_phase1_seed10_artist_image_collect.py` / `run_phase1_seed10_artist_image_collect_report.py` / `docs/03,04,RAG`
+- 実行コマンドとexit:
+  - 存在確認4件 → すべて OK
+  - `python run_phase1_network_preflight.py` → exit 0
+  - `python run_phase1_network_preflight.py` → exit 0
+  - 対象artist特定: `https://aplusart.asia/artists/46-ahmad-fuad-osman`（`artist_id_hint=92ed6306...`）
+  - 退避: `a-works-of-art__*` → `_trash/task_a2a_close1_a_plus_works_reset_20260227_171149`（moved=0, remain=0）→ exit 0
+  - `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5 --only-fair-slug liste --only-gallery-name "A+ Works of Art" --only-source-url "https://aplusart.asia/artists/46-ahmad-fuad-osman" --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2a_close1_a_plus_works.json"` → exit 0
+  - `python run_phase1_seed10_artist_image_collect_report.py --summary-path data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2a_close1_a_plus_works.json --output-json data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2a_close1_a_plus_works_report.json` → exit 0
+  - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+- 判定:
+  - `saved_images=5`, `target_met=true`, `failed_cases=0`
+  - `selected_image_years_top5=[None, None, None, None, None]`（年情報なし）
+  - `works_urls_tried=['https://aplusart.asia/artists/']` で、artist detail (`.../artists/46-ahmad-fuad-osman`) ではなく一覧系へ逸脱
+  - selected URL に `thuy-anh` / `kentaro` 等の他作家トークンを確認（対象外作家混入）
+  - exhibition/profile/hero 混入は0件だが、①-3完了条件（対象作家作品のみ）は未達
+- 結論:
+  - TASK A-2A-CLOSE-1 は「検証済み・未解決」。
+  - 次タスクで「artist一致性を維持した works 優先抽出」へ修正が必要。
+- 生成物:
+  - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260227T081126Z.json`
+  - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260227T081126Z_01.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2a_close1_a_plus_works.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2a_close1_a_plus_works_report.json`
+  - `data/phase1_seed10/logs/phase1_guard_summary_2025_20260227T081204Z.json`
+
+## 112-2. TASK A-2A-CLOSE-2（A+ Works of Art 最終確定）
+
+- SSOT整合ゲート（実装前確認）:
+  - 01章ID: 4-0 / 4-4 / 5-4 / 6-2 / 6-3 / 10
+  - 02 CARD_ID: 10 / 11 / 14 / 16
+  - 変更対象: `run_phase1_seed10_artist_image_collect.py` / `docs/03,04,RAG`
+- 実行コマンドとexit:
+  - 存在確認4件 → すべて OK
+  - `python run_phase1_network_preflight.py` → exit 0
+  - `python run_phase1_network_preflight.py` → exit 0
+  - `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5 --only-fair-slug liste --only-source-url "https://aplusart.asia/artists/35-chong-kim-chiew" --force-retry-failed --clear-failed-ledger target --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2a_close2_chong.json"` → exit 0
+  - `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5 --only-fair-slug liste --only-source-url "https://aplusart.asia/artists/41-gan-chin-lee" --force-retry-failed --clear-failed-ledger target --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2a_close2_gan.json"` → exit 0
+  - `python run_phase1_seed10_artist_image_collect_report.py --summary-path "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2a_close2_chong.json" --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2a_close2_chong_report.json"` → exit 0
+  - `python run_phase1_seed10_artist_image_collect_report.py --summary-path "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2a_close2_gan.json" --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2a_close2_gan_report.json"` → exit 0
+  - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+- 実装:
+  - `run_phase1_seed10_artist_image_collect.py`
+    - `works_only_artist_match_unique_count`
+    - `works_only_artist_match_unique_urls_top20`
+    - 上記を `per_artist_counts` / `year_sort_audit` へ出力
+- 判定:
+  - Chong: `saved_images=3`, `target_met=false`, `works_only_artist_match_unique_count=3`
+  - Gan: `saved_images=0`, `target_met=false`, `works_only_artist_match_unique_count=0`
+  - 01 6-2準拠: works-only範囲で追加ユニークソース不足のため、5/5未達を理由付き確定
+  - 再開条件: 「サイト側でworks画像が追加される」または「01仕様変更」
+- 生成物:
+  - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260228T060151Z.json`
+  - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260228T060209Z.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2a_close2_chong.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2a_close2_chong_report.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2a_close2_gan.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2a_close2_gan_report.json`
+  - `data/phase1_seed10/logs/phase1_guard_summary_2025_20260228T060753Z.json`
+
+## 113. TASK A-2A-FIX-1（A+ Works of Art artist一致性ガード修正）
+
+- SSOT整合ゲート（実装前確認）:
+  - 01章ID: 4-0 / 4-4 / 5-4 / 6-2 / 6-3 / 10
+  - 02 CARD_ID: 10 / 11 / 14 / 16
+  - 変更対象: `run_phase1_seed10_artist_image_collect.py` / `run_phase1_seed10_artist_image_collect_report.py` / `docs/03,04,RAG`
+- 実行コマンドとexit:
+  - `python run_phase1_network_preflight.py` → exit 0
+  - `python run_phase1_network_preflight.py` → exit 0
+  - 退避: `a-works-of-art__*` → `_trash/task_a2a_fix1_a_plus_works_reset_20260227_172057`（moved=5, remain=0）→ exit 0
+  - `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5 --only-fair-slug liste --only-gallery-name "A+ Works of Art" --only-source-url "https://aplusart.asia/artists/46-ahmad-fuad-osman" --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2a_fix1_a_plus_works.json"` → exit 0
+  - `python run_phase1_seed10_artist_image_collect_report.py --summary-path data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2a_fix1_a_plus_works.json --output-json data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2a_fix1_a_plus_works_report.json` → exit 0
+  - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+- 実装:
+  - `run_phase1_seed10_artist_image_collect.py`
+    - source_url から artist一致性トークンを生成し、候補URL/近傍テキストで一致しない候補を除外するガードを追加
+    - `extract_works_candidate_urls` で `/artists` 等の一覧系URLを除外し、`<artist>/works` を優先探索
+  - `run_phase1_seed10_artist_image_collect_report.py`
+    - 既存の `year_sort_audit` 転記ロジックを維持（FIX-1での追加破壊なし）
+- 判定:
+  - 改善点:
+    - `works_urls_tried=['https://aplusart.asia/artists/46-ahmad-fuad-osman/works']` へ修正
+    - `selected_image_years_top5=[2024, 2023, 2022, 2021, 2019]`（降順OK）
+    - selected evidenceに `thuy-anh` / `kentaro` 等の対象外作家トークン混入は再現せず
+  - 残課題:
+    - selected URL は 5/5 が `/exhibitions/main_image_override/`（Exhibitions系）
+    - ①-3完了条件「WORKS優先のみ（Exhibitions/Profile/hero混入ゼロ）」は未達
+- 生成物:
+  - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260227T082034Z.json`
+  - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260227T082034Z_01.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2a_fix1_a_plus_works.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2a_fix1_a_plus_works_report.json`
+  - `data/phase1_seed10/logs/phase1_guard_summary_2025_20260227T082116Z.json`
+
+## 114. TASK A-2A-FIX-2（A+ Works of Art works-only画像選別ガード強化）
+
+- SSOT整合ゲート（実装前確認）:
+  - 01章ID: 4-0 / 4-4 / 5-4 / 6-2 / 6-3 / 10
+  - 02 CARD_ID: 10 / 11 / 14 / 16
+  - 変更対象: `run_phase1_seed10_artist_image_collect.py` / `docs/03,04,RAG`
+- 実行コマンドとexit:
+  - 存在確認4件 → すべて OK
+  - `python run_phase1_network_preflight.py` → exit 0
+  - `python run_phase1_network_preflight.py` → exit 0
+  - 退避: `a-works-of-art__*` → `_trash/task_a2a_fix2_a_plus_works_reset_20260227_173343`（moved=5, remain=0）→ exit 0
+  - `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5 --only-fair-slug liste --only-gallery-name "A+ Works of Art" --only-source-url "https://aplusart.asia/artists/46-ahmad-fuad-osman" --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2a_fix2_a_plus_works.json"` → exit 0
+  - `python run_phase1_seed10_artist_image_collect_report.py --summary-path data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2a_fix2_a_plus_works.json --output-json data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2a_fix2_a_plus_works_report.json` → exit 0
+  - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+- 実装:
+  - `run_phase1_seed10_artist_image_collect.py`
+    - `WORKS_ONLY_REJECT_TOKENS` を追加（`/exhibitions`, `main_image_override`, `profile`, `hero` など）
+    - `candidate_violates_works_only()` を追加
+    - works候補/フォールバック候補の保存前で works-only違反候補を除外
+    - `POSITIVE_TOKENS` から `exhibition` を除去（Exhibitions画像の加点防止）
+- 判定:
+  - `saved_images=5`, `target_met=true`, `failed_cases=0`
+  - `works_urls_tried=['https://aplusart.asia/artists/46-ahmad-fuad-osman/works']`
+  - `selected_image_years_top5=[1989, 1953, None, None, None]`, `selected_image_year_desc_ok=true`
+  - selected URL/evidence で `exhibition/profile/hero` 混入は 0件
+  - ①-3（A+ Works of Art）はクローズ判定
+- 生成物:
+  - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260227T083132Z.json`
+  - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260227T083140Z.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2a_fix2_a_plus_works.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a2a_fix2_a_plus_works_report.json`
+  - `data/phase1_seed10/logs/phase1_guard_summary_2025_20260227T083459Z.json`
+
+## 115. TASK A-4-CLOSE-1（The Approach 破損画像原因切り分け + 再発防止）
+
+- SSOT整合ゲート（実装前確認）:
+  - 01章ID: 4-0 / 4-4 / 5-4 / 6-2 / 6-3 / 10
+  - 02 CARD_ID: 10 / 11 / 14 / 16
+  - 変更対象: `run_phase1_seed10_artist_image_collect.py` / `run_phase1_seed10_artist_image_collect_report.py` / `docs/03,04,RAG`
+- 対象artist（1ギャラリー=1アーティスト）:
+  - source_url: `https://www.theapproach.co.uk/artists/phillip-allen/`
+  - artist_id: `261b72a7aa4795ef88ba0454da500ad744e247771e0d42a72da4c53a8b97f12f`
+  - 想定保存prefix: `the-approach__phillip-allen__261b72a7`
+- 実行コマンドとexit:
+  - 存在確認4件 → すべて OK
+  - `python run_phase1_network_preflight.py` → exit 0
+  - `python run_phase1_network_preflight.py` → exit 0
+  - 退避: `the-approach__*` → `_trash/task_a4_close1_the_approach_reset_20260227_174931`（moved=0, remain=0）→ exit 0
+  - `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5 --only-fair-slug frieze_london --only-gallery-name "The Approach" --only-source-url "https://www.theapproach.co.uk/artists/phillip-allen/" --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a4_close1_the_approach.json"` → exit 0
+  - `python run_phase1_seed10_artist_image_collect_report.py --summary-path data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a4_close1_the_approach.json --output-json data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a4_close1_the_approach_report.json` → exit 0
+  - `python run_compare_phase1_guard.py --target-year 2025` → exit 0
+- 原因切り分け（壊れ画像）:
+  - 旧ファイル（`_trash/artist_works_images_cleanup_20260227T021440Z/...the-approach__...jpg`）は 5/5 で payloadシグネチャが `.avif`、保存拡張子は `.jpg`
+  - content-type/実バイトと保存拡張子の不整合により、閲覧側で「壊れ画像」扱いが発生
+  - HTML payloadや空payloadは今回対象外（再現なし）
+- 実装（汎用のみ）:
+  - `run_phase1_seed10_artist_image_collect.py`
+    - `detect_extension` を content-type優先へ変更
+    - `sniff_extension_from_payload` を追加（jpeg/png/webp/avif）
+    - payloadシグネチャと拡張子が不一致の場合はシグネチャ拡張子を採用
+    - `looks_like_html_payload` / `MIN_IMAGE_PAYLOAD_BYTES` を追加して健全性チェック
+    - `image/svg+xml` を不許可（非作品向け壊れ要因を抑止）
+- 判定:
+  - `saved_images=5`, `target_met=true`, `failed_cases=0`
+  - `works_urls_tried=['https://www.theapproach.co.uk/artists/phillip-allen/works']`
+  - `selected_image_years_top5=[2025, None, None, None, None]`, `selected_image_year_desc_ok=true`
+  - selected URL/evidence で `exhibition/profile/hero` 混入は 0件
+  - 保存ファイルは `.avif` で 5件、payloadシグネチャ一致、HTML payload 0件（この判定は後に再オープン）
+- 生成物:
+  - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260227T084453Z.json`
+  - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260227T084504Z.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a4_close1_the_approach.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a4_close1_the_approach_report.json`
+  - `data/phase1_seed10/logs/phase1_guard_summary_2025_20260227T085012Z.json`
+
+## 116. TASK A-4-CLOSE-1-REOPEN（JPEG/100KB ホットフィックス + 全画像再生成）
+
+- 再オープン理由（ユーザー確認）:
+  - `.avif` は閲覧環境で読めないため運用不可
+  - 100KB目標の圧縮が効かず、10KB級/800KB級が混在
+- 実装（汎用のみ）:
+  - `run_phase1_seed10_artist_image_collect.py`
+    - 画像取得ヘッダを `image/jpeg,image/png,image/*` 優先へ変更（avif/webp優先を除外）
+    - `normalize_image_payload_for_rag` を追加し、保存前に JPEG へ正規化
+    - `IMAGE_TARGET_SIZE_KB=100` を基準に品質（95→20）と縮小率（1.0→0.2）で段階圧縮
+    - 実画像サイズが小さすぎる候補（`<120x120`）を除外
+- 実行コマンドとexit（要点）:
+  - The Approach 単独再実測（jpegfix）:
+    - 退避: `_trash/task_a4_close1_jpegfix_reset_20260227_180052`（moved=5）
+    - collect/report/guard: exit 0
+  - 既存画像の全再生成（2025配下）:
+    - 退避1: `_trash/task_img_jpeg100_refit_reset_20260227_180338`（moved=20）
+    - collect(refit): 初回 exit 1（cp932出力で失敗）→ `set PYTHONUTF8=1` で再実行 exit 0
+    - 退避2: `_trash/task_img_jpeg100_refit2_reset_20260227_180938`（moved=40）
+    - collect(refit2): exit 0
+    - 退避3: `_trash/task_img_jpeg100_refit3_reset_20260227_181519`（moved=39）
+    - collect(refit3): exit 0
+    - report(refit3): exit 0
+    - guard(refit3): exit 0
+- 最終検証（refit3）:
+  - 保存枚数: 39（`.jpg` のみ）
+  - サイズ分布: `min=19,096B / max=102,358B / >120KB=0 / <10KB=0`
+  - 80〜120KB帯: 29枚（約74%）
+  - 失敗は `Amanita` の 1件のみ（`insufficient_image_candidates_after_download`、works URL 404由来）
+- 生成物:
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a4_close1_the_approach_jpegfix.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a4_close1_the_approach_jpegfix_report.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_image_jpeg100_refit3_2025.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_image_jpeg100_refit3_2025_report.json`
+  - `data/phase1_seed10/logs/phase1_guard_summary_2025_20260227T091928Z.json`
+
+## 117. TASK CACHE-POLICY-FIX（成功画像保持 + 無効画像のみ隔離）
+
+- 背景（ユーザー指示）:
+  - 失敗時に成功画像まで全退避すると非効率（容量/再取得コスト増）
+  - Amanita 4枚はページ上限で妥当（失敗扱いしない運用）
+- 実装:
+  - `run_phase1_seed10_artist_image_collect.py`
+    - 既存キャッシュ検証 `validate_cached_image_file` を追加
+    - 不正キャッシュのみ `_trash/invalid_cached_images_<run_ts>/<year>/<fair>/` へ隔離
+    - 成功済みの既存画像は保持し、再取得対象から除外しない
+- 動作確認:
+  - The Approach 単独再実行で既存5枚を保持したまま `saved_images=5` 維持
+  - 出力画像は `.jpg` のみ
+  - サイズ分布（2025配下）: `max=102,358B`, `>120KB=0`, `<10KB=0`
+- 備考:
+  - Amanita の 4枚は source 側候補不足（works URL 404）であり、運用上は許容
+
+## 118. TASK RAG-IMAGE-SSOT-REFIT-20260227（SSOT画像ルール再実装 + 全再抽出）
+
+- 背景:
+  - SSOT画像ルール（4-4 / 5-4）に対して、`artist_works_images_{FAIR_SLUG}.jsonl` 未生成、`image_url_hash`重複排除欠如、`max_year_seen/current_topN`追跡不足が残っていたため、collectorを再実装。
+- 実装:
+  - `run_phase1_seed10_artist_image_collect.py`
+    - `artist_works_images_{fair_slug}.jsonl` 出力を追加（`works_image_urls/hashes/captions/years/r2_keys` ほか）
+    - `image_url_hash` で重複候補除外を追加
+    - `max_year_seen` と `works_image_topN_candidate_hashes_prev` の保存更新を追加
+    - hero/portrait 判定を強信号化（作品情報シグナルがある場合は除外しない）
+    - 既存Windows cp932出力クラッシュ対策（stdout reconfigure）を追加
+- 実行:
+  - preflight 2回:
+    - `phase1_network_preflight_summary_20260227T100141Z.json` PASS
+    - `phase1_network_preflight_summary_20260227T100141Z_01.json` PASS
+  - 全再抽出前退避:
+    - `data/phase1_seed10/derived/images/artist_works_images/2025/*` →
+      `_trash/task_rag_image_full_reextract_20260227_100225/`（39 files moved）
+  - collect（全件）:
+    - `phase1_seed10_artist_image_collect_summary_task_rag_full_reextract_20260227.json`（exit 0）
+    - 結果: processed=8, ge_target=7, success_rate=87.5%
+  - report:
+    - `phase1_seed10_artist_image_collect_summary_task_rag_full_reextract_20260227_report.json`（exit 0）
+  - guard:
+    - `phase1_guard_summary_2025_20260227T100759Z.json`（exit 0, guard_passed=true）
+- 生成物:
+  - `data/phase1_seed10/derived/artist_works_images_frieze_london.jsonl`
+  - `data/phase1_seed10/derived/artist_works_images_liste.jsonl`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_rag_full_reextract_20260227.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_rag_full_reextract_20260227_report.json`
+  - `data/phase1_seed10/logs/phase1_guard_summary_2025_20260227T100759Z.json`
+
+
+## 119. TASK TARUTANI-SSOT-REFIT-20260227（TarutaniRAG SSOT差分修正 + 再ベクター化）
+
+- 修正対象:
+  - un_tarutani_text_import.py
+    - docx抽出を python-docx へ変更
+    - PDF抽出を import 本体へ実装（pypdf）
+  - un_tarutani_r2_sync.py
+    - source R2 key を data/Tarutani_data/... ミラーへ修正
+  - un_vectorize_tarutani_text.py
+    - manifest に chunk_size_chars, chunk_overlap_chars, ecords_count, code_commit_id を追加
+- 再生成手順:
+  - 旧成果物を _trash/task_tarutani_refit_20260227_102918/ へ退避
+  - python run_tarutani_text_import.py 再実行
+  - 旧 headline_ja を source_path で復元（16件）
+  - python run_vectorize_tarutani_text.py 再実行
+  - python run_tarutani_r2_sync.py --scope source --dry-run で key 規則確認
+- 結果:
+  - tarutani_text: 16 records
+  - extract_status: DOCX_TEXT_EXTRACTED=8, PDF_TEXT_EXTRACTED=8
+  - vectorize: chunks=74, embedded=74, failed=0
+  - manifest: 追加項目反映済み
+
+## 120. TASK PREP-R2-GUARD-20260227（R2同期ガード固定 + スナップショット確定）
+
+- 目的:
+  - 01 5-8 / 02 CARD 05 に沿って、R2同期の「dry-run確認後のみapply/prune」をCLIで強制する。
+- 変更ファイル:
+  - `run_phase1_seed10_r2_sync.py`
+  - `run_tarutani_r2_sync.py`
+- 実装内容:
+  - 共通:
+    - `--require-dry-run-log` 追加（同一scopeの最新dry-runログを必須化）
+    - `--max-prune` 追加（削除候補が上限超過時は削除を実行せず `GUARD_BLOCKED`）
+    - summary JSON に `dry_run_guard` / `max_prune` / `guard_blocked` を保存
+  - Tarutani同期:
+    - 既定 `--scope` を `all` に変更（sourceのみ実行の取りこぼし防止）
+- 実行コマンドとexit:
+  - `python run_phase1_seed10_r2_sync.py --scope all` → exit 0
+  - `python run_tarutani_r2_sync.py --scope all` → exit 0
+  - `python run_phase1_seed10_r2_sync.py --scope all --dry-run --prune` → exit 0
+  - `python run_tarutani_r2_sync.py --scope all --dry-run --prune --prune-prefix tarutani/source` → exit 0
+  - `python run_phase1_seed10_r2_sync.py --scope logs --prune` → exit 0
+  - `python run_tarutani_r2_sync.py --scope all --prune --prune-prefix tarutani/source` → exit 0
+- 結果:
+  - Phase1 apply: `uploaded=47, failed=0`
+  - Phase1限定prune: `pruned=487, prune_failed=0`
+  - Tarutani apply: `uploaded=23, failed=0`
+  - Tarutani限定prune: `pruned=64, prune_failed=0`
+  - R2確認:
+    - `phase1_seed10/derived/images=39`, `phase1_seed10/derived/vector=5`
+    - `tarutani/vectors=5`, `data/Tarutani_data/*=16`
+    - 旧 `tarutani/source/*` は削除済み
+- 基準スナップショット:
+  - `data/phase1_seed10/logs/phase1_seed10_r2_sync_all_20260227T121330Z.json`
+  - `data/phase1_seed10/logs/phase1_seed10_r2_sync_logs_20260227T121741Z.json`
+  - `data/Tarutani_data/logs/tarutani_r2_sync_all_20260227T121540Z.json`
+  - `data/Tarutani_data/logs/tarutani_r2_sync_all_20260227T121748Z.json`
+
+## 121. TASK PREP-R2-RUNBOOK-CLI-20260227（R2同期1コマンド化）
+
+- 目的:
+  - dry-run/apply/prune の実行順ミスを防ぐため、R2同期を1コマンドで実行する。
+- 追加:
+  - `run_r2_sync_runbook.py`
+    - 実行順固定: `phase1 dry-run --prune` → `tarutani dry-run --prune` → `phase1 apply guarded` → `tarutani apply guarded`
+    - guarded apply は `--require-dry-run-log` / `--max-prune` を自動付与
+    - 既定で `tarutani/source` を prune 対象に含める（`--no-tarutani-legacy-source-prune` で無効化可）
+    - summary を `data/phase1_seed10/logs/r2_sync_runbook_summary_*.json` に保存
+- 動作確認:
+  - `python run_r2_sync_runbook.py --help` → exit 0
+  - `python -m py_compile run_r2_sync_runbook.py` → exit 0
+
+## 122. TASK A-3A-CLOSE-1（Adams and Ollman 理由付きスキップ記録）
+
+- 実行前確認:
+  - docs/01_PROJECT_SPEC_CURRENT_FULL.docx, docs/02_RAG_SPEC_DERIVED.md, docs/03_STATE_SNAPSHOT_NEXT_TASKS.md, docs/04_TASK_PROGRESS_LOG.md の存在を確認
+  - SSOT章ID: 4-0, 4-4, 5-4, 6-2, 6-3, 10
+  - CARD_ID: 10, 11, 14, 16
+- 実行コマンドとexit:
+  - `python run_phase1_network_preflight.py` → exit 0
+  - `python run_phase1_network_preflight.py` → exit 0
+  - `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5 --only-fair-slug frieze_london --only-gallery-name "Adams and Ollman" --only-source-url "https://adamsandollman.com/Past-Exhibitions" --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a3a_close1_adams_ollman.json"` → exit 0（no targets）
+  - `python run_phase1_seed10_artist_image_collect_report.py --summary-path "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a3a_close1_adams_ollman.json" --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a3a_close1_adams_ollman_report.json"` → exit 0
+  - `python run_compare_phase1_guard.py --target-year 2025` → exit 0（guard_passed=false）
+- 退避:
+  - src: `data/phase1_seed10/derived/images/artist_works_images/2025/frieze-london/adams-and-ollman__*`
+  - dst: `_trash/task_a3a_close1_adams_ollman_reset_20260227_220415/`
+  - moved=0, src_remaining=0
+- 判定:
+  - 結果は「理由付きスキップ」
+  - 主因: `artists_frieze_london_2025.jsonl` に `Adams and Ollman` のartistレコードが存在せず、`seed_artist_count=0` で実測対象が作れない
+  - 再開条件: artists raw に対象galleryのartist 1件以上を生成後、同タスクを再実行
+
+
+## 123. TASK A-3A-FIX-1 (Adams and Ollman: seed 1 record -> re-measure)
+- Pre-check:
+  - Confirmed docs/01, docs/02, docs/03, docs/04
+  - SSOT chapter IDs: 4-0, 4-4, 5-4, 6-2, 6-3, 10
+  - CARD_ID: 10_NO_HERO_IMAGES, 11_IMAGE_TARGET_LINE, 14_CATEGORY_4_0_COMMON, 16_SSOT_COMPLIANCE_GATE
+- Commands and exit:
+  - `python run_phase1_network_preflight.py` -> exit 0
+  - `python run_phase1_network_preflight.py` -> exit 0
+  - Added seed row to `data/phase1_seed10/raw/artists_frieze_london_2025.jsonl` (with backup)
+  - `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5 --only-fair-slug frieze_london --only-gallery-name "Adams and Ollman" --only-source-url "https://adamsandollman.com/Jonathan-Berger-1" --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a3a_fix1_adams_ollman.json"` -> exit 0
+  - `python run_phase1_seed10_artist_image_collect_report.py --summary-path "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a3a_fix1_adams_ollman.json" --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a3a_fix1_adams_ollman_report.json"` -> exit 0
+  - `python run_compare_phase1_guard.py --target-year 2025` -> exit 0 (`guard_passed=false`)
+- Trash move:
+  - src: `data/phase1_seed10/derived/images/artist_works_images/2025/frieze-london/adams-and-ollman__*`
+  - dst: `_trash/task_a3a_close1_adams_ollman_reset_20260227_222418/`
+  - moved=0, src_remaining=0
+- Result:
+  - `seed_artist_count=1` (previous no-target condition resolved)
+  - `works_urls_tried=['https://adamsandollman.com/Jonathan-Berger-1/works']`
+  - `works_candidates_count=0`, `saved_images=0`, `selected_image_years_top5=[]`
+  - fail reason: `no_image_candidates_found_on_artist_detail`
+- Next:
+  - Verify generic extraction improvements quickly; if still zero, move to reasoned skip under 01 section 6-2.
+
+## 124. TASK A-3A-CLOSE-2 (Adams and Ollman final validation -> reasoned skip)
+- SSOT/CARD gate:
+  - 01: 4-0, 4-4, 5-4, 6-2, 6-3, 10
+  - 02: 10_NO_HERO_IMAGES, 11_IMAGE_TARGET_LINE, 14_CATEGORY_4_0_COMMON, 16_SSOT_COMPLIANCE_GATE
+- Commands and exit:
+  - `python run_phase1_network_preflight.py` -> exit 0
+  - `python run_phase1_network_preflight.py` -> exit 0
+  - `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5 --only-fair-slug frieze_london --only-gallery-name "Adams and Ollman" --only-source-url "https://adamsandollman.com/Jonathan-Berger-1" --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a3a_close2_adams_ollman.json"` -> exit 0
+  - `python run_phase1_seed10_artist_image_collect_report.py --summary-path "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a3a_close2_adams_ollman.json" --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a3a_close2_adams_ollman_report.json"` -> exit 0
+  - `python run_compare_phase1_guard.py --target-year 2025` -> exit 0 (`guard_passed=false`)
+- Trash reset:
+  - src: `data/phase1_seed10/derived/images/artist_works_images/2025/frieze-london/adams-and-ollman__*`
+  - dst: `_trash/task_a3a_close2_adams_ollman_reset_20260227_225228/`
+  - moved=0, src_remaining=0
+- Generic logic validation:
+  - Added non-`img` extraction paths in `run_phase1_seed10_artist_image_collect.py`:
+    - `src/data-src/data-original/data-lazy-src/data-lazy/poster`
+    - non-`img` `srcset`
+    - inline image URL references
+  - Added metadata noise guard (`meta` preview image rejection) and non-image ref filtering.
+  - `Jonathan-Berger-1/works` remained at candidate=0 after guard-compliant filtering.
+- Final result:
+  - `works_urls_tried=['https://adamsandollman.com/Jonathan-Berger-1/works']`
+  - `works_candidates_count=0`, `saved_images=0`
+  - fail reason: `no_image_candidates_found_on_artist_detail`
+  - decision: reasoned skip fixed under 01 section 6-2.
+  - skip registry: `data/gallery_lists/skipped_galleries_registry.csv` に1行追記済み（gallery, ExhibitionURL, ArtistsURL, reason）。
+
+## 125. TASK SKIP-REGISTRY-AUTO-1 (auto skip by gallery registry)
+- Purpose:
+  - Galleries listed in `data/gallery_lists/skipped_galleries_registry.csv` should be skipped automatically in image collect runs.
+- Implementation:
+  - `run_phase1_seed10_artist_image_collect.py`
+    - load CSV registry at startup (`SKIPPED_GALLERIES_REGISTRY_PATH`)
+    - auto-filter targets by `gallery_name_en` match
+    - write skip audit to summary:
+      - `skip_registry_path`
+      - `skip_registry_gallery_count`
+      - `skipped_by_registry_count`
+      - `skipped_by_registry[]` (gallery/fair/source/exhibition/artists/reason)
+      - note: `auto_skipped_by_registry:<count>`
+- Smoke verification:
+  - command:
+    - `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5 --only-fair-slug frieze_london --only-gallery-name "Adams and Ollman" --only-source-url "https://adamsandollman.com/Jonathan-Berger-1" --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_skip_registry_smoke.json"`
+  - result:
+    - `seed_artist_count=0`
+    - `skipped_by_registry_count=1`
+    - target gallery was auto-skipped without extraction.
+
+## 126. TASK A-3B-CLOSE-1 (Arcadia Missa: 0-case rerun)
+- 実行前確認:
+  - docs/01, docs/02, docs/03, docs/04 の存在を確認
+  - SSOT章ID: 4-0, 4-4, 5-4, 6-2, 6-3, 10
+  - CARD_ID: 10_NO_HERO_IMAGES, 11_IMAGE_TARGET_LINE, 14_CATEGORY_4_0_COMMON, 16_SSOT_COMPLIANCE_GATE
+- 実行コマンドとexit:
+  - `python run_phase1_network_preflight.py` -> exit 0
+  - `python run_phase1_network_preflight.py` -> exit 0
+  - Arcadia seed追加: `data/phase1_seed10/raw/artists_frieze_london_2025.jsonl`（backup作成後に1行追加）
+  - `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5 --only-fair-slug frieze_london --only-gallery-name "Arcadia Missa" --only-source-url "https://arcadiamissa.com/brad-kronz/" --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a3b_close1_arcadia_missa.json"` -> exit 0
+  - `python run_phase1_seed10_artist_image_collect_report.py --summary-path "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a3b_close1_arcadia_missa.json" --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a3b_close1_arcadia_missa_report.json"` -> exit 0（初回並列時の一時 not found は再実行で解消）
+  - `python run_compare_phase1_guard.py --target-year 2025` -> exit 0（guard_passed=false）
+- 退避:
+  - src: `data/phase1_seed10/derived/images/artist_works_images/2025/frieze-london/arcadia-missa__*`
+  - dst: `_trash/task_a3b_close1_arcadia_missa_reset_20260227_232758/`
+  - moved=0, src_remaining=0
+- 判定:
+  - `saved_images=5`, `target_met=true`, `failed_cases=0`
+  - `works_urls_tried=['https://arcadiamissa.com/brad-kronz/works']`
+  - selected URL に `exhibition/profile/hero` トークン混入なし
+  - `selected_image_years_top5=[2026, 2026, 2026, 2026, 2026]`, `selected_image_year_desc_ok=true`
+  - ③-2 Arcadia Missa の0件課題は解消（skip registry 追記なし）
+
+
+## 127. TASK A-3B-DUP-FIX-1 (Arcadia Missa duplicate-photo fix)
+- ??:
+  - Arcadia Missa ??????2???????URL??????????
+- ??:
+  - `image_url_hash` ? raw URL ?????`-1024x683` ? `-2048x1365` ???????
+  - ?hash metadata ? fallback ?????????????????
+- ??:
+  - `run_phase1_seed10_artist_image_collect.py`
+    - `normalize_image_url_for_dedupe` ???`-WxH` suffix???
+    - `image_url_hash` ????????????
+    - metadata???? normalized URL identity ??????
+- ??:
+  - ??1: `_trash/task_a3b_dupfix_arcadia_reset_20260227_234325/`?moved=5?
+  - ??2: `_trash/task_a3b_dupfix_arcadia_rerun_reset_20260227_234524/`?moved=4?
+  - collect: `phase1_seed10_artist_image_collect_summary_task_a3b_dupfix2_arcadia_missa.json` -> exit 0
+  - report: `phase1_seed10_artist_image_collect_summary_task_a3b_dupfix2_arcadia_missa_report.json` -> exit 0
+  - guard: `phase1_guard_summary_2025_20260227T144647Z.json` -> exit 0
+- ??:
+  - selected URL?4???????????0??
+  - `saved_images=4`, `target_met=false`, reason=`insufficient_image_candidates_after_download`
+
+## 128. TASK A-3B-FIX-2 (Arcadia Missa / Brad Kronz 4枚止まり修正)
+- 実行コマンドとexit:
+  - `python run_phase1_network_preflight.py` -> exit 0
+  - `python run_phase1_network_preflight.py` -> exit 0
+  - `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5 --only-fair-slug frieze_london --only-gallery-name "Arcadia Missa" --only-source-url "https://arcadiamissa.com/brad-kronz/" --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a3b_fix5_arcadia_missa_brad_kronz.json"` -> exit 0
+  - `python run_phase1_seed10_artist_image_collect_report.py --summary-path "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a3b_fix5_arcadia_missa_brad_kronz.json" --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a3b_fix5_arcadia_missa_brad_kronz_report.json"` -> exit 0
+  - `python run_compare_phase1_guard.py --target-year 2025` -> exit 0 (`guard_passed=false`)
+- 退避:
+  - src: `data/phase1_seed10/derived/images/artist_works_images/2025/frieze-london/arcadia-missa__brad-kronz__*`
+  - dst1: `_trash/task_a3b_brad_kronz_reset_20260227_235637/` (moved=4)
+  - dst2: `_trash/task_a3b_brad_kronz_rerun_reset_20260227_235809/` (moved=4)
+  - dst3: `_trash/task_a3b_brad_kronz_artist_filter_reset_20260228_000001/` (moved=5)
+- 修正:
+  - stale metadata hash を再取得除外に使わないよう修正（実在・有効なローカルキャッシュのみ既知扱い）
+  - 不足補充時の `max_year_seen` / `topN` 候補除外を削除
+  - artist一致性判定の「artistページ配下なら無条件許可」を廃止
+- 結果:
+  - `saved_images=5`, `target_met=true`
+  - `selected_image_years_top5=[2026, 2026, 2026, 2026, 2025]`（降順OK）
+  - 5件すべて Brad Kronz 由来URL、他作家混入なし
+
+## 129. TASK R2-SYNC-RULE-1 (Arcadia Missa 5枚のR2反映と運用固定)
+- 事象:
+  - Arcadia Missa の5枚はローカル生成済みだが、R2は未反映だった。
+- 原因:
+  - `run_phase1_seed10_artist_image_collect.py` はローカル保存のみで、R2同期は自動実行しない。
+- 実行:
+  - `python run_phase1_seed10_r2_sync.py --scope derived --dry-run --prune` -> exit 0
+  - `python run_phase1_seed10_r2_sync.py --scope derived --prune --require-dry-run-log --max-prune 600` -> exit 0
+- 結果:
+  - Arcadia Missa / Brad Kronz 5枚 (`img_01`〜`img_05`) をR2へUPLOAD済み
+  - summary: `data/phase1_seed10/logs/phase1_seed10_r2_sync_derived_20260227T154435Z.json`
+- 運用固定:
+  - 今後は「RAG生成タスク完了条件」に R2同期（dry-run -> guarded apply）を必須で含める。
+
+## 130. TASK R2-AUTO-SYNC-1 (追加/削除反映の自動化実装)
+- 背景:
+  - 手動同期では追加/削除の高頻度更新を追従できないため、自動化を必須化。
+- 実装:
+  - 追加: `r2_auto_sync.py`（自動同期オーケストレータ）
+    - 排他ロック: `data/r2_auto_sync/auto_sync.lock`
+    - 状態管理: `data/r2_auto_sync/auto_sync_state.json`
+    - 監査ログ: `data/r2_auto_sync/logs/r2_auto_sync_<target>_<timestamp>.json`
+    - フロー: dry-run(--prune) -> 判定 -> guarded apply
+    - 削除安全策: prune候補が2回連続で同一のときのみ prune 実行
+      - 1回目は upload/update のみ反映（pruneは保留）
+  - 追加: `run_r2_auto_sync.py`（手動トリガー用CLI）
+  - 主要生成スクリプトへ自動フック接続:
+    - `run_phase1_seed10.py` -> target `phase1_all`
+    - `run_phase1_seed10_artist_image_collect.py` -> target `phase1_derived`
+    - `run_vectorize_artists_seed10.py` -> target `phase1_derived`
+    - `run_enrichment_seed10.py` -> target `phase1_derived`
+    - `run_tarutani_text_import.py` -> target `tarutani_all`
+    - `run_vectorize_tarutani_text.py` -> target `tarutani_all`
+    - `run_enrichment_tarutani_text.py` -> target `tarutani_all`
+- 実行結果（smoke）:
+  - `python run_r2_auto_sync.py --target phase1_derived --trigger smoke`
+  - status=`ok` を確認
+- 仕様メモ:
+  - 追加/更新は自動でR2反映
+  - 削除は「2回連続一致」後に自動反映
+
+## 131. TASK R2-AUTO-SYNC-2 (テキスト抽出系の自動同期フック拡張)
+- 目的:
+  - 画像以外（今後のテキスト抽出/適用系）で同期抜けが発生しないよう、未接続スクリプトを補完。
+- 追加フック:
+  - `run_enrichment_artists_seed10_apply.py` -> target `phase1_derived`
+  - `run_enrichment_tarutani_text_apply.py` -> target `tarutani_all`
+  - `run_tarutani_text_pdf_backfill.py` -> target `tarutani_all`
+- 運用固定:
+  - 今後追加するテキスト抽出・変換・apply系スクリプトも、終了時 `auto_sync_after_job` 呼び出しを必須化。
+
+## 132. TASK A-5-CLOSE-1 (Anca Poterașu Gallery 非anetta再実測)
+- 実装前確認:
+  - docs/01, docs/02, docs/03, docs/04 存在確認OK
+  - 01章ID: 4-0, 4-4, 5-4, 6-2, 6-3, 10
+  - 02 CARD_ID: 10_NO_HERO_IMAGES, 11_IMAGE_TARGET_LINE, 14_CATEGORY_4_0_COMMON, 16_SSOT_COMPLIANCE_GATE
+- 対象:
+  - gallery: `Anca Poterașu Gallery`
+  - source_url: `https://www.ancapoterasu.com/artists/aurora-kiraly/`（anetta以外）
+  - artist_id: `3ef1b6fb...`（text_hash）
+  - 想定保存prefix: `anca-potera-u-gallery__aurora-kiraly__`
+- 実行コマンドとexit:
+  - `python run_phase1_network_preflight.py` -> exit 0
+  - `python run_phase1_network_preflight.py` -> exit 0
+  - `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5 --only-fair-slug liste --only-source-url "https://www.ancapoterasu.com/artists/aurora-kiraly/" --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a5_close1_anca_potera_u.json"` -> exit 0
+  - `python run_phase1_seed10_artist_image_collect_report.py --summary-path "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a5_close1_anca_potera_u.json" --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a5_close1_anca_potera_u_report.json"` -> exit 0
+  - `python run_compare_phase1_guard.py --target-year 2025` -> exit 0 (`guard_passed=false`)
+- 退避:
+  - src: `data/phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__*`
+  - dst: `_trash/task_a5_close1_anca_potera_u_reset_20260228_031259/`
+  - moved=5, src_remaining=0
+- 修正:
+  - `run_phase1_seed10_artist_image_collect.py`
+    - `only-source-url` 指定時、gallery上限(1件)適用前に対象sourceを絞り込むように変更
+- 結果:
+  - `saved_images=4`, `target_met=false`（不足理由: `insufficient_image_candidates_after_download`）
+  - `works_urls_tried` に works系URLあり（`.../aurora-kiraly/works` 404 -> fallback）
+  - selected画像のURL/evidenceで logo/icon/hero/profile/exhibition 混入は確認されず
+## 133. TASK A-3A-CLOSE-3 (Adams and Ollman skip finalization)
+- 実施日時: 2026-02-27
+- SSOT/DERIVED確認:
+  - 01章ID: 4-0, 4-4, 5-4, 6-2, 6-3, 10
+  - 02 CARD_ID: 10, 11, 14, 16
+- 変更対象と1対1紐付け:
+  - `run_phase1_seed10_artist_image_collect.py`: skip registry 自動除外（既存ロジックを再検証）
+  - `data/gallery_lists/skipped_galleries_registry.csv`: Adams and Ollman 登録状態確認（重複追記なし）
+  - `docs/RAG_EXTRACTION_BREAKDOWN_JA.md`, `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md`, `docs/04_TASK_PROGRESS_LOG.md`: 判断根拠/再開条件を記録
+- 実行コマンド:
+  - `python run_phase1_network_preflight.py`
+  - `python run_phase1_network_preflight.py`
+  - `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5 --only-fair-slug frieze_london --only-gallery-name "Adams and Ollman" --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a3a_close3_adams_ollman_skip_verify.json"`
+  - `python run_phase1_seed10_artist_image_collect_report.py --summary-path "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a3a_close3_adams_ollman_skip_verify.json" --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a3a_close3_adams_ollman_skip_verify_report.json"`
+  - `python run_compare_phase1_guard.py --target-year 2025`
+- 結果:
+  - preflight 2連続PASS
+  - summary `notes` に `auto_skipped_by_registry:1` を確認
+  - `per_artist_counts=0`、新規画像保存0件（抽出実行なし）
+  - 理由付きスキップを正式確定（01 6-2 準拠）
+- 理由付きスキップ:
+  - 理由: 公開HTML/DOM上で作品画像候補が取得不能。ドメイン専用if追加は 01 6-2 に抵触。
+  - 再開条件: works画像URLの公開化、または汎用ロジックで再現可能な抽出要件の成立。
+- 生成物:
+  - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260227T185628Z.json`
+  - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260227T185636Z.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a3a_close3_adams_ollman_skip_verify.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a3a_close3_adams_ollman_skip_verify_report.json`
+  - `data/phase1_seed10/logs/phase1_guard_summary_2025_20260227T185732Z.json`
+
+## 134. POLICY-UPDATE-ARTIST-GLOBAL-DEDUPE (01 4-0-A 方針変更の反映)
+- 実施日時: 2026-02-28
+- 変更方針（01 4-0-A）:
+  - 旧: 同一フェア内の別ギャラリーで同一artistを再抽出しない
+  - 新: Artist系抽出（artists_text / artist works images）で、全フェア・全ギャラリー横断の同一artist再抽出を禁止（自動スキップ）
+  - 例外: ExhibitionsRAG のartist重複は許容（スキップしない）
+- 実装:
+  - `run_phase1_seed10.py`
+    - artists_text 抽出で global dedupe を追加（`DUPLICATE_ARTIST_GLOBAL_EXISTING` / `DUPLICATE_ARTIST_GLOBAL_IN_RUN`）
+    - summary に `artists_global_dedupe_*` / `artist_master_global_*` を追加
+    - 出力のcp932落ち回避（stdout `backslashreplace`）を追加
+  - `run_phase1_seed10_artist_image_collect.py`
+    - `artist_master_global.json`（`data/phase1_seed10/logs/artist_master_global.json`）を導入
+    - 既存 `artist_works_images_*.jsonl` から既知artistを読み込み、cross-fair/cross-gallery で自動スキップ
+    - summary に `skipped_by_global_artist_dedupe*` と `artist_master_global_*` を追加
+  - `docs/02_RAG_SPEC_DERIVED.md`
+    - CARD 06 / CARD 16 に「全フェア横断artist重複禁止（ExhibitionsRAG除外）」を追記
+  - `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md`
+    - 上記ポリシー更新と実装メモを追記
+
+## 135. TASK 4-0-A-FAILED-RETRY-GATE-1 (image collect failed ledger + test override)
+- 実施日時: 2026-02-28
+- 目的:
+  - 4-0-A の「一度見たもの（失敗）を永続化し、次回探索を抑制」を image collect 側でも実装。
+  - ただしテスト段階で再検証不能にならないよう、強制再試行スイッチを追加。
+- 変更:
+  - `run_phase1_seed10_artist_image_collect.py`
+    - 追加CLI: `--force-retry-failed`, `--clear-failed-ledger none|target|all`
+    - 追加台帳: `data/phase1_seed10/logs/failed_fetches_artist_image_collect_2025.json`
+    - failed URL 判定: `cooldown(3600s) + max_retries(3) + non-retryable reason`
+    - summary 追加: `failed_fetches_*`, `force_retry_failed`, `clear_failed_ledger_scope`
+  - `docs/02_RAG_SPEC_DERIVED.md`
+    - CARD 16 に failed ledger + test override 運用を追記
+  - `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md`
+    - 実装メモを追記
+- 実行コマンド:
+  - `python -m py_compile run_phase1_seed10_artist_image_collect.py`
+  - `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5 --only-fair-slug frieze_london --only-gallery-name "Adams and Ollman" --clear-failed-ledger target --force-retry-failed --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_failed_ledger_gate_smoke.json"`
+  - `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5 --only-fair-slug liste --only-source-url "https://www.ancapoterasu.com/artists/aurora-kiraly/" --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_failed_ledger_verify_aurora.json"`
+  - `python run_compare_phase1_guard.py --target-year 2025`
+- 結果:
+  - smoke summary で `force_retry_failed=true`, `clear_failed_ledger_scope=target` を確認。
+  - aurora実測は `processed=1`, `ge_target=1` を維持し、`failed_fetches_*` 追加で回帰なし。
+  - guard: `guard_passed=true`。
+
+## 136. TASK MAX-ARTISTS-PER-GALLERY-3 (10ギャラリー再適用 / 既存成功保持)
+- 実施日時: 2026-02-28
+- 目的:
+  - `{MAX_ARTISTS_PER_GALLERY}` を 3 に変更し、テスト10ギャラリーへ適用（skip 1件のため実質9ギャラリー運用）。
+  - 既存成功画像は削除せず、追加分のみ抽出する。
+- 変更:
+  - `run_phase1_seed10.py`: `MAX_ARTISTS_PER_GALLERY = 3`
+  - `run_phase1_seed10_artist_image_collect.py`: `MAX_ARTISTS_PER_GALLERY_FOR_COLLECT = 3`
+- 実行コマンド:
+  - `python run_phase1_network_preflight.py` (x2)
+  - `python run_phase1_seed10.py`
+  - `python run_phase1_seed10.py --include-artists-text`
+  - `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5 --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_max3_all_galleries_v2.json"`
+  - `python run_phase1_seed10_artist_image_collect_report.py --summary-path "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_max3_all_galleries_v2.json" --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_max3_all_galleries_v2_report.json"`
+  - `python run_compare_phase1_guard.py --target-year 2025`
+- 結果:
+  - preflight 2連続 PASS
+  - `processed=25`, `artists_with_ge_target_images=18`, `success_rate=72%`
+  - `max_artists_per_gallery_for_collect=3`, `auto_skipped_by_registry:1`
+  - skip対象: `Adams and Ollman`（抽出実行なし）
+  - Arcadia Missa は raw artist 母数が1件のため `artists=1` のまま（`artists_frieze_london_2025.jsonl`）
+  - guard: `guard_passed=true`
+
+## 137. TASK A-REPRO-FIX-1 (再現性回復 第1段)
+- 実施日時: 2026-02-28
+- SSOT/DERIVED確認:
+  - 01章ID: 4-0, 4-4, 5-4, 6-2, 6-3, 10
+  - 02 CARD_ID: 10_NO_HERO_IMAGES, 11_IMAGE_TARGET_LINE, 14_CATEGORY_4_0_COMMON, 16_SSOT_COMPLIANCE_GATE
+- 実装:
+  - `run_phase1_seed10_artist_image_collect.py`
+    - 保存前 payload hash 重複ガードを追加（同一artist内の同一実体重複を最終除外）
+    - token空 seed（例: `https://athrart.com/artists/30-/biography`）を抽出対象から除外
+    - `--force-retry-failed` 時は `.../works` の page失敗を再評価（他の非再試行規則は維持）
+    - metadata へ `works_image_payload_hashes` を追加
+- 退避:
+  - `C:\Users\tarutani tomoaki\Pictures\Dev\my_projects\art_pulse_editor\_trash\task_a_repro_fix1_reset_20260228_124820\`
+    - `athr__30__*` 5件
+    - `gallery-baton__song-burnsoo__*` 5件
+    - `a-works-of-art__chong-kim-chiew__*` 5件
+    - `a-works-of-art__gan-chin-lee__*` 5件
+  - 追加退避（再実測前）:
+    - `C:\Users\tarutani tomoaki\Pictures\Dev\my_projects\art_pulse_editor\_trash\task_a_repro_fix1_redo_20260228_125649\`
+    - `song-burnsoo` 5件 / `chong-kim-chiew` 5件
+- 実行コマンド:
+  - `python run_phase1_network_preflight.py` x2
+  - `python run_phase1_seed10.py --include-artists-text`
+  - `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5 --force-retry-failed --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a_repro_fix1.json"`
+  - `python run_phase1_seed10_artist_image_collect_report.py --summary-path "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a_repro_fix1.json" --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a_repro_fix1_report.json"`
+  - `python run_compare_phase1_guard.py --target-year 2025`
+- 結果:
+  - preflight 2連続PASS
+  - `athr__30__*` は再生成されず（`skipped_invalid_artist_seed_count=1`）
+  - Song Burnsoo: 5件ユニーク化（同一実体5連続重複を解消）
+  - Chong Kim Chiew: 同一実体5連続重複を解消（3件ユニーク）
+  - Gan Chin Lee: 再抽出0件（重複再生成なし）
+  - `--force-retry-failed` で works URL 再評価を確認（`KNOWN_FAILED_URL_COOLDOWN` ではなく `html_fetch_failed ... 404` を記録）
+  - guard: `guard_passed=true`
+
+## 138. TASK A-REPRO-FIX-2 (候補落ち改善: artist一致性/works導線/画像variant)
+- 実施日時: 2026-02-28
+- 変更:
+  - `run_phase1_seed10_artist_image_collect.py`
+    - artist一致性の汎用緩和（artist配下ページで work情報信号を利用）
+    - works URL抽出を artist配下優先に変更（`/artworks` `/publications` `/projects` の横流れ抑制）
+    - 画像取得時に `tiny -> large/medium` variant を試行
+    - 年抽出の次元値誤認識を抑制（`4000x2667` などを year から除外）
+    - foreign person slug 検知を追加（他作家名らしき slug を緩和経路で除外）
+- 実行:
+  - `python run_phase1_network_preflight.py` x2
+  - `python run_phase1_seed10.py --include-artists-text`
+  - `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5 --force-retry-failed --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a_repro_fix2.json"`
+  - `python run_phase1_seed10_artist_image_collect_report.py --summary-path "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a_repro_fix2.json" --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a_repro_fix2_report.json"`
+  - `python run_compare_phase1_guard.py --target-year 2025`
+- 結果:
+  - `processed=24`, `artists_with_ge_target_images=21`, `success_rate=87.5%`, `threshold_passed=true`
+  - 改善確認:
+    - The Approach: 3名すべて 5/5
+    - Afriart: 3名すべて 5/5
+    - Anca Poterașu: 3名すべて 5/5
+  - 残課題:
+    - A+ Works of Art: `Chong Kim Chiew=3/5`（要追加2件）
+  - guard: `guard_passed=true`
+
+## 139. TASK A-REPRO-FIX-3 (Gan混入起点の再現性修正)
+- 実施日時: 2026-02-28
+- 事象:
+  - ユーザー指摘の `Gan Chin Lee` について、seed未存在ではなく `data/phase1_seed10/raw/artists_liste_2025.jsonl` に存在を確認。
+  - 問題は「A+ Works / Gan の既存5枚が他作家混入」だったため、誤混入キャッシュを除去対象として扱う方針に変更。
+- 実装:
+  - `run_phase1_seed10_artist_image_collect.py`
+    - `--force-retry-failed` 時の failed URL 再評価を page種別へ拡張（works配下のみ再評価から拡張）。
+    - artist一致判定に artist配下ページ（`/artists/...` 配下）の緩和を維持しつつ、URLの foreign person slug 排除を適用。
+    - 既存メタ再利用時に、captionの foreign person name 検出を追加し他作家混入キャッシュを除外。
+- データ補正:
+  - 既存誤混入 `a-works-of-art__gan-chin-lee__*` 5件を `_trash/task_a_repro_fix3_gan_reset_manual/` に退避。
+- 実行:
+  - `python run_phase1_network_preflight.py` x2
+  - `python run_phase1_seed10.py --include-artists-text`
+  - `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5 --force-retry-failed --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a_repro_fix3.json"`
+  - `python run_phase1_seed10_artist_image_collect_report.py --summary-path "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a_repro_fix3.json" --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a_repro_fix3_report.json"`
+  - `python run_compare_phase1_guard.py --target-year 2025`
+- 結果:
+  - preflight 2連続PASS。
+  - 全体: `processed=24`, `ge_target=17`, `success_rate=70.83%`, `threshold_passed=true`。
+  - A+ Works:
+    - `Ahmad Fuad Osman=5/5`
+    - `Chong Kim Chiew=3/5`（未達継続）
+  - `Gan Chin Lee=0/5`（他作家混入5枚は除去済み、誤成功を停止）
+  - guard: `guard_passed=true`
+
+## 140. TASK A-REPRO-FIX-4 (A+ Works / Chong 3/5→5/5 補完)
+- 実施日時: 2026-02-28
+- SSOT/DERIVED確認:
+  - 01章ID: 4-0, 4-4, 5-4, 6-2, 6-3, 10
+  - 02 CARD_ID: 10_NO_HERO_IMAGES, 11_IMAGE_TARGET_LINE, 14_CATEGORY_4_0_COMMON, 16_SSOT_COMPLIANCE_GATE
+- 事前確認:
+  - `docs/01_PROJECT_SPEC_CURRENT_FULL.docx`
+  - `docs/02_RAG_SPEC_DERIVED.md`
+  - `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md`
+  - `docs/04_TASK_PROGRESS_LOG.md`
+- preflight:
+  - `python run_phase1_network_preflight.py` x2 → 2連続PASS
+- 実装:
+  - `run_phase1_seed10_artist_image_collect.py`
+    - `candidate_matches_artist` の foreign person slug 判定を過剰適用しないよう修正
+    - `token_matches==0` かつ `evidence_text` が他人名と判定される場合のみ除外
+- 再実測:
+  - `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5 --only-fair-slug liste --only-source-url https://aplusart.asia/artists/35-chong-kim-chiew --force-retry-failed --clear-failed-ledger target --output-json data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a_repro_fix4_chong.json`
+  - 結果: `saved_images=3`, `target_met=false`, reason=`no_new_images_ge_max_year_seen`
+- 切り分け結果（コード内関数で直接検証）:
+  - works URL群: 5件
+  - works-only + artist一致性の両方を満たす候補はサイズ違いを除くと正規化ユニーク3件のみ
+  - 追加2件は、works-only条件内では新規ユニーク候補を確認できず
+- 付随修正:
+  - ユーザー指摘の `the-approach__tom-allen__...__img_03.jpg` 欠落は、前回 quarantine 起因を確認
+  - `_trash/invalid_cached_images_20260228T051411Z/.../img_03.jpg` から本来パスへ復元済み
+- 生成物:
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a_repro_fix4_chong.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a_repro_fix4_chong_report.json`
+  - `data/phase1_seed10/logs/phase1_guard_summary_2025_20260228T053620Z.json`
+
+## 141. TASK A-REPRO-FIX-5 (Chong 5枚化可否の最終確定)
+- 実施日時: 2026-02-28
+- SSOT/DERIVED確認:
+  - 01章ID: 4-0, 4-4, 5-4, 6-2, 6-3, 10
+  - 02 CARD_ID: 10_NO_HERO_IMAGES, 11_IMAGE_TARGET_LINE, 14_CATEGORY_4_0_COMMON, 16_SSOT_COMPLIANCE_GATE
+- preflight:
+  - `python run_phase1_network_preflight.py` x2 → PASS
+- 実行:
+  - `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5 --only-fair-slug liste --only-source-url https://aplusart.asia/artists/35-chong-kim-chiew --force-retry-failed --clear-failed-ledger target --output-json data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a_repro_fix5_chong.json`
+  - `python run_phase1_seed10_artist_image_collect_report.py --summary-path data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a_repro_fix5_chong.json --output-json data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a_repro_fix5_chong_report.json`
+  - `python run_compare_phase1_guard.py --target-year 2025`
+- 結果:
+  - `saved_images=3`, `target_met=false`, reason=`no_new_images_ge_max_year_seen`
+  - works URLは5件確認済み
+  - 追加監査で works-only + artist一致性を同時に満たす候補は正規化ユニーク3件のみ
+- 最終判定（01:6-2準拠）:
+  - domain専用ハードコード無しの汎用ロジック範囲では、Chongの5枚化は現時点で不可
+  - 理由付き確定: `A+ Works / Chong Kim Chiew = 3/5（works-only source上限）`
+  - 再開条件:
+    - works配下に新規ユニーク作品画像が公開される
+    - または 01の仕様変更で works-only 条件緩和が合意される
+
+## 142. TASK A-REPRO-CHECK-ALL-1 (max=3 全体再計測 + 未達のみ再抽出対象化)
+- 実施日時:
+  - 2026-02-28
+- SSOT整合ゲート（実装前確認）:
+  - 01章ID: 4-0 / 4-4 / 5-4 / 6-2 / 6-3 / 10
+  - 02 CARD_ID: 10 / 11 / 14 / 16
+- 事前確認:
+  - `docs/01_PROJECT_SPEC_CURRENT_FULL.docx` / `docs/02_RAG_SPEC_DERIVED.md` / `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md` / `docs/04_TASK_PROGRESS_LOG.md` の存在OK
+- 実行コマンドとexit:
+  - `python run_phase1_network_preflight.py` -> exit 0
+  - `python run_phase1_network_preflight.py` -> exit 0
+  - `python run_phase1_seed10.py --include-artists-text` -> exit 0
+  - `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5 --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a_repro_check_all_1.json"` -> exit 0
+  - `python run_phase1_seed10_artist_image_collect_report.py --summary-path "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a_repro_check_all_1.json" --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a_repro_check_all_1_report.json"` -> exit 0
+  - `python run_compare_phase1_guard.py --target-year 2025` -> exit 0
+- 全体再計測結果:
+  - `processed=24`, `artists_with_ge_target_images=17`, `success_rate=70.83%`, `threshold_passed=true`
+  - `auto_skipped_by_registry:1`（`Adams and Ollman`）
+  - 未達ギャラリー内訳:
+    - `frieze_london/The Approach`: 0/3 達成（1,2,4枚）
+    - `liste/A+ Works of Art`: 1/3 達成（5,3,0枚）
+    - `liste/Amanita`: 1/3 達成（4,5,4枚）
+- 未達のみ再抽出対象化:
+  - 出力: `data/gallery_lists/reextract_targets_task_a_repro_check_all_1.csv`
+  - 件数: 7
+  - 対象:
+    - The Approach: `phillip-allen`, `tom-allen`, `helene-appel`
+    - A+ Works of Art: `chong-kim-chiew`, `gan-chin-lee`
+    - Amanita: `eva-beresin`, `nicholas-campbell`
+- 事後補正（2026-02-28）:
+  - 本タスク実行時、`run_phase1_seed10.py` と image collect を並列実行してしまい、The Approach の判定値が崩れた（競合）。
+  - 影響: `the-approach__tom-allen__72951a84__img_05.jpg` が `_trash/invalid_cached_images_20260228T061552Z/...` へ誤退避。
+  - 復旧: 上記 `img_05` を元パスへ復元し、Tom は再度 5枚状態へ回復。
+  - 修正方針: 同一領域を触る `run_phase1_seed10.py` と `run_phase1_seed10_artist_image_collect.py` は今後並列実行しない。
+  - 再抽出対象CSVを補正し、The Approach 3件を除外。現行の対象は A+ Works 2件 + Amanita 2件（計4件）。
+- 生成物:
+  - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260228T061444Z.json`
+  - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260228T061444Z_01.json`
+  - `data/phase1_seed10/logs/run_summary_seed10_2025.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a_repro_check_all_1.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a_repro_check_all_1_report.json`
+  - `data/phase1_seed10/logs/phase1_guard_summary_2025_20260228T062247Z.json`
+  - `data/gallery_lists/reextract_targets_task_a_repro_check_all_1.csv`
+
+## 143. TASK A-REPRO-TRIAGE-2（未達5件の原因分類確定 + 再抽出対象最小化）
+- 実施日時:
+  - 2026-02-28
+- SSOT整合ゲート（実装前確認）:
+  - 01章ID: 4-0 / 4-0-A / 4-4 / 5-4 / 6-2 / 6-3 / 10
+  - 02 CARD_ID: 10 / 11 / 14 / 16
+- 変更対象とルールの1対1紐付け:
+  - `run_phase1_seed10_artist_image_collect.py`: 既存監査ログで分類可能か検証（変更不要） <- 01:4-0-A/6-3/10, 02:14/16
+  - `data/gallery_lists/reextract_targets_task_a_repro_check_all_1.csv`: 未達再抽出対象の最小化 <- 01:6-2/10, 02:16
+  - `docs/03,04,RAG`: 判定根拠・次FIX入力の記録 <- 01:10, 02:16
+- 事前確認:
+  - `docs/01_PROJECT_SPEC_CURRENT_FULL.docx` / `docs/02_RAG_SPEC_DERIVED.md` / `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md` / `docs/04_TASK_PROGRESS_LOG.md` の存在OK
+- 実行コマンドとexit:
+  - `python run_phase1_network_preflight.py` -> exit 0
+  - `python run_phase1_network_preflight.py` -> exit 0
+  - 分析入力固定:
+    - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a_repro_check_all_1.json`
+    - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a_repro_check_all_1_report.json`
+    - `data/phase1_seed10/logs/phase1_guard_summary_2025_20260228T062247Z.json`
+- 原因分類（5件）:
+  - Arcadia Missa 0/5 #1 -> `SEED_INVALID`
+    - 根拠: `gallery_breakdown.artist_count=1`（fixed summary）、Arcadia failed_cases 0件
+  - Arcadia Missa 0/5 #2 -> `SEED_INVALID`
+    - 根拠: 同上（max=3想定の追加2枠に対応するseedが固定summaryに存在しない）
+  - Athr 0/5（`https://athrart.com/artists/30-/biography`） -> `SEED_INVALID`
+    - 根拠: `skipped_invalid_artist_seed.reason_code=invalid_artist_seed_token_empty`
+  - A+ Works 0/5（Gan） -> `ARTIST_CONSISTENCY_FILTERED_ALL`
+    - 根拠: failed_case `works_candidates_count:27` / `artist_consistency_filtered:27` / `works_only_artist_match_unique:0`
+  - A+ Works 3/5（Chong） -> `NO_NEW_IMAGES_GE_MAX_YEAR_SEEN`
+    - 根拠: failed_case `reason=no_new_images_ge_max_year_seen`、`works_only_artist_match_unique_count=3`
+- 再抽出対象CSVの最小化:
+  - `data/gallery_lists/reextract_targets_task_a_repro_check_all_1.csv`
+  - 除外: Arcadia 2件（seed不在）, Athr 1件（seed不正）, Chong 1件（上限確定）
+  - 残存: `A+ Works / Gan Chin Lee` 1件のみ
+- 実装差分:
+  - `run_phase1_seed10_artist_image_collect.py` は変更なし（固定summary内の既存監査項目で分類に十分）
+- 生成物:
+  - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260228T064558Z.json`
+  - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260228T064611Z.json`
+  - `data/phase1_seed10/logs/phase1_seed10_artist_image_collect_triage_task_a_repro_triage_2.json`
+  - `data/gallery_lists/reextract_targets_task_a_repro_check_all_1.csv`
+
+## 144. TASK A-REPRO-FIX-7（A+ Works / Gan 0/5 再修正・再実測）
+- 実施日時:
+  - 2026-02-28
+- SSOT整合ゲート（実装前確認）:
+  - 01章ID: 4-0 / 4-0-A / 4-4 / 5-4 / 6-2 / 6-3 / 10
+  - 02 CARD_ID: 10 / 11 / 14 / 16
+- 事前確認:
+  - `docs/01_PROJECT_SPEC_CURRENT_FULL.docx` / `docs/02_RAG_SPEC_DERIVED.md` / `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md` / `docs/04_TASK_PROGRESS_LOG.md` の存在OK
+- 実行コマンドとexit:
+  - `python run_phase1_network_preflight.py` -> exit 0
+  - `python run_phase1_network_preflight.py` -> exit 0
+  - `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5 --only-fair-slug liste --only-source-url "https://aplusart.asia/artists/41-gan-chin-lee" --force-retry-failed --clear-failed-ledger target --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a_repro_fix7_gan.json"` -> exit 0
+  - `python run_phase1_seed10_artist_image_collect_report.py --summary-path "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a_repro_fix7_gan.json" --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a_repro_fix7_gan_report.json"` -> exit 0
+  - `python run_compare_phase1_guard.py --target-year 2025` -> exit 0
+- 退避:
+  - src=`data/phase1_seed10/derived/images/artist_works_images/2025/liste/a-works-of-art__gan-chin-lee__*`
+  - dst=`_trash/task_a_repro_fix7_gan_reset_20260228_163555/`
+  - moved=0 / remaining=0
+- 実装差分:
+  - `run_phase1_seed10_artist_image_collect.py`
+    - `candidate_matches_artist` に compact alnum fallback を追加（汎用の記法ゆれ吸収）
+- 結果:
+  - `saved_images=0/5`, `target_met=false`
+  - `reason=insufficient_image_candidates_after_download`
+  - 根拠: `works_candidates_count:27` / `artist_consistency_filtered:27` / `works_only_artist_match_unique:0`
+- 判定（01 6-2準拠）:
+  - works-only 公開面で Gan 一致候補が現時点0件のため未達確定（暫定）
+  - 再開条件: works配下のGan一致情報追加、または01仕様変更
+- 更新ファイル:
+  - `docs/RAG_EXTRACTION_BREAKDOWN_JA.md`
+  - `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md`
+  - `docs/04_TASK_PROGRESS_LOG.md`
+  - `data/gallery_lists/reextract_targets_task_a_repro_check_all_1.csv`
+
+## 145. TASK A-REPRO-FIX-8（A+ Works / Gan seed根拠再監査 + works-only整合維持の最小修正）
+- 実施日時:
+  - 2026-02-28
+- SSOT整合ゲート（実装前確認）:
+  - 01章ID: 4-0 / 4-0-A / 4-4 / 5-4 / 6-2 / 6-3 / 10
+  - 02 CARD_ID: 10 / 11 / 14 / 16
+- 事前確認:
+  - `docs/01_PROJECT_SPEC_CURRENT_FULL.docx` / `docs/02_RAG_SPEC_DERIVED.md` / `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md` / `docs/04_TASK_PROGRESS_LOG.md` の存在OK
+- 実行コマンドとexit:
+  - `python run_phase1_network_preflight.py` -> exit 0
+  - `python run_phase1_network_preflight.py` -> exit 0
+  - `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5 --only-fair-slug liste --only-source-url "https://aplusart.asia/artists/41-gan-chin-lee" --force-retry-failed --clear-failed-ledger target --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a_repro_fix8_gan.json"` -> exit 0
+  - `python run_phase1_seed10_artist_image_collect_report.py --summary-path "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a_repro_fix8_gan.json" --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a_repro_fix8_gan_report.json"` -> exit 0
+  - `python run_compare_phase1_guard.py --target-year 2025` -> exit 0
+- 実装差分:
+  - `run_phase1_seed10_artist_image_collect.py`
+    - `is_redirected_to_generic_listing()` を追加
+    - `fetch_html_with_playwright` / `fetch_html` で artist詳細URLが `/artists/` へ収束した場合を失敗化
+    - case reason を `seed_invalid_redirected_to_listing` で確定できるよう修正
+- 監査結果:
+  - `https://aplusart.asia/artists/41-gan-chin-lee` は実アクセスで `https://aplusart.asia/artists/` へ遷移
+  - summary:
+    - `reason=seed_invalid_redirected_to_listing`
+    - `notes` に `html_redirected_to_generic_listing:aplusart.asia:/artists/` を記録
+    - `saved_images=0/5`
+- 判定（01 6-2準拠）:
+  - Gan未達は artist一致性ロジックではなく seed URL無効が主因
+  - 再開条件: A+ Works 側で Gan の有効詳細URLを再取得できること
+- 更新ファイル:
+  - `run_phase1_seed10_artist_image_collect.py`
+  - `docs/RAG_EXTRACTION_BREAKDOWN_JA.md`
+  - `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md`
+  - `docs/04_TASK_PROGRESS_LOG.md`
+  - `data/gallery_lists/reextract_targets_task_a_repro_check_all_1.csv`
+
+## 146. TASK A-REPRO-FIX-9（Gan有効source_url再解決→単独再実測）
+- 実施日時:
+  - 2026-02-28
+- SSOT整合ゲート（実装前確認）:
+  - 01章ID: 4-0 / 4-0-A / 4-4 / 5-4 / 6-2 / 6-3 / 10
+  - 02 CARD_ID: 10 / 11 / 14 / 16
+- 事前確認:
+  - `docs/01_PROJECT_SPEC_CURRENT_FULL.docx` / `docs/02_RAG_SPEC_DERIVED.md` / `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md` / `docs/04_TASK_PROGRESS_LOG.md` の存在OK
+- preflight:
+  - `python run_phase1_network_preflight.py` -> exit 0
+  - `python run_phase1_network_preflight.py` -> exit 0
+- seed再解決:
+  - `https://aplusart.asia/artists/` のartist導線を再収集
+  - Ganの候補は `https://aplusart.asia/artists/41-gan-chin-lee/` のみ（sitemap由来）
+  - 実アクセス確認: 上記URLは `https://aplusart.asia/artists/` へ302（有効詳細URLなし）
+  - `data/phase1_seed10/raw/artists_liste_2025.jsonl` のGan行 `source_url` を canonical（末尾`/`）へ更新（重複行追加なし）
+- 実行コマンドとexit:
+  - `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5 --only-fair-slug liste --only-source-url "https://aplusart.asia/artists/41-gan-chin-lee/" --force-retry-failed --clear-failed-ledger target --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a_repro_fix9_gan.json"` -> exit 0
+  - `python run_phase1_seed10_artist_image_collect_report.py --summary-path "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a_repro_fix9_gan.json" --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a_repro_fix9_gan_report.json"` -> exit 0
+  - `python run_compare_phase1_guard.py --target-year 2025` -> exit 0
+- 結果:
+  - `reason=seed_invalid_redirected_to_listing`
+  - `saved_images=0/5`, `target_met=false`
+  - `notes` に `html_redirected_to_generic_listing:aplusart.asia:/artists/` を記録
+- 判定（01 6-2準拠）:
+  - 有効source_url再解決は未達（導線上にGan詳細URLなし）
+  - 次は artists raw再生成で seed再供給を先行
+- 更新ファイル:
+  - `data/phase1_seed10/raw/artists_liste_2025.jsonl`
+  - `docs/RAG_EXTRACTION_BREAKDOWN_JA.md`
+  - `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md`
+  - `docs/04_TASK_PROGRESS_LOG.md`
+  - `data/gallery_lists/reextract_targets_task_a_repro_check_all_1.csv`
+
+## 147. TASK A-REPRO-FIX-10（A+ Works artists raw再生成→Gan seed再供給→単独再実測）
+- 実施日時:
+  - 2026-02-28
+- SSOT整合ゲート（実装前確認）:
+  - 01章ID: 4-0 / 4-0-A / 4-4 / 5-4 / 6-2 / 6-3 / 10
+  - 02 CARD_ID: 10 / 11 / 14 / 16
+- 事前確認:
+  - `docs/01_PROJECT_SPEC_CURRENT_FULL.docx` / `docs/02_RAG_SPEC_DERIVED.md` / `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md` / `docs/04_TASK_PROGRESS_LOG.md` の存在OK
+- preflight:
+  - `python run_phase1_network_preflight.py` -> exit 0
+  - `python run_phase1_network_preflight.py` -> exit 0
+- raw再生成:
+  - `python run_phase1_seed10.py --include-artists-text` -> exit 0
+  - 結果: artistsは `saved=0`, `skipped=26`（`DUPLICATE_TEXT_HASH_EXISTING=24`, `KNOWN_FAILED_URL_NON_RETRYABLE=2`）
+- Gan seed再供給監査:
+  - artists導線 `https://aplusart.asia/artists/` からGan有効詳細URLの再解決を試行
+  - sitemapにも Gan URL は存在するが、`https://aplusart.asia/artists/41-gan-chin-lee/` は実アクセスで `/artists/` へ302
+  - 有効source_url未解消のため、Gan行は canonical URL（末尾`/`）で維持
+- 単独再実測:
+  - `python run_phase1_seed10_artist_image_collect.py --target-year 2025 --target-images-per-artist 5 --only-fair-slug liste --only-source-url "https://aplusart.asia/artists/41-gan-chin-lee/" --force-retry-failed --clear-failed-ledger target --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a_repro_fix9_gan.json"` -> exit 0
+  - `python run_phase1_seed10_artist_image_collect_report.py --summary-path "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a_repro_fix9_gan.json" --output-json "data/phase1_seed10/logs/phase1_seed10_artist_image_collect_summary_task_a_repro_fix9_gan_report.json"` -> exit 0
+  - `python run_compare_phase1_guard.py --target-year 2025` -> exit 0
+- 結果:
+  - `reason=seed_invalid_redirected_to_listing`
+  - `saved_images=0/5`, `target_met=false`
+  - `notes`: `html_redirected_to_generic_listing:aplusart.asia:/artists/`
+- 判定（01 6-2準拠）:
+  - FIX-10時点では有効seed再供給に未達（サイト側導線でGan詳細URLが失効）
+  - 再開条件: Gan詳細URLの復活、または seed供給元の更新ロジック実装
+- 更新ファイル:
+  - `docs/RAG_EXTRACTION_BREAKDOWN_JA.md`
+  - `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md`
+  - `docs/04_TASK_PROGRESS_LOG.md`
+  - `data/gallery_lists/reextract_targets_task_a_repro_check_all_1.csv`
+
+## 148. TASK A-REPRO-FIX-11（Arcadia/Athr の 0枚枠を seed補正のみで解消）
+- 実施日時:
+  - 2026-02-28
+- SSOT整合ゲート（実装前確認）:
+  - 01章ID: 4-0 / 4-0-A / 4-4 / 5-4 / 6-2 / 6-3 / 10
+  - 02 CARD_ID: 10 / 11 / 14 / 16
+- 事前確認:
+  - `docs/01_PROJECT_SPEC_CURRENT_FULL.docx` / `docs/02_RAG_SPEC_DERIVED.md` / `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md` / `docs/04_TASK_PROGRESS_LOG.md` の存在OK
+- preflight:
+  - `python run_phase1_network_preflight.py` -> exit 0
+  - `python run_phase1_network_preflight.py` -> exit 0
+- seed監査:
+  - `artists_frieze_london_2025.jsonl`:
+    - Arcadia seed数: 1（Bradのみ）
+    - Athr token空seed: 複数残存（`/artists/<id>-/biography`）
+  - `phase1_seed10_artist_image_collect_summary_task_a_repro_check_all_1.json`:
+    - Arcadia 2枠: `SEED_INVALID`
+    - Athr 1枠: `SEED_INVALID`
+- seed補正（最小）:
+  - Arcadia:
+    - `https://arcadiamissa.com/hannah-black/` 追加
+    - `https://arcadiamissa.com/jesse-darling/` 追加
+  - Athr:
+    - `30-/biography` -> `30-ahaad-alamoudi/biography/`
+    - `35-/biography` -> `35-mohammad-alfaraj/biography/`
+    - `36-/biography` -> `36-zahrah-alghamdi/biography/`
+    - `40-/biography` -> `40-ayman-yossri-daydban/biography/`
+- 単独再実測（0枚枠のみ）:
+  - Arcadia 追加候補1 `hannah-black` -> `saved_images=5/5`, `target_met=true`
+  - Arcadia 追加候補2 `jesse-darling` -> `saved_images=5/5`, `target_met=true`
+  - Athr 置換候補1 `ahaad-alamoudi` -> `saved_images=5/5`, `target_met=true`
+  - 3ケースとも `failed_cases=[]`
+- report/guard:
+  - report 3本生成 -> 全て exit 0
+  - `python run_compare_phase1_guard.py --target-year 2025` -> exit 0 / `guard_passed=true`
+- 判定:
+  - Arcadia/Athr の 0枚枠は seed補正のみで解消（ロジック改修不要）
+- 更新ファイル:
+  - `data/phase1_seed10/raw/artists_frieze_london_2025.jsonl`
+  - `docs/RAG_EXTRACTION_BREAKDOWN_JA.md`
+  - `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md`
+  - `docs/04_TASK_PROGRESS_LOG.md`
+  - `data/gallery_lists/reextract_targets_task_a_repro_check_all_1.csv`

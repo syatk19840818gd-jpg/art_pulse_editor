@@ -11,6 +11,7 @@ from typing import Any
 
 from dotenv import load_dotenv
 from openai import OpenAI
+from r2_auto_sync import auto_sync_after_job, format_auto_sync_brief
 
 REQUESTS_PATH = Path("data/Tarutani_data/enrichment/enrichment_requests_tarutani_text.jsonl")
 TARGET_JSONL_PATH = Path("data/Tarutani_data/tarutani_text.jsonl")
@@ -277,6 +278,11 @@ def main() -> int:
     )
     print(f"[DONE] output={output_path}")
     print(f"[DONE] summary={summary_path}")
+    auto_sync_result = auto_sync_after_job(
+        target="tarutani_all",
+        trigger="run_enrichment_tarutani_text_apply.py",
+    )
+    print(format_auto_sync_brief(auto_sync_result))
 
     return 0 if summary["failed_generation"] == 0 else 1
 

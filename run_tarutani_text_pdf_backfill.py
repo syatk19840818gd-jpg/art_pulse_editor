@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from pypdf import PdfReader
+from r2_auto_sync import auto_sync_after_job, format_auto_sync_brief
 
 RAG_CATEGORY = "tarutani_text"
 DATA_ROOT = Path("data")
@@ -190,6 +191,11 @@ def main() -> int:
     )
     print(f"[DONE] output={output_path}")
     print(f"[DONE] summary={summary_path}")
+    auto_sync_result = auto_sync_after_job(
+        target="tarutani_all",
+        trigger="run_tarutani_text_pdf_backfill.py",
+    )
+    print(format_auto_sync_brief(auto_sync_result))
     return 0
 
 
