@@ -19,9 +19,11 @@ from urllib.parse import ParseResult, urljoin, urlparse
 import requests
 from phase1_artist_link_utils import (
     ARTIST_LINK_KEYWORDS,
+    canonicalize_artist_detail_url as shared_canonicalize_artist_detail_url,
     looks_like_artist_detail_url as shared_looks_like_artist_detail_url,
     looks_like_artist_listing_url as shared_looks_like_artist_listing_url,
     normalize_url_for_link_compare as shared_normalize_url_for_link_compare,
+    score_artist_detail_url_quality as shared_score_artist_detail_url_quality,
 )
 from r2_auto_sync import auto_sync_after_job, format_auto_sync_brief
 try:
@@ -390,6 +392,14 @@ def _normalize_url_for_link_compare(url: str) -> str:
     return shared_normalize_url_for_link_compare(url)
 
 
+def _canonicalize_artist_detail_url(url: str) -> str:
+    return shared_canonicalize_artist_detail_url(url)
+
+
+def _score_artist_detail_url_quality(url: str) -> int:
+    return shared_score_artist_detail_url_quality(url)
+
+
 def _looks_like_exhibition_link(candidate_url: str, anchor_text: str) -> bool:
     target = f"{candidate_url.lower()} {anchor_text.lower()}"
     return any(keyword in target for keyword in LINK_KEYWORDS)
@@ -463,7 +473,8 @@ def extract_candidate_artist_urls(
     max_artists_per_gallery: int,
 ) -> list[str]:
     candidates: list[str] = []
-    seen: set[str] = set()
+    candidate_scores: list[int] = []
+    seen_by_canonical: dict[str, int] = {}
     # Cap should be applied on "saved artists", not on first discovered links.
     # For small caps (e.g. 1 in initial smoke), scan a wider window to avoid
     # stopping at already-saved duplicates.
@@ -491,10 +502,17 @@ def extract_candidate_artist_urls(
         normalized = f"{parsed.scheme}://{parsed.netloc}{parsed.path}".rstrip("/")
         if parsed.query:
             normalized = f"{normalized}?{parsed.query}"
-        if normalized in seen:
+        canonical_url = _canonicalize_artist_detail_url(normalized)
+        quality_score = _score_artist_detail_url_quality(normalized)
+        existing_index = seen_by_canonical.get(canonical_url)
+        if existing_index is not None:
+            if quality_score > candidate_scores[existing_index]:
+                candidates[existing_index] = normalized
+                candidate_scores[existing_index] = quality_score
             continue
-        seen.add(normalized)
+        seen_by_canonical[canonical_url] = len(candidates)
         candidates.append(normalized)
+        candidate_scores.append(quality_score)
         if len(candidates) >= candidate_scan_limit:
             break
 
@@ -1142,6 +1160,24 @@ def clear_failed_fetch(ledger: dict[str, dict[str, Any]], raw_url: str) -> None:
     ledger.pop(fail_hash, None)
 
 
+def get_ledger_entry_with_canonical(
+    ledger: dict[str, dict[str, Any]],
+    *,
+    url: str,
+    canonical_url: str,
+) -> tuple[dict[str, Any] | None, str, str]:
+    page_hash = compute_page_url_hash(url)
+    canonical_hash = compute_page_url_hash(canonical_url)
+    entry = ledger.get(page_hash)
+    if entry is not None:
+        return entry, page_hash, canonical_hash
+    if canonical_hash != page_hash:
+        canonical_entry = ledger.get(canonical_hash)
+        if canonical_entry is not None:
+            return canonical_entry, page_hash, canonical_hash
+    return None, page_hash, canonical_hash
+
+
 def upsert_visited_page(
     ledger: dict[str, dict[str, Any]],
     *,
@@ -1171,6 +1207,42 @@ def upsert_visited_page(
     if parent_source_url:
         record["parent_source_url"] = parent_source_url
     ledger[page_url_hash] = record
+    return record
+
+
+def upsert_visited_page_with_canonical_alias(
+    ledger: dict[str, dict[str, Any]],
+    *,
+    url: str,
+    canonical_url: str,
+    fair_slug: str,
+    gallery_name_en: str,
+    decision: str,
+    reason_code: str,
+    parent_source_url: str | None = None,
+    category: str = RAG_CATEGORY,
+) -> dict[str, Any]:
+    record = upsert_visited_page(
+        ledger,
+        url=url,
+        fair_slug=fair_slug,
+        gallery_name_en=gallery_name_en,
+        decision=decision,
+        reason_code=reason_code,
+        parent_source_url=parent_source_url,
+        category=category,
+    )
+    if canonical_url and normalize_url_for_hash(canonical_url) != normalize_url_for_hash(url):
+        upsert_visited_page(
+            ledger,
+            url=canonical_url,
+            fair_slug=fair_slug,
+            gallery_name_en=gallery_name_en,
+            decision=decision,
+            reason_code=reason_code,
+            parent_source_url=parent_source_url,
+            category=category,
+        )
     return record
 
 
@@ -1615,15 +1687,16 @@ def main() -> int:
                 )
                 existing_artist = artist_master_global.get(artist_identity_key_candidate)
                 existing_artist_source = (
-                    normalize_url_for_hash(str(existing_artist.get("first_source_url") or ""))
+                    _canonicalize_artist_detail_url(str(existing_artist.get("first_source_url") or ""))
                     if existing_artist is not None
                     else ""
                 )
-                current_artist_source = normalize_url_for_hash(page_url)
+                current_artist_source = _canonicalize_artist_detail_url(page_url)
                 if existing_artist is not None and existing_artist_source and existing_artist_source != current_artist_source:
-                    upsert_visited_page(
+                    upsert_visited_page_with_canonical_alias(
                         artists_visited_pages_ledger,
                         url=page_url,
+                        canonical_url=current_artist_source,
                         fair_slug=gallery.fair_slug,
                         gallery_name_en=gallery.gallery_name_en,
                         decision="skipped",
@@ -1634,9 +1707,10 @@ def main() -> int:
                     artists_skip_reason_counter["DUPLICATE_ARTIST_GLOBAL_EXISTING"] += 1
                     continue
                 if artist_identity_key_candidate in artists_seen_identity_keys_in_run:
-                    upsert_visited_page(
+                    upsert_visited_page_with_canonical_alias(
                         artists_visited_pages_ledger,
                         url=page_url,
+                        canonical_url=current_artist_source,
                         fair_slug=gallery.fair_slug,
                         gallery_name_en=gallery.gallery_name_en,
                         decision="skipped",
@@ -1648,15 +1722,20 @@ def main() -> int:
                     continue
                 artists_seen_identity_keys_in_run.add(artist_identity_key_candidate)
 
-                page_url_hash = compute_page_url_hash(page_url)
-                failed_page_entry = artists_failed_fetches_ledger.get(page_url_hash)
+                canonical_page_url = _canonicalize_artist_detail_url(page_url)
+                failed_page_entry, page_url_hash, canonical_page_url_hash = get_ledger_entry_with_canonical(
+                    artists_failed_fetches_ledger,
+                    url=page_url,
+                    canonical_url=canonical_page_url,
+                )
                 now = datetime.now(timezone.utc)
                 if failed_page_entry is not None:
                     should_skip, skip_reason = should_skip_failed_url(failed_page_entry, now)
                     if should_skip:
-                        upsert_visited_page(
+                        upsert_visited_page_with_canonical_alias(
                             artists_visited_pages_ledger,
                             url=page_url,
+                            canonical_url=canonical_page_url,
                             fair_slug=gallery.fair_slug,
                             gallery_name_en=gallery.gallery_name_en,
                             decision="skipped",
@@ -1667,11 +1746,15 @@ def main() -> int:
                         artists_skip_reason_counter[skip_reason] += 1
                         continue
 
-                previous_visit = artists_visited_pages_ledger.get(page_url_hash)
+                previous_visit = (
+                    artists_visited_pages_ledger.get(page_url_hash)
+                    or artists_visited_pages_ledger.get(canonical_page_url_hash)
+                )
                 if previous_visit and previous_visit.get("decision") == "saved":
-                    upsert_visited_page(
+                    upsert_visited_page_with_canonical_alias(
                         artists_visited_pages_ledger,
                         url=page_url,
+                        canonical_url=canonical_page_url,
                         fair_slug=gallery.fair_slug,
                         gallery_name_en=gallery.gallery_name_en,
                         decision="skipped",
@@ -1689,7 +1772,7 @@ def main() -> int:
                         upsert_failed_fetch(
                             artists_failed_fetches_ledger,
                             kind="page",
-                            raw_url=page_url,
+                            raw_url=canonical_page_url,
                             parent_source_url=list_page_url,
                             last_error=page_result["error"] or "PAGE_FETCH_FAILED",
                             http_status=page_result["status_code"],
@@ -1697,9 +1780,10 @@ def main() -> int:
                             category=RAG_CATEGORY_ARTISTS,
                         )
                     )
-                    upsert_visited_page(
+                    upsert_visited_page_with_canonical_alias(
                         artists_visited_pages_ledger,
                         url=page_url,
+                        canonical_url=canonical_page_url,
                         fair_slug=gallery.fair_slug,
                         gallery_name_en=gallery.gallery_name_en,
                         decision="failed",
@@ -1710,18 +1794,21 @@ def main() -> int:
                     continue
 
                 source_url = page_result["final_url"]
+                canonical_source_url = _canonicalize_artist_detail_url(source_url)
                 artist_name_en = build_artist_name_en_from_source_url(source_url)
                 artist_name_key = build_artist_name_key(artist_name_en, source_url)
                 artist_identity_key = build_artist_identity_key(artist_name_key, artist_name_en, source_url)
                 clear_failed_fetch(artists_failed_fetches_ledger, page_url)
+                clear_failed_fetch(artists_failed_fetches_ledger, canonical_page_url)
                 clear_failed_fetch(artists_failed_fetches_ledger, source_url)
+                clear_failed_fetch(artists_failed_fetches_ledger, canonical_source_url)
                 text = extract_text(page_result["html"])
                 if not text:
                     artists_failed_fetches_in_run.append(
                         upsert_failed_fetch(
                             artists_failed_fetches_ledger,
                             kind="page",
-                            raw_url=source_url,
+                            raw_url=canonical_source_url,
                             parent_source_url=list_page_url,
                             last_error="EMPTY_TEXT",
                             http_status=page_result["status_code"],
@@ -1729,9 +1816,10 @@ def main() -> int:
                             category=RAG_CATEGORY_ARTISTS,
                         )
                     )
-                    upsert_visited_page(
+                    upsert_visited_page_with_canonical_alias(
                         artists_visited_pages_ledger,
                         url=source_url,
+                        canonical_url=canonical_source_url,
                         fair_slug=gallery.fair_slug,
                         gallery_name_en=gallery.gallery_name_en,
                         decision="failed",
@@ -1752,9 +1840,10 @@ def main() -> int:
                         if text_hash in artists_existing_text_hashes_by_fair.get(gallery.fair_slug, set())
                         else "DUPLICATE_TEXT_HASH_IN_RUN"
                     )
-                    upsert_visited_page(
+                    upsert_visited_page_with_canonical_alias(
                         artists_visited_pages_ledger,
                         url=source_url,
+                        canonical_url=canonical_source_url,
                         fair_slug=gallery.fair_slug,
                         gallery_name_en=gallery.gallery_name_en,
                         decision="skipped",
@@ -1799,9 +1888,10 @@ def main() -> int:
                     existing_master["artist_name_key"] = artist_name_key
                     existing_master["updated_at"] = str(record.get("extracted_at") or "")
                     artist_master_global[artist_identity_key] = existing_master
-                upsert_visited_page(
+                upsert_visited_page_with_canonical_alias(
                     artists_visited_pages_ledger,
                     url=source_url,
+                    canonical_url=canonical_source_url,
                     fair_slug=gallery.fair_slug,
                     gallery_name_en=gallery.gallery_name_en,
                     decision="saved",

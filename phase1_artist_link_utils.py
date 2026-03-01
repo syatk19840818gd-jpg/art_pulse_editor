@@ -62,6 +62,56 @@ def normalize_url_for_link_compare(url: str) -> str:
     return normalized
 
 
+def canonicalize_artist_detail_url(url: str) -> str:
+    parsed = urlparse(normalize_url_for_link_compare(url))
+    scheme = (parsed.scheme or "https").lower()
+    host = (parsed.netloc or "").lower()
+    raw_path = (parsed.path or "/").strip()
+    if not raw_path:
+        return f"{scheme}://{host}/"
+    path = "/" + raw_path.strip("/")
+    path_lower = path.lower().rstrip("/")
+    segments = [segment for segment in path_lower.split("/") if segment]
+
+    if len(segments) >= 2 and segments[0] in {"artist", "artists"}:
+        artist_id = ""
+        artist_segment = segments[1]
+        m_slug = re.fullmatch(r"(?P<id>\d+)-[a-z0-9][a-z0-9-]*", artist_segment)
+        m_dash_only = re.fullmatch(r"(?P<id>\d+)-", artist_segment)
+        m_id_only = re.fullmatch(r"(?P<id>\d+)", artist_segment)
+        if m_slug:
+            artist_id = m_slug.group("id")
+        elif m_dash_only:
+            artist_id = m_dash_only.group("id")
+        elif m_id_only:
+            artist_id = m_id_only.group("id")
+        if artist_id:
+            tail = segments[2] if len(segments) >= 3 else ""
+            if tail in {"bio", "biography"}:
+                return f"{scheme}://{host}/{segments[0]}/{artist_id}/{tail}"
+            return f"{scheme}://{host}/{segments[0]}/{artist_id}"
+
+    if not path_lower:
+        path_lower = "/"
+    return f"{scheme}://{host}{path_lower}"
+
+
+def score_artist_detail_url_quality(url: str) -> int:
+    path = (urlparse(url).path or "").lower().rstrip("/")
+    score = 0
+    if re.search(r"/artists?/\d+-[a-z0-9][a-z0-9-]*/(bio|biography)$", path):
+        score += 6
+    elif re.search(r"/artists?/\d+/(bio|biography)$", path):
+        score += 5
+    elif re.search(r"/artists?/\d+-$", path):
+        score -= 2
+    elif re.search(r"/artists?/\d+$", path):
+        score += 1
+    if path.endswith("/biography") or path.endswith("/bio"):
+        score += 1
+    return score
+
+
 def looks_like_artist_listing_url(url: str) -> bool:
     path = (urlparse(url).path or "").lower().rstrip("/")
     if not path:

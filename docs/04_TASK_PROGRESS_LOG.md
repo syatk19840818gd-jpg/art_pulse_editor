@@ -4510,3 +4510,43 @@ _trash 運用方針:
 ## 158. TASK ARTISTS-IMAGE-CLOSE-1
 - 運用確定: `data/gallery_lists/skipped_galleries_registry.csv` を 0件（空）に設定。
 - 判定: Artists画像RAG抽出（10ギャラリー、MAX80、現行汎用コード）は本テストで完成扱い。
+
+## 159. TASK RAG-BREAKDOWN-JA-RULE-1
+- 共通ルール更新（01/02/03/04整合）:
+  - RAG抽出の内訳記録は `docs/RAG_EXTRACTION_BREAKDOWN_JA.md` に集約する。
+  - 上記内訳は日本語で記述する（英語のみ記載は禁止）。
+- 反映先:
+  - `docs/01_PROJECT_SPEC_CURRENT_FULL.docx`
+  - `docs/02_RAG_SPEC_DERIVED.md`
+  - `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md`
+  - `docs/04_TASK_PROGRESS_LOG.md`
+
+## 160. TASK T-111-ARTISTS-TEXT-CANONICAL-DEDUPE-REGRESSION-1
+- preflight:
+  - `python run_phase1_network_preflight.py` x2 PASS
+  - `phase1_network_preflight_summary_20260301T114537Z.json`
+  - `phase1_network_preflight_summary_20260301T114538Z.json`
+- 事前分析（未達3件 baseline）:
+  - coverage: Athr `17/39`, A+ Works `28/44`, Addis `25/37`
+  - `DUPLICATE_TEXT_HASH_EXISTING`: Athr=26 / A+ Works=28 / Addis=25
+- 実装（汎用のみ）:
+  - `phase1_artist_link_utils.py`
+    - `canonicalize_artist_detail_url()` 追加
+    - `score_artist_detail_url_quality()` 追加
+  - `run_phase1_seed10.py`
+    - Artists候補URLの重複整理を canonical 基準へ更新
+    - known/saved 判定を「従来hash + canonical hash」互換へ更新
+    - `text_hash` 重複除外ポリシーは変更なし
+- 構文確認:
+  - `python -m py_compile phase1_artist_link_utils.py run_phase1_seed10.py` -> exit 0
+- 最小回帰テスト:
+  - 退避: `_trash/task_t111_artists_text_regression_20260301_204859/`
+  - 実行: `python run_phase1_seed10.py --include-artists-text --max-artists-per-gallery 80`
+  - guard: `phase1_guard_summary_2025_20260301T122227Z.json` (`guard_passed=true`)
+- 判定:
+  - 未達3件の coverage は同値維持（低下なし）
+    - Athr `17/39`, A+ Works `28/44`, Addis `25/37`
+  - 改善は限定的（重複主因が `text_hash` ポリシー領域のため）
+- R2:
+  - dry-run: `phase1_seed10_r2_sync_raw_20260301T122355Z.json`
+  - apply: `phase1_seed10_r2_sync_raw_20260301T122420Z.json`（uploaded=2, skipped=5, pruned=0）

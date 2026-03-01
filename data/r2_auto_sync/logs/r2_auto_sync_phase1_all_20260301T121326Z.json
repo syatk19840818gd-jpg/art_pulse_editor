@@ -1,0 +1,87 @@
+{
+  "status": "ok",
+  "target": "phase1_all",
+  "trigger": "run_phase1_seed10.py",
+  "started_at": "2026-03-01T12:09:13Z",
+  "finished_at": "2026-03-01T12:13:26Z",
+  "steps": [
+    {
+      "command": [
+        "C:\\Users\\syatk\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
+        "run_phase1_seed10_r2_sync.py",
+        "--scope",
+        "all",
+        "--dry-run",
+        "--prune"
+      ],
+      "exit_code": 0,
+      "stdout_tail": [
+        "[DRY-RUN] [logs] data/phase1_seed10/logs/phase1_seed10_r2_sync_raw_20260228T160034Z.json -> phase1_seed10/logs/phase1_seed10_r2_sync_raw_20260228T160034Z.json (4241 bytes)",
+        "[DRY-RUN] [logs] data/phase1_seed10/logs/phase1_seed10_r2_sync_raw_20260301T045434Z.json -> phase1_seed10/logs/phase1_seed10_r2_sync_raw_20260301T045434Z.json (1960 bytes)",
+        "[DRY-RUN] [logs] data/phase1_seed10/logs/phase1_seed10_r2_sync_raw_20260301T045448Z.json -> phase1_seed10/logs/phase1_seed10_r2_sync_raw_20260301T045448Z.json (4242 bytes)",
+        "[DRY-RUN] [logs] data/phase1_seed10/logs/phase1_seed10_r2_sync_raw_20260301T072405Z.json -> phase1_seed10/logs/phase1_seed10_r2_sync_raw_20260301T072405Z.json (1960 bytes)",
+        "[DRY-RUN] [logs] data/phase1_seed10/logs/phase1_seed10_r2_sync_raw_20260301T072420Z.json -> phase1_seed10/logs/phase1_seed10_r2_sync_raw_20260301T072420Z.json (4242 bytes)",
+        "[DRY-RUN] [logs] data/phase1_seed10/logs/r2_sync_runbook_summary_20260227T123817Z.json -> phase1_seed10/logs/r2_sync_runbook_summary_20260227T123817Z.json (1187 bytes)",
+        "[DRY-RUN] [logs] data/phase1_seed10/logs/run_log_seed10.txt -> phase1_seed10/logs/run_log_seed10.txt (394 bytes)",
+        "[DRY-RUN] [logs] data/phase1_seed10/logs/run_summary_seed10_2025.json -> phase1_seed10/logs/run_summary_seed10_2025.json (12298 bytes)",
+        "[DRY-RUN] [logs] data/phase1_seed10/logs/visited_pages_artists_seed10_2025.json -> phase1_seed10/logs/visited_pages_artists_seed10_2025.json (232262 bytes)",
+        "[DRY-RUN] [logs] data/phase1_seed10/logs/visited_pages_seed10_2025.json -> phase1_seed10/logs/visited_pages_seed10_2025.json (47075 bytes)",
+        "[DRY-RUN] [raw] data/phase1_seed10/raw/artists_frieze_london_2025.jsonl -> phase1_seed10/source/artists_frieze_london_2025.jsonl (1012460 bytes)",
+        "[DRY-RUN] [raw] data/phase1_seed10/raw/artists_frieze_london_2025.jsonl.bak_20260227_222406 -> phase1_seed10/source/artists_frieze_london_2025.jsonl.bak_20260227_222406 (198565 bytes)",
+        "[DRY-RUN] [raw] data/phase1_seed10/raw/artists_frieze_london_2025.jsonl.bak_20260227_232746 -> phase1_seed10/source/artists_frieze_london_2025.jsonl.bak_20260227_232746 (199006 bytes)",
+        "[DRY-RUN] [raw] data/phase1_seed10/raw/artists_frieze_london_2025.jsonl.bak_20260301_173725 -> phase1_seed10/source/artists_frieze_london_2025.jsonl.bak_20260301_173725 (1007082 bytes)",
+        "[DRY-RUN] [raw] data/phase1_seed10/raw/artists_liste_2025.jsonl -> phase1_seed10/source/artists_liste_2025.jsonl (701526 bytes)",
+        "[DRY-RUN] [raw] data/phase1_seed10/raw/exhibitions_frieze_london_2025.jsonl -> phase1_seed10/source/exhibitions_frieze_london_2025.jsonl (647579 bytes)",
+        "[DRY-RUN] [raw] data/phase1_seed10/raw/exhibitions_liste_2025.jsonl -> phase1_seed10/source/exhibitions_liste_2025.jsonl (380503 bytes)",
+        "[DONE] status=DRY_RUN_OK uploaded=0 skipped=0 failed=0 pruned=0 prune_failed=0",
+        "[DONE] manifest_local=data/phase1_seed10/derived/phase1_seed10_artifact_manifest.json",
+        "[DONE] summary=data/phase1_seed10/logs/phase1_seed10_r2_sync_all_20260301T120918Z.json"
+      ],
+      "stderr_tail": [],
+      "name": "dry_run_prune"
+    },
+    {
+      "command": [
+        "C:\\Users\\syatk\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
+        "run_phase1_seed10_r2_sync.py",
+        "--scope",
+        "all",
+        "--prune",
+        "--require-dry-run-log",
+        "--max-prune",
+        "600"
+      ],
+      "exit_code": 0,
+      "stdout_tail": [
+        "[SKIP] [logs] phase1_seed10/logs/phase1_seed10_r2_sync_raw_20260301T045434Z.json reason=EXISTS_SAME_SIZE_AND_SHA256 size=1960",
+        "[SKIP] [logs] phase1_seed10/logs/phase1_seed10_r2_sync_raw_20260301T045448Z.json reason=EXISTS_SAME_SIZE_AND_SHA256 size=4242",
+        "[SKIP] [logs] phase1_seed10/logs/phase1_seed10_r2_sync_raw_20260301T072405Z.json reason=EXISTS_SAME_SIZE_AND_SHA256 size=1960",
+        "[SKIP] [logs] phase1_seed10/logs/phase1_seed10_r2_sync_raw_20260301T072420Z.json reason=EXISTS_SAME_SIZE_AND_SHA256 size=4242",
+        "[SKIP] [logs] phase1_seed10/logs/r2_sync_runbook_summary_20260227T123817Z.json reason=EXISTS_SAME_SIZE_AND_SHA256 size=1187",
+        "[SKIP] [logs] phase1_seed10/logs/run_log_seed10.txt reason=EXISTS_SAME_SIZE_AND_SHA256 size=394",
+        "[UPLOAD] [logs] phase1_seed10/logs/run_summary_seed10_2025.json size=12298 sha256=4fa7308d83a2...",
+        "[UPLOAD] [logs] phase1_seed10/logs/visited_pages_artists_seed10_2025.json size=232262 sha256=1eea6d29cd81...",
+        "[UPLOAD] [logs] phase1_seed10/logs/visited_pages_seed10_2025.json size=47075 sha256=167548c63987...",
+        "[SKIP] [raw] phase1_seed10/source/artists_frieze_london_2025.jsonl reason=EXISTS_SAME_SIZE_AND_SHA256 size=1012460",
+        "[SKIP] [raw] phase1_seed10/source/artists_frieze_london_2025.jsonl.bak_20260227_222406 reason=EXISTS_SAME_SIZE_AND_SHA256 size=198565",
+        "[SKIP] [raw] phase1_seed10/source/artists_frieze_london_2025.jsonl.bak_20260227_232746 reason=EXISTS_SAME_SIZE_AND_SHA256 size=199006",
+        "[SKIP] [raw] phase1_seed10/source/artists_frieze_london_2025.jsonl.bak_20260301_173725 reason=EXISTS_SAME_SIZE_AND_SHA256 size=1007082",
+        "[SKIP] [raw] phase1_seed10/source/artists_liste_2025.jsonl reason=EXISTS_SAME_SIZE_AND_SHA256 size=701526",
+        "[SKIP] [raw] phase1_seed10/source/exhibitions_frieze_london_2025.jsonl reason=EXISTS_SAME_SIZE_AND_SHA256 size=647579",
+        "[SKIP] [raw] phase1_seed10/source/exhibitions_liste_2025.jsonl reason=EXISTS_SAME_SIZE_AND_SHA256 size=380503",
+        "[UPLOAD] [manifest] phase1_seed10/derived/phase1_seed10_artifact_manifest.json size=681267 sha256=e3325c2989e0...",
+        "[DONE] status=OK uploaded=7 skipped=1486 failed=0 pruned=0 prune_failed=0",
+        "[DONE] manifest_local=data/phase1_seed10/derived/phase1_seed10_artifact_manifest.json",
+        "[DONE] summary=data/phase1_seed10/logs/phase1_seed10_r2_sync_all_20260301T121326Z.json"
+      ],
+      "stderr_tail": [],
+      "name": "apply_guarded_with_prune"
+    }
+  ],
+  "dry_run_summary_path": "data/phase1_seed10/logs/phase1_seed10_r2_sync_all_20260301T120918Z.json",
+  "apply_summary_path": "data/phase1_seed10/logs/phase1_seed10_r2_sync_all_20260301T121326Z.json",
+  "delete_policy": "no_prune_candidates",
+  "prune_candidates_count": 0,
+  "prune_stable_hits": 0,
+  "prune_ready": true
+}

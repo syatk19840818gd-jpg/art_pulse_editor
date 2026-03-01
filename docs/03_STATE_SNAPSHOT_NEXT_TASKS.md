@@ -13,7 +13,7 @@ STREAMLIT_ENTRYPOINT（固定）
 - Local run: streamlit run app.py
 
 SOURCE_SSOT: 01_PROJECT_SPEC_CURRENT_FULL.docx
-LAST_UPDATED: 2026-03-01 16:35 JST
+LAST_UPDATED: 2026-03-01 21:25 JST
 
 
 ========================
@@ -70,6 +70,7 @@ LAST_UPDATED: 2026-03-01 16:35 JST
 - Artist Works Images のローカル作業キャッシュは FAIR_SLUG 単位で一本化し、gallery単位のディレクトリ分割は行わない（識別はファイル名/メタデータで保持）。
 - 暫定運用: artists抽出上限は各gallery 1件（安定化まで）。安定確認後、段階的に引き上げて最終80へ戻す。
 - 実装後に `docs/RAG_EXTRACTION_BREAKDOWN_JA.md` へ内訳追記し、03/04へ失敗理由上位を記録する。
+- `docs/RAG_EXTRACTION_BREAKDOWN_JA.md` の内訳は日本語で記述する（英語のみの追記は禁止）。
 
 
 ========================
@@ -2534,7 +2535,13 @@ NEXT_TASKS（次回やること）
     - 上位理由（共通）：`DUPLICATE_TEXT_HASH_EXISTING` > `DUPLICATE_ARTIST_GLOBAL_IN_RUN/EXISTING`
     - 判定：個別if禁止・重複ロジック追加禁止（6-2）を優先し、今回は追加改修なしで理由付き確定
     - 再開条件：SSOTで「artist_text重複除外ポリシー（text_hash粒度）」の変更合意が出た場合のみ再開
-[ ] 111) Exhibitions画像抽出フェーズへ移行し、最小スコープで共通スキップ/R2同期の適用を再確認する（本体前進）
+[x] 111) ArtistsテキストのURL canonical重複整理を汎用改良し、最小回帰テストで達成率低下なしを確認する（本体前進）
+    - 実装: `phase1_artist_link_utils.py` に artist detail canonical化/URL品質スコアを追加。
+    - 実装: `run_phase1_seed10.py` で Artists候補重複判定を canonical基準へ変更。known/saved判定を「従来hash + canonical hash」互換に変更。
+    - 事前基準: Athr=17/39(43.59%)、A+ Works=28/44(63.64%)、Addis=25/37(67.57%)。
+    - 判定: 事後coverageは3件とも同値維持（低下なし）。改善は限定的だが、URL表記ゆれ吸収の汎用ガードを実装完了。
+    - guard: `phase1_guard_summary_2025_20260301T122227Z.json`（`guard_passed=true`）。
+[ ] 112) Exhibitions画像抽出フェーズへ移行し、最小スコープで共通スキップ/R2同期の適用を再確認する（本体前進）
 
 ========================
 BACKLOG（後回し/保留）
@@ -7301,3 +7308,4 @@ TASK A-3A-CLOSE-1 実施結果（2026-02-27 / Adams and Ollman）
 - 2026-03-01：Arcadia Missa=18/18 ge_target(100.0%)、Adams and Ollman=18/20 ge_target(90.0%) で改善確認。A+ Works of Art は ge_target=7/28(25.0%) で横ばい。
 - 2026-03-01：運用更新。`data/gallery_lists/skipped_galleries_registry.csv` は 0件（空）に確定。
 - 2026-03-01：Artists画像RAG抽出（10ギャラリー、MAX80、現行汎用コード）は本テスト範囲で完成扱いとする。
+- 2026-03-01：TASK111 実施。Artistsテキストで URL canonical化 + 候補重複整理を汎用実装。Athr/A+ Works/Addis の coverage は `17/39`,`28/44`,`25/37` を維持（低下なし）。重複除外ポリシー（text_hash）は変更せず、URL表記ゆれ吸収のみ追加。

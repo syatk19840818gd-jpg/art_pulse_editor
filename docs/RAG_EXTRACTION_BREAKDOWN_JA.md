@@ -3454,6 +3454,86 @@ Notes:
   - year=None evidence_text=6edd6271a-4000x2667.jpg? img
   - year=2025 evidence_text=d9f75bfe6-4000x2667.jpg? Anderson Borba Analog Ghost , 2025 Wood, paper, stone, plaster, pigment, oil pastel, sawdust...
 
+---
+## TASK T-111-ARTISTS-TEXT-CANONICAL-DEDUPE-REGRESSION-1（2026-03-01）
+
+### 実装（汎用のみ）
+- `phase1_artist_link_utils.py`
+  - `canonicalize_artist_detail_url()` を追加（artist詳細URLの表記ゆれを同一実体に正規化）
+  - `score_artist_detail_url_quality()` を追加（候補URLの品質スコア）
+- `run_phase1_seed10.py`
+  - Artists候補抽出で canonical URL 基準の重複整理を実装
+  - `KNOWN_SAVED_PAGE` 判定を「従来hash + canonical hash」互換に拡張
+  - 既存ポリシー（`text_hash` 重複除外）は変更なし
+
+### 事前ベースライン（未達3件）
+- Athr: 17/39（43.59%）
+- A+ Works of Art: 28/44（63.64%）
+- Addis Fine Art: 25/37（67.57%）
+- `DUPLICATE_TEXT_HASH_EXISTING` 件数（調査時点）:
+  - Athr=26, A+ Works=28, Addis=25
+
+### テスト
+- preflight:
+  - `phase1_network_preflight_summary_20260301T114537Z.json`
+  - `phase1_network_preflight_summary_20260301T114538Z.json`
+- 構文確認:
+  - `python -m py_compile phase1_artist_link_utils.py run_phase1_seed10.py`
+- 最小回帰テスト（1artist/gellery退避）:
+  - 退避先: `_trash/task_t111_artists_text_regression_20260301_204859/`
+  - `run_phase1_seed10.py --include-artists-text --max-artists-per-gallery 80` を実行
+  - `run_compare_phase1_guard.py --target-year 2025`（`guard_passed=true`）
+
+### 事後判定
+- coverage（未達3件）は同値維持（低下なし）:
+  - Athr: 17/39（43.59%）
+  - A+ Works of Art: 28/44（63.64%）
+  - Addis Fine Art: 25/37（67.57%）
+- 判定:
+  - 回帰悪化なし（維持）
+  - 改善は限定的（重複主因は `text_hash` ポリシー側で、今回変更対象外）
+
+### 補足
+- R2同期:
+  - dry-run: `phase1_seed10_r2_sync_raw_20260301T122355Z.json`
+  - apply: `phase1_seed10_r2_sync_raw_20260301T122420Z.json`
+
+---
+## 2026-03-01 現時点 ArtistテキストRAG抽出内訳（日本語）
+
+参照元:
+- `data/gallery_lists/reextract_targets_artists_text_task_t109_all_coverage.csv`
+- `data/gallery_lists/reextract_targets_artists_text_task_t109.csv`
+
+全体サマリー（artist単位）:
+- 対象ギャラリー数: 10
+- 保存済みユニークartist数（合計）: 239
+- 候補artist数（合計）: 289
+- 70%達成ギャラリー数: 7/10（70.00%）
+
+ギャラリー別内訳（artist単位）:
+| fair | gallery | 保存済み | 候補数 | カバレッジ |
+|---|---|---:|---:|---:|
+| frieze_london | Adams and Ollman | 21 | 21 | 100.00% |
+| frieze_london | Arcadia Missa | 18 | 19 | 94.74% |
+| frieze_london | Athr | 17 | 39 | 43.59% |
+| frieze_london | Gallery Baton | 44 | 53 | 83.02% |
+| frieze_london | The Approach | 41 | 31 | 132.26% |
+| liste | A+ Works of Art | 28 | 44 | 63.64% |
+| liste | Addis Fine Art | 25 | 37 | 67.57% |
+| liste | Afriart Gallery | 15 | 15 | 100.00% |
+| liste | Amanita | 14 | 14 | 100.00% |
+| liste | Anca Potera\u015fu Gallery | 16 | 16 | 100.00% |
+
+未達（70%未満、現時点で理由付き確定済み）:
+- frieze_london / Athr: 17/39（43.59%）
+- liste / A+ Works of Art: 28/44（63.64%）
+- liste / Addis Fine Art: 25/37（67.57%）
+- `reextract_targets_artists_text_task_t109.csv` の reason は全て `closed_duplicate_text_hash_dominant`
+
+注記:
+- The Approach が 100%を超えて見えるのは、`saved_unique` が累積値、`candidate_count` が当該時点スナップショットのため（定義差）。
+
 ## TASK ARTISTS-IMAGE-CLOSE-1 (2026-03-01)
 - `data/gallery_lists/skipped_galleries_registry.csv` は 0件（空）に確定。
 - Artists画像RAG抽出（10ギャラリー、MAX80、汎用コード）は本テスト範囲で完成。
