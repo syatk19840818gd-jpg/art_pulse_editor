@@ -2285,6 +2285,8 @@ def build_candidate_evidence(candidate: dict[str, Any]) -> dict[str, Any]:
 def main() -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(errors="backslashreplace")
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(errors="backslashreplace")
     args = parse_args()
     start_time = utc_now_iso()
     target_year = int(args.target_year)

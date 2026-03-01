@@ -81,6 +81,9 @@ RAW_DIR = OUTPUT_ROOT / "raw"
 LOG_DIR = OUTPUT_ROOT / "logs"
 DERIVED_DIR = OUTPUT_ROOT / "derived"
 ARTIST_MASTER_GLOBAL_PATH = LOG_DIR / "artist_master_global.json"
+MANUAL_SEED_TEXT_MARKERS = (
+    "Artist page seed for",
+)
 
 _PLAYWRIGHT_MANAGER = None
 _PLAYWRIGHT_BROWSER = None
@@ -831,6 +834,8 @@ def merge_artist_master_from_artists_raw(master: dict[str, dict[str, Any]], *, t
     for raw_path in sorted(RAW_DIR.glob(f"artists_*_{target_year}.jsonl")):
         rows = read_jsonl_rows(raw_path)
         for row in rows:
+            if is_manual_seed_row(row):
+                continue
             source_url = str(row.get("source_url") or "").strip()
             if not source_url:
                 continue
@@ -924,6 +929,11 @@ def read_jsonl_rows(path: Path) -> list[dict[str, Any]]:
             if isinstance(row, dict):
                 rows.append(row)
     return rows
+
+
+def is_manual_seed_row(row: dict[str, Any]) -> bool:
+    text = str(row.get("text") or "")
+    return any(marker in text for marker in MANUAL_SEED_TEXT_MARKERS)
 
 
 def write_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
@@ -1202,6 +1212,8 @@ def upsert_failed_fetch(
 def main() -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(errors="backslashreplace")
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(errors="backslashreplace")
     args = parse_args()
     include_artists_text = bool(args.include_artists_text)
     max_artists_per_gallery = max(1, int(args.max_artists_per_gallery or MAX_ARTISTS_PER_GALLERY))

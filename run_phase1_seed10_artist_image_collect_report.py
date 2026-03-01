@@ -261,6 +261,8 @@ def append_breakdown_doc(report: dict[str, Any], report_path: Path) -> str:
 def main() -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(errors="backslashreplace")
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(errors="backslashreplace")
 
     args = parse_args()
     top_n = max(1, int(args.top_n))
