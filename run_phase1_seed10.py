@@ -17,6 +17,12 @@ from typing import Any
 from urllib.parse import ParseResult, urljoin, urlparse
 
 import requests
+from phase1_artist_link_utils import (
+    ARTIST_LINK_KEYWORDS,
+    looks_like_artist_detail_url as shared_looks_like_artist_detail_url,
+    looks_like_artist_listing_url as shared_looks_like_artist_listing_url,
+    normalize_url_for_link_compare as shared_normalize_url_for_link_compare,
+)
 from r2_auto_sync import auto_sync_after_job, format_auto_sync_brief
 try:
     from bs4 import BeautifulSoup
@@ -92,25 +98,6 @@ LINK_KEYWORDS = (
     "past",
     "current",
     "viewing-room",
-)
-
-ARTIST_LINK_KEYWORDS = (
-    "artist",
-    "artists",
-    "roster",
-    "team",
-    "bio",
-    "biography",
-)
-
-ARTIST_LIST_PATH_PATTERNS = (
-    "/artist",
-    "/artists",
-    "/artists/",
-    "/list-of-artists",
-    "/artist-list",
-    "/category/artist",
-    "/category/artists",
 )
 
 ARTIST_URL_NON_NAME_SEGMENTS = {
@@ -397,11 +384,7 @@ def _same_domain(url_a: str, url_b: str) -> bool:
 
 
 def _normalize_url_for_link_compare(url: str) -> str:
-    parsed = urlparse(url)
-    normalized = f"{parsed.scheme.lower()}://{parsed.netloc.lower()}{parsed.path}".rstrip("/")
-    if parsed.query:
-        normalized = f"{normalized}?{parsed.query}"
-    return normalized
+    return shared_normalize_url_for_link_compare(url)
 
 
 def _looks_like_exhibition_link(candidate_url: str, anchor_text: str) -> bool:
@@ -410,29 +393,16 @@ def _looks_like_exhibition_link(candidate_url: str, anchor_text: str) -> bool:
 
 
 def _looks_like_artist_listing_url(url: str) -> bool:
-    path = (urlparse(url).path or "").lower().rstrip("/")
-    if not path:
-        return False
-    return any(path.endswith(pattern.rstrip("/")) for pattern in ARTIST_LIST_PATH_PATTERNS)
+    return shared_looks_like_artist_listing_url(url)
 
 
-def _looks_like_artist_detail_link(candidate_url: str, list_page_url: str) -> bool:
-    candidate_norm = _normalize_url_for_link_compare(candidate_url)
-    list_norm = _normalize_url_for_link_compare(list_page_url)
-    if candidate_norm == list_norm:
-        return False
-    if _looks_like_artist_listing_url(candidate_url):
-        return False
-
-    candidate_path = (urlparse(candidate_url).path or "").lower().rstrip("/")
-    list_path = (urlparse(list_page_url).path or "").lower().rstrip("/")
-    if not candidate_path:
-        return False
-    if list_path and "artist" in list_path and candidate_path.startswith(f"{list_path}/"):
-        return True
-    if "/artist/" in candidate_path or "/artists/" in candidate_path:
-        return True
-    return False
+def _looks_like_artist_detail_link(candidate_url: str, list_page_url: str, anchor_text: str = "") -> bool:
+    return shared_looks_like_artist_detail_url(
+        candidate_url=candidate_url,
+        list_page_url=list_page_url,
+        anchor_text=anchor_text,
+        same_domain_required=False,
+    )
 
 
 def extract_links_from_html(html: str) -> list[tuple[str, str]]:
@@ -495,6 +465,7 @@ def extract_candidate_artist_urls(
     # For small caps (e.g. 1 in initial smoke), scan a wider window to avoid
     # stopping at already-saved duplicates.
     candidate_scan_limit = min(200, max(max_artists_per_gallery, max_artists_per_gallery * 20))
+    listing_context = _looks_like_artist_listing_url(list_page_url)
 
     for href, anchor_text_raw in extract_links_from_html(list_page_html):
         href = href.strip()
@@ -510,9 +481,9 @@ def extract_candidate_artist_urls(
             continue
         anchor_text = anchor_text_raw.lower()
         target = f"{absolute_url.lower()} {anchor_text}"
-        if not any(keyword in target for keyword in ARTIST_LINK_KEYWORDS):
+        if not listing_context and not any(keyword in target for keyword in ARTIST_LINK_KEYWORDS):
             continue
-        if not _looks_like_artist_detail_link(absolute_url, list_page_url):
+        if not _looks_like_artist_detail_link(absolute_url, list_page_url, anchor_text_raw):
             continue
         normalized = f"{parsed.scheme}://{parsed.netloc}{parsed.path}".rstrip("/")
         if parsed.query:

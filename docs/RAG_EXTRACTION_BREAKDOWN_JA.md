@@ -3937,3 +3937,80 @@ Notes:
   - year=None evidence_text=dc6ea87c3-3600x2400.jpg? img
   - year=None evidence_text=6edd6271a-4000x2667.jpg? img
   - year=2025 evidence_text=d9f75bfe6-4000x2667.jpg? Anderson Borba Analog Ghost , 2025 Wood, paper, stone, plaster, pigment, oil pastel, sawdust...
+
+
+## TASK T-108-ARTISTS-TEXT-CLOSE-2?2026-03-01?
+- ??????:
+  - `run_phase1_seed10.py` / `run_phase1_seed10_artist_image_collect.py` ? `phase1_artist_link_utils.py` ???
+  - URL???listing/detail??????????????
+  - `python -m py_compile phase1_artist_link_utils.py run_phase1_seed10.py run_phase1_seed10_artist_image_collect.py` PASS
+- Arcadia/Adams ????:
+  - Arcadia candidate_count=18
+  - Adams candidate_count=20
+  - ???>=5???????? skip registry ??
+- ????:
+  - ???????? `failed_fetches_artists_seed10_2025.json` ? `NO_ARTIST_DETAIL_LINKS` ? non-retryable ???????
+  - ??2??????????
+- ??????:
+  - `artists_records_saved_total`????= 42
+  - `artists_records_total_after_run`????= 287
+  - `artists_skipped_by_reason` = {KNOWN_SAVED_PAGE:13, DUPLICATE_TEXT_HASH_EXISTING:235, DUPLICATE_ARTIST_GLOBAL_EXISTING:18, DUPLICATE_ARTIST_GLOBAL_IN_RUN:27}
+  - Arcadia status: reopened?18????
+  - Adams status: reopened?20????
+- 70%?????:
+  - ????????run_summary gallery ge_1?: 30.00%?3/10?
+  - ????????seed10 10????? ge_1?: 100.00%?10/10?
+  - ???????????????????????????????
+
+## TASK T-109-ARTISTS-TEXT-COVERAGE-70-1（2026-03-01）
+- preflight: 2連続PASS
+  - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260301T070641Z.json`
+  - `data/phase1_seed10/logs/phase1_network_preflight_summary_20260301T070651Z.json`
+- 実行:
+  - `python run_phase1_seed10.py --include-artists-text --max-artists-per-gallery 80`
+  - `python run_compare_phase1_guard.py --target-year 2025`（guard_passed=true）
+- artist単位coverage算出:
+  - 全件: `data/gallery_lists/reextract_targets_artists_text_task_t109_all_coverage.csv`
+  - 未達のみ: `data/gallery_lists/reextract_targets_artists_text_task_t109.csv`
+  - 結果: 10ギャラリー中 7ギャラリーが `coverage>=0.70`（70.00%）
+- 未達（最小対象3件）:
+  - `frieze_london / Athr`: saved_unique=17, candidate_count=39, coverage=0.4359
+  - `liste / A+ Works of Art`: saved_unique=28, candidate_count=44, coverage=0.6364
+  - `liste / Addis Fine Art`: saved_unique=25, candidate_count=37, coverage=0.6757
+- 未達の主要reason（visited_pages集計）:
+  - Athr: `DUPLICATE_TEXT_HASH_EXISTING=26`（次点: DUPLICATE_ARTIST_GLOBAL_EXISTING=6）
+  - A+ Works of Art: `DUPLICATE_TEXT_HASH_EXISTING=28`（次点: DUPLICATE_ARTIST_GLOBAL_IN_RUN=13）
+  - Addis Fine Art: `DUPLICATE_TEXT_HASH_EXISTING=25`（次点: DUPLICATE_ARTIST_GLOBAL_IN_RUN=9）
+- 判定:
+  - 70%目標は全体として達成（7/10=70.00%）。
+  - 未達3件は 6-2準拠で「重複除外ルールを維持したまま、共通モジュール範囲で追加改善可否を切り分ける」対象として次タスクへ繰越。
+
+## TASK T-110-ARTISTS-TEXT-UNMET-ROOTCAUSE-1（2026-03-01）
+- 対象（未達3件）:
+  - frieze_london / Athr
+  - liste / A+ Works of Art
+  - liste / Addis Fine Art
+- 根因分類（上位3 reason_code）:
+  - Athr:
+    - DUPLICATE_TEXT_HASH_EXISTING=26
+    - DUPLICATE_ARTIST_GLOBAL_EXISTING=6
+    - DUPLICATE_ARTIST_GLOBAL_IN_RUN=5
+    - label: DUPLICATE_TEXT_HASH_DOMINANT
+  - A+ Works of Art:
+    - DUPLICATE_TEXT_HASH_EXISTING=28
+    - DUPLICATE_ARTIST_GLOBAL_IN_RUN=13
+    - DUPLICATE_ARTIST_GLOBAL_EXISTING=3
+    - label: DUPLICATE_TEXT_HASH_DOMINANT
+  - Addis Fine Art:
+    - DUPLICATE_TEXT_HASH_EXISTING=25
+    - DUPLICATE_ARTIST_GLOBAL_IN_RUN=9
+    - DUPLICATE_ARTIST_GLOBAL_EXISTING=3
+    - label: DUPLICATE_TEXT_HASH_DOMINANT
+- 最終判定（6-2準拠）:
+  - 追加改修なし（理由付き確定）
+  - 理由: 影響が大きい改修候補は artist_text 重複除外ポリシー（text_hash粒度）変更に踏み込むため、今回の共通モジュール範囲外
+  - 再開条件: SSOTで重複除外ポリシー変更の合意が出た場合のみ再開
+- 反映:
+  - `data/gallery_lists/reextract_targets_artists_text_task_t109.csv`
+    - reason を `closed_duplicate_text_hash_dominant` へ更新
+  - guard: `phase1_guard_summary_2025_20260301T073600Z.json`（guard_passed=true）

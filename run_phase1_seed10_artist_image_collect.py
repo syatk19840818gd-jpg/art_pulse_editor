@@ -20,6 +20,12 @@ from urllib.parse import urljoin, urlparse
 
 import requests
 from PIL import Image, UnidentifiedImageError
+from phase1_artist_link_utils import (
+    ARTIST_LINK_KEYWORDS,
+    looks_like_artist_detail_url as shared_looks_like_artist_detail_url,
+    looks_like_artist_listing_url as shared_looks_like_artist_listing_url,
+    normalize_url_for_link_compare as shared_normalize_url_for_link_compare,
+)
 from requests.adapters import HTTPAdapter
 from r2_auto_sync import auto_sync_after_job, format_auto_sync_brief
 try:
@@ -186,24 +192,6 @@ WORK_INFO_MEDIUM_PATTERN = re.compile(
 WORK_INFO_SIZE_PATTERN = re.compile(r"\b\d{2,4}\s?(cm|mm|in|inch|inches)\b", re.IGNORECASE)
 HERO_CONTAINER_TOKENS = ("hero", "header", "profile", "portrait", "headshot", "avatar", "bio", "about")
 HERO_PERSON_TOKENS = ("portrait", "headshot", "profile photo", "artist photo", "photo of")
-
-ARTIST_LINK_KEYWORDS = (
-    "artist",
-    "artists",
-    "roster",
-    "bio",
-    "biography",
-)
-
-ARTIST_LIST_PATH_PATTERNS = (
-    "/artist",
-    "/artists",
-    "/artists/",
-    "/list-of-artists",
-    "/artist-list",
-    "/category/artist",
-    "/category/artists",
-)
 
 ARTIST_URL_NON_NAME_SEGMENTS = {
     "artist",
@@ -922,11 +910,7 @@ def candidate_violates_works_only(candidate: dict[str, Any]) -> bool:
 
 
 def normalize_url_for_link_compare(url: str) -> str:
-    parsed = urlparse(url)
-    normalized = f"{parsed.scheme.lower()}://{parsed.netloc.lower()}{parsed.path}".rstrip("/")
-    if parsed.query:
-        normalized = f"{normalized}?{parsed.query}"
-    return normalized
+    return shared_normalize_url_for_link_compare(url)
 
 
 def normalize_image_url_for_dedupe(url: str) -> str:
@@ -970,31 +954,16 @@ def is_redirected_to_generic_listing(request_url: str, final_url: str) -> bool:
 
 
 def looks_like_artist_listing_url(url: str) -> bool:
-    path = (urlparse(url).path or "").lower().rstrip("/")
-    if not path:
-        return False
-    return any(path.endswith(pattern.rstrip("/")) for pattern in ARTIST_LIST_PATH_PATTERNS)
+    return shared_looks_like_artist_listing_url(url)
 
 
-def looks_like_artist_detail_url(candidate_url: str, list_page_url: str) -> bool:
-    candidate_norm = normalize_url_for_link_compare(candidate_url)
-    list_norm = normalize_url_for_link_compare(list_page_url)
-    if candidate_norm == list_norm:
-        return False
-    if looks_like_artist_listing_url(candidate_url):
-        return False
-    if normalize_domain(candidate_url) != normalize_domain(list_page_url):
-        return False
-
-    candidate_path = (urlparse(candidate_url).path or "").lower().rstrip("/")
-    list_path = (urlparse(list_page_url).path or "").lower().rstrip("/")
-    if not candidate_path:
-        return False
-    if list_path and "artist" in list_path and candidate_path.startswith(f"{list_path}/"):
-        return True
-    if "/artist/" in candidate_path or "/artists/" in candidate_path:
-        return True
-    return False
+def looks_like_artist_detail_url(candidate_url: str, list_page_url: str, anchor_text: str = "") -> bool:
+    return shared_looks_like_artist_detail_url(
+        candidate_url=candidate_url,
+        list_page_url=list_page_url,
+        anchor_text=anchor_text,
+        same_domain_required=True,
+    )
 
 
 def can_resolve_hostname(hostname: str) -> tuple[bool, str]:
@@ -1494,6 +1463,7 @@ def guess_parent_tag_from_index(page_html: str, index: int) -> str:
 def extract_artist_detail_urls(list_page_url: str, html: str, max_links: int = 80) -> list[str]:
     candidates: list[str] = []
     seen: set[str] = set()
+    listing_context = looks_like_artist_listing_url(list_page_url)
     for match in A_TAG_RE.finditer(html):
         tag_html = match.group(0)
         attrs = parse_img_attrs(tag_html)
@@ -1516,14 +1486,22 @@ def extract_artist_detail_urls(list_page_url: str, html: str, max_links: int = 8
         target = " ".join(
             [
                 absolute_url.lower(),
+                str(attrs.get("alt") or "").lower(),
                 str(attrs.get("title") or "").lower(),
                 str(attrs.get("aria-label") or "").lower(),
                 str(attrs.get("class") or "").lower(),
             ]
         )
-        if not any(keyword in target for keyword in ARTIST_LINK_KEYWORDS):
+        if not listing_context and not any(keyword in target for keyword in ARTIST_LINK_KEYWORDS):
             continue
-        if not looks_like_artist_detail_url(absolute_url, list_page_url):
+        anchor_text = " ".join(
+            [
+                str(attrs.get("title") or ""),
+                str(attrs.get("aria-label") or ""),
+                str(attrs.get("alt") or ""),
+            ]
+        ).strip()
+        if not looks_like_artist_detail_url(absolute_url, list_page_url, anchor_text):
             continue
         seen.add(normalized)
         candidates.append(normalized)

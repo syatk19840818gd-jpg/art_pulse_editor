@@ -1,6 +1,6 @@
 # 04_TASK_PROGRESS_LOG.md
 
-最終更新: 2026-03-01 00:42 JST  
+最終更新: 2026-03-01 16:35 JST  
 対象プロジェクト: ART_PULSE_EDITOR（Phase1 seed10 / Guard運用整備）  
 位置づけ: 実装進捗ログ（01=SSOT、02=索引、03=現行運用タスクの補助ログ）
 
@@ -23,16 +23,18 @@
 - 取得ループ内で LLM 加工（headline_ja 等）をしない。**Fetch と Enrichment は分離**（Post-fetch バッチ）。
 - 完成機能を勝手に削除/無効化しない（削除・置換・挙動変更は合意制）。
 - ドメイン専用ハードコードを増やさない（頻出ドメイン × 汎用ロジックのみ改善）。
+- 共通化できる判定・抽出ロジックは共通モジュールへ統合し、個別スクリプトへの重複実装を増やさない（変更点1箇所の運用を固定）。
 - 取れない分はログに残して前進する（失敗をログ化して割り切る）。
 - `data/gallery_lists/skipped_galleries_registry.csv` の登録は、Artists/Exhibitions の画像・テキスト抽出すべてに共通適用する。
 - R2保存/削除の guarded 自動同期は、Artists/Exhibitions の画像・テキスト・ベクターを含むRAG全体に共通適用する。
+- タスク終了時の出力は「【タスク終了時に行うこと】」テンプレを固定し、03更新は必ず 02→01→03 の順で実施後に報告5項目を出力する。
 
 ---
 
 ## 2. 全体の進捗サマリ（現時点）
 
 - 完了: **TASK 1 ～ TASK 104**
-- 次の予定: **TASK 108（10ギャラリー Artistsテキスト完了ゲート）**
+- 次の予定: **TASK 109（Artists/Exhibitions 共通テンプレ運用の実行ゲート）**
 - 直近の重点:
   - TarutaniRAG 側で比較/guard の「型」を作成 → Phase1本体（Exhibitions/Artists）へ横展開
   - Phase1 guard 本体 / history 比較 / fixture / matrix / schema文書化 / category文脈まで整備
@@ -4368,3 +4370,68 @@ _trash 運用方針:
     - The Approach: +3（Rezi Van Lankveld / John Maclean / Hana Miletic）
     - Gallery Baton: +1（Germaine Kruip）
   - `total_artist_text_records=232`（run後）
+
+
+## 151. TASK T-108-ARTISTS-TEXT-CLOSE-2????????????
+- ?????:
+  - 01/02/03/04 ?????OK
+  - preflight 2??PASS?`phase1_network_preflight_summary_20260301T042809Z.json`?
+- ??????:
+  - `phase1_artist_link_utils.py` ? text/image ?????????
+  - `python -m py_compile phase1_artist_link_utils.py run_phase1_seed10.py run_phase1_seed10_artist_image_collect.py` PASS
+- Arcadia/Adams ????:
+  - candidates: Arcadia=18, Adams=20?????>=5?????
+  - `data/gallery_lists/skipped_galleries_registry.csv` ??2????backup: `...bak_20260301_132907`?
+- ??:
+  - 1?? `run_phase1_seed10.py --include-artists-text --max-artists-per-gallery 80` ? `KNOWN_FAILED_URL_NON_RETRYABLE`???????????
+  - `failed_fetches_artists_seed10_2025.json` ? Arcadia/Adams ???2?????backup: `...bak_20260301_134210`?
+  - 2?????????????`artists_records_saved_total=42` ????Arcadia=18, Adams=20????
+- guard:
+
+## 152. TASK108完了反映（タスク終了テンプレ運用固定）
+- 03の `NEXT_TASKS` で `108)` を `[x]` に更新し、完了実行内容を追記。
+- TASKプロンプト末尾の出力テンプレを「【タスク終了時に行うこと】」へ統一（03更新: 02→01→03 を先行実施）。
+- 01/02/04 に同運用を追記し、今後のタスク終了時に恒久適用する。
+
+## 153. TASK T-109-ARTISTS-TEXT-COVERAGE-70-1
+- preflight:
+  - `python run_phase1_network_preflight.py` x2 PASS
+  - summary: `phase1_network_preflight_summary_20260301T070641Z.json` / `...070651Z.json`
+- 実行:
+  - `python run_phase1_seed10.py --include-artists-text --max-artists-per-gallery 80` -> exit 0
+  - `python run_compare_phase1_guard.py --target-year 2025` -> exit 0 (`guard_passed=true`)
+- coverage分析:
+  - 生成: `data/gallery_lists/reextract_targets_artists_text_task_t109.csv`
+  - 全体: `data/gallery_lists/reextract_targets_artists_text_task_t109_all_coverage.csv`
+  - 結果: 10ギャラリー中 7ギャラリーが `coverage>=0.70`（70.00%）
+  - 未達3件: Athr(0.4359), A+ Works of Art(0.6364), Addis Fine Art(0.6757)
+  - 主因: `DUPLICATE_TEXT_HASH_EXISTING`（重複除外による保存抑制）
+- R2:
+  - `python run_phase1_seed10_r2_sync.py --scope raw --dry-run --prune` -> exit 0
+  - `python run_phase1_seed10_r2_sync.py --scope raw --prune --require-dry-run-log --max-prune 600` -> exit 0
+  - apply結果: uploaded=0 / skipped=6 / pruned=0（manifestのみ更新）
+
+## 154. TASK T-110-ARTISTS-TEXT-UNMET-ROOTCAUSE-1
+- preflight:
+  - `python run_phase1_network_preflight.py` x2 PASS
+  - `phase1_network_preflight_summary_20260301T073501Z.json`
+  - `phase1_network_preflight_summary_20260301T073513Z.json`
+- 根因分類（未達3件）:
+  - Athr: `DUPLICATE_TEXT_HASH_EXISTING=26`, `DUPLICATE_ARTIST_GLOBAL_EXISTING=6`, `DUPLICATE_ARTIST_GLOBAL_IN_RUN=5`
+  - A+ Works of Art: `DUPLICATE_TEXT_HASH_EXISTING=28`, `DUPLICATE_ARTIST_GLOBAL_IN_RUN=13`, `DUPLICATE_ARTIST_GLOBAL_EXISTING=3`
+  - Addis Fine Art: `DUPLICATE_TEXT_HASH_EXISTING=25`, `DUPLICATE_ARTIST_GLOBAL_IN_RUN=9`, `DUPLICATE_ARTIST_GLOBAL_EXISTING=3`
+  - ラベル確定: 3件とも `DUPLICATE_TEXT_HASH_DOMINANT`
+- 判定:
+  - 追加改修は見送り（6-2準拠）
+  - 理由: 改修候補は重複除外ポリシーの仕様変更を伴い、リンク共通モジュール範囲外
+  - 再開条件: SSOTで artist_text 重複除外ポリシー（text_hash粒度）変更の合意が出た場合のみ
+- 反映:
+  - `data/gallery_lists/reextract_targets_artists_text_task_t109.csv` の reason を `closed_duplicate_text_hash_dominant` へ更新
+  - guard: `python run_compare_phase1_guard.py --target-year 2025` -> exit 0 (`phase1_guard_summary_2025_20260301T073600Z.json`)
+  - `phase1_guard_summary_2025_20260301T044222Z.json` / guard_passed=true
+- R2:
+  - `run_phase1_seed10_r2_sync.py --scope raw --dry-run --prune` ??
+  - ?????? guard fail ??????? `--prune --require-dry-run-log --max-prune 600` ???
+- ??:
+  - Arcadia/Adams status = reopened???: candidates>=5 + ???????
+  - 70%???????????????????

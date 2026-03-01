@@ -35,16 +35,16 @@
         "fingerprint": "",
         "stable_hits": 0,
         "candidate_count": 0,
-        "last_seen_at": "2026-02-28T16:48:15Z"
+        "last_seen_at": "2026-03-01T07:23:21Z"
       },
       "last_trigger": "run_phase1_seed10.py",
-      "last_run_at": "2026-02-28T16:48:15Z",
+      "last_run_at": "2026-03-01T07:23:21Z",
       "last_status": "ok",
       "last_delete_policy": "no_prune_candidates",
       "last_prune_candidates_count": 0,
-      "last_dry_run_summary_path": "data/phase1_seed10/logs/phase1_seed10_r2_sync_all_20260228T164529Z.json",
-      "last_apply_summary_path": "data/phase1_seed10/logs/phase1_seed10_r2_sync_all_20260228T164815Z.json"
+      "last_dry_run_summary_path": "data/phase1_seed10/logs/phase1_seed10_r2_sync_all_20260301T071929Z.json",
+      "last_apply_summary_path": "data/phase1_seed10/logs/phase1_seed10_r2_sync_all_20260301T072321Z.json"
     }
   },
-  "updated_at": "2026-02-28T16:48:15Z"
+  "updated_at": "2026-03-01T07:23:21Z"
 }
