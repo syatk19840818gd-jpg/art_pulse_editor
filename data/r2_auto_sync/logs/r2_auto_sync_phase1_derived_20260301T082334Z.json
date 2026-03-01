@@ -1,0 +1,86 @@
+{
+  "status": "ok",
+  "target": "phase1_derived",
+  "trigger": "run_phase1_seed10_artist_image_collect.py",
+  "started_at": "2026-03-01T08:21:38Z",
+  "finished_at": "2026-03-01T08:23:34Z",
+  "steps": [
+    {
+      "command": [
+        "C:\\Users\\syatk\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
+        "run_phase1_seed10_r2_sync.py",
+        "--scope",
+        "derived",
+        "--dry-run",
+        "--prune"
+      ],
+      "exit_code": 0,
+      "stdout_tail": [
+        "[DRY-RUN] [derived] data/phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__yasmina-assbane-2__f660419e__img_04.jpg -> phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__yasmina-assbane-2__f660419e__img_04.jpg (32242 bytes)",
+        "[DRY-RUN] [derived] data/phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__yasmina-assbane-2__f660419e__img_05.jpg -> phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__yasmina-assbane-2__f660419e__img_05.jpg (75794 bytes)",
+        "[DRY-RUN] [derived] data/phase1_seed10/derived/vector/artists_text_artifact_manifest_2025.json -> phase1_seed10/derived/vector/artists_text_artifact_manifest_2025.json (853 bytes)",
+        "[DRY-RUN] [derived] data/phase1_seed10/derived/vector/artists_text_index_2025.npy -> phase1_seed10/derived/vector/artists_text_index_2025.npy (491648 bytes)",
+        "[DRY-RUN] [derived] data/phase1_seed10/derived/vector/artists_text_meta_2025.jsonl -> phase1_seed10/derived/vector/artists_text_meta_2025.jsonl (42949 bytes)",
+        "[DRY-RUN] [derived] data/phase1_seed10/derived/vector/artists_text_vectorize_failed_2025.jsonl -> phase1_seed10/derived/vector/artists_text_vectorize_failed_2025.jsonl (0 bytes)",
+        "[DRY-RUN] [derived] data/phase1_seed10/derived/vector/artists_text_vectorize_summary_2025.json -> phase1_seed10/derived/vector/artists_text_vectorize_summary_2025.json (1224 bytes)",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/frieze-london/adams-and-ollman__jose-bonell-2__c0e5c961__img_01.jpg size=88477 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/frieze-london/adams-and-ollman__jose-bonell-2__c0e5c961__img_02.jpg size=44669 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/frieze-london/adams-and-ollman__jose-bonell-2__c0e5c961__img_03.jpg size=82558 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/frieze-london/adams-and-ollman__jose-bonell-2__c0e5c961__img_04.jpg size=87400 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/frieze-london/adams-and-ollman__jose-bonell-2__c0e5c961__img_05.jpg size=85732 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/frieze-london/adams-and-ollman__katherine-bradford__ebb1d5f4__img_01.jpg size=78385 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/frieze-london/adams-and-ollman__katherine-bradford__ebb1d5f4__img_02.jpg size=95005 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/frieze-london/adams-and-ollman__katherine-bradford__ebb1d5f4__img_03.jpg size=100498 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/frieze-london/adams-and-ollman__katherine-bradford__ebb1d5f4__img_04.jpg size=101044 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/frieze-london/adams-and-ollman__katherine-bradford__ebb1d5f4__img_05.jpg size=96820 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[DONE] status=DRY_RUN_OK uploaded=0 skipped=0 failed=0 pruned=0 prune_failed=0",
+        "[DONE] manifest_local=data/phase1_seed10/derived/phase1_seed10_artifact_manifest.json",
+        "[DONE] summary=data/phase1_seed10/logs/phase1_seed10_r2_sync_derived_20260301T082141Z.json"
+      ],
+      "stderr_tail": [],
+      "name": "dry_run_prune"
+    },
+    {
+      "command": [
+        "C:\\Users\\syatk\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
+        "run_phase1_seed10_r2_sync.py",
+        "--scope",
+        "derived",
+        "--require-dry-run-log",
+        "--max-prune",
+        "600"
+      ],
+      "exit_code": 0,
+      "stdout_tail": [
+        "[SKIP] [derived] phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__orit-ishay-2__fd8d2a04__img_05.jpg reason=EXISTS_SAME_SIZE_AND_SHA256 size=99102",
+        "[SKIP] [derived] phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__sebastian-hosu-2__b75a1464__img_01.jpg reason=EXISTS_SAME_SIZE_AND_SHA256 size=99262",
+        "[SKIP] [derived] phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__sebastian-hosu-2__b75a1464__img_02.jpg reason=EXISTS_SAME_SIZE_AND_SHA256 size=98450",
+        "[SKIP] [derived] phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__sebastian-hosu-2__b75a1464__img_03.jpg reason=EXISTS_SAME_SIZE_AND_SHA256 size=100308",
+        "[SKIP] [derived] phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__sebastian-hosu-2__b75a1464__img_04.jpg reason=EXISTS_SAME_SIZE_AND_SHA256 size=102287",
+        "[SKIP] [derived] phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__sebastian-hosu-2__b75a1464__img_05.jpg reason=EXISTS_SAME_SIZE_AND_SHA256 size=99305",
+        "[SKIP] [derived] phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__yasmina-assbane-2__f660419e__img_01.jpg reason=EXISTS_SAME_SIZE_AND_SHA256 size=92503",
+        "[SKIP] [derived] phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__yasmina-assbane-2__f660419e__img_02.jpg reason=EXISTS_SAME_SIZE_AND_SHA256 size=95097",
+        "[SKIP] [derived] phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__yasmina-assbane-2__f660419e__img_03.jpg reason=EXISTS_SAME_SIZE_AND_SHA256 size=95119",
+        "[SKIP] [derived] phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__yasmina-assbane-2__f660419e__img_04.jpg reason=EXISTS_SAME_SIZE_AND_SHA256 size=32242",
+        "[SKIP] [derived] phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__yasmina-assbane-2__f660419e__img_05.jpg reason=EXISTS_SAME_SIZE_AND_SHA256 size=75794",
+        "[SKIP] [derived] phase1_seed10/derived/vector/artists_text_artifact_manifest_2025.json reason=EXISTS_SAME_SIZE_AND_SHA256 size=853",
+        "[SKIP] [derived] phase1_seed10/derived/vector/artists_text_index_2025.npy reason=EXISTS_SAME_SIZE_AND_SHA256 size=491648",
+        "[SKIP] [derived] phase1_seed10/derived/vector/artists_text_meta_2025.jsonl reason=EXISTS_SAME_SIZE_AND_SHA256 size=42949",
+        "[SKIP] [derived] phase1_seed10/derived/vector/artists_text_vectorize_failed_2025.jsonl reason=EXISTS_SAME_SIZE_AND_SHA256 size=0",
+        "[SKIP] [derived] phase1_seed10/derived/vector/artists_text_vectorize_summary_2025.json reason=EXISTS_SAME_SIZE_AND_SHA256 size=1224",
+        "[UPLOAD] [manifest] phase1_seed10/derived/phase1_seed10_artifact_manifest.json size=390926 sha256=db98906a9fbe...",
+        "[DONE] status=OK uploaded=1 skipped=812 failed=0 pruned=0 prune_failed=0",
+        "[DONE] manifest_local=data/phase1_seed10/derived/phase1_seed10_artifact_manifest.json",
+        "[DONE] summary=data/phase1_seed10/logs/phase1_seed10_r2_sync_derived_20260301T082334Z.json"
+      ],
+      "stderr_tail": [],
+      "name": "apply_guarded_without_prune"
+    }
+  ],
+  "dry_run_summary_path": "data/phase1_seed10/logs/phase1_seed10_r2_sync_derived_20260301T082141Z.json",
+  "apply_summary_path": "data/phase1_seed10/logs/phase1_seed10_r2_sync_derived_20260301T082334Z.json",
+  "delete_policy": "prune_deferred_first_seen",
+  "prune_candidates_count": 10,
+  "prune_stable_hits": 1,
+  "prune_ready": false
+}

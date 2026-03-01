@@ -22,6 +22,7 @@ import requests
 from PIL import Image, UnidentifiedImageError
 from phase1_artist_link_utils import (
     ARTIST_LINK_KEYWORDS,
+    ARTIST_LIST_PATH_PATTERNS,
     looks_like_artist_detail_url as shared_looks_like_artist_detail_url,
     looks_like_artist_listing_url as shared_looks_like_artist_listing_url,
     normalize_url_for_link_compare as shared_normalize_url_for_link_compare,
@@ -78,6 +79,9 @@ WORKS_META_FILENAME_TEMPLATE = "artist_works_images_{fair_slug}.jsonl"
 WORKS_IMAGE_RANK_WINDOW = 20
 ARTIST_MASTER_GLOBAL_PATH = LOG_DIR / "artist_master_global.json"
 FAILED_FETCH_LEDGER_FILENAME_TEMPLATE = "failed_fetches_artist_image_collect_{target_year}.json"
+MANUAL_SEED_TEXT_MARKERS = (
+    "Artist page seed for",
+)
 
 _PLAYWRIGHT_MANAGER = None
 _PLAYWRIGHT_BROWSER = None
@@ -506,10 +510,16 @@ def load_artist_targets(target_year: int, *, only_source_url: str = "") -> list[
             return False
         return any(path.endswith(pattern.rstrip("/")) for pattern in ARTIST_LIST_PATH_PATTERNS)
 
+    def _is_manual_seed_row(row: dict[str, Any]) -> bool:
+        text = str(row.get("text") or "")
+        return any(marker in text for marker in MANUAL_SEED_TEXT_MARKERS)
+
     for raw_path in sorted(RAW_DIR.glob(f"artists_*_{target_year}.jsonl")):
         rows = read_jsonl_rows(raw_path)
         fair_slug = str(raw_path.name.replace(f"artists_", "").replace(f"_{target_year}.jsonl", ""))
         for row in rows:
+            if _is_manual_seed_row(row):
+                continue
             source_url = str(row.get("source_url") or "").strip()
             if not source_url:
                 continue
@@ -566,10 +576,17 @@ def load_artist_targets(target_year: int, *, only_source_url: str = "") -> list[
 
 def collect_seed_supply_by_gallery(target_year: int) -> list[dict[str, Any]]:
     grouped_rows: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
+
+    def _is_manual_seed_row(row: dict[str, Any]) -> bool:
+        text = str(row.get("text") or "")
+        return any(marker in text for marker in MANUAL_SEED_TEXT_MARKERS)
+
     for raw_path in sorted(RAW_DIR.glob(f"artists_*_{target_year}.jsonl")):
         rows = read_jsonl_rows(raw_path)
         fair_slug = str(raw_path.name.replace("artists_", "").replace(f"_{target_year}.jsonl", ""))
         for row in rows:
+            if _is_manual_seed_row(row):
+                continue
             source_url = str(row.get("source_url") or "").strip()
             if not source_url:
                 continue
@@ -925,6 +942,22 @@ def normalize_image_url_for_dedupe(url: str) -> str:
         transform_seg = parts[1]
         if transform_seg and CDN_TRANSFORM_SEGMENT_RE.match(transform_seg):
             path = "/" + "/".join(parts[2:])
+    # Collapse Cargo-style transform prefixes:
+    # /w/450/i/<hash>/image.jpg -> /i/<hash>/image.jpg
+    # /t/original/i/<hash>/image.jpg -> /i/<hash>/image.jpg
+    parts = path.split("/")
+    while len(parts) >= 5:
+        seg1 = (parts[1] or "").lower()
+        seg2 = (parts[2] or "").lower()
+        if seg1 in {"w", "h"} and seg2.isdigit():
+            path = "/" + "/".join(parts[3:])
+            parts = path.split("/")
+            continue
+        if seg1 == "t" and seg2 in {"original", "optimized", "thumbnail"}:
+            path = "/" + "/".join(parts[3:])
+            parts = path.split("/")
+            continue
+        break
     # Collapse common CMS scaled variants:
     # image-1024x683.jpg / image-2048x1365.jpg -> image.jpg
     path = IMAGE_SCALE_SUFFIX_RE.sub("", path)
@@ -2187,6 +2220,15 @@ def build_valid_existing_metadata_items(
         ok_cached, _cached_reason = validate_cached_image_file(local_path)
         if not ok_cached:
             continue
+        local_payload_hash = payload_hash_from_file(local_path).strip().lower()
+        if not local_payload_hash:
+            continue
+        prev_payload_hash = str(prev.get("payload_hash") or "").strip().lower()
+        # Guard against stale metadata pointing to a different payload than
+        # the local cache file. Keeping these entries can silently preserve
+        # duplicated files across reruns.
+        if prev_payload_hash and prev_payload_hash != local_payload_hash:
+            continue
         seen_local_paths.add(local_path_key)
         items.append(
             {
@@ -2198,7 +2240,7 @@ def build_valid_existing_metadata_items(
                 "local_path": str(local_path),
                 "year_source": str(prev.get("year_source") or "none"),
                 "year_confidence": str(prev.get("year_confidence") or "low"),
-                "payload_hash": str(prev.get("payload_hash") or payload_hash_from_file(local_path)),
+                "payload_hash": str(prev_payload_hash or local_payload_hash),
             }
         )
     return items

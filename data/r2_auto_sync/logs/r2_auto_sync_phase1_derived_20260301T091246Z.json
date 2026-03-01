@@ -1,0 +1,86 @@
+{
+  "status": "ok",
+  "target": "phase1_derived",
+  "trigger": "run_phase1_seed10_artist_image_collect.py",
+  "started_at": "2026-03-01T09:10:45Z",
+  "finished_at": "2026-03-01T09:12:46Z",
+  "steps": [
+    {
+      "command": [
+        "C:\\Users\\syatk\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
+        "run_phase1_seed10_r2_sync.py",
+        "--scope",
+        "derived",
+        "--dry-run",
+        "--prune"
+      ],
+      "exit_code": 0,
+      "stdout_tail": [
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/liste/addis-fine-art__wosene-worke-kosrof__927f9086__img_04.jpg size=100860 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/liste/addis-fine-art__wosene-worke-kosrof__927f9086__img_05.jpg size=83834 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/liste/afriart-gallery__sungi-mlengeya__373d413e__img_01.jpg size=97537 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/liste/afriart-gallery__sungi-mlengeya__373d413e__img_02.jpg size=80601 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/liste/afriart-gallery__sungi-mlengeya__373d413e__img_03.jpg size=83226 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/liste/afriart-gallery__sungi-mlengeya__373d413e__img_04.jpg size=55501 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/liste/afriart-gallery__sungi-mlengeya__373d413e__img_05.jpg size=43975 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/liste/amanita__marco-scarpi__8bbb5266__img_01.jpg size=84020 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/liste/amanita__marco-scarpi__8bbb5266__img_02.jpg size=90356 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/liste/amanita__marco-scarpi__8bbb5266__img_03.jpg size=86296 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/liste/amanita__marco-scarpi__8bbb5266__img_04.jpg size=93798 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/liste/amanita__marco-scarpi__8bbb5266__img_05.jpg size=102376 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__yasmina-assbane-2__f660419e__img_01.jpg size=92503 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__yasmina-assbane-2__f660419e__img_02.jpg size=95097 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__yasmina-assbane-2__f660419e__img_03.jpg size=95119 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__yasmina-assbane-2__f660419e__img_04.jpg size=32242 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__yasmina-assbane-2__f660419e__img_05.jpg size=75794 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[DONE] status=DRY_RUN_OK uploaded=0 skipped=0 failed=0 pruned=0 prune_failed=0",
+        "[DONE] manifest_local=data/phase1_seed10/derived/phase1_seed10_artifact_manifest.json",
+        "[DONE] summary=data/phase1_seed10/logs/phase1_seed10_r2_sync_derived_20260301T091049Z.json"
+      ],
+      "stderr_tail": [],
+      "name": "dry_run_prune"
+    },
+    {
+      "command": [
+        "C:\\Users\\syatk\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
+        "run_phase1_seed10_r2_sync.py",
+        "--scope",
+        "derived",
+        "--require-dry-run-log",
+        "--max-prune",
+        "600"
+      ],
+      "exit_code": 0,
+      "stdout_tail": [
+        "[SKIP] [derived] phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__oana-cosug-2__a167522b__img_05.jpg reason=EXISTS_SAME_SIZE_AND_SHA256 size=100941",
+        "[SKIP] [derived] phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__orit-ishay-2__fd8d2a04__img_01.jpg reason=EXISTS_SAME_SIZE_AND_SHA256 size=101214",
+        "[SKIP] [derived] phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__orit-ishay-2__fd8d2a04__img_02.jpg reason=EXISTS_SAME_SIZE_AND_SHA256 size=89778",
+        "[SKIP] [derived] phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__orit-ishay-2__fd8d2a04__img_03.jpg reason=EXISTS_SAME_SIZE_AND_SHA256 size=101845",
+        "[SKIP] [derived] phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__orit-ishay-2__fd8d2a04__img_04.jpg reason=EXISTS_SAME_SIZE_AND_SHA256 size=96035",
+        "[SKIP] [derived] phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__orit-ishay-2__fd8d2a04__img_05.jpg reason=EXISTS_SAME_SIZE_AND_SHA256 size=99102",
+        "[SKIP] [derived] phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__sebastian-hosu-2__b75a1464__img_01.jpg reason=EXISTS_SAME_SIZE_AND_SHA256 size=99262",
+        "[SKIP] [derived] phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__sebastian-hosu-2__b75a1464__img_02.jpg reason=EXISTS_SAME_SIZE_AND_SHA256 size=98450",
+        "[SKIP] [derived] phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__sebastian-hosu-2__b75a1464__img_03.jpg reason=EXISTS_SAME_SIZE_AND_SHA256 size=100308",
+        "[SKIP] [derived] phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__sebastian-hosu-2__b75a1464__img_04.jpg reason=EXISTS_SAME_SIZE_AND_SHA256 size=102287",
+        "[SKIP] [derived] phase1_seed10/derived/images/artist_works_images/2025/liste/anca-potera-u-gallery__sebastian-hosu-2__b75a1464__img_05.jpg reason=EXISTS_SAME_SIZE_AND_SHA256 size=99305",
+        "[SKIP] [derived] phase1_seed10/derived/vector/artists_text_artifact_manifest_2025.json reason=EXISTS_SAME_SIZE_AND_SHA256 size=853",
+        "[SKIP] [derived] phase1_seed10/derived/vector/artists_text_index_2025.npy reason=EXISTS_SAME_SIZE_AND_SHA256 size=491648",
+        "[SKIP] [derived] phase1_seed10/derived/vector/artists_text_meta_2025.jsonl reason=EXISTS_SAME_SIZE_AND_SHA256 size=42949",
+        "[SKIP] [derived] phase1_seed10/derived/vector/artists_text_vectorize_failed_2025.jsonl reason=EXISTS_SAME_SIZE_AND_SHA256 size=0",
+        "[SKIP] [derived] phase1_seed10/derived/vector/artists_text_vectorize_summary_2025.json reason=EXISTS_SAME_SIZE_AND_SHA256 size=1224",
+        "[UPLOAD] [manifest] phase1_seed10/derived/phase1_seed10_artifact_manifest.json size=375801 sha256=438290688c7d...",
+        "[DONE] status=OK uploaded=6 skipped=775 failed=0 pruned=0 prune_failed=0",
+        "[DONE] manifest_local=data/phase1_seed10/derived/phase1_seed10_artifact_manifest.json",
+        "[DONE] summary=data/phase1_seed10/logs/phase1_seed10_r2_sync_derived_20260301T091246Z.json"
+      ],
+      "stderr_tail": [],
+      "name": "apply_guarded_without_prune"
+    }
+  ],
+  "dry_run_summary_path": "data/phase1_seed10/logs/phase1_seed10_r2_sync_derived_20260301T091049Z.json",
+  "apply_summary_path": "data/phase1_seed10/logs/phase1_seed10_r2_sync_derived_20260301T091246Z.json",
+  "delete_policy": "prune_deferred_first_seen",
+  "prune_candidates_count": 47,
+  "prune_stable_hits": 1,
+  "prune_ready": false
+}

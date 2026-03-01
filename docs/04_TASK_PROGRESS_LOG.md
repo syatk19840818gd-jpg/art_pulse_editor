@@ -4435,3 +4435,78 @@ _trash 運用方針:
 - ??:
   - Arcadia/Adams status = reopened???: candidates>=5 + ???????
   - 70%???????????????????
+
+## 155. TASK ADAMS-IMAGE-DEDUP-RETEST-1
+- preflight:
+  - `python run_phase1_network_preflight.py` x2 PASS
+  - `phase1_network_preflight_summary_20260301T081919Z.json`
+  - `phase1_network_preflight_summary_20260301T081919Z_01.json`
+- 実装（汎用のみ）:
+  - `run_phase1_seed10_artist_image_collect.py`
+  - `normalize_image_url_for_dedupe()` に Cargo系変換パスの正規化を追加
+    - `/w/<size>/...` と `/t/original/...` を同一元画像として扱う
+- 退避:
+  - `data/phase1_seed10/derived/images/artist_works_images/2025/frieze-london/adams-and-ollman__*.jpg`
+  - `_trash/task_adams_dedupe_fix_20260301_172123/` へ10件移動
+- 単独再実測（Adamsのみ）:
+  - Jonathan Berger: `saved_images=0/5`（`works_candidates_count:0`）
+  - Jose Bonell: `saved_images=5/5`（重複なし）
+  - Katherine Bradford: `saved_images=5/5`（重複なし）
+- 証跡:
+  - summary:
+    - `phase1_seed10_artist_image_collect_summary_task_adams_retest_jonathan_berger.json`
+    - `phase1_seed10_artist_image_collect_summary_task_adams_retest_jose_bonell.json`
+    - `phase1_seed10_artist_image_collect_summary_task_adams_retest_katherine_bradford.json`
+  - report:
+    - `phase1_seed10_artist_image_collect_summary_task_adams_retest_jonathan_berger_report.json`
+    - `phase1_seed10_artist_image_collect_summary_task_adams_retest_jose_bonell_report.json`
+    - `phase1_seed10_artist_image_collect_summary_task_adams_retest_katherine_bradford_report.json`
+  - guard:
+    - `python run_compare_phase1_guard.py --target-year 2025` -> exit 0
+  - `phase1_guard_summary_2025_20260301T082640Z.json` / `guard_passed=true`
+
+## 156. TASK ADAMS-AUTO3-SEED-CLEANUP-1
+- 背景:
+  - `Jonathan-Berger-1` は自動抽出ではなく、rawに残っていた手動seed（`Artist page seed for ...`）由来と判明。
+- 対応:
+  - `run_phase1_seed10_artist_image_collect.py`
+    - `load_artist_targets()` / `collect_seed_supply_by_gallery()` で手動seed marker行を汎用除外。
+  - raw cleanup:
+    - `data/phase1_seed10/raw/artists_frieze_london_2025.jsonl`
+    - backup: `artists_frieze_london_2025.jsonl.bak_20260301_173725`
+    - 手動seed 4行を除去。
+- Adams 自動3名（固定指定なし）:
+  - 抽出対象（先頭3）: Jose Bonell 2 / Katherine Bradford / Mariel Capanna 1
+  - Jose: 3/5（重複なし、未達）
+  - Katherine: 5/5（重複なし）
+  - Mariel: 5/5（重複なし）
+- 証跡:
+  - `phase1_seed10_artist_image_collect_summary_task_adams_auto3_jose.json`
+  - `phase1_seed10_artist_image_collect_summary_task_adams_auto3_katherine.json`
+  - `phase1_seed10_artist_image_collect_summary_task_adams_auto3_mariel.json`
+  - guard: `phase1_guard_summary_2025_20260301T084032Z.json` (`guard_passed=true`)
+
+## 157. TASK REPRO-ALL10x1-THEN-MAX80-1
+- preflight:
+  - `python run_phase1_network_preflight.py` x2 PASS
+  - `phase1_network_preflight_summary_20260301T090923Z_01.json`
+  - `phase1_network_preflight_summary_20260301T090923Z.json`
+- Step1（回帰テスト最小化）:
+  - `data/gallery_lists/reextract_targets_repro_all10x1.csv` を自動生成（10ギャラリー×各1名）
+  - 各対象の既存5枚を `_trash/task_repro_all10x1_20260301_181032/` へ退避
+  - 各1名を単独再抽出（`--force-retry-failed --clear-failed-ledger target`）
+  - rollup: `phase1_seed10_artist_image_collect_summary_task_repro_all10x1_rollup_20260301_181032.json`
+  - 判定: 10/10 で `saved_images=5` / `target_met=true` / `unique_stems=5/5`
+- Step2（MAX80全体）:
+  - `phase1_seed10_artist_image_collect_summary_task_repro_all10x1_then_max80_all.json`
+  - 結果: processed=225 / ge_target=184 / success_rate=81.78% / threshold_passed=true
+  - Arcadia Missa: ge_target=18/18 (100.0%)
+  - Adams and Ollman: ge_target=18/20 (90.0%)
+  - A+ Works of Art: ge_target=7/28 (25.0%)（横ばい）
+- report/guard:
+  - report: `phase1_seed10_artist_image_collect_summary_task_repro_all10x1_then_max80_all_report.json`
+  - guard: `phase1_guard_summary_2025_20260301T095934Z.json` (`guard_passed=true`)
+
+## 158. TASK ARTISTS-IMAGE-CLOSE-1
+- 運用確定: `data/gallery_lists/skipped_galleries_registry.csv` を 0件（空）に設定。
+- 判定: Artists画像RAG抽出（10ギャラリー、MAX80、現行汎用コード）は本テストで完成扱い。

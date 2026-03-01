@@ -3454,6 +3454,10 @@ Notes:
   - year=None evidence_text=6edd6271a-4000x2667.jpg? img
   - year=2025 evidence_text=d9f75bfe6-4000x2667.jpg? Anderson Borba Analog Ghost , 2025 Wood, paper, stone, plaster, pigment, oil pastel, sawdust...
 
+## TASK ARTISTS-IMAGE-CLOSE-1 (2026-03-01)
+- `data/gallery_lists/skipped_galleries_registry.csv` は 0件（空）に確定。
+- Artists画像RAG抽出（10ギャラリー、MAX80、汎用コード）は本テスト範囲で完成。
+
 ---
 
 ## TASK T-107-ARTISTS-TEXT（2026-02-28）
@@ -4014,3 +4018,405 @@ Notes:
   - `data/gallery_lists/reextract_targets_artists_text_task_t109.csv`
     - reason を `closed_duplicate_text_hash_dominant` へ更新
   - guard: `phase1_guard_summary_2025_20260301T073600Z.json`（guard_passed=true）
+
+---
+## RUN 2026-03-01T08:26:34Z artists画像収集
+
+参照元:
+- `C:\Users\tarutani tomoaki\Pictures\Dev\my_projects\art_pulse_editor\data\phase1_seed10\logs\phase1_seed10_artist_image_collect_summary_task_adams_retest_jose_bonell.json`
+- `C:\Users\tarutani tomoaki\Pictures\Dev\my_projects\art_pulse_editor\data\phase1_seed10\logs\phase1_seed10_artist_image_collect_summary_task_adams_retest_jose_bonell_report.json`
+
+### サマリー
+- 対象人数: 1
+- 5枚達成人数: 1
+- 達成率(>= 5枚): 100.0%
+- 閾値通過(70%): True
+- seed供給不足(gallery): 10
+
+### fair/gallery内訳
+| fair | gallery | 対象人数 | 成功人数(>=1枚) | 取得件数(画像枚数) | 成功率(>=5枚) |
+|---|---|---:|---:|---:|---:|
+| frieze_london | Adams and Ollman | 1 | 1 | 5 | 100.0% |
+| frieze_london | The Approach | 0 | 0 | 0 | 0.0% |
+| frieze_london | Arcadia Missa | 0 | 0 | 0 | 0.0% |
+| frieze_london | Athr | 0 | 0 | 0 | 0.0% |
+| frieze_london | Gallery Baton | 0 | 0 | 0 | 0.0% |
+| liste | A+ Works of Art | 0 | 0 | 0 | 0.0% |
+| liste | Addis Fine Art | 0 | 0 | 0 | 0.0% |
+| liste | Afriart Gallery | 0 | 0 | 0 | 0.0% |
+| liste | Amanita | 0 | 0 | 0 | 0.0% |
+| liste | Anca Poteraşu Gallery | 0 | 0 | 0 | 0.0% |
+
+### 失敗理由上位
+- なし
+
+### 失敗ドメイン上位
+- なし
+
+### seed供給不足（cap未満）
+- frieze_london/Adams and Ollman: detail_seed=21 cap=80
+- frieze_london/Arcadia Missa: detail_seed=21 cap=80
+- frieze_london/Athr: detail_seed=17 cap=80
+- frieze_london/Gallery Baton: detail_seed=54 cap=80
+- frieze_london/The Approach: detail_seed=59 cap=80
+- liste/A+ Works of Art: detail_seed=28 cap=80
+- liste/Addis Fine Art: detail_seed=25 cap=80
+- liste/Afriart Gallery: detail_seed=25 cap=80
+- liste/Amanita: detail_seed=24 cap=80
+- liste/Anca Poteraşu Gallery: detail_seed=16 cap=80
+
+### 年抽出（作品画像）
+- frieze_london/Adams and Ollman adams-and-ollman__jose-bonell-2__c0e5c961: works_top5=[2024, 2024, 2024, 2024, 2024] selected_top5=[2024, 2024, 2024, 2024, 2024] desc_ok=True
+  - year=2024 evidence_text=Bon2024044_1000px.jpeg Jose Bonell Finding Oneself , 2024 oil on linen 28 3/4h x 23 5/8w in 73.03h x 60.01w cm JBon20...
+  - year=2024 evidence_text=ransition-duration: initial; Jose Bonell Mother and Child , 2024 oil on linen 28 3/4h x 23 5/8w in 73.03h x 60.01w cm...
+  - year=2024 evidence_text=ration: initial; Jose Bonell The Lecturers , 2024 oil on linen 31 1/2h x 39 3/8w in 80.01h x 100.01w cm JBon2024050 J...
+  - year=2024 evidence_text=70f45fbe/JBon2024042_1000px.jpeg Jose Bonell The Postcard , 2024 oil on linen 16 1/8h x 13w in 40.96h x 33.02w cm JBo...
+  - year=2024 evidence_text=x; transition-duration: initial; Jose Bonell Peekaboo , 2024 oil on linen 16 1/8h x 13w in 40.96h x 33.02w cm JBon202...
+
+---
+## RUN 2026-03-01T08:26:34Z artists画像収集
+
+参照元:
+- `C:\Users\tarutani tomoaki\Pictures\Dev\my_projects\art_pulse_editor\data\phase1_seed10\logs\phase1_seed10_artist_image_collect_summary_task_adams_retest_katherine_bradford.json`
+- `C:\Users\tarutani tomoaki\Pictures\Dev\my_projects\art_pulse_editor\data\phase1_seed10\logs\phase1_seed10_artist_image_collect_summary_task_adams_retest_katherine_bradford_report.json`
+
+### サマリー
+- 対象人数: 1
+- 5枚達成人数: 1
+- 達成率(>= 5枚): 100.0%
+- 閾値通過(70%): True
+- seed供給不足(gallery): 10
+
+### fair/gallery内訳
+| fair | gallery | 対象人数 | 成功人数(>=1枚) | 取得件数(画像枚数) | 成功率(>=5枚) |
+|---|---|---:|---:|---:|---:|
+| frieze_london | Adams and Ollman | 1 | 1 | 5 | 100.0% |
+| frieze_london | The Approach | 0 | 0 | 0 | 0.0% |
+| frieze_london | Arcadia Missa | 0 | 0 | 0 | 0.0% |
+| frieze_london | Athr | 0 | 0 | 0 | 0.0% |
+| frieze_london | Gallery Baton | 0 | 0 | 0 | 0.0% |
+| liste | A+ Works of Art | 0 | 0 | 0 | 0.0% |
+| liste | Addis Fine Art | 0 | 0 | 0 | 0.0% |
+| liste | Afriart Gallery | 0 | 0 | 0 | 0.0% |
+| liste | Amanita | 0 | 0 | 0 | 0.0% |
+| liste | Anca Poteraşu Gallery | 0 | 0 | 0 | 0.0% |
+
+### 失敗理由上位
+- なし
+
+### 失敗ドメイン上位
+- なし
+
+### seed供給不足（cap未満）
+- frieze_london/Adams and Ollman: detail_seed=21 cap=80
+- frieze_london/Arcadia Missa: detail_seed=21 cap=80
+- frieze_london/Athr: detail_seed=17 cap=80
+- frieze_london/Gallery Baton: detail_seed=54 cap=80
+- frieze_london/The Approach: detail_seed=59 cap=80
+- liste/A+ Works of Art: detail_seed=28 cap=80
+- liste/Addis Fine Art: detail_seed=25 cap=80
+- liste/Afriart Gallery: detail_seed=25 cap=80
+- liste/Amanita: detail_seed=24 cap=80
+- liste/Anca Poteraşu Gallery: detail_seed=16 cap=80
+
+### 年抽出（作品画像）
+- frieze_london/Adams and Ollman adams-and-ollman__katherine-bradford__ebb1d5f4: works_top5=[2021, 2021, 2017, 2017, 2016] selected_top5=[2021, 2021, 2017, 2017, 2016] desc_ok=True
+  - year=2021 evidence_text=b436b9c446a52fef/KBrad_160.jpg Katherine Bradford Family Embrace , 2021 acrylic on canvas 40h x 30w in 101.60h x 76.2...
+  - year=2021 evidence_text=56px; transition-duration: initial; Katherine Bradford Dark Swim , 2021 acrylic on canvas 20h x 16w in 50.80h x 40.64...
+  - year=2017 evidence_text=Pool Party , 2017 acrylic on canvas 48h x 60w in 121.92h x 152.40w cm KBrad 92 Katherine Bradford Splash Hand , 2017...
+  - year=2017 evidence_text=-duration: initial; Katherine Bradford Splash Hand , 2017 acrylic on canvas 40h x 30w in 101.60h x 76.20w cm KBrad 97...
+  - year=2016 evidence_text=acrylic on canvas 40h x 30w in 101.60h x 76.20w cm KBrad 93 Katherine Bradford Camping Trip , 2016 acrylic on canvas...
+
+---
+## RUN 2026-03-01T08:26:34Z artists画像収集
+
+参照元:
+- `C:\Users\tarutani tomoaki\Pictures\Dev\my_projects\art_pulse_editor\data\phase1_seed10\logs\phase1_seed10_artist_image_collect_summary_task_adams_retest_jonathan_berger.json`
+- `C:\Users\tarutani tomoaki\Pictures\Dev\my_projects\art_pulse_editor\data\phase1_seed10\logs\phase1_seed10_artist_image_collect_summary_task_adams_retest_jonathan_berger_report.json`
+
+### サマリー
+- 対象人数: 1
+- 5枚達成人数: 0
+- 達成率(>= 5枚): 0.0%
+- 閾値通過(70%): False
+- seed供給不足(gallery): 10
+
+### fair/gallery内訳
+| fair | gallery | 対象人数 | 成功人数(>=1枚) | 取得件数(画像枚数) | 成功率(>=5枚) |
+|---|---|---:|---:|---:|---:|
+| frieze_london | Adams and Ollman | 1 | 0 | 0 | 0.0% |
+| frieze_london | The Approach | 0 | 0 | 0 | 0.0% |
+| frieze_london | Arcadia Missa | 0 | 0 | 0 | 0.0% |
+| frieze_london | Athr | 0 | 0 | 0 | 0.0% |
+| frieze_london | Gallery Baton | 0 | 0 | 0 | 0.0% |
+| liste | A+ Works of Art | 0 | 0 | 0 | 0.0% |
+| liste | Addis Fine Art | 0 | 0 | 0 | 0.0% |
+| liste | Afriart Gallery | 0 | 0 | 0 | 0.0% |
+| liste | Amanita | 0 | 0 | 0 | 0.0% |
+| liste | Anca Poteraşu Gallery | 0 | 0 | 0 | 0.0% |
+
+### 失敗理由上位
+- no_image_candidates_found_on_artist_detail: 1件
+
+### 失敗ドメイン上位
+- adamsandollman.com: 1件
+
+### seed供給不足（cap未満）
+- frieze_london/Adams and Ollman: detail_seed=21 cap=80
+- frieze_london/Arcadia Missa: detail_seed=21 cap=80
+- frieze_london/Athr: detail_seed=17 cap=80
+- frieze_london/Gallery Baton: detail_seed=54 cap=80
+- frieze_london/The Approach: detail_seed=59 cap=80
+- liste/A+ Works of Art: detail_seed=28 cap=80
+- liste/Addis Fine Art: detail_seed=25 cap=80
+- liste/Afriart Gallery: detail_seed=25 cap=80
+- liste/Amanita: detail_seed=24 cap=80
+- liste/Anca Poteraşu Gallery: detail_seed=16 cap=80
+
+### 年抽出（作品画像）
+- frieze_london/Adams and Ollman adams-and-ollman__jonathan-berger-1__dc6f5a49: works_top5=[] selected_top5=[] desc_ok=True
+
+---
+## RUN 2026-03-01T08:40:12Z artists画像収集
+
+参照元:
+- `C:\Users\tarutani tomoaki\Pictures\Dev\my_projects\art_pulse_editor\data\phase1_seed10\logs\phase1_seed10_artist_image_collect_summary_task_adams_auto3_katherine.json`
+- `C:\Users\tarutani tomoaki\Pictures\Dev\my_projects\art_pulse_editor\data\phase1_seed10\logs\phase1_seed10_artist_image_collect_summary_task_adams_auto3_katherine_report.json`
+
+### サマリー
+- 対象人数: 1
+- 5枚達成人数: 1
+- 達成率(>= 5枚): 100.0%
+- 閾値通過(70%): True
+- seed供給不足(gallery): 10
+
+### fair/gallery内訳
+| fair | gallery | 対象人数 | 成功人数(>=1枚) | 取得件数(画像枚数) | 成功率(>=5枚) |
+|---|---|---:|---:|---:|---:|
+| frieze_london | Adams and Ollman | 1 | 1 | 5 | 100.0% |
+| frieze_london | The Approach | 0 | 0 | 0 | 0.0% |
+| frieze_london | Arcadia Missa | 0 | 0 | 0 | 0.0% |
+| frieze_london | Athr | 0 | 0 | 0 | 0.0% |
+| frieze_london | Gallery Baton | 0 | 0 | 0 | 0.0% |
+| liste | A+ Works of Art | 0 | 0 | 0 | 0.0% |
+| liste | Addis Fine Art | 0 | 0 | 0 | 0.0% |
+| liste | Afriart Gallery | 0 | 0 | 0 | 0.0% |
+| liste | Amanita | 0 | 0 | 0 | 0.0% |
+| liste | Anca Poteraşu Gallery | 0 | 0 | 0 | 0.0% |
+
+### 失敗理由上位
+- なし
+
+### 失敗ドメイン上位
+- なし
+
+### seed供給不足（cap未満）
+- frieze_london/Adams and Ollman: detail_seed=20 cap=80
+- frieze_london/Arcadia Missa: detail_seed=18 cap=80
+- frieze_london/Athr: detail_seed=17 cap=80
+- frieze_london/Gallery Baton: detail_seed=54 cap=80
+- frieze_london/The Approach: detail_seed=59 cap=80
+- liste/A+ Works of Art: detail_seed=28 cap=80
+- liste/Addis Fine Art: detail_seed=25 cap=80
+- liste/Afriart Gallery: detail_seed=25 cap=80
+- liste/Amanita: detail_seed=24 cap=80
+- liste/Anca Poteraşu Gallery: detail_seed=16 cap=80
+
+### 年抽出（作品画像）
+- frieze_london/Adams and Ollman adams-and-ollman__katherine-bradford__ebb1d5f4: works_top5=[] selected_top5=[2021, 2021, 2017, 2017, 2016] desc_ok=True
+  - year=2021 evidence_text=b436b9c446a52fef/KBrad_160.jpg Katherine Bradford Family Embrace , 2021 acrylic on canvas 40h x 30w in 101.60h x 76.2...
+  - year=2021 evidence_text=56px; transition-duration: initial; Katherine Bradford Dark Swim , 2021 acrylic on canvas 20h x 16w in 50.80h x 40.64...
+  - year=2017 evidence_text=Pool Party , 2017 acrylic on canvas 48h x 60w in 121.92h x 152.40w cm KBrad 92 Katherine Bradford Splash Hand , 2017...
+  - year=2017 evidence_text=-duration: initial; Katherine Bradford Splash Hand , 2017 acrylic on canvas 40h x 30w in 101.60h x 76.20w cm KBrad 97...
+  - year=2016 evidence_text=acrylic on canvas 40h x 30w in 101.60h x 76.20w cm KBrad 93 Katherine Bradford Camping Trip , 2016 acrylic on canvas...
+
+---
+## RUN 2026-03-01T08:40:12Z artists画像収集
+
+参照元:
+- `C:\Users\tarutani tomoaki\Pictures\Dev\my_projects\art_pulse_editor\data\phase1_seed10\logs\phase1_seed10_artist_image_collect_summary_task_adams_auto3_jose.json`
+- `C:\Users\tarutani tomoaki\Pictures\Dev\my_projects\art_pulse_editor\data\phase1_seed10\logs\phase1_seed10_artist_image_collect_summary_task_adams_auto3_jose_report.json`
+
+### サマリー
+- 対象人数: 1
+- 5枚達成人数: 0
+- 達成率(>= 5枚): 0.0%
+- 閾値通過(70%): False
+- seed供給不足(gallery): 10
+
+### fair/gallery内訳
+| fair | gallery | 対象人数 | 成功人数(>=1枚) | 取得件数(画像枚数) | 成功率(>=5枚) |
+|---|---|---:|---:|---:|---:|
+| frieze_london | Adams and Ollman | 1 | 1 | 3 | 0.0% |
+| frieze_london | The Approach | 0 | 0 | 0 | 0.0% |
+| frieze_london | Arcadia Missa | 0 | 0 | 0 | 0.0% |
+| frieze_london | Athr | 0 | 0 | 0 | 0.0% |
+| frieze_london | Gallery Baton | 0 | 0 | 0 | 0.0% |
+| liste | A+ Works of Art | 0 | 0 | 0 | 0.0% |
+| liste | Addis Fine Art | 0 | 0 | 0 | 0.0% |
+| liste | Afriart Gallery | 0 | 0 | 0 | 0.0% |
+| liste | Amanita | 0 | 0 | 0 | 0.0% |
+| liste | Anca Poteraşu Gallery | 0 | 0 | 0 | 0.0% |
+
+### 失敗理由上位
+- target_not_met: 1件
+
+### 失敗ドメイン上位
+- adamsandollman.com: 1件
+
+### seed供給不足（cap未満）
+- frieze_london/Adams and Ollman: detail_seed=20 cap=80
+- frieze_london/Arcadia Missa: detail_seed=18 cap=80
+- frieze_london/Athr: detail_seed=17 cap=80
+- frieze_london/Gallery Baton: detail_seed=54 cap=80
+- frieze_london/The Approach: detail_seed=59 cap=80
+- liste/A+ Works of Art: detail_seed=28 cap=80
+- liste/Addis Fine Art: detail_seed=25 cap=80
+- liste/Afriart Gallery: detail_seed=25 cap=80
+- liste/Amanita: detail_seed=24 cap=80
+- liste/Anca Poteraşu Gallery: detail_seed=16 cap=80
+
+### 年抽出（作品画像）
+- frieze_london/Adams and Ollman adams-and-ollman__jose-bonell-2__c0e5c961: works_top5=[] selected_top5=[2024, 2024, 2024] desc_ok=True
+  - year=2024 evidence_text=Bon2024044_1000px.jpeg Jose Bonell Finding Oneself , 2024 oil on linen 28 3/4h x 23 5/8w in 73.03h x 60.01w cm JBon20...
+  - year=2024 evidence_text=ransition-duration: initial; Jose Bonell Mother and Child , 2024 oil on linen 28 3/4h x 23 5/8w in 73.03h x 60.01w cm...
+  - year=2024 evidence_text=ration: initial; Jose Bonell The Lecturers , 2024 oil on linen 31 1/2h x 39 3/8w in 80.01h x 100.01w cm JBon2024050 J...
+
+---
+## RUN 2026-03-01T08:40:12Z artists画像収集
+
+参照元:
+- `C:\Users\tarutani tomoaki\Pictures\Dev\my_projects\art_pulse_editor\data\phase1_seed10\logs\phase1_seed10_artist_image_collect_summary_task_adams_auto3_mariel.json`
+- `C:\Users\tarutani tomoaki\Pictures\Dev\my_projects\art_pulse_editor\data\phase1_seed10\logs\phase1_seed10_artist_image_collect_summary_task_adams_auto3_mariel_report.json`
+
+### サマリー
+- 対象人数: 1
+- 5枚達成人数: 1
+- 達成率(>= 5枚): 100.0%
+- 閾値通過(70%): True
+- seed供給不足(gallery): 10
+
+### fair/gallery内訳
+| fair | gallery | 対象人数 | 成功人数(>=1枚) | 取得件数(画像枚数) | 成功率(>=5枚) |
+|---|---|---:|---:|---:|---:|
+| frieze_london | Adams and Ollman | 1 | 1 | 5 | 100.0% |
+| frieze_london | The Approach | 0 | 0 | 0 | 0.0% |
+| frieze_london | Arcadia Missa | 0 | 0 | 0 | 0.0% |
+| frieze_london | Athr | 0 | 0 | 0 | 0.0% |
+| frieze_london | Gallery Baton | 0 | 0 | 0 | 0.0% |
+| liste | A+ Works of Art | 0 | 0 | 0 | 0.0% |
+| liste | Addis Fine Art | 0 | 0 | 0 | 0.0% |
+| liste | Afriart Gallery | 0 | 0 | 0 | 0.0% |
+| liste | Amanita | 0 | 0 | 0 | 0.0% |
+| liste | Anca Poteraşu Gallery | 0 | 0 | 0 | 0.0% |
+
+### 失敗理由上位
+- なし
+
+### 失敗ドメイン上位
+- なし
+
+### seed供給不足（cap未満）
+- frieze_london/Adams and Ollman: detail_seed=20 cap=80
+- frieze_london/Arcadia Missa: detail_seed=18 cap=80
+- frieze_london/Athr: detail_seed=17 cap=80
+- frieze_london/Gallery Baton: detail_seed=54 cap=80
+- frieze_london/The Approach: detail_seed=59 cap=80
+- liste/A+ Works of Art: detail_seed=28 cap=80
+- liste/Addis Fine Art: detail_seed=25 cap=80
+- liste/Afriart Gallery: detail_seed=25 cap=80
+- liste/Amanita: detail_seed=24 cap=80
+- liste/Anca Poteraşu Gallery: detail_seed=16 cap=80
+
+### 年抽出（作品画像）
+- frieze_london/Adams and Ollman adams-and-ollman__mariel-capanna-1__d37c961c: works_top5=[2024, 2024, 2024, 2023, 2023] selected_top5=[2024, 2024, 2024, 2023, 2023] desc_ok=True
+  - year=2024 evidence_text=b31d/MCapanna2024007_framed_1000px.jpeg Mariel Capanna Candles, Flowers, Planet, Star , 2024 oil and wax on panel 40h...
+  - year=2024 evidence_text=Mariel Capanna Candle, Ladder, Rabbit, Swing , 2024 oil and wax on panel 40h x 30w in 101.60h x 76.20w cm MCapanna202...
+  - year=2024 evidence_text=846e5514121164fb0c805617b47ae97fd0c695c4392f/MCapanna2024008_framed_1000px.jpeg Mariel Capanna Tail Lights, Flowers,...
+  - year=2023 evidence_text=: 441.87px; height: 537.756px; transition-duration: initial; Mariel Capanna Oranges, Phone Cords, Candles, Lamp , 202...
+  - year=2023 evidence_text=62.608px; height: 571.338px; transition-duration: initial; Mariel Capanna Feathers, Streamers, Flags, Flags , 2023 oi...
+
+---
+## RUN 2026-03-01T09:59:34Z artists画像収集
+
+参照元:
+- `C:\Users\tarutani tomoaki\Pictures\Dev\my_projects\art_pulse_editor\data\phase1_seed10\logs\phase1_seed10_artist_image_collect_summary_task_repro_all10x1_then_max80_all.json`
+- `C:\Users\tarutani tomoaki\Pictures\Dev\my_projects\art_pulse_editor\data\phase1_seed10\logs\phase1_seed10_artist_image_collect_summary_task_repro_all10x1_then_max80_all_report.json`
+
+### サマリー
+- 対象人数: 227
+- 5枚達成人数: 184
+- 達成率(>= 5枚): 81.78%
+- 閾値通過(70%): True
+- seed供給不足(gallery): 10
+
+### fair/gallery内訳
+| fair | gallery | 対象人数 | 成功人数(>=1枚) | 取得件数(画像枚数) | 成功率(>=5枚) |
+|---|---|---:|---:|---:|---:|
+| frieze_london | Adams and Ollman | 20 | 19 | 92 | 90.0% |
+| frieze_london | The Approach | 31 | 31 | 151 | 96.77% |
+| frieze_london | Arcadia Missa | 18 | 18 | 90 | 100.0% |
+| frieze_london | Athr | 15 | 14 | 70 | 93.33% |
+| frieze_london | Gallery Baton | 43 | 41 | 201 | 93.02% |
+| liste | A+ Works of Art | 28 | 19 | 55 | 25.0% |
+| liste | Addis Fine Art | 25 | 22 | 99 | 68.0% |
+| liste | Afriart Gallery | 15 | 15 | 74 | 93.33% |
+| liste | Amanita | 14 | 14 | 65 | 71.43% |
+| liste | Anca Poteraşu Gallery | 16 | 16 | 80 | 100.0% |
+
+### 失敗理由上位
+- insufficient_image_candidates_after_download: 34件
+- no_image_candidates_found_on_artist_detail: 5件
+- no_new_images_ge_max_year_seen: 1件
+- seed_invalid_redirected_to_listing: 1件
+
+### 失敗ドメイン上位
+- aplusart.asia: 21件
+- addisfineart.com: 8件
+- spazioamanita.com: 4件
+- gallerybaton.com: 3件
+- adamsandollman.com: 2件
+
+### seed供給不足（cap未満）
+- frieze_london/Adams and Ollman: detail_seed=20 cap=80
+- frieze_london/Arcadia Missa: detail_seed=18 cap=80
+- frieze_london/Athr: detail_seed=17 cap=80
+- frieze_london/Gallery Baton: detail_seed=54 cap=80
+- frieze_london/The Approach: detail_seed=59 cap=80
+- liste/A+ Works of Art: detail_seed=28 cap=80
+- liste/Addis Fine Art: detail_seed=25 cap=80
+- liste/Afriart Gallery: detail_seed=25 cap=80
+- liste/Amanita: detail_seed=24 cap=80
+- liste/Anca Poteraşu Gallery: detail_seed=16 cap=80
+
+### 年抽出（作品画像）
+- frieze_london/The Approach the-approach__phillip-allen__261b72a7: works_top5=[] selected_top5=[None, None, None, None, 2025] desc_ok=False
+  - year=None evidence_text=ooks-and-editions Books & Editions img
+  - year=None evidence_text=img
+  - year=None evidence_text=929311b38-4000x2666.jpg? img
+  - year=None evidence_text=062433779-4000x2666.jpg? img
+  - year=2025 evidence_text=3692265ed56572d84bfef-2666x1500.jpg? data-v-2ece09e4 Phillip Allen dry chord, wet edge (solar guest version) , 2025 O...
+- frieze_london/The Approach the-approach__tom-allen__72951a84: works_top5=[] selected_top5=[None, None, None, None, None] desc_ok=True
+  - year=None evidence_text=/artists/tom-allen/press Press img
+  - year=None evidence_text=img
+  - year=None evidence_text=c68693ba7-3000x1688.jpg? img
+  - year=None evidence_text=07edd5b7c-3000x1687.jpg? img
+  - year=None evidence_text=b73711d4a-3000x1687.jpg? img
+- frieze_london/The Approach the-approach__helene-appel__3a8b864d: works_top5=[] selected_top5=[None, 2023, 2021, 2000, 1928] desc_ok=False
+  - year=None evidence_text=ooks-and-editions Books & Editions img
+  - year=2023 evidence_text=e86370ac4-2023x2910.jpg? img
+  - year=2021 evidence_text=4492a6c36-4444x2500.jpg? Gehweg (pavement) , 2021 Pencil on Cotton 372 x 124 cm 146 15/32 x 48 13/16 i
+  - year=2000 evidence_text=5fd545dfa-2000x1125.jpg? img
+  - year=1928 evidence_text=ff5be5e28-3942x2218.jpg? img
+- frieze_london/The Approach the-approach__sara-barker__4b0f99e7: works_top5=[] selected_top5=[None, None, None, None, 2020] desc_ok=False
+  - year=None evidence_text=ooks-and-editions Books & Editions img
+  - year=None evidence_text=img
+  - year=None evidence_text=23064236e-2666x1500.jpg? img
+  - year=None evidence_text=b3e749add-2666x1500.jpg? img
+  - year=2020 evidence_text=ad05abbbc-4016x6016.jpg? Gap , 2020 Plywood, gouache, oil, stainless steel, tin foil 45 x 55 x 6 cm 17
+- frieze_london/The Approach the-approach__anderson-borba__ae13de88: works_top5=[] selected_top5=[None, None, None, None, 2025] desc_ok=False
+  - year=None evidence_text=sts/anderson-borba/press Press img
+  - year=None evidence_text=img
+  - year=None evidence_text=dc6ea87c3-3600x2400.jpg? img
+  - year=None evidence_text=6edd6271a-4000x2667.jpg? img
+  - year=2025 evidence_text=d9f75bfe6-4000x2667.jpg? Anderson Borba Analog Ghost , 2025 Wood, paper, stone, plaster, pigment, oil pastel, sawdust...

@@ -7291,3 +7291,13 @@ TASK A-3A-CLOSE-1 実施結果（2026-02-27 / Adams and Ollman）
 - 2026-02-28：MAX_ARTISTS_PER_GALLERY=80（01正本値）で10ギャラリー対象のartists画像RAG抽出を実行。processed=180 / ge_target=145 / success_rate=80.56% / threshold_passed=true。
 - 2026-02-28：skip運用が反映（Adams and Ollman / Arcadia Missa は自動スキップ）し、他8ギャラリーで抽出実行。
 - 2026-02-28：次の主タスクは A+ Works of Art の未達整理（closed対象を除いた残件の方針確定）。
+- 2026-03-01：Adams画像の重複再発（01=02, 03=04）に対して、画像URL正規化を汎用修正（Cargo系 `/t/original` と `/w/<size>` の同一元画像を同一視）。
+- 2026-03-01：Adams単独再テスト（Jonathan/Jose/Katherine）。Jose・Katherine は5/5で重複解消を確認。
+- 2026-03-01：Jonathan Berger は `works_candidates_count:0` 継続で 0/5。現状は供給側候補不足として扱い、追加改修は保留。
+- 2026-03-01：Jonathanが手動seed（`Artist page seed for ...`）由来だったため、image collect のtarget読み込みで手動seedを汎用除外するガードを追加。
+- 2026-03-01：`artists_frieze_london_2025.jsonl` から手動seed 4件をバックアップ付きで除去。Adamsは自動抽出3名（Jose/Katherine/Mariel）で再実測へ切替。
+- 2026-03-01：回帰テスト（全10ギャラリー×各1名退避→単独再抽出）を実施し、10/10で `saved_images=5`・重複再発なしを確認。
+- 2026-03-01：上記通過後に `MAX_ARTISTS_PER_GALLERY=80` 全体再実行。processed=225 / ge_target=184 / success_rate=81.78% / threshold_passed=true。
+- 2026-03-01：Arcadia Missa=18/18 ge_target(100.0%)、Adams and Ollman=18/20 ge_target(90.0%) で改善確認。A+ Works of Art は ge_target=7/28(25.0%) で横ばい。
+- 2026-03-01：運用更新。`data/gallery_lists/skipped_galleries_registry.csv` は 0件（空）に確定。
+- 2026-03-01：Artists画像RAG抽出（10ギャラリー、MAX80、現行汎用コード）は本テスト範囲で完成扱いとする。
