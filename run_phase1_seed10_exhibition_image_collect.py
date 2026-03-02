@@ -904,23 +904,30 @@ def main() -> int:
                 year_bucket_counter[normalize_year_bucket(page.get("year_bucket"))] += 1
 
             existing_hit = False
+            existing_hit_detail_url = ""
             for page in detail_pages:
                 detail_url_norm = artist_img.normalize_url_for_link_compare(str(page.get("url") or ""))
                 if existing_source_counter.get(detail_url_norm, 0) >= target_images:
                     existing_hit = True
-                    chosen_detail_url = detail_url_norm
-                    break
+                    if not existing_hit_detail_url:
+                        existing_hit_detail_url = detail_url_norm
+                    continue
+                chosen_detail_url = detail_url_norm
+                break
 
             image_index = 1
-            if not existing_hit:
-                for page in detail_pages:
-                    if image_index > target_images:
-                        break
-                    detail_page_url = str(page.get("url") or "")
-                    detail_html = str(page.get("html") or "")
-                    raw_candidates = artist_img.extract_image_candidates(detail_page_url, detail_html)
-                    sorted_candidates = sort_exhibition_candidates(raw_candidates)
-                    for candidate in sorted_candidates:
+            # always attempt candidate loop; skip existing detail during iteration
+            for page in detail_pages:
+                if image_index > target_images:
+                    break
+                detail_page_url = str(page.get("url") or "")
+                detail_url_norm = artist_img.normalize_url_for_link_compare(detail_page_url)
+                if existing_hit and detail_url_norm == existing_hit_detail_url:
+                    continue
+                detail_html = str(page.get("html") or "")
+                raw_candidates = artist_img.extract_image_candidates(detail_page_url, detail_html)
+                sorted_candidates = sort_exhibition_candidates(raw_candidates)
+                for candidate in sorted_candidates:
                         if image_index > target_images:
                             break
                         candidate_url = str(candidate.get("url") or "").strip()

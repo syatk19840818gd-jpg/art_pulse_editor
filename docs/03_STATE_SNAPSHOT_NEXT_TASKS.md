@@ -1,4 +1,4 @@
-03_STATE_SNAPSHOT＋NEXT_TASKS（統合）
+﻿03_STATE_SNAPSHOT＋NEXT_TASKS（統合）
 PROJECT_SLUG: ART_PULSE_EDITOR
 
 DOC_PATHS（固定：Codexはここを参照）
@@ -13,7 +13,7 @@ STREAMLIT_ENTRYPOINT（固定）
 - Local run: streamlit run app.py
 
 SOURCE_SSOT: 01_PROJECT_SPEC_CURRENT_FULL.docx
-LAST_UPDATED: 2026-03-02 20:09 JST
+LAST_UPDATED: 2026-03-02 23:59 JST
 
 
 ========================
@@ -25,17 +25,18 @@ LAST_UPDATED: 2026-03-02 20:09 JST
 - CODEX_SNIPPETS（A0/A/B/C）の骨格（※文言の微調整はOKだが、意味を変えない）
 
 ■更新対象（Codexが更新してよい／更新すべき）
-- LAST_UPDATED：03を更新したら必ず更新する（日時はJST）
+- LAST_UPDATED：03を更新したときだけ更新する（日時はJST）
 - STATE_SNAPSHOT（現在地）：
-  - 「いまの最優先フェーズ」と「直近の到達目標」を、状況に合わせて必ず更新する
-  - 大きな節目（Phase移行、カテゴリ移行、seed10達成など）が起きたら必ず書き換える
+  - 小Taskごとに毎回更新は不要
+  - 「いまの最優先フェーズが変わった時」「直近の到達目標が変わった時」「実行フェーズが一区切りついた時」「handoff前」に更新する
 - NEXT_TASKS：
-  - 完了したら [x] にする
-  - 新しい作業が生まれたら追記し、優先順位に並べ替える
+  - 小Taskの完了だけなら、都度更新は必須ではない
+  - 数Taskぶんの完了をまとめて [x] 化してよい
+  - 新しい作業が確定したら、節目の同期時に追記し、優先順位に並べ替える
 - CODEX_TASK_PROMPTS：
-  - NEXT_TASKS に新しい番号（8,9…）を追加したら、同じ番号のプロンプトも必ず作る
+  - NEXT_TASKS に新しい番号（8,9…）を正式追加した時だけ、同じ番号のプロンプトを作る
 - CHANGELOG：
-  - 作業を区切るたびに1行追記する（「何をした／どこまで到達した／次は何」）
+  - 毎Taskではなく、作業の節目ごとにまとめて追記してよい（「何をした／どこまで到達した／次は何」）
 
 ■SSOT（01）と索引（02）の扱い（事故防止：重要）
 - Codexは SSOT（01）/索引（02）の内容変更が必要だと判断した場合でも、
@@ -50,18 +51,17 @@ LAST_UPDATED: 2026-03-02 20:09 JST
   2) 次に戻るとき、どこまでやったか思い出す必要がある
   3) 作業の流れが切れる（別の用事に移る／しばらくCodex会話を止める）
 
-■Codexが毎回やるべきこと（中断でも継続でも必須）
+■Codexが毎回やるべきこと（小Taskの標準）
 - ① 計画（短く：変更ファイル／変更点／動作確認コマンド）
 - ② 実装
 - ③ 動作確認
-- ④ 03更新（必ず 02→01→03 の順で行う）
-   - まず 02_RAG_SPEC_DERIVED.md（索引カード）で、今回の変更が該当するカテゴリカードを特定する（例：4-1 Exhibitions Text）
-   - 次に 01_PROJECT_SPEC_CURRENT_FULL.docx（SSOT）で、02が指す該当箇所（ルール/制約/用語）を確認する
-   - そのうえで 03 の STATE_SNAPSHOT / NEXT_TASKS / CHANGELOG / LAST_UPDATED を更新する
-   - SSOTに書かれていない「抽出/保存仕様（RAGルール）」は03に足さない（必要なら「SSOT追記案」として提案し合意を取る）。※運用固定（DOC_PATHS/実行コマンド/現在地の記録）は03に書いてOK
-- ⑤ 次に進むタスク番号を1つ選び、対応する「TASK n プロンプト全文」を提示
+- ④ 短い結果報告（変更ファイル / 実行コマンド / 生成物パス / exit code / 次の最優先タスク）
+- ⑤ 03/04更新は、節目に当たる場合だけ実施する
+   - 節目の例：2-4Task進んだ時 / 実行フェーズ完了時 / 長めの中断前 / handoff前 / 重要な判断が固まった時
+   - 更新時の確認順は 02 -> 01 -> 03/04 とする
+   - SSOTに書かれていない「抽出/保存仕様（RAGルール）」は03/04に足さない（必要なら「SSOT追記案」として提案し合意を取る）。※運用固定（DOC_PATHS/実行コマンド/現在地の記録）は03に書いてOK
+- ⑥ 次に進むタスク番号を1つ選び、必要なら対応する「TASK n プロンプト全文」を提示
   → ユーザーが “そのままコピペで次依頼” できる状態にする
-- ⑥ タスク終了時の出力は必ず「【タスク終了時に行うこと】」テンプレを使う（03更新は先に実施し、報告5項目はその後に出力する）
 
 ■SSOT整合チェック（再発防止：必須）
 - 実装前に必ず「01章ID」「02 CARD_ID」「変更対象関数」を1対1対応で明示する。
@@ -78,10 +78,10 @@ LAST_UPDATED: 2026-03-02 20:09 JST
 STATE_SNAPSHOT（現在地）
 ========================
 ■いまの最優先フェーズ（Codexが随時更新する）
-- Phase 1：Exhibitions画像RAGの under-target 運用を安定化し、10ギャラリー再抽出対象を縮約する
-  - 直近の到達目標：T-118D / T-118E / T-120 の改善結果を反映した上で、under-target CSV を再評価し、再抽出対象を再確定する
+- Phase 1：Exhibitions画像RAGの under-target 運用をクローズし、次フェーズ移行条件を固定する
+  - 直近の到達目標：T-124 close 判定を反映し、10ギャラリー batch の追加 rerun 対象なしを確定する
   - 重要な前提：MAX_EXHIBITIONS_PER_GALLERY=7 は「上限7件」であり、全ギャラリーで7件揃うことを保証しない
-  - 次の到達目標：A群（再抽出不要）/ B群（改善余地あり）/ C群（重点監視）/ D群（自然収束）の再分類を固め、必要なら under-target のみ再実行する
+  - 次の到達目標：Exhibitions Text 再開の最小スコープ設計へ移行し、画像フェーズとの境界条件を明文化する
   - 直近の改善:
     - T-118D: year_bucket 集計で 0(target_year) が falsy 扱いされ non-target に潰れていた根因を修正
     - T-118E: debug-gallery-triage 比較を NFKC / strip / 空白正規化で安定化
@@ -97,7 +97,7 @@ STATE_SNAPSHOT（現在地）
     - data/phase1_seed10/logs/debug_exhibitions_listing_triage_20260302T102354Z.json
   - 現在の判断:
     - Adams / Arcadia / Anca を「未解決の中心」と断定する段階は脱した
-    - 今の主タスクは「10ギャラリー全体の under-target 再棚卸し」と「必要最小限の再抽出運用」へ移行すること
+    - The Approach 3URL は `seed=0 / existing_hit_only / target_met維持` のため、current batch では自然収束寄りとして close 判定
 ※この「直近の到達目標」は、達成したら必ず書き換える（意味がなくなるので残さない）
 
 ■いま出来ていること（事前準備・現状）
@@ -228,7 +228,7 @@ STATE_SNAPSHOT（現在地）
 NEXT_TASKS（次回やること）
 ========================
 優先度順（上から実行）。終わったら [x] にする。
-※各タスクは「計画→実装→動作確認→03更新」を1セットで回す。
+※各タスクは「計画→実装→動作確認→短い結果報告」を1セットで回す。03/04更新は数Taskごと・実行フェーズの節目・長めの中断前・handoff前にまとめて行う。
 ※R2運用テンプレは `TASK PREP-R2-GUARD-20260227` を参照（dry-run -> apply固定）。
 ※重要: RAG生成（画像/ベクター/派生JSON）だけではR2へ自動反映されない。生成タスクの完了条件に「R2同期（dry-run -> guarded apply）」を必須で含める。
   - 例（Phase1 derived）: `python run_phase1_seed10_r2_sync.py --scope derived --dry-run --prune`
@@ -2596,10 +2596,12 @@ NEXT_TASKS（次回やること）
     - 実装: `phase1_exhibitions_text_utils.py` に2桁年 helper を追加し、日付文脈末尾の `25` のみ signal 化
     - 実測: The Approach `target_year 0 / non-target 32 -> target_year 32 / non-target 0`
     - triage: `data/phase1_seed10/logs/debug_exhibitions_listing_triage_20260302T102354Z.json`
-[ ] 120) 10ギャラリー Exhibitions画像の under-target CSV を再評価し、A/B/C/D（再抽出不要/改善余地/重点監視/自然収束）で再分類する（最優先）
-[ ] 121) under-target 再抽出対象を再確定し、不要な再抽出（A群/D群）を除外した targets CSV を再生成する
-[ ] 122) 必要最小限で under-target のみ再実行し、ge_1/ge_target/new_saved を再判定する（full rerun 禁止）
-[ ] 123) gallery_name_en 文字化けの保存値修正方針を housekeeping として整理し、優先度を低で明記する
+[x] 120) 10ギャラリー Exhibitions画像の under-target CSV を再評価し、A/B/C/D（再抽出不要/改善余地/重点監視/自然収束）で再分類する（最優先）
+[x] 121) （最優先） under-target 再抽出対象を再確定し、不要な再抽出（A群/D群）を除外した targets CSV を再生成する
+[x] 122) （最優先） 必要最小限で under-target のみ再実行し、ge_1/ge_target/new_saved を再判定する（full rerun 禁止）
+[ ] 123) （低優先 / housekeeping） gallery_name_en 文字化けの保存値修正方針を整理し、実施条件を明記する
+[x] 124) （最優先） Exhibitions画像 under-target フェーズの close判定を確定し、次フェーズ（Exhibitions Text再開可否）へ移行条件を決める
+[ ] 125) （最優先） Exhibitions Text 再開の最小スコープ（1フェア×1ギャラリー×最小件数）を確定し、画像フェーズとの非干渉ゲートを定義する
 
 ========================
 BACKLOG（後回し/保留）
@@ -2662,6 +2664,17 @@ TASK 123) HOUSEKEEPING-GALLERY-NAME-ENCODING
 ------------------------------------------------------------
 運用ルールは前回と同じ。参照は 01/02/03/04 のみ。
 gallery_name_en 文字化けの保存値修正方針を低優先 housekeeping として整理し、実施条件を定義する。
+
+------------------------------------------------------------
+TASK 124) EXHIBITIONS-IMAGE-UNDER-TARGET-CLOSE-GATE
+------------------------------------------------------------
+運用ルールは前回と同じ。参照は 01/02/03/04 のみ。
+T120/T121/T122 の結果を確定値として、under-target フェーズを close するか継続監視にするかを判定し、次フェーズ（Exhibitions Text）へ移行可能条件を明文化する。
+------------------------------------------------------------
+TASK 125) EXHIBITIONS-TEXT-RESTART-BOOTSTRAP
+------------------------------------------------------------
+運用ルールは前回と同じ。参照は 01/02/03/04 のみ。
+Exhibitions画像フェーズ（T124 close）を前提に、Exhibitions Text を最小スコープで再開する実行条件を確定し、非干渉ゲートを確認する。
 ------------------------------------------------------------
 TASK 107) 10ギャラリー Artistsテキスト抽出（共通スキップ + 共通R2同期）
 ------------------------------------------------------------
@@ -6294,21 +6307,26 @@ CODEX_SNIPPETS（頻出コピペ：ここだけ使えば回る）
 運用ルールは前回と同じ（SSOT=01、索引=02、今日=03、機能削除禁止、ドメイン専用ハードコード禁止、LLM加工はPost-fetchのみ）。
 
 
-■B）中断・締め（中断するたびに貼る：03更新＋次プロンプト提示まで強制）
+■B）中断・締め（長めの中断 / handoff前 / 実行フェーズの区切りで貼る：03/04まとめ更新）
 
-作業をここで区切ります。以下を必ず実施してから終了してください。
-(1) 03_STATE_SNAPSHOT_NEXT_TASKS.md を更新
+作業をここで区切ります。以下を実施してください。
+(1) まず判定
+  - 今回が「長めの中断」「handoff前」「実行フェーズの区切り」「2-4Task消化後」のいずれかなら、03/04を更新する
+  - それ以外の小Task区切りなら、03/04更新は省略してよい
+
+(2) 03を更新する場合
   - 02で該当CARD_IDを検索 → そのカードのSSOT参照に従って01の該当箇所を確認 → 01に根拠がある内容だけで03を更新（推測で更新しない）
   - LAST_UPDATED：更新
-  - STATE_SNAPSHOT：現在地（最優先フェーズ／直近目標）を状況に合わせて書き換える
-  - NEXT_TASKS：完了は [x]、新規タスクが発生したら追加、優先度順に並べ替え
-  - CHANGELOG：今日やったことを1行追記
-(2) 重要：NEXT_TASKSに新しい項目（例：8、9…）を追加した場合
-  - 同じ番号で CODEX_TASK_PROMPTS に「そのままコピペできる依頼文」を必ず追加してください
-  - 依頼文には「目的/参照/制約/完了条件/動作確認コマンド」を含めること
-(3) 変更ファイル一覧を出す（ファイル名だけでOK）
-(4) 次にやる1手（コマンド含む）を1行で書く
-(5) 次に取り組む NEXT_TASKS の番号を1つ選び、対応する「TASK n プロンプト全文」をこのチャットに貼って提示する
+  - STATE_SNAPSHOT：最優先フェーズ / 直近目標 / 現在地を必要な範囲だけ更新
+  - NEXT_TASKS：数Taskぶんをまとめて [x] 化してよい。新規タスクが確定したら追加し、優先度順に並べ替える
+  - CHANGELOG：節目の作業内容をまとめて追記
+
+(3) 04を更新する場合
+  - 実行結果（コマンド / exit / summary / 生成物パス / 判断）を数Taskぶんまとめて追記する
+
+(4) 変更ファイル一覧を出す（ファイル名だけでOK）
+(5) 次にやる1手（コマンド含む）を1行で書く
+(6) 次に取り組む NEXT_TASKS の番号を1つ選び、必要なら対応する「TASK n プロンプト全文」をこのチャットに貼って提示する
     - ユーザーはそれをそのまま次の依頼としてコピペする
 
 
@@ -6341,6 +6359,10 @@ CODEX_SNIPPETS（頻出コピペ：ここだけ使えば回る）
 
 ========================
 CHANGELOG（このファイルの更新履歴）
+- 2026-03-02 JST: TASK125 文書同期を実施。TASK124 close（verdict=close / remaining_rerun_targets_count=0）を 03/04 に反映し、T123は低優先維持のまま次の最優先を TASK125（Exhibitions Text再開ブートストラップ）へ更新。
+- 2026-03-02 JST: TASK123A 文書同期を実施。TASK122完了（under-target最小rerun）を 03/04 に反映し、T123は低優先維持のまま、次の最優先を TASK124（under-target close判定）へ更新。
+- 2026-03-02 JST: TASK121を実施。T120再分類を正としてA/Dを除外し、B/Cのみの under-target 再抽出CSVを再確定（The Approach 3URLを維持）。次の最優先をTASK122に更新。
+- 2026-03-02 JST: TASK120を実施（Exhibitions under-target再評価）。A/B/C/Dを再分類し、A=3/B=3/C=0/D=0で確定。次の最優先をTASK121（targets再確定）に固定。
 ========================
 - 2026-03-02 JST: T-118D/T-118E/T-120 の改善結果を反映し、Exhibitions画像RAGの現在地を under-target 再棚卸しフェーズへ更新（次タスクは under-target CSV再評価→対象再確定→必要最小限再実行）
 - 2026-03-02：TASK116 実行結果の記録を補正。`NEXT_TASKS 116) を [x]` に更新し、`seed=49 / ge1=37 / ge_target=37 / saved=37 / failed=12` を確定値として追記。あわせて STATE_SNAPSHOT に「MAX7は上限であり全ギャラリー7件保証ではない」前提を明記し、LAST_UPDATED を更新。
@@ -7436,3 +7458,5 @@ TASK A-3A-CLOSE-1 実施結果（2026-02-27 / Adams and Ollman）
 ### CHANGELOG 追記
 - 2026-03-02：TASK117 完了。`run_phase1_seed10.py` のExhibitions seed抽出をdetail優先スコア化、`run_phase1_seed10_exhibition_image_collect.py` にlisting→detail展開と2025優先ロジックを実装、`run_phase1_seed10_exhibition_image_collect_report.py` にURL種別/展開数/ギャラリー別内訳を追加。再実測結果は `seed=51 / ge1=46 / ge_target=46 / failed=5`。guard pass、R2 derived同期（dry-run→guarded apply）実施。
 - 2026-03-02：TASK117 fix2 追補。`run_phase1_seed10_exhibition_image_collect_report.py` の `new_saved_images_total` 集計を `saved_images` フォールバックなしへ修正し、summary/reportの整合を回復。MAX7再実測の確定値を `seed=51 / ge1=47 / ge_target=47 / failed=4` に更新。R2 derivedは `dry-run -> guarded apply` を再実行し、`uploaded=0 / skipped=1069 / pruned=8 / failed=0` を確認。
+
+

@@ -27,7 +27,6 @@
 - 取れない分はログに残して前進する（失敗をログ化して割り切る）。
 - `data/gallery_lists/skipped_galleries_registry.csv` の登録は、Artists/Exhibitions の画像・テキスト抽出すべてに共通適用する。
 - R2保存/削除の guarded 自動同期は、Artists/Exhibitions の画像・テキスト・ベクターを含むRAG全体に共通適用する。
-- タスク終了時の出力は「【タスク終了時に行うこと】」テンプレを固定し、03更新は必ず 02→01→03 の順で実施後に報告5項目を出力する。
 
 ---
 
@@ -4862,3 +4861,42 @@ _trash 運用方針:
   - `data/phase1_seed10/logs/debug_exhibitions_listing_triage_20260302T102354Z.json`
 - 次への示唆:
   - コード修正フェーズから、10ギャラリー under-target 再棚卸し（対象再確定）フェーズへ移行する。
+## 172. TASK 123A DOC-BATCH-SYNC-T120-T122
+- 実施日: 2026-03-02
+- 目的:
+  - T120/T121/T122 を 1バッチとして 03/04 に同期し、under-target フェーズの到達点を固定する。
+- T120 要点（再分類）:
+  - A/B/C/D 再分類結果: `A=3 / B=3 / C=0 / D=0`
+  - A（再抽出不要）: Adams and Ollman / Arcadia Missa / Anca Poterașu Gallery
+  - B（継続監視）: The Approach 3URL（`/past/2020/`, `/past/2021/`, `/past/2022/`）
+- T121 要点（targets再確定）:
+  - A/D を除外し、再抽出対象を The Approach 3URL のみに縮約
+  - 生成物: `data/gallery_lists/reextract_targets_exhibitions_image_task_t121_under_target.csv`
+  - 除外メモ: `data/gallery_lists/reextract_targets_exhibitions_image_task_t121_dropped.csv`
+- T122 要点（under-target最小rerun）:
+  - 対象: 上記 3URL のみ（full rerunなし）
+  - summary: `seed_exhibition_count=0 / ge_1=0 / ge_target=0 / new_saved_images_total=0 / failed_case_count=0`
+  - 解釈: The Approach は `existing_hit_only` 維持で `target_met` を維持しており、自然収束寄り
+  - 生成物: `data/phase1_seed10/logs/phase1_seed10_exhibition_image_collect_summary_task_t122_under_target.json`
+- 次への示唆:
+  - T123 は低優先 housekeeping のまま維持し、最優先は under-target close 判定（TASK124）へ移行する。
+
+## 173. TASK 124 EXHIBITIONS-IMAGE-UNDER-TARGET-CLOSE-GATE
+- 実施日: 2026-03-02
+- 目的:
+  - T120/T121/T122 の結果を根拠に、current 10-gallery batch の under-target を close できるか最終判定する。
+- 判定結果:
+  - `verdict=close`
+  - `remaining_rerun_targets_count=0`
+  - `remaining_rerun_targets=[]`
+- 根拠（artifact）:
+  - `data/phase1_seed10/logs/phase1_seed10_exhibition_image_collect_summary_task_t120_under_target.json`
+  - `data/phase1_seed10/logs/phase1_seed10_exhibition_image_collect_summary_task_t122_under_target.json`
+  - `data/gallery_lists/reextract_targets_exhibitions_image_task_t120_reeval.csv`
+  - `data/gallery_lists/reextract_targets_exhibitions_image_task_t121_under_target.csv`
+  - `data/gallery_lists/reextract_targets_exhibitions_image_task_t121_dropped.csv`
+  - `data/phase1_seed10/logs/exhibitions_under_target_close_gate_t124.json`
+  - `data/phase1_seed10/logs/debug_exhibitions_listing_triage_20260302T102354Z.json`
+- 補足:
+  - The Approach 3URL は `seed=0 / existing_hit_only / target_met維持 / failed_case_count=0` で自然収束寄り。
+  - under-target rerun 系は current batch でクローズ扱いとし、T123（文字化けhousekeeping）は low priority 維持。
