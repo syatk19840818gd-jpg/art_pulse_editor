@@ -3455,6 +3455,251 @@ Notes:
   - year=2025 evidence_text=d9f75bfe6-4000x2667.jpg? Anderson Borba Analog Ghost , 2025 Wood, paper, stone, plaster, pigment, oil pastel, sawdust...
 
 ---
+## TASK T-112-EXHIBITIONS-IMAGE-BOOTSTRAP-1（2026-03-01）
+
+### 実施目的
+- Exhibitions画像抽出フェーズの開始確認として、最小スコープ（1フェア×1ギャラリー×1exhibition）で
+  - 汎用抽出コード
+  - 共通スキップ
+  - 共通R2同期
+  の成立を実測した。
+
+### 実装（汎用のみ）
+- 追加:
+  - `run_phase1_seed10_exhibition_image_collect.py`
+  - `run_phase1_seed10_exhibition_image_collect_report.py`
+- 方針:
+  - 既存共通ロジック（URL正規化、候補抽出、重複除外、画像正規化）を再利用
+  - 個別if（ドメイン専用分岐）は追加なし
+
+### 最小スコープ実測
+- 対象:
+  - fair: `liste`
+  - gallery: `A+ Works of Art`
+  - source_url: `https://aplusart.asia/exhibitions/110-after-all-we-carry-solo-exhibition-by-sarah-radzi`
+- 結果:
+  - `saved_images=5/5`, `target_met=true`
+  - `selected_image_urls_top5` は installation shots 系のみ
+  - `hero/profile/logo` キーワード一致 0件
+  - 同一URL/同一payload重複 0件
+
+### 命名不整合の修正（同タスク内）
+- 事象:
+  - 初回実測で拡張子が `..jpg` になる命名不整合を検出
+- 対応:
+  - collector側で拡張子を `.lstrip('.')` 正規化
+  - 旧5枚を `_trash/task_t112_fix_ext_20260301_125450/` へ退避
+  - `exhibitions_images_liste_2025.jsonl` を再生成（backup: `.bak_20260301_t112_extfix`）
+
+### 生成物
+- summary:
+  - `data/phase1_seed10/logs/phase1_seed10_exhibition_image_collect_summary_task_t112_bootstrap.json`
+- report:
+  - `data/phase1_seed10/logs/phase1_seed10_exhibition_image_collect_summary_task_t112_bootstrap_report.json`
+- metadata:
+  - `data/phase1_seed10/derived/exhibitions_images_liste_2025.jsonl`
+- local images:
+  - `data/phase1_seed10/derived/images/exhibition_works_images/2025/liste/`
+
+### guard / R2
+- guard:
+  - `phase1_guard_summary_2025_20260301T125846Z.json`
+  - `guard_passed=true`
+- R2（derived）:
+  - dry-run: `phase1_seed10_r2_sync_derived_20260301T125542Z.json`
+  - apply: `phase1_seed10_r2_sync_derived_20260301T125828Z.json`
+  - 反映: `uploaded=7 / pruned=5 / failed=0`
+
+---
+## TASK T-113-EXHIBITIONS-IMAGE-COVERAGE-10G-1（2026-03-01）
+
+### 対象と実行
+- 対象CSV: `data/gallery_lists/reextract_targets_exhibitions_image_task_t113.csv`
+- 対象件数: 10（10ギャラリー×各1exhibition）
+- 実行summary:
+  - `data/phase1_seed10/logs/phase1_seed10_exhibition_image_collect_summary_task_t113_min10x1.json`
+- 実行report:
+  - `data/phase1_seed10/logs/phase1_seed10_exhibition_image_collect_summary_task_t113_min10x1_report.json`
+
+### 集計結果
+- seed件数: 10
+- ge_1件数: 10（ge_1率=100.00%）
+- ge_target件数: 8（5/5達成率=80.00%）
+- 保存枚数合計: 42
+- 抽出0件ギャラリー: 0
+- hero/profile/logo混入件数: 0
+- 重複保存件数: URL重複0 / payload重複0
+
+### ギャラリー別（1ギャラリー1exhibition）
+- frieze_london | Adams and Ollman: 5/5
+- frieze_london | Arcadia Missa: 1/5
+- frieze_london | Athr: 5/5
+- frieze_london | Gallery Baton: 5/5
+- frieze_london | The Approach: 5/5
+- liste | A+ Works of Art: 5/5
+- liste | Addis Fine Art: 5/5
+- liste | Afriart Gallery: 1/5
+- liste | Amanita: 5/5
+- liste | Anca Poteraşu Gallery: 5/5
+
+### 判定
+- 通過条件（ge_1率>=0.70 / 混入ゼロ / 重複ゼロ）を満たしたため、段階拡張へ進行可能。
+
+### guard / R2
+- guard: `phase1_guard_summary_2025_20260301T131452Z.json`（`guard_passed=true`）
+- R2（derived）:
+  - dry-run: `phase1_seed10_r2_sync_derived_20260301T131504Z.json`
+  - apply: `phase1_seed10_r2_sync_derived_20260301T131849Z.json`
+  - 反映: `uploaded=44 / pruned=0 / failed=0`
+
+---
+## TASK T-114-EXHIBITIONS-IMAGE-EXPAND-10G-1（2026-03-01）
+
+### 対象と方針
+- 対象ギャラリー: 10（T-113と同じ）
+- 抽出対象: 各ギャラリー最大5 exhibition
+- 除外条件:
+  - 既に 5/5 達成済みの source_url は除外（再抽出しない）
+  - skip registry 登録ギャラリーは除外
+- 対象CSV:
+  - 初期: `data/gallery_lists/reextract_targets_exhibitions_image_task_t114.csv`（36件）
+  - 実行後: 未達のみ20件へ縮約（再抽出対象最小化）
+
+### 実測結果（拡張実行）
+- summary:
+  - `data/phase1_seed10/logs/phase1_seed10_exhibition_image_collect_summary_task_t114_expand.json`
+- report:
+  - `data/phase1_seed10/logs/phase1_seed10_exhibition_image_collect_summary_task_t114_expand_report.json`
+- 集計:
+  - seed件数: 36
+  - ge_1件数: 28（ge_1率=77.78%）
+  - ge_target件数: 16（5/5達成率=44.44%）
+  - 保存枚数合計: 103
+  - 抽出0件ギャラリー件数: 1
+  - hero/profile/logo混入件数: 0
+  - 重複保存件数: URL=0 / payload=0
+
+### 判定
+- 通過条件:
+  - ge_1率 >= 0.70: 達成（0.7778）
+  - 混入ゼロ: 達成
+  - 重複再発ゼロ: 達成
+- 備考:
+  - ge_target（5/5）は未達が残るため、次タスクは未達20件の限定再抽出で改善可否を確認する。
+
+### 実装メモ（汎用）
+- `run_phase1_seed10_exhibition_image_collect.py`
+  - `--targets-csv` を追加（対象限定実行）
+  - exhibition slug 長を短縮（保存時パス長超過回避、個別ifなし）
+
+### guard / R2
+- guard:
+  - `phase1_guard_summary_2025_20260301T134852Z.json`
+  - `guard_passed=true`
+- R2（derived）:
+  - dry-run: `phase1_seed10_r2_sync_derived_20260301T134924Z.json`
+  - apply: `phase1_seed10_r2_sync_derived_20260301T135502Z.json`
+  - 反映: `uploaded=146 / pruned=0 / failed=0`
+
+---
+## 現時点のExhibitions画像RAG抽出率（2026-03-01時点）
+
+参照summary:
+- `data/phase1_seed10/logs/phase1_seed10_exhibition_image_collect_summary_task_t114_expand.json`
+
+抽出率:
+- ge_1（1枚以上取得）: `28/36` = **77.78%**
+- ge_target（5枚取得）: `16/36` = **44.44%**
+- 保存枚数合計: `103`
+
+---
+## 重大是正: Exhibition画像は「1展示=1画像」に統一（2026-03-01）
+
+### SSOT準拠是正
+- 01の明記:
+  - `{ EXHIBITION_IMAGE_PER_EXHIBITION_MAX } = 1`
+- 是正内容:
+  - Exhibitions画像収集を「1展示=1画像」に固定
+  - 既存保存済みデータも source_url ごとに1件へ正規化
+
+### 正規化結果
+- `exhibitions_images_frieze_london_2025.jsonl`: `128 -> 20`
+- `exhibitions_images_liste_2025.jsonl`: `104 -> 24`
+- 合計: `232 -> 44`（1展示1画像）
+- ファイル整合:
+  - metadata参照件数: 44
+  - 実ファイル件数: 44
+  - 欠損参照: 0
+- 余剰画像退避:
+  - `_trash/task_exhibition_one_image_enforce_20260301_232524/`
+
+### 同期
+- R2 derived同期で削除反映済み（pruned=147）。
+
+---
+## TASK T-115-EXHIBITIONS-TEXT-SSOT-RECOVERY-1（2026-03-02）
+
+### 目的
+- Exhibitions Text RAG のSSOT逸脱を、監査7項目 + 現状データ症状（年外混入/重複）まで一括で是正する。
+- 01/02/03/04整合を維持し、汎用ロジックのみで回復させる（個別if禁止）。
+
+### 実装（汎用）
+- 追加: `phase1_exhibitions_text_utils.py`
+  - URL canonical化（4-0-B）
+  - 対象年判定（4-0/4-1）
+  - 日付抽出（start/end/date_source/date_confidence）
+  - Participating Artists 抽出
+  - PDF本文抽出と text への結合補助
+  - `sources` 正規化/統合
+- 修正: `run_phase1_seed10.py`
+  - Exhibitions Text パイプラインを共通ユーティリティへ置換
+  - `KNOWN_SAVED_SOURCE_URL` スキップを追加（source_url重複抑止）
+  - text_hash重複時に `sources` を永続追記
+  - `exhibition_start_date/end_date/date_source/date_confidence` 保存
+  - 起動前 manifest 最小同期（raw dry-run -> guarded apply）を実装
+- 追加: `run_phase1_exhibitions_text_raw_cleanup.py`
+  - 非2025 source_url 行除去
+  - source_url重複統合（代表1行 + sources統合）
+  - 削除/統合理由をログJSONで保存
+- 追加: `run_enrichment_seed10_apply.py`
+  - `run_enrichment_seed10.py` の要求出力を raw へ反映（`headline_ja` / `summary_ja`）
+- 追加: `run_phase1_exhibitions_text_audit.py`
+  - Before/After監査をJSON保存
+
+### 監査結果（Before/After）
+- Before: `data/phase1_seed10/logs/exhibitions_text_ssot_recovery_audit_before_20260302.json`
+- After : `data/phase1_seed10/logs/exhibitions_text_ssot_recovery_audit_after_final_20260302.json`
+
+| 指標 | Before | After |
+|---|---:|---:|
+| 総行数 | 118 | 59 |
+| 非2025 source_url行 | 15 | 0 |
+| source_url重複行 | 52 | 0 |
+| exhibition_start/end 充足行 | 0 | 57 |
+| headline_ja 充足行 | 0 | 59 |
+| summary_ja 充足行 | 0 | 59 |
+| Participating Artists追記行 | 0 | 22 |
+| PDF本文結合行 | 0 | 0 |
+| sources保持行 | 0 | 59 |
+
+### 現状データ症状の是正
+- クリーンアップ実行:
+  - `exhibitions_text_raw_cleanup_20260302.json`（`118 -> 58`）
+  - `exhibitions_text_raw_cleanup_20260302_post_patch.json`（`80 -> 59`）
+  - `exhibitions_text_raw_cleanup_20260302_final.json`（`59 -> 59`）
+- 非2025混入は0件化、source_url重複は0件化、既存成功行は維持。
+
+### 検証
+- guard: `phase1_guard_summary_2025_20260301T164759Z.json`（`guard_passed=true`）
+- R2同期:
+  - raw: dry-run/apply 実施（`phase1_seed10_r2_sync_raw_20260301T164819Z.json` / `...164836Z.json`）
+  - derived: dry-run/apply 実施（`phase1_seed10_r2_sync_derived_20260301T164852Z.json` / `...165145Z.json`）
+
+### 判定
+- SSOT逸脱の主要項目（対象年外混入・source_url重複・日付/要約反映・sources永続化）は是正完了。
+- `PDF本文結合行=0` は実装済みだが、今回データでは結合成立ケースが観測されなかったため継続監視とする。
+
+---
 ## TASK T-111-ARTISTS-TEXT-CANONICAL-DEDUPE-REGRESSION-1（2026-03-01）
 
 ### 実装（汎用のみ）
@@ -4500,3 +4745,141 @@ Notes:
   - year=None evidence_text=dc6ea87c3-3600x2400.jpg? img
   - year=None evidence_text=6edd6271a-4000x2667.jpg? img
   - year=2025 evidence_text=d9f75bfe6-4000x2667.jpg? Anderson Borba Analog Ghost , 2025 Wood, paper, stone, plaster, pigment, oil pastel, sawdust...
+### 166. TASK T-116-EXHIBITIONS-IMAGE-MAX7
+- 実行前提:
+  - 01/02/03/04 を順に確認し、`MAX_EXHIBITIONS_PER_GALLERY = 7`（1展示1画像、ギャラリーごと最大7展示）で実行。
+  - Exhibitionsテキスト作業は停止し、Exhibitions画像抽出のみに集中。
+- 実測結果（summary: `phase1_seed10_exhibition_image_collect_summary_task_t116_max7.json`）:
+  - `target_year=2025`
+  - `seed_exhibition_count=49`
+  - `exhibitions_with_ge_1_image=37`
+  - `exhibitions_with_ge_target_images=37`
+  - `saved_images_total=37`
+  - `success_rate_ge_1_image=0.755102`（75.51%）
+  - `success_rate_ge_target_images=0.755102`（75.51%）
+  - `failed_case_count=12`
+- 失敗理由内訳:
+  - `insufficient_image_candidates_after_download=11`
+  - `target_year_signal_missing=1`
+- ギャラリー別内訳（seed -> ge1）:
+  - frieze_london:
+    - Adams and Ollman: `1 -> 0`（0%）
+    - Arcadia Missa: `1 -> 0`（0%）
+    - Athr: `7 -> 6`（85.71%）
+    - Gallery Baton: `7 -> 7`（100%）
+    - The Approach: `4 -> 2`（50%）
+  - liste:
+    - A+ Works of Art: `7 -> 6`（85.71%）
+    - Addis Fine Art: `7 -> 5`（71.43%）
+    - Afriart Gallery: `7 -> 2`（28.57%）
+    - Amanita: `7 -> 7`（100%）
+    - Anca Poteraşu Gallery: `1 -> 0`（0%）
+- 判定メモ:
+  - `MAX7` は「上限値」であり、「全ギャラリーで7件揃う保証」ではない。
+  - 取得0件が残るギャラリーがあるため、未達のみを次タスクで再抽出する前提で記録。
+
+### 167. TASK T-117-EXHIBITIONS-IMAGE-SEED-AND-LISTING-FIX-1
+- 実施日: 2026-03-02
+- 目的: Exhibitions画像の未達主因（seed不足 / 一覧URL混在 / 年判定弱さ）を汎用ロジックのみで是正し、MAX7で再実測。
+- 修正対象:
+  - `run_phase1_seed10.py`（Exhibitions seed抽出のスコアリング強化・detail優先）
+  - `run_phase1_seed10_exhibition_image_collect.py`（listing→detail展開、2025優先、1展示1画像維持）
+  - `run_phase1_seed10_exhibition_image_collect_report.py`（URL種別・展開数・ギャラリー内訳の可視化追加）
+
+#### 事前監査（T-116比）
+- 監査ファイル: `data/phase1_seed10/logs/t117_pre_audit_exhibitions_image_seed_and_listing.json`
+- `T-116 targets`: 49
+- URL種別: `detail=36 / listing=13`
+- 失敗内訳: `failed=12`（`insufficient_image_candidates_after_download=11`, `target_year_signal_missing=1`）
+
+#### T-117 実測結果（MAX7, 1展示=1画像）
+- summary: `data/phase1_seed10/logs/phase1_seed10_exhibition_image_collect_summary_task_t117_max7.json`
+- report: `data/phase1_seed10/logs/phase1_seed10_exhibition_image_collect_summary_task_t117_max7_report.json`
+- `target_year=2025`
+- `seed_exhibition_count=51`
+- `exhibitions_with_ge_1_image=46`
+- `exhibitions_with_ge_target_images=46`
+- `saved_images_total=46`
+- `success_rate_ge_1_image=0.901961`（90.20%）
+- `success_rate_ge_target_images=0.901961`（90.20%）
+- `failed_case_count=5`
+- 失敗理由:
+  - `target_year_signal_missing=4`
+  - `insufficient_image_candidates_after_download=1`
+- URL種別:
+  - `seed_url_type_breakdown: detail=44 / listing=7`
+  - `listing_resolved_to_detail_count=7`
+- `listing_resolved_detail_urls_total=79`
+
+#### fair / gallery 内訳（1展示1画像）
+| fair | gallery | 対象展示(seed) | 抽出成功数(ge_1) | 成功率 |
+|---|---|---:|---:|---:|
+| frieze_london | Adams and Ollman | 1 | 1 | 100.00% |
+| frieze_london | Arcadia Missa | 1 | 1 | 100.00% |
+| frieze_london | Athr | 7 | 5 | 71.43% |
+| frieze_london | Gallery Baton | 7 | 7 | 100.00% |
+| frieze_london | The Approach | 6 | 5 | 83.33% |
+| liste | A+ Works of Art | 7 | 5 | 71.43% |
+| liste | Addis Fine Art | 7 | 7 | 100.00% |
+| liste | Afriart Gallery | 7 | 7 | 100.00% |
+| liste | Amanita | 7 | 7 | 100.00% |
+| liste | Anca Poterașu Gallery | 1 | 1 | 100.00% |
+
+#### T-116 → T-117 改善差分
+- `seed_exhibition_count`: 49 → 51
+- `ge_1`: 37 → 46
+- `failed_case_count`: 12 → 5
+- 主な改善点: 一覧URLをdetailへ展開してから画像候補を評価する流れに統一できたこと。
+
+#### T-117 fix2 実測結果（MAX7, 1展示=1画像）
+- summary: `data/phase1_seed10/logs/phase1_seed10_exhibition_image_collect_summary_task_t117_fix2_max7.json`
+- report: `data/phase1_seed10/logs/phase1_seed10_exhibition_image_collect_summary_task_t117_fix2_max7_report.json`
+- `target_year=2025`
+- `seed_exhibition_count=51`
+- `exhibitions_with_ge_1_image=47`
+- `exhibitions_with_ge_target_images=47`
+- `saved_images_total=47`
+- `success_rate_ge_1_image=0.921569`（92.16%）
+- `success_rate_ge_target_images=0.921569`（92.16%）
+- `failed_case_count=4`
+- 失敗理由:
+  - `target_year_signal_missing=3`
+  - `insufficient_image_candidates_after_download=1`
+- URL種別:
+  - `seed_url_type_breakdown: detail=44 / listing=7`
+  - `listing_resolved_to_detail_count=7`
+  - `listing_resolved_detail_urls_total=105`
+- 分離集計:
+  - `new_saved_images_total=0`
+  - `existing_hit_only_case_count=47`
+  - 既存ヒットのみで成立したケースと新規保存を分離して可視化（見かけ成功の混同を防止）
+
+#### fair / gallery 内訳（T-117 fix2）
+| fair | gallery | seed展示数 | 1枚以上成功展示数 | ge_target展示数(1展示=1画像) | 新規保存枚数 | 成功率(ge_1) |
+|---|---|---:|---:|---:|---:|---:|
+| frieze_london | Adams and Ollman | 1 | 1 | 1 | 0 | 100.00% |
+| frieze_london | Arcadia Missa | 1 | 1 | 1 | 0 | 100.00% |
+| frieze_london | Athr | 7 | 6 | 6 | 0 | 85.71% |
+| frieze_london | Gallery Baton | 7 | 7 | 7 | 0 | 100.00% |
+| frieze_london | The Approach | 6 | 5 | 5 | 0 | 83.33% |
+| liste | A+ Works of Art | 7 | 5 | 5 | 0 | 71.43% |
+| liste | Addis Fine Art | 7 | 7 | 7 | 0 | 100.00% |
+| liste | Afriart Gallery | 7 | 7 | 7 | 0 | 100.00% |
+| liste | Amanita | 7 | 7 | 7 | 0 | 100.00% |
+| liste | Anca Poterașu Gallery | 1 | 1 | 1 | 0 | 100.00% |
+
+#### T-117 → T-117 fix2 差分
+- `seed_exhibition_count`: 51 → 51（変化なし）
+- `ge_1`: 46 → 47（+1）
+- `ge_target`: 46 → 47（+1）
+- `failed_case_count`: 5 → 4（-1）
+- `success_rate_ge_1_image`: 90.20% → 92.16%
+- 改善が出た主対象: `Athr`（`ge_1: 5 -> 6`）
+
+#### 1展示のままの3ギャラリー（根拠）
+- 対象: `Adams and Ollman` / `Arcadia Missa` / `Anca Poterașu Gallery`
+- 共通根拠:
+  - `seed_exhibitions=1` のまま（MAX7上限まで増えない）
+  - `seed_url_type=listing`
+  - `listing_resolved_to_detail_count > 0` だが `detail_year_bucket_counts.target_year=0`
+  - 展開先が `non_target_year` のみのため、2025対象条件下では追加seed供給が成立しない

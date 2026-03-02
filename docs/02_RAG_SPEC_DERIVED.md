@@ -277,6 +277,7 @@ SSOT_TAG: 01>「SSOT整合ゲート（再発防止・強制運用）」
 - Artist系抽出（artists_text / artist works images）の重複防止は同一フェア内に限定しない。異なるフェア間でも同一artistは再抽出せず自動スキップする（ExhibitionsRAG は対象外）。
 - 実装後は、失敗理由上位・対象内訳を 03/04 と `docs/RAG_EXTRACTION_BREAKDOWN_JA.md` に記録する。
 - `docs/RAG_EXTRACTION_BREAKDOWN_JA.md` の内訳記録は日本語で記述する（英語のみの記載は禁止）。
+- 上記の日本語内訳ルールは、全RAGカテゴリ（Artists/Exhibitions/Tarutani、画像/テキスト/ベクター、同期）へ恒久適用する。
 - タスク終了時の出力テンプレは「【タスク終了時に行うこと】」を固定採用し、03更新は必ず 02→01→03 の順で実施する。
 - 03更新時は、対象TASKを `[x]` に変更し、CHANGELOG/LAST_UPDATED/完了実行内容を同時更新する。
 - 理由付きスキップを確定したgalleryは `data/gallery_lists/skipped_galleries_registry.csv` に1行追記し、以後の Artists/Exhibitions の画像・テキスト抽出すべてで共通の自動スキップ対象とする。

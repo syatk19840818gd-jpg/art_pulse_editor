@@ -1,6 +1,6 @@
 # 04_TASK_PROGRESS_LOG.md
 
-最終更新: 2026-03-01 16:35 JST  
+最終更新: 2026-03-02 14:30 JST  
 対象プロジェクト: ART_PULSE_EDITOR（Phase1 seed10 / Guard運用整備）  
 位置づけ: 実装進捗ログ（01=SSOT、02=索引、03=現行運用タスクの補助ログ）
 
@@ -4515,6 +4515,7 @@ _trash 運用方針:
 - 共通ルール更新（01/02/03/04整合）:
   - RAG抽出の内訳記録は `docs/RAG_EXTRACTION_BREAKDOWN_JA.md` に集約する。
   - 上記内訳は日本語で記述する（英語のみ記載は禁止）。
+  - この日本語内訳ルールは全RAGカテゴリ（Artists/Exhibitions/Tarutani、画像/テキスト/ベクター、同期）へ常時適用する。
 - 反映先:
   - `docs/01_PROJECT_SPEC_CURRENT_FULL.docx`
   - `docs/02_RAG_SPEC_DERIVED.md`
@@ -4550,3 +4551,314 @@ _trash 運用方針:
 - R2:
   - dry-run: `phase1_seed10_r2_sync_raw_20260301T122355Z.json`
   - apply: `phase1_seed10_r2_sync_raw_20260301T122420Z.json`（uploaded=2, skipped=5, pruned=0）
+
+## 161. TASK T-112-EXHIBITIONS-IMAGE-BOOTSTRAP-1
+- preflight:
+  - `python run_phase1_network_preflight.py` x2 PASS
+  - `phase1_network_preflight_summary_20260301T124423Z_01.json`
+  - `phase1_network_preflight_summary_20260301T124423Z.json`
+- 実装（汎用のみ）:
+  - `run_phase1_seed10_exhibition_image_collect.py` を追加（Exhibitions画像収集）
+  - `run_phase1_seed10_exhibition_image_collect_report.py` を追加（summaryレポート）
+  - 共通流用: `run_phase1_seed10_artist_image_collect.py` の URL正規化/画像候補抽出/重複除外/画像正規化を再利用
+- 最小スコープ実測:
+  - 対象: `liste / A+ Works of Art / https://aplusart.asia/exhibitions/110-after-all-we-carry-solo-exhibition-by-sarah-radzi`
+  - 結果: `saved_images=5/5`, `target_met=true`, `hero/profile/logo` 混入0, 重複0
+  - summary: `phase1_seed10_exhibition_image_collect_summary_task_t112_bootstrap.json`
+  - report: `phase1_seed10_exhibition_image_collect_summary_task_t112_bootstrap_report.json`
+- 修正（同タスク内）:
+  - 拡張子命名の不整合（`..jpg`）を修正（`.jpg` へ統一）
+  - 旧誤命名5枚を `_trash/task_t112_fix_ext_20260301_125450/` へ退避
+  - `data/phase1_seed10/derived/exhibitions_images_liste_2025.jsonl` を再生成（backup: `.bak_20260301_t112_extfix`）
+- guard:
+  - `python run_compare_phase1_guard.py --target-year 2025` -> exit 0
+  - `phase1_guard_summary_2025_20260301T125846Z.json`（`guard_passed=true`）
+- R2同期（derived）:
+  - dry-run: `phase1_seed10_r2_sync_derived_20260301T125542Z.json`
+  - apply: `phase1_seed10_r2_sync_derived_20260301T125828Z.json`（uploaded=7, skipped=995, pruned=5, failed=0）
+
+## 162. TASK T-113-EXHIBITIONS-IMAGE-COVERAGE-10G-1
+- preflight:
+  - `python run_phase1_network_preflight.py` x2 PASS
+  - `phase1_network_preflight_summary_20260301T130604Z_01.json`
+  - `phase1_network_preflight_summary_20260301T130604Z.json`
+- 対象CSV作成:
+  - `data/gallery_lists/reextract_targets_exhibitions_image_task_t113.csv`
+  - 内容: 10ギャラリー×各1exhibition（skip registry反映）
+- 実行:
+  - `python run_phase1_seed10_exhibition_image_collect.py --target-year 2025 --target-images-per-exhibition 5 --targets-csv data/gallery_lists/reextract_targets_exhibitions_image_task_t113.csv --output-json data/phase1_seed10/logs/phase1_seed10_exhibition_image_collect_summary_task_t113_min10x1.json`
+  - `python run_phase1_seed10_exhibition_image_collect_report.py --summary-path data/phase1_seed10/logs/phase1_seed10_exhibition_image_collect_summary_task_t113_min10x1.json --output-json data/phase1_seed10/logs/phase1_seed10_exhibition_image_collect_summary_task_t113_min10x1_report.json`
+- 実測結果:
+  - `seed=10`, `ge1=10`, `ge_target=8`, `saved_images_total=42`
+  - 抽出0件ギャラリー: 0
+  - hero/profile/logo 混入件数: 0
+  - 重複保存件数（URL/payload）: 0/0
+- guard:
+  - `python run_compare_phase1_guard.py --target-year 2025` -> exit 0
+  - `phase1_guard_summary_2025_20260301T131452Z.json`（`guard_passed=true`）
+- R2同期（derived）:
+  - dry-run: `phase1_seed10_r2_sync_derived_20260301T131504Z.json`
+  - apply: `phase1_seed10_r2_sync_derived_20260301T131849Z.json`（uploaded=44, skipped=1001, pruned=0, failed=0）
+
+## 163. TASK T-114-EXHIBITIONS-IMAGE-EXPAND-10G-1
+- preflight:
+  - `python run_phase1_network_preflight.py` x2 PASS
+  - `phase1_network_preflight_summary_20260301T133030Z.json`
+- 対象CSV作成:
+  - `data/gallery_lists/reextract_targets_exhibitions_image_task_t114.csv`
+  - 生成条件: 10ギャラリー対象、各ギャラリー最大5 exhibition、5/5達成済みsource_urlを除外、skip registry反映
+  - 初期件数: 36件
+- 実装:
+  - `run_phase1_seed10_exhibition_image_collect.py` に `--targets-csv` 入力を追加
+  - ファイル名長による保存失敗回避として exhibition slug 上限を短縮（`max_len=48`）
+- 実行:
+  - collect:
+    - `python run_phase1_seed10_exhibition_image_collect.py --target-year 2025 --target-images-per-exhibition 5 --targets-csv data/gallery_lists/reextract_targets_exhibitions_image_task_t114.csv --output-json data/phase1_seed10/logs/phase1_seed10_exhibition_image_collect_summary_task_t114_expand.json`
+  - report:
+    - `python run_phase1_seed10_exhibition_image_collect_report.py --summary-path data/phase1_seed10/logs/phase1_seed10_exhibition_image_collect_summary_task_t114_expand.json --output-json data/phase1_seed10/logs/phase1_seed10_exhibition_image_collect_summary_task_t114_expand_report.json`
+- 実測結果:
+  - `seed=36`, `ge1=28`, `ge_target=16`, `saved_images_total=103`
+  - `ge_1率=0.777778`, `ge_target率=0.444444`
+  - 抽出0件ギャラリー: 1
+  - hero/profile/logo混入件数: 0
+  - 重複保存件数: URL=0 / payload=0
+- 運用整形:
+  - `reextract_targets_exhibitions_image_task_t114.csv` を「未達のみ」に再生成
+  - 最終件数: 20件
+- guard:
+  - `python run_compare_phase1_guard.py --target-year 2025` -> exit 0
+  - `phase1_guard_summary_2025_20260301T134852Z.json`（`guard_passed=true`）
+- R2同期（derived）:
+  - dry-run: `phase1_seed10_r2_sync_derived_20260301T134924Z.json`
+  - apply: `phase1_seed10_r2_sync_derived_20260301T135502Z.json`（uploaded=146, skipped=1043, pruned=0, failed=0）
+
+## 164. FIX EXHIBITIONS_IMAGE_PER_EXHIBITION_MAX=1（SSOT是正）
+- 背景:
+  - SSOT 01（4-2/5-2）で `EXHIBITION_IMAGE_PER_EXHIBITION_MAX=1` が明記されているにも関わらず、collector既定値が5だった。
+- 実装修正:
+  - `run_phase1_seed10_exhibition_image_collect.py`
+    - `--target-images-per-exhibition` 既定を `1` に変更
+    - 実行時に常に `1` へ強制（引数で5を指定してもSSOT優先で1）
+- 既存データ是正:
+  - `data/phase1_seed10/derived/exhibitions_images_frieze_london_2025.jsonl`
+  - `data/phase1_seed10/derived/exhibitions_images_liste_2025.jsonl`
+  - source_url単位で1件へ正規化（frieze: 128→20 / liste: 104→24）
+  - 余剰画像を `_trash/task_exhibition_one_image_enforce_20260301_232524/` へ退避
+  - 正規化後の整合: metadata 44件 / 実ファイル44件 / 欠損参照0
+- 追加再補完:
+  - 欠損行6件を除去後、`reextract_targets_exhibitions_image_missing_fix.csv` で再収集
+  - `phase1_seed10_exhibition_image_collect_summary_task_fix_exhibition_one_image_missing_refill.json`（seed=6, ge1=6, saved=6）
+- 検証:
+  - guard: `phase1_guard_summary_2025_20260301T142922Z.json`（`guard_passed=true`）
+- R2同期（derived）:
+  - dry-run: `phase1_seed10_r2_sync_derived_20260301T142948Z.json`
+  - apply: `phase1_seed10_r2_sync_derived_20260301T143256Z.json`（uploaded=12, pruned=147, failed=0）
+
+## 165. TASK T-115-EXHIBITIONS-TEXT-SSOT-RECOVERY-1
+- preflight:
+  - `python run_phase1_network_preflight.py` x2 PASS
+  - `phase1_network_preflight_summary_20260301T160009Z_01.json`
+  - `phase1_network_preflight_summary_20260301T160009Z.json`
+- 監査（Before固定）:
+  - `run_phase1_exhibitions_text_audit.py` で基準値を保存
+  - `exhibitions_text_ssot_recovery_audit_before_20260302.json`
+  - totals: `rows=118 / non2025=15 / source_url重複=52 / date=0 / headline=0 / summary=0 / participating=0 / sources=0`
+- バックアップ:
+  - `exhibitions_frieze_london_2025.jsonl.bak_20260302_010015`
+  - `exhibitions_liste_2025.jsonl.bak_20260302_010015`
+- 実装（汎用のみ）:
+  - 追加: `phase1_exhibitions_text_utils.py`
+    - URL canonical化、対象年判定、日付抽出、Participating Artists抽出、PDF抽出・本文結合補助、sources統合
+  - 追加: `run_phase1_exhibitions_text_raw_cleanup.py`
+    - 非2025行除去、source_url重複統合、drop理由ログ出力
+  - 追加: `run_enrichment_seed10_apply.py`
+    - `run_enrichment_seed10.py` の結果を raw へ適用（headline_ja/summary_ja）
+  - 追加: `run_phase1_exhibitions_text_audit.py`
+    - Before/After監査をJSON化
+  - 修正: `run_phase1_seed10.py`
+    - Exhibitions Textを共通ユーティリティへ置換
+    - `KNOWN_SAVED_SOURCE_URL` スキップ、`sources` 永続化、重複時sources追記
+    - `exhibition_start_date/end_date/date_source/date_confidence` 保存
+    - 起動前 manifest 最小同期（raw dry-run -> guarded apply）
+- データ症状是正:
+  - cleanup初回: `exhibitions_text_raw_cleanup_20260302.json`（`118 -> 58`）
+  - cleanup再適用: `exhibitions_text_raw_cleanup_20260302_post_patch.json`（`80 -> 59`）
+  - final確認: `exhibitions_text_raw_cleanup_20260302_final.json`（`59 -> 59`）
+- 再実行:
+  - `python run_phase1_seed10.py`
+  - `python run_enrichment_seed10.py`
+  - `python run_enrichment_seed10_apply.py`
+- 監査（After最終）:
+  - `exhibitions_text_ssot_recovery_audit_after_final_20260302.json`
+  - totals: `rows=59 / non2025=0 / source_url重複=0 / date=57 / headline=59 / summary=59 / participating=22 / pdf_merge=0 / sources=59`
+- guard:
+  - `python run_compare_phase1_guard.py --target-year 2025` -> exit 0
+  - `phase1_guard_summary_2025_20260301T164759Z.json`（`guard_passed=true`）
+- R2同期:
+  - raw:
+    - dry-run `phase1_seed10_r2_sync_raw_20260301T164819Z.json`
+    - apply   `phase1_seed10_r2_sync_raw_20260301T164836Z.json`
+  - derived:
+    - dry-run `phase1_seed10_r2_sync_derived_20260301T164852Z.json`
+    - apply   `phase1_seed10_r2_sync_derived_20260301T165145Z.json`
+
+## 166. TASK T-116-EXHIBITIONS-IMAGE-MAX7
+- preflight:
+  - `python run_phase1_network_preflight.py` x2 PASS
+  - `phase1_network_preflight_summary_20260302T015846Z.json`
+  - `phase1_network_preflight_summary_20260302T015904Z.json`
+- 参照確認（01/02/03/04）:
+  - 02: CARD_ID `10/11/14/16/05`
+  - 01: 章ID `4-0/4-1/5-2/5-8/6-2/6-3/10`
+  - 03/04: TASK116 運用記録を整合確認
+- 実行:
+  - targets CSV: `data/gallery_lists/reextract_targets_exhibitions_image_task_t116.csv`
+  - collect:
+    - `python run_phase1_seed10_exhibition_image_collect.py --target-year 2025 --target-images-per-exhibition 1 --targets-csv data/gallery_lists/reextract_targets_exhibitions_image_task_t116.csv --output-json data/phase1_seed10/logs/phase1_seed10_exhibition_image_collect_summary_task_t116_max7.json`
+  - report:
+    - `python run_phase1_seed10_exhibition_image_collect_report.py --summary-path data/phase1_seed10/logs/phase1_seed10_exhibition_image_collect_summary_task_t116_max7.json --output-json data/phase1_seed10/logs/phase1_seed10_exhibition_image_collect_summary_task_t116_max7_report.json`
+- 実測結果（summary/report）:
+  - `target_year=2025`
+  - `seed_exhibition_count=49`
+  - `exhibitions_with_ge_1_image=37`
+  - `exhibitions_with_ge_target_images=37`
+  - `saved_images_total=37`
+  - `success_rate_ge_1_image=0.755102`（75.51%）
+  - `success_rate_ge_target_images=0.755102`（75.51%）
+  - `failed_case_count=12`
+  - 失敗理由:
+    - `insufficient_image_candidates_after_download=11`
+    - `target_year_signal_missing=1`
+- ギャラリー別（seed->ge1）:
+  - frieze_london:
+    - Adams and Ollman: `1 -> 0`（0%）
+    - Arcadia Missa: `1 -> 0`（0%）
+    - Athr: `7 -> 6`（85.71%）
+    - Gallery Baton: `7 -> 7`（100%）
+    - The Approach: `4 -> 2`（50%）
+  - liste:
+    - A+ Works of Art: `7 -> 6`（85.71%）
+    - Addis Fine Art: `7 -> 5`（71.43%）
+    - Afriart Gallery: `7 -> 2`（28.57%）
+    - Amanita: `7 -> 7`（100%）
+    - Anca Poteraşu Gallery: `1 -> 0`（0%）
+- guard:
+  - `python run_compare_phase1_guard.py --target-year 2025` -> exit 0（`guard_passed=true`）
+- R2同期（derived）:
+  - dry-run: `phase1_seed10_r2_sync_derived_20260302T020620Z.json`
+  - apply/prune: `phase1_seed10_r2_sync_derived_20260302T021247Z.json`（`uploaded=0`）
+- 補足:
+  - `MAX_EXHIBITIONS_PER_GALLERY=7` は「上限7件」であり、「全ギャラリーで7件必達」ではない。
+  - Exhibitionsテキスト作業は停止維持（画像抽出に集中）。
+## 167. TASK T-117-EXHIBITIONS-IMAGE-SEED-AND-LISTING-FIX-1（実行ログ）
+
+- 実施日: 2026-03-02
+- 目的: Exhibitions画像の未達主因（seed不足 / 一覧URL混在 / 年判定弱さ）を汎用ロジックのみで是正し、MAX7再実測。
+- 参照順で更新: 02 -> 01 -> 03 を遵守。
+- 注記: Exhibitionsテキストの新規実装・仕様変更は本タスクでは実施していない（画像抽出改善に限定）。
+
+### 実行コマンド
+- `python run_phase1_network_preflight.py`
+- `python run_phase1_network_preflight.py`
+- `python -m py_compile run_phase1_seed10.py run_phase1_seed10_exhibition_image_collect.py run_phase1_seed10_exhibition_image_collect_report.py`
+- `python run_phase1_seed10.py`
+- `python run_phase1_seed10_exhibition_image_collect.py --target-year 2025 --target-images-per-exhibition 1 --targets-csv data/gallery_lists/reextract_targets_exhibitions_image_task_t117.csv --output-json data/phase1_seed10/logs/phase1_seed10_exhibition_image_collect_summary_task_t117_max7.json`
+- `python run_phase1_seed10_exhibition_image_collect_report.py --summary-path data/phase1_seed10/logs/phase1_seed10_exhibition_image_collect_summary_task_t117_max7.json --output-json data/phase1_seed10/logs/phase1_seed10_exhibition_image_collect_summary_task_t117_max7_report.json`
+- `python run_compare_phase1_guard.py --target-year 2025`
+- `python run_phase1_seed10_r2_sync.py --scope derived --dry-run --prune`
+- `python run_phase1_seed10_r2_sync.py --scope derived --prune --require-dry-run-log --max-prune 600`
+
+### 結果サマリー
+- preflight: 2回ともPASS
+- T-117 summary: `seed=51 / ge1=46 / ge_target=46 / saved=46 / failed=5`
+- URL種別: `detail=44 / listing=7`
+- listing展開: `listing_resolved_to_detail_count=7`（detail URL総数=79）
+- 失敗理由: `target_year_signal_missing=4`, `insufficient_image_candidates_after_download=1`
+- guard: `guard_passed=true`（mismatch=0）
+- R2同期（derived）: dry-run後にguarded apply実施、`uploaded=12 / pruned=8 / failed=0`
+
+### 生成物
+- `data/phase1_seed10/logs/t117_pre_audit_exhibitions_image_seed_and_listing.json`
+- `data/gallery_lists/reextract_targets_exhibitions_image_task_t117.csv`
+- `data/phase1_seed10/logs/phase1_seed10_exhibition_image_collect_summary_task_t117_max7.json`
+- `data/phase1_seed10/logs/phase1_seed10_exhibition_image_collect_summary_task_t117_max7_report.json`
+- `data/phase1_seed10/logs/phase1_guard_summary_2025_20260302T040523Z.json`
+- `data/phase1_seed10/logs/phase1_seed10_r2_sync_derived_20260302T040545Z.json`
+- `data/phase1_seed10/logs/phase1_seed10_r2_sync_derived_20260302T040843Z.json`
+
+## 168. TASK T-117-EXHIBITIONS-IMAGE-SEED-AND-LISTING-FIX-2（追補実行ログ）
+
+- 実施日: 2026-03-02
+- 目的: 「1展示は取れるが2展示目以降が伸びない」課題に対し、T-117のfix2（集計分離の整合修正 + MAX7再実測）を確定。
+- 参照順で更新: 02 -> 01 -> 03 を遵守。
+- 注記: Exhibitionsテキスト作業は停止継続（本タスクはExhibitions画像のみ）。
+
+### 実行コマンド
+- `python run_phase1_network_preflight.py`
+- `python run_phase1_network_preflight.py`
+- `python -m py_compile run_phase1_seed10.py run_phase1_seed10_exhibition_image_collect.py run_phase1_seed10_exhibition_image_collect_report.py`
+- `python run_phase1_seed10_exhibition_image_collect_report.py --summary-path data/phase1_seed10/logs/phase1_seed10_exhibition_image_collect_summary_task_t117_fix2_max7.json --output-json data/phase1_seed10/logs/phase1_seed10_exhibition_image_collect_summary_task_t117_fix2_max7_report.json`
+- `python run_phase1_seed10_r2_sync.py --scope derived --dry-run --prune`
+- `python run_phase1_seed10_r2_sync.py --scope derived --prune --require-dry-run-log --max-prune 600`
+- `python run_compare_phase1_guard.py --target-year 2025`
+
+### 結果サマリー
+- preflight: 2回ともPASS
+- T-117 fix2 summary: `seed=51 / ge1=47 / ge_target=47 / saved=47 / failed=4`
+- URL種別: `detail=44 / listing=7`
+- listing展開: `listing_resolved_to_detail_count=7`（detail URL総数=105）
+- 分離集計: `new_saved_images_total=0` / `existing_hit_only_case_count=47`（見かけ成功を分離）
+- 失敗理由: `target_year_signal_missing=3`, `insufficient_image_candidates_after_download=1`
+- guard: `guard_passed=true`（mismatch=0）
+- R2同期（derived）: `uploaded=0 / skipped=1069 / pruned=8 / failed=0`
+
+### 生成物
+- `data/phase1_seed10/logs/t117_fix2_pre_audit_exhibitions_image.json`
+- `data/gallery_lists/reextract_targets_exhibitions_image_task_t117_fix2.csv`
+- `data/phase1_seed10/logs/phase1_seed10_exhibition_image_collect_summary_task_t117_fix2_max7.json`
+- `data/phase1_seed10/logs/phase1_seed10_exhibition_image_collect_summary_task_t117_fix2_max7_report.json`
+- `data/phase1_seed10/logs/phase1_guard_summary_2025_20260302T053007Z.json`
+- `data/phase1_seed10/logs/phase1_seed10_r2_sync_derived_20260302T052058Z.json`
+- `data/phase1_seed10/logs/phase1_seed10_r2_sync_derived_20260302T052422Z.json`
+
+## 169. TASK T-118D-YEAR-BUCKET-WIRING
+- 目的:
+  - `target_year=0` のまま停滞していた Exhibitions detail year bucket の根因を確定し、最小修正で反映する。
+- 変更内容:
+  - `int(page.get("year_bucket") or 2)` により `0(target_year)` が falsy 扱いで non-target に潰れる経路を是正。
+  - `debug-gallery-triage` の `gallery_name_en` 完全一致依存により、Anca の文字化け表記で triage 出力漏れが起こりうる点を副因として確定。
+- 実測結果:
+  - Adams `2025 0 -> 12`
+  - Arcadia `2025 0 -> 8`
+  - Anca `2025 0 -> 4`
+- 生成物パス:
+  - `data/phase1_seed10/logs/debug_exhibitions_listing_triage_20260302T093256Z.json`
+- 次への示唆:
+  - year bucket 主因は解消。次は triage 比較の表記ゆれ耐性を最小修正で安定化する。
+
+## 170. TASK T-118E-TRIAGE-NORMALIZE-LITE
+- 目的:
+  - `debug-gallery-triage` の表記ゆれ耐性を最小修正で改善し、Anca の triage 掲載を安定化する。
+- 変更内容:
+  - 比較処理に `unicodedata.normalize("NFKC")` / `strip()` / 連続空白正規化を追加。
+- 方針:
+  - `gallery_name_en` の保存値自体は変更せず、比較のみ安定化。
+- 生成物パス:
+  - `data/phase1_seed10/logs/debug_exhibitions_listing_triage_20260302T094558Z.json`
+- 次への示唆:
+  - 次段で 2桁年表記の target-year 取りこぼしを汎用対応する。
+
+## 171. TASK T-120-EXHIBITIONS-TWO-DIGIT-YEAR-LITE
+- 目的:
+  - 2桁年表記（例 `08.11—20.12.25`）による target-year 取りこぼしを汎用ロジックで改善する。
+- 変更内容:
+  - `phase1_exhibitions_text_utils.py` に 2桁年 helper を追加。
+  - `target_year=2025` のとき、日付文脈末尾の `25` のみ `two_digit_year_signal` として扱う。
+  - 単独 `25` は拾わない。
+- 実測結果:
+  - The Approach `target_year 0 / non-target 32 -> target_year 32 / non-target 0`
+  - 既存3ギャラリー（Adams / Arcadia / Anca）への悪影響なし。
+- 生成物パス:
+  - `data/phase1_seed10/logs/debug_exhibitions_listing_triage_20260302T102354Z.json`
+- 次への示唆:
+  - コード修正フェーズから、10ギャラリー under-target 再棚卸し（対象再確定）フェーズへ移行する。

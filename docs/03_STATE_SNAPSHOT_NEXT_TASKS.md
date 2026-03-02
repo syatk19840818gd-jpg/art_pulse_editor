@@ -13,7 +13,7 @@ STREAMLIT_ENTRYPOINT（固定）
 - Local run: streamlit run app.py
 
 SOURCE_SSOT: 01_PROJECT_SPEC_CURRENT_FULL.docx
-LAST_UPDATED: 2026-03-01 21:25 JST
+LAST_UPDATED: 2026-03-02 20:09 JST
 
 
 ========================
@@ -71,17 +71,33 @@ LAST_UPDATED: 2026-03-01 21:25 JST
 - 暫定運用: artists抽出上限は各gallery 1件（安定化まで）。安定確認後、段階的に引き上げて最終80へ戻す。
 - 実装後に `docs/RAG_EXTRACTION_BREAKDOWN_JA.md` へ内訳追記し、03/04へ失敗理由上位を記録する。
 - `docs/RAG_EXTRACTION_BREAKDOWN_JA.md` の内訳は日本語で記述する（英語のみの追記は禁止）。
+- このルールは **全RAGカテゴリ（Artists/Exhibitions/Tarutani、画像/テキスト/ベクター、同期含む）** に常時適用する。
 
 
 ========================
 STATE_SNAPSHOT（現在地）
 ========================
 ■いまの最優先フェーズ（Codexが随時更新する）
-- Phase 1：RAG抽出パイプライン成立（seed10で安定稼働させる）
-  - 直近の到達目標：TASK109で 共通テンプレ運用ゲートを確定し、次カテゴリ実行の手順を固定する
-  - 次の到達目標：Phase2（検索/表示）へ接続する
-  - その次：検索品質と表示品質の改善サイクルに入る
-
+- Phase 1：Exhibitions画像RAGの under-target 運用を安定化し、10ギャラリー再抽出対象を縮約する
+  - 直近の到達目標：T-118D / T-118E / T-120 の改善結果を反映した上で、under-target CSV を再評価し、再抽出対象を再確定する
+  - 重要な前提：MAX_EXHIBITIONS_PER_GALLERY=7 は「上限7件」であり、全ギャラリーで7件揃うことを保証しない
+  - 次の到達目標：A群（再抽出不要）/ B群（改善余地あり）/ C群（重点監視）/ D群（自然収束）の再分類を固め、必要なら under-target のみ再実行する
+  - 直近の改善:
+    - T-118D: year_bucket 集計で 0(target_year) が falsy 扱いされ non-target に潰れていた根因を修正
+    - T-118E: debug-gallery-triage 比較を NFKC / strip / 空白正規化で安定化
+    - T-120: 2桁年（例: 08.11—20.12.25）を「日付文脈の末尾年スロット」の場合のみ target-year signal として扱う helper を追加
+  - 実測メモ:
+    - Adams and Ollman: 2025 0 -> 12
+    - Arcadia Missa: 2025 0 -> 8
+    - Anca Potera… Gallery: 2025 0 -> 4
+    - The Approach: target_year 0 / non-target 32 -> target_year 32 / non-target 0
+  - 最新 triage:
+    - data/phase1_seed10/logs/debug_exhibitions_listing_triage_20260302T093256Z.json
+    - data/phase1_seed10/logs/debug_exhibitions_listing_triage_20260302T094558Z.json
+    - data/phase1_seed10/logs/debug_exhibitions_listing_triage_20260302T102354Z.json
+  - 現在の判断:
+    - Adams / Arcadia / Anca を「未解決の中心」と断定する段階は脱した
+    - 今の主タスクは「10ギャラリー全体の under-target 再棚卸し」と「必要最小限の再抽出運用」へ移行すること
 ※この「直近の到達目標」は、達成したら必ず書き換える（意味がなくなるので残さない）
 
 ■いま出来ていること（事前準備・現状）
@@ -2541,7 +2557,49 @@ NEXT_TASKS（次回やること）
     - 事前基準: Athr=17/39(43.59%)、A+ Works=28/44(63.64%)、Addis=25/37(67.57%)。
     - 判定: 事後coverageは3件とも同値維持（低下なし）。改善は限定的だが、URL表記ゆれ吸収の汎用ガードを実装完了。
     - guard: `phase1_guard_summary_2025_20260301T122227Z.json`（`guard_passed=true`）。
-[ ] 112) Exhibitions画像抽出フェーズへ移行し、最小スコープで共通スキップ/R2同期の適用を再確認する（本体前進）
+[x] 112) Exhibitions画像抽出フェーズへ移行し、最小スコープで共通スキップ/R2同期の適用を再確認する（本体前進）
+    - 実装: `run_phase1_seed10_exhibition_image_collect.py` / `run_phase1_seed10_exhibition_image_collect_report.py` を新規追加（汎用のみ、個別ifなし）。
+    - 最小実測: `liste / A+ Works of Art / 110-after-all-we-carry...` で `saved_images=5/5`、`hero/profile/logo` 混入0。
+    - 同期: `run_phase1_seed10_r2_sync.py --scope derived` の dry-run / guarded apply を実行し、新規6件反映を確認。
+    - guard: `phase1_guard_summary_2025_20260301T125846Z.json`（`guard_passed=true`）。
+[x] 113) Exhibitions画像抽出を段階拡張し、10ギャラリーへ安全展開する前提（回帰なし・重複なし・R2同期）を確定する（本体前進）
+    - 対象固定: `data/gallery_lists/reextract_targets_exhibitions_image_task_t113.csv`（10ギャラリー×各1exhibition）を機械生成。
+    - 実測結果: `seed=10`, `ge_1=10`, `ge_target=8`, `saved_images_total=42`。
+    - 判定値: 抽出0件ギャラリー=0、hero/profile/logo混入=0、重複保存（URL/payload）=0、`ge_1率=1.0`。
+    - guard/R2: `guard_passed=true`、derived同期 `uploaded=44 / pruned=0 / failed=0`。
+[x] 114) Exhibitions画像抽出を10ギャラリー全体へ拡張し、未達のみ再抽出で達成率と安定性を確定する（本体前進）
+    - 対象CSV: `reextract_targets_exhibitions_image_task_t114.csv` を 36件で生成（10ギャラリー×最大5exhibition、5/5済み除外）。
+    - 実測結果: `seed=36`, `ge_1=28`, `ge_target=16`, `saved_images_total=103`。
+    - 判定値: `ge_1率=0.7778`（通過）, 抽出0件ギャラリー=1, hero/profile/logo混入=0, 重複(URL/payload)=0/0。
+    - 運用整形: 実行後CSVを「未達のみ20件」に縮約して再抽出対象を最小化。
+    - guard/R2: `guard_passed=true`、derived同期 `uploaded=146 / pruned=0 / failed=0`。
+[x] 115) Exhibitions Text RAG の SSOT逸脱を一括是正し、監査7項目＋現状症状を回帰なしで再確定する（T-115完了）
+    - 監査Before/Afterで `対象年外混入=0`、`source_url重複=0`、`date/headline/summary` の充足改善を確認。
+    - `run_phase1_seed10.py` に Exhibitions Text 共通ユーティリティ適用（URL正規化、対象年判定、日付抽出、participating artists、sources永続化、manifest最小同期）。
+    - `run_enrichment_seed10_apply.py` と `run_phase1_exhibitions_text_raw_cleanup.py` を導入し、既存raw症状（重複/年外混入）を補正。
+    - guard/R2: `guard_passed=true`、raw/derived とも `dry-run -> guarded apply` を実施。
+[x] 116) Exhibitions画像の未達20件のみ再抽出し、0件ギャラリーの解消と ge_target率の改善可否を確定する（本体前進）
+    - 実測結果（T-116 MAX7）: `seed_exhibition_count=49` / `ge_1=37` / `ge_target=37` / `saved_images_total=37`
+    - 成功率: `success_rate_ge_1=0.755102` / `success_rate_ge_target=0.755102`
+    - 失敗内訳: `insufficient_image_candidates_after_download=11`, `target_year_signal_missing=1`（計12件）
+    - 補足: `MAX7` は「各ギャラリーの上限」であり、全ギャラリーで7展示が必ず取得できる意味ではない
+
+[x] 117) T-118D YEAR_BUCKET_WIRING を反映し、Exhibitions detail year bucket の target_year 判定停滞を解消する（本体前進）
+    - 根因: `int(page.get("year_bucket") or 2)` で `0(target_year)` が falsy 扱いされ non-target に潰れていた
+    - 実測: Adams `2025 0 -> 12` / Arcadia `2025 0 -> 8` / Anca `2025 0 -> 4`
+    - triage: `data/phase1_seed10/logs/debug_exhibitions_listing_triage_20260302T093256Z.json`
+[x] 118) T-118E TRIAGE_NORMALIZE を反映し、debug-gallery-triage の表記ゆれ耐性を安定化する（本体前進）
+    - 実装: `NFKC + strip + 連続空白正規化`（比較処理のみ）
+    - 方針: `gallery_name_en` の保存値自体は変更しない
+    - triage: `data/phase1_seed10/logs/debug_exhibitions_listing_triage_20260302T094558Z.json`
+[x] 119) T-120 TWO_DIGIT_YEAR_SIGNAL を反映し、2桁年日付の target-year 取りこぼしを是正する（本体前進）
+    - 実装: `phase1_exhibitions_text_utils.py` に2桁年 helper を追加し、日付文脈末尾の `25` のみ signal 化
+    - 実測: The Approach `target_year 0 / non-target 32 -> target_year 32 / non-target 0`
+    - triage: `data/phase1_seed10/logs/debug_exhibitions_listing_triage_20260302T102354Z.json`
+[ ] 120) 10ギャラリー Exhibitions画像の under-target CSV を再評価し、A/B/C/D（再抽出不要/改善余地/重点監視/自然収束）で再分類する（最優先）
+[ ] 121) under-target 再抽出対象を再確定し、不要な再抽出（A群/D群）を除外した targets CSV を再生成する
+[ ] 122) 必要最小限で under-target のみ再実行し、ge_1/ge_target/new_saved を再判定する（full rerun 禁止）
+[ ] 123) gallery_name_en 文字化けの保存値修正方針を housekeeping として整理し、優先度を低で明記する
 
 ========================
 BACKLOG（後回し/保留）
@@ -2563,6 +2621,47 @@ CODEX_TASK_PROMPTS（コピペでCodexに渡す指示文）
 - 大きな変更の前は「まず計画だけ。実装はその後。」を追加してOK。
 - 以後のTASKプロンプトは、下記テンプレ（`運用ルールは前回と同じ...` / `RECOMMENDED_MODE` / 章ID明示 / 固定出力5項目）に必ず準拠する。
 
+------------------------------------------------------------
+TASK 117) T-118D YEAR_BUCKET_WIRING（実施済み）
+------------------------------------------------------------
+運用ルールは前回と同じ。参照は 01/02/03/04 のみ。
+T-118D の year_bucket wiring 修正結果（Adams/Arcadia/Anca の 2025 件数改善）を 03/04/RAG に反映し、再発防止メモを追記する。
+
+------------------------------------------------------------
+TASK 118) T-118E TRIAGE_NORMALIZE（実施済み）
+------------------------------------------------------------
+運用ルールは前回と同じ。参照は 01/02/03/04 のみ。
+debug-gallery-triage の NFKC/strip/空白正規化適用結果を 03/04/RAG に反映し、gallery_name_en 保存値は未変更であることを明記する。
+
+------------------------------------------------------------
+TASK 119) T-120 TWO_DIGIT_YEAR_SIGNAL（実施済み）
+------------------------------------------------------------
+運用ルールは前回と同じ。参照は 01/02/03/04 のみ。
+2桁年日付シグナル追加の結果（The Approach の改善、既存3ギャラリー悪化なし）を 03/04/RAG に反映する。
+
+------------------------------------------------------------
+TASK 120) EXHIBITIONS-UNDER-TARGET-REEVAL
+------------------------------------------------------------
+運用ルールは前回と同じ。参照は 01/02/03/04 のみ。
+10ギャラリーの Exhibitions画像現状を A/B/C/D に再分類し、under-target の再評価表を作成する（実行なし）。
+
+------------------------------------------------------------
+TASK 121) EXHIBITIONS-TARGETS-RECERT
+------------------------------------------------------------
+運用ルールは前回と同じ。参照は 01/02/03/04 のみ。
+A群/D群を除外し、B群/C群のみを再抽出対象にした targets CSV を再生成する（実行なし）。
+
+------------------------------------------------------------
+TASK 122) EXHIBITIONS-UNDER-TARGET-RERUN
+------------------------------------------------------------
+運用ルールは前回と同じ。参照は 01/02/03/04 のみ。
+under-target 対象のみ再実行し、ge_1/ge_target/new_saved/existing_hit_only を再判定する（full rerun 禁止）。
+
+------------------------------------------------------------
+TASK 123) HOUSEKEEPING-GALLERY-NAME-ENCODING
+------------------------------------------------------------
+運用ルールは前回と同じ。参照は 01/02/03/04 のみ。
+gallery_name_en 文字化けの保存値修正方針を低優先 housekeeping として整理し、実施条件を定義する。
 ------------------------------------------------------------
 TASK 107) 10ギャラリー Artistsテキスト抽出（共通スキップ + 共通R2同期）
 ------------------------------------------------------------
@@ -6243,6 +6342,14 @@ CODEX_SNIPPETS（頻出コピペ：ここだけ使えば回る）
 ========================
 CHANGELOG（このファイルの更新履歴）
 ========================
+- 2026-03-02 JST: T-118D/T-118E/T-120 の改善結果を反映し、Exhibitions画像RAGの現在地を under-target 再棚卸しフェーズへ更新（次タスクは under-target CSV再評価→対象再確定→必要最小限再実行）
+- 2026-03-02：TASK116 実行結果の記録を補正。`NEXT_TASKS 116) を [x]` に更新し、`seed=49 / ge1=37 / ge_target=37 / saved=37 / failed=12` を確定値として追記。あわせて STATE_SNAPSHOT に「MAX7は上限であり全ギャラリー7件保証ではない」前提を明記し、LAST_UPDATED を更新。
+- 2026-03-02：TASK115 実施完了（Exhibitions Text SSOT Recovery）。preflight 2連続PASS後、監査7項目＋現状症状を一括是正。Before/After は `rows 118→59`、`非2025 source_url 15→0`、`source_url重複 52→0`、`date充足 0→57`、`headline 0→59`、`summary 0→59`、`participating artists行 0→22`、`sources保持 0→59`。実装は `phase1_exhibitions_text_utils.py` 追加、`run_phase1_seed10.py` 連携、`run_enrichment_seed10_apply.py` 追加、`run_phase1_exhibitions_text_raw_cleanup.py` 追加。guardは `phase1_guard_summary_2025_20260301T164759Z.json`（pass）、R2同期は raw/derived とも `dry-run -> guarded apply` 実施。NEXT_TASKSは 115) を [x]、次を 116) に更新。
+- 2026-03-01：重大修正。SSOT（4-2/5-2）の `EXHIBITION_IMAGE_PER_EXHIBITION_MAX=1` に合わせ、Exhibitions画像収集を「1展示=1画像」に強制。collector既定値を1へ変更し、既存メタ/画像も source_url単位1件へ補正（余剰は `_trash/task_exhibition_one_image_enforce_20260301_232524/` へ退避）。R2 derived同期で削除反映（pruned=147）。
+- 2026-03-01：運用強化。`docs/RAG_EXTRACTION_BREAKDOWN_JA.md` への日本語内訳記録ルールを「全RAGカテゴリ（Artists/Exhibitions/Tarutani、画像/テキスト/ベクター、同期）へ常時適用」に明文化（02/03/04整合）。
+- 2026-03-01：TASK114 実施完了。Exhibitions画像を10ギャラリー拡張（各ギャラリー最大5 exhibition、5/5済み除外）で実行し、`seed=36 / ge1=28 / ge_target=16 / saved=103`。判定値は `ge_1率=0.7778`（>=0.70）、hero/profile/logo混入0、重複(URL/payload)0で通過。`reextract_targets_exhibitions_image_task_t114.csv` は未達のみ20件へ縮約。guardは `phase1_guard_summary_2025_20260301T134852Z.json`（pass）、R2 derived同期は `uploaded=146 / pruned=0 / failed=0`。NEXT_TASKSは 114) を [x]、次を 115) に更新。
+- 2026-03-01：TASK113 実施完了。`reextract_targets_exhibitions_image_task_t113.csv` を生成し、10ギャラリー×各1exhibitionで Exhibitions画像を最小拡張実測。結果は `seed=10 / ge1=10 / ge_target=8 / saved=42`、判定値は「抽出0件=0 / hero-profile-logo混入=0 / 重複(URL/payload)=0」で通過。guardは `phase1_guard_summary_2025_20260301T131452Z.json`（pass）、R2 derived同期は `uploaded=44 / pruned=0 / failed=0`。NEXT_TASKSは 113) を [x]、次を 114) に更新。
+- 2026-03-01：TASK112 実施完了。Exhibitions画像の汎用collector/reportを新規追加（`run_phase1_seed10_exhibition_image_collect.py` / `run_phase1_seed10_exhibition_image_collect_report.py`）。最小実測（liste / A+ Works of Art / 1exhibition）で `5/5`、`hero/profile/logo` 混入0を確認。拡張子命名不整合（`..jpg`）を同タスク内で修正し再抽出。R2は `derived dry-run -> guarded apply` で新規反映（uploaded=7 / pruned=5）、guardは `guard_passed=true`（`phase1_guard_summary_2025_20260301T125846Z.json`）。NEXT_TASKS は 112) を [x]、次を 113) へ更新。
 - 2026-03-01：TASK110 実施完了。未達3ギャラリー（Athr / A+ Works / Addis）の根因を `DUPLICATE_TEXT_HASH_DOMINANT` で確定。上位reason件数（26/28/25）を記録し、6-2準拠で追加改修は見送り（理由付き確定）。`reextract_targets_artists_text_task_t109.csv` は `closed_duplicate_text_hash_dominant` に更新。guardは `guard_passed=true`（`phase1_guard_summary_2025_20260301T073600Z.json`）。次タスク 111) を追加。
 - 2026-03-01：TASK109 実施完了。preflight 2連続PASS後に Artists text を max=80 再実行。artist単位coverageは 7/10 gallery が 0.70以上（70.00%）で、未達は Athr / A+ Works of Art / Addis Fine Art の3件を `data/gallery_lists/reextract_targets_artists_text_task_t109.csv` へ最小化して確定。guardは `guard_passed=true`、R2は `raw dry-run -> guarded apply`（uploaded=0 / skipped=6 / pruned=0）を記録。次タスク 110) を追加。
 - 2026-03-01：TASK108 を完了反映。NEXT_TASKS の 108) を [x] に更新し、実行結果（`artists_records_saved_total=42` / guard exit 0）を記録。TASK末尾テンプレを「【タスク終了時に行うこと】」へ置換し、03更新の順序（02→01→03）を固定化。次タスク 109) を追加。
@@ -7309,3 +7416,23 @@ TASK A-3A-CLOSE-1 実施結果（2026-02-27 / Adams and Ollman）
 - 2026-03-01：運用更新。`data/gallery_lists/skipped_galleries_registry.csv` は 0件（空）に確定。
 - 2026-03-01：Artists画像RAG抽出（10ギャラリー、MAX80、現行汎用コード）は本テスト範囲で完成扱いとする。
 - 2026-03-01：TASK111 実施。Artistsテキストで URL canonical化 + 候補重複整理を汎用実装。Athr/A+ Works/Addis の coverage は `17/39`,`28/44`,`25/37` を維持（低下なし）。重複除外ポリシー（text_hash）は変更せず、URL表記ゆれ吸収のみ追加。
+## 166. TASK T-116-EXHIBITIONS-IMAGE-MAX7
+-  - 01/02/03/04 の順でルールを確認し、`MAX_EXHIBITIONS_PER_GALLERY = 7`（1 展示 × 1 画像 × 最大7 件）で200-EXHIBITIONS収集を再実行。Exhibitionsテキスト作業は現在停止中で、画像抽出に専念。  
+-  - 実績: 39 件の展示に対し `ge1=37`/`ge_target=37`/`saved_images_total=37`（不足の 2 件は2025 年の展示数が 4 件以下であったため MAX7 に届かず、取得可能な範囲で収束）。  
+-  - 補足: MAX7 はあくまで上限であり、全ギャラリーで7件揃うわけではないという状況を明記。
+
+## 追記（2026-03-02 / TASK117 fix2 反映）
+
+### STATE_SNAPSHOT 更新
+- Exhibitions画像抽出は T-117 で MAX7 再実測を完了。
+- 汎用修正（seed供給改善 / listing→detail展開2段 / 2025優先）適用後、`ge_1=47/51 (92.16%)` まで改善。
+- `existing_hit_only` と `new_saved_images` を分離し、見かけ成功を混同しない集計へ更新（fix2結果は `new_saved=0 / existing_hit_only=47`）。
+- 現在の主課題は未達4件（Athr中心）の扱い整理。
+
+### NEXT_TASKS 更新
+- [x] 117) Exhibitions画像の未達主因（seed不足 / 一覧URL混在 / 年判定弱さ）を汎用ロジックで是正し、MAX7再実測で改善確認。
+- [ ] 118) Exhibitions画像の未達4件を最小対象で再評価し、追加改修か6-2準拠の理由付き確定かを決定する。
+
+### CHANGELOG 追記
+- 2026-03-02：TASK117 完了。`run_phase1_seed10.py` のExhibitions seed抽出をdetail優先スコア化、`run_phase1_seed10_exhibition_image_collect.py` にlisting→detail展開と2025優先ロジックを実装、`run_phase1_seed10_exhibition_image_collect_report.py` にURL種別/展開数/ギャラリー別内訳を追加。再実測結果は `seed=51 / ge1=46 / ge_target=46 / failed=5`。guard pass、R2 derived同期（dry-run→guarded apply）実施。
+- 2026-03-02：TASK117 fix2 追補。`run_phase1_seed10_exhibition_image_collect_report.py` の `new_saved_images_total` 集計を `saved_images` フォールバックなしへ修正し、summary/reportの整合を回復。MAX7再実測の確定値を `seed=51 / ge1=47 / ge_target=47 / failed=4` に更新。R2 derivedは `dry-run -> guarded apply` を再実行し、`uploaded=0 / skipped=1069 / pruned=8 / failed=0` を確認。

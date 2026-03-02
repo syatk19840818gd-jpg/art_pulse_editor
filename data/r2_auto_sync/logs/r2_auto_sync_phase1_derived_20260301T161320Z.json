@@ -1,0 +1,86 @@
+{
+  "status": "ok",
+  "target": "phase1_derived",
+  "trigger": "run_enrichment_seed10.py",
+  "started_at": "2026-03-01T16:10:27Z",
+  "finished_at": "2026-03-01T16:13:20Z",
+  "steps": [
+    {
+      "command": [
+        "C:\\Users\\syatk\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
+        "run_phase1_seed10_r2_sync.py",
+        "--scope",
+        "derived",
+        "--dry-run",
+        "--prune"
+      ],
+      "exit_code": 0,
+      "stdout_tail": [
+        "[DRY-RUN] [derived] data/phase1_seed10/derived/images/exhibition_works_images/2025/liste/amanita__iusedtobeamountain-html__28badb9d__img_01.jpg -> phase1_seed10/derived/images/exhibition_works_images/2025/liste/amanita__iusedtobeamountain-html__28badb9d__img_01.jpg (101918 bytes)",
+        "[DRY-RUN] [derived] data/phase1_seed10/derived/images/exhibition_works_images/2025/liste/amanita__questaserasirecitaasoggetto-html__cf542ce9__img_01.jpg -> phase1_seed10/derived/images/exhibition_works_images/2025/liste/amanita__questaserasirecitaasoggetto-html__cf542ce9__img_01.jpg (102024 bytes)",
+        "[DRY-RUN] [derived] data/phase1_seed10/derived/images/exhibition_works_images/2025/liste/anca-potera-u-gallery__exhibitions__e9354bd8__img_01.jpg -> phase1_seed10/derived/images/exhibition_works_images/2025/liste/anca-potera-u-gallery__exhibitions__e9354bd8__img_01.jpg (101958 bytes)",
+        "[DRY-RUN] [derived] data/phase1_seed10/derived/vector/artists_text_artifact_manifest_2025.json -> phase1_seed10/derived/vector/artists_text_artifact_manifest_2025.json (853 bytes)",
+        "[DRY-RUN] [derived] data/phase1_seed10/derived/vector/artists_text_index_2025.npy -> phase1_seed10/derived/vector/artists_text_index_2025.npy (491648 bytes)",
+        "[DRY-RUN] [derived] data/phase1_seed10/derived/vector/artists_text_meta_2025.jsonl -> phase1_seed10/derived/vector/artists_text_meta_2025.jsonl (42949 bytes)",
+        "[DRY-RUN] [derived] data/phase1_seed10/derived/vector/artists_text_vectorize_failed_2025.jsonl -> phase1_seed10/derived/vector/artists_text_vectorize_failed_2025.jsonl (0 bytes)",
+        "[DRY-RUN] [derived] data/phase1_seed10/derived/vector/artists_text_vectorize_summary_2025.json -> phase1_seed10/derived/vector/artists_text_vectorize_summary_2025.json (1224 bytes)",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/enrichment/enrichment_requests_seed10_2025.jsonl size=487809 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/enrichment/enrichment_summary_seed10_2025.json size=586 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/exhibition_works_images/2025/frieze-london/the-approach__2019__c5e74c9b__img_01.jpg size=97739 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/exhibition_works_images/2025/frieze-london/the-approach__2020__9eef33b1__img_01.jpg size=94441 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/exhibition_works_images/2025/frieze-london/the-approach__2021__49322ade__img_01.jpg size=99579 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/exhibition_works_images/2025/frieze-london/the-approach__2022__ff18b390__img_01.jpg size=99829 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/exhibition_works_images/2025/frieze-london/the-approach__2023__d08d31c5__img_01.jpg size=96734 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/exhibition_works_images/2025/frieze-london/the-approach__2024__f25a002f__img_01.jpg size=100974 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[PRUNE-DRY-RUN] phase1_seed10/derived/images/exhibition_works_images/2025/liste/afriart-gallery__henry-mzili-mujunga-25-years-1999-2024-solo-exhi__103cdfe5__img_01.jpg size=98646 reason=REMOTE_ONLY_NOT_IN_LOCAL_MANIFEST",
+        "[DONE] status=DRY_RUN_OK uploaded=0 skipped=0 failed=0 pruned=0 prune_failed=0",
+        "[DONE] manifest_local=data/phase1_seed10/derived/phase1_seed10_artifact_manifest.json",
+        "[DONE] summary=data/phase1_seed10/logs/phase1_seed10_r2_sync_derived_20260301T161031Z.json"
+      ],
+      "stderr_tail": [],
+      "name": "dry_run_prune"
+    },
+    {
+      "command": [
+        "C:\\Users\\syatk\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
+        "run_phase1_seed10_r2_sync.py",
+        "--scope",
+        "derived",
+        "--require-dry-run-log",
+        "--max-prune",
+        "600"
+      ],
+      "exit_code": 0,
+      "stdout_tail": [
+        "[SKIP] [derived] phase1_seed10/derived/images/exhibition_works_images/2025/liste/afriart-gallery__fabric-of-our-being-april-kamunde__8f6ae0db__img_01.jpg reason=EXISTS_SAME_SIZE_AND_SHA256 size=100018",
+        "[SKIP] [derived] phase1_seed10/derived/images/exhibition_works_images/2025/liste/afriart-gallery__from-addis-to-kampala-a-sensory-geography-fiker-__892b205a__img_01.jpg reason=EXISTS_SAME_SIZE_AND_SHA256 size=101190",
+        "[SKIP] [derived] phase1_seed10/derived/images/exhibition_works_images/2025/liste/afriart-gallery__projects__2c6237e7__img_01.jpg reason=EXISTS_SAME_SIZE_AND_SHA256 size=91610",
+        "[SKIP] [derived] phase1_seed10/derived/images/exhibition_works_images/2025/liste/afriart-gallery__the-quiet-weight-of-thoughts-daniel-atenyi-richa__851c73a9__img_01.jpg reason=EXISTS_SAME_SIZE_AND_SHA256 size=98050",
+        "[SKIP] [derived] phase1_seed10/derived/images/exhibition_works_images/2025/liste/amanita__contemporaryistanbul25-html__879156ad__img_01.jpg reason=EXISTS_SAME_SIZE_AND_SHA256 size=97893",
+        "[SKIP] [derived] phase1_seed10/derived/images/exhibition_works_images/2025/liste/amanita__desirescript-html__0f0ca541__img_01.jpg reason=EXISTS_SAME_SIZE_AND_SHA256 size=101058",
+        "[SKIP] [derived] phase1_seed10/derived/images/exhibition_works_images/2025/liste/amanita__draperyandeggs-html__8a3d3527__img_01.jpg reason=EXISTS_SAME_SIZE_AND_SHA256 size=99522",
+        "[SKIP] [derived] phase1_seed10/derived/images/exhibition_works_images/2025/liste/amanita__gogyo-html__1e1402a0__img_01.jpg reason=EXISTS_SAME_SIZE_AND_SHA256 size=96341",
+        "[SKIP] [derived] phase1_seed10/derived/images/exhibition_works_images/2025/liste/amanita__iusedtobeamountain-html__28badb9d__img_01.jpg reason=EXISTS_SAME_SIZE_AND_SHA256 size=101918",
+        "[SKIP] [derived] phase1_seed10/derived/images/exhibition_works_images/2025/liste/amanita__questaserasirecitaasoggetto-html__cf542ce9__img_01.jpg reason=EXISTS_SAME_SIZE_AND_SHA256 size=102024",
+        "[SKIP] [derived] phase1_seed10/derived/images/exhibition_works_images/2025/liste/anca-potera-u-gallery__exhibitions__e9354bd8__img_01.jpg reason=EXISTS_SAME_SIZE_AND_SHA256 size=101958",
+        "[SKIP] [derived] phase1_seed10/derived/vector/artists_text_artifact_manifest_2025.json reason=EXISTS_SAME_SIZE_AND_SHA256 size=853",
+        "[SKIP] [derived] phase1_seed10/derived/vector/artists_text_index_2025.npy reason=EXISTS_SAME_SIZE_AND_SHA256 size=491648",
+        "[SKIP] [derived] phase1_seed10/derived/vector/artists_text_meta_2025.jsonl reason=EXISTS_SAME_SIZE_AND_SHA256 size=42949",
+        "[SKIP] [derived] phase1_seed10/derived/vector/artists_text_vectorize_failed_2025.jsonl reason=EXISTS_SAME_SIZE_AND_SHA256 size=0",
+        "[SKIP] [derived] phase1_seed10/derived/vector/artists_text_vectorize_summary_2025.json reason=EXISTS_SAME_SIZE_AND_SHA256 size=1224",
+        "[UPLOAD] [manifest] phase1_seed10/derived/phase1_seed10_artifact_manifest.json size=504993 sha256=171fc5fa73bc...",
+        "[DONE] status=OK uploaded=0 skipped=1044 failed=0 pruned=0 prune_failed=0",
+        "[DONE] manifest_local=data/phase1_seed10/derived/phase1_seed10_artifact_manifest.json",
+        "[DONE] summary=data/phase1_seed10/logs/phase1_seed10_r2_sync_derived_20260301T161320Z.json"
+      ],
+      "stderr_tail": [],
+      "name": "apply_guarded_without_prune"
+    }
+  ],
+  "dry_run_summary_path": "data/phase1_seed10/logs/phase1_seed10_r2_sync_derived_20260301T161031Z.json",
+  "apply_summary_path": "data/phase1_seed10/logs/phase1_seed10_r2_sync_derived_20260301T161320Z.json",
+  "delete_policy": "prune_deferred_first_seen",
+  "prune_candidates_count": 9,
+  "prune_stable_hits": 1,
+  "prune_ready": false
+}

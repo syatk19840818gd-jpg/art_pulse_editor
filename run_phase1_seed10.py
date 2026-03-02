@@ -7,6 +7,7 @@ import hashlib
 import json
 import os
 import re
+import subprocess
 import sys
 from collections import Counter, defaultdict
 from dataclasses import dataclass
@@ -24,6 +25,17 @@ from phase1_artist_link_utils import (
     looks_like_artist_listing_url as shared_looks_like_artist_listing_url,
     normalize_url_for_link_compare as shared_normalize_url_for_link_compare,
     score_artist_detail_url_quality as shared_score_artist_detail_url_quality,
+)
+from phase1_exhibitions_text_utils import (
+    canonicalize_exhibition_url,
+    extract_exhibition_dates,
+    extract_participating_artists_line,
+    fetch_and_extract_pdf_text,
+    has_explicit_non_target_year,
+    merge_exhibition_text,
+    merge_sources,
+    normalize_sources,
+    should_include_target_year_page,
 )
 from r2_auto_sync import auto_sync_after_job, format_auto_sync_brief
 try:
@@ -46,6 +58,7 @@ RAG_CATEGORY = "exhibitions_text"
 RAG_CATEGORY_ARTISTS = "artists_text"
 SEED_PER_FAIR = 5
 MAX_EXHIBITION_LINKS_PER_GALLERY = 10
+MAX_EXHIBITION_LISTING_EXPANSION_DEPTH = 2
 # TEMPORARY TEST CAP:
 # User-requested operational override for stability testing.
 # SSOT default target remains 80, but current runs are intentionally capped to 5 per gallery.
@@ -61,6 +74,12 @@ USE_PLAYWRIGHT_HTML_FETCH = os.getenv("PHASE1_USE_PLAYWRIGHT", "1").strip().lowe
     "off",
 }
 PLAYWRIGHT_NAV_TIMEOUT_MS = max(5000, REQUEST_TIMEOUT_SECONDS * 1000)
+STARTUP_MIN_SYNC_ENABLED = os.getenv("PHASE1_STARTUP_MIN_SYNC", "1").strip().lower() not in {
+    "0",
+    "false",
+    "no",
+    "off",
+}
 
 # 一度失敗したら再試行価値が低いものは即スキップ対象にする。
 NON_RETRYABLE_FAILURE_REASON_CODES = {
@@ -104,6 +123,25 @@ LINK_KEYWORDS = (
     "current",
     "viewing-room",
 )
+
+EXHIBITION_LISTING_PATH_SEGMENTS = {
+    "exhibition",
+    "exhibitions",
+    "show",
+    "shows",
+    "programme",
+    "program",
+    "projects",
+    "project",
+    "archive",
+    "past",
+    "past-exhibitions",
+    "current",
+    "events",
+    "event",
+    "news",
+    "category",
+}
 
 ARTIST_URL_NON_NAME_SEGMENTS = {
     "artist",
@@ -405,6 +443,56 @@ def _looks_like_exhibition_link(candidate_url: str, anchor_text: str) -> bool:
     return any(keyword in target for keyword in LINK_KEYWORDS)
 
 
+def _path_segments_from_url(url: str) -> list[str]:
+    path = urlparse(url).path or ""
+    return [segment for segment in path.lower().split("/") if segment]
+
+
+def _is_listing_like_exhibition_url(url: str) -> bool:
+    segments = _path_segments_from_url(url)
+    if not segments:
+        return True
+    last = segments[-1]
+    if last in EXHIBITION_LISTING_PATH_SEGMENTS:
+        return True
+    if len(segments) >= 2 and segments[-2] == "category":
+        return True
+    return False
+
+
+def _is_probable_exhibition_detail_url(url: str) -> bool:
+    segments = _path_segments_from_url(url)
+    if not segments:
+        return False
+    if _is_listing_like_exhibition_url(url):
+        return False
+    last = segments[-1]
+    if re.search(r"(?<!\d)(19\d{2}|20\d{2})(?!\d)", "/".join(segments)):
+        return True
+    if "-" in last and len(last) >= 8:
+        return True
+    if len(segments) >= 2 and segments[-2] in {"exhibitions", "projects", "show", "shows"}:
+        return True
+    return len(segments) >= 2 and len(last) >= 6
+
+
+def _score_exhibition_url_quality(url: str, anchor_text: str, target_year: int = TARGET_YEAR) -> int:
+    score = 0
+    target = f"{url.lower()} {anchor_text.lower()}".strip()
+    if _is_probable_exhibition_detail_url(url):
+        score += 40
+    elif _is_listing_like_exhibition_url(url):
+        score -= 20
+    if str(int(target_year)) in target:
+        score += 30
+    if re.search(r"\b(current|now|ongoing)\b", target):
+        score += 8
+    if re.search(r"(?<!\d)(19\d{2}|20\d{2})(?!\d)", target) and str(int(target_year)) not in target:
+        score -= 6
+    score += min(len(_path_segments_from_url(url)), 4)
+    return score
+
+
 def _looks_like_artist_listing_url(url: str) -> bool:
     return shared_looks_like_artist_listing_url(url)
 
@@ -435,8 +523,7 @@ def extract_links_from_html(html: str) -> list[tuple[str, str]]:
 
 
 def extract_candidate_exhibition_urls(list_page_url: str, list_page_html: str) -> list[str]:
-    candidates: list[str] = []
-    seen: set[str] = set()
+    best_by_canonical: dict[str, tuple[int, str]] = {}
 
     for href, anchor_text in extract_links_from_html(list_page_html):
         href = href.strip()
@@ -452,19 +539,17 @@ def extract_candidate_exhibition_urls(list_page_url: str, list_page_html: str) -
             continue
         if not _looks_like_exhibition_link(absolute_url, anchor_text):
             continue
-        normalized = f"{parsed.scheme}://{parsed.netloc}{parsed.path}".rstrip("/")
-        if parsed.query:
-            normalized = f"{normalized}?{parsed.query}"
-        if normalized in seen:
-            continue
-        seen.add(normalized)
-        candidates.append(normalized)
-        if len(candidates) >= MAX_EXHIBITION_LINKS_PER_GALLERY:
-            break
+        normalized = canonicalize_exhibition_url(absolute_url)
+        score = _score_exhibition_url_quality(normalized, anchor_text)
+        previous = best_by_canonical.get(normalized)
+        if previous is None or score > previous[0]:
+            best_by_canonical[normalized] = (score, normalized)
 
-    if not candidates:
+    if not best_by_canonical:
         return [list_page_url]
-    return candidates
+
+    ranked = sorted(best_by_canonical.values(), key=lambda item: (-item[0], item[1]))
+    return [url for _score, url in ranked[:MAX_EXHIBITION_LINKS_PER_GALLERY]]
 
 
 def extract_candidate_artist_urls(
@@ -883,13 +968,15 @@ def write_artist_master_global(path: Path, master: dict[str, dict[str, Any]]) ->
     write_json(path, payload)
 
 
-def looks_like_target_year(page_url: str, html: str) -> bool:
-    year = str(TARGET_YEAR)
-    return year in page_url or year in html
-
-
 def append_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
     with path.open("a", encoding="utf-8") as handle:
+        for row in rows:
+            handle.write(json.dumps(row, ensure_ascii=False))
+            handle.write("\n")
+
+
+def write_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
+    with path.open("w", encoding="utf-8") as handle:
         for row in rows:
             handle.write(json.dumps(row, ensure_ascii=False))
             handle.write("\n")
@@ -947,6 +1034,74 @@ def read_jsonl_rows(path: Path) -> list[dict[str, Any]]:
             if isinstance(row, dict):
                 rows.append(row)
     return rows
+
+
+def load_existing_exhibitions_rows(
+    path: Path,
+) -> tuple[list[dict[str, Any]], dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
+    rows = read_jsonl_rows(path)
+    by_text_hash: dict[str, dict[str, Any]] = {}
+    by_source_url: dict[str, dict[str, Any]] = {}
+    for row in rows:
+        canonical_source_url = canonicalize_exhibition_url(str(row.get("source_url") or ""))
+        row["source_url"] = canonical_source_url
+        text_hash = str(row.get("text_hash") or "").strip()
+        row["sources"] = normalize_sources(row.get("sources"), fallback_source_url=canonical_source_url)
+        if text_hash:
+            by_text_hash[text_hash] = row
+        if canonical_source_url:
+            by_source_url[canonical_source_url] = row
+    return rows, by_text_hash, by_source_url
+
+
+def append_source_to_existing_record(
+    *,
+    by_text_hash: dict[str, dict[str, Any]],
+    text_hash: str,
+    source_url: str,
+) -> bool:
+    row = by_text_hash.get(text_hash)
+    if row is None:
+        return False
+    row["sources"] = merge_sources(row.get("sources"), source_url)
+    return True
+
+
+def run_startup_manifest_min_sync() -> dict[str, Any]:
+    result: dict[str, Any] = {
+        "enabled": STARTUP_MIN_SYNC_ENABLED,
+        "status": "disabled",
+        "steps": [],
+    }
+    if not STARTUP_MIN_SYNC_ENABLED:
+        return result
+
+    py_exec = sys.executable
+    dry_cmd = [py_exec, "run_phase1_seed10_r2_sync.py", "--scope", "raw", "--dry-run"]
+    apply_cmd = [py_exec, "run_phase1_seed10_r2_sync.py", "--scope", "raw", "--require-dry-run-log"]
+    for name, cmd in (("dry_run", dry_cmd), ("apply", apply_cmd)):
+        proc = subprocess.run(
+            cmd,
+            check=False,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+        )
+        step = {
+            "name": name,
+            "command": cmd,
+            "exit_code": int(proc.returncode),
+            "stdout_tail": [line for line in (proc.stdout or "").splitlines() if line.strip()][-20:],
+            "stderr_tail": [line for line in (proc.stderr or "").splitlines() if line.strip()][-20:],
+        }
+        result["steps"].append(step)
+        if proc.returncode != 0:
+            result["status"] = f"failed_{name}"
+            return result
+
+    result["status"] = "ok"
+    return result
 
 
 def is_manual_seed_row(row: dict[str, Any]) -> bool:
@@ -1297,6 +1452,9 @@ def main() -> int:
     started_at = utc_now_iso()
     categories = [RAG_CATEGORY] + ([RAG_CATEGORY_ARTISTS] if include_artists_text else [])
     print(f"[START] Phase1 seed10 fetch ({'+'.join(categories)}) at {started_at}")
+    startup_min_sync_result = run_startup_manifest_min_sync()
+    if startup_min_sync_result.get("enabled"):
+        print(f"[INFO] startup_min_sync status={startup_min_sync_result.get('status')}")
 
     seed_galleries: list[GallerySeed] = []
     for fair_slug, csv_path in CSV_PATHS.items():
@@ -1340,6 +1498,14 @@ def main() -> int:
 
     visited_pages_ledger = load_visited_pages_ledger(visited_pages_path)
     failed_fetches_ledger = load_failed_fetches_ledger(failed_fetches_path)
+    existing_exhibitions_rows_by_fair: dict[str, list[dict[str, Any]]] = {}
+    existing_exhibitions_by_hash_by_fair: dict[str, dict[str, dict[str, Any]]] = {}
+    existing_exhibitions_by_source_by_fair: dict[str, dict[str, dict[str, Any]]] = {}
+    for fair_slug, output_path in output_paths_by_fair.items():
+        rows, by_hash, by_source = load_existing_exhibitions_rows(output_path)
+        existing_exhibitions_rows_by_fair[fair_slug] = rows
+        existing_exhibitions_by_hash_by_fair[fair_slug] = by_hash
+        existing_exhibitions_by_source_by_fair[fair_slug] = by_source
     existing_text_hashes_by_fair = {
         fair_slug: load_existing_text_hashes(output_path)
         for fair_slug, output_path in output_paths_by_fair.items()
@@ -1352,6 +1518,11 @@ def main() -> int:
     }
     skip_reason_counter: Counter[str] = Counter()
     failed_fetches_in_run: list[dict[str, Any]] = []
+    exhibitions_feature_counter: Counter[str] = Counter()
+    saved_source_urls_by_fair: dict[str, set[str]] = {
+        fair_slug: set(existing_exhibitions_by_source_by_fair.get(fair_slug, {}).keys())
+        for fair_slug in CSV_PATHS
+    }
 
     print(
         f"[INFO] Loaded ledgers: visited={len(visited_pages_ledger)} "
@@ -1446,7 +1617,16 @@ def main() -> int:
             list_page_html=list_result["html"],
         )
 
-        for page_url in candidate_urls:
+        candidate_queue: list[dict[str, Any]] = [
+            {"url": page_url, "parent_source_url": list_page_url, "depth": 0} for page_url in candidate_urls
+        ]
+        queued_page_hashes: set[str] = {compute_page_url_hash(str(item["url"])) for item in candidate_queue}
+
+        while candidate_queue:
+            queue_item = candidate_queue.pop(0)
+            page_url = str(queue_item.get("url") or "")
+            parent_source_url = str(queue_item.get("parent_source_url") or list_page_url)
+            depth = int(queue_item.get("depth") or 0)
             page_url_hash = compute_page_url_hash(page_url)
             failed_page_entry = failed_fetches_ledger.get(page_url_hash)
             now = datetime.now(timezone.utc)
@@ -1460,7 +1640,7 @@ def main() -> int:
                         gallery_name_en=gallery.gallery_name_en,
                         decision="skipped",
                         reason_code=skip_reason,
-                        parent_source_url=list_page_url,
+                        parent_source_url=parent_source_url,
                     )
                     skip_reason_counter[skip_reason] += 1
                     continue
@@ -1474,7 +1654,7 @@ def main() -> int:
                     gallery_name_en=gallery.gallery_name_en,
                     decision="skipped",
                     reason_code="KNOWN_SAVED_PAGE",
-                    parent_source_url=list_page_url,
+                    parent_source_url=parent_source_url,
                 )
                 skip_reason_counter["KNOWN_SAVED_PAGE"] += 1
                 continue
@@ -1487,7 +1667,7 @@ def main() -> int:
                         failed_fetches_ledger,
                         kind="page",
                         raw_url=page_url,
-                        parent_source_url=list_page_url,
+                        parent_source_url=parent_source_url,
                         last_error=page_result["error"] or "PAGE_FETCH_FAILED",
                         http_status=page_result["status_code"],
                         reason_code=page_reason_code,
@@ -1500,21 +1680,116 @@ def main() -> int:
                     gallery_name_en=gallery.gallery_name_en,
                     decision="failed",
                     reason_code=page_reason_code,
-                    parent_source_url=list_page_url,
+                    parent_source_url=parent_source_url,
                 )
                 continue
 
-            source_url = page_result["final_url"]
+            source_url = canonicalize_exhibition_url(page_result["final_url"] or page_url)
             clear_failed_fetch(failed_fetches_ledger, page_url)
             clear_failed_fetch(failed_fetches_ledger, source_url)
-            text = extract_text(page_result["html"])
+
+            if _is_listing_like_exhibition_url(source_url) and depth < (MAX_EXHIBITION_LISTING_EXPANSION_DEPTH - 1):
+                expanded_urls = extract_candidate_exhibition_urls(
+                    list_page_url=source_url,
+                    list_page_html=page_result["html"],
+                )
+                detail_enqueued = 0
+                for expanded_url in expanded_urls:
+                    expanded_canonical = canonicalize_exhibition_url(expanded_url)
+                    expanded_hash = compute_page_url_hash(expanded_canonical)
+                    if expanded_hash in queued_page_hashes:
+                        continue
+                    if expanded_canonical == source_url:
+                        continue
+                    if _is_listing_like_exhibition_url(expanded_canonical):
+                        continue
+                    queued_page_hashes.add(expanded_hash)
+                    candidate_queue.append(
+                        {
+                            "url": expanded_canonical,
+                            "parent_source_url": source_url,
+                            "depth": depth + 1,
+                        }
+                    )
+                    detail_enqueued += 1
+                if detail_enqueued > 0:
+                    upsert_visited_page(
+                        visited_pages_ledger,
+                        url=source_url,
+                        fair_slug=gallery.fair_slug,
+                        gallery_name_en=gallery.gallery_name_en,
+                        decision="skipped",
+                        reason_code="LISTING_EXPANDED_TO_DETAIL",
+                        parent_source_url=parent_source_url,
+                    )
+                    skip_reason_counter["LISTING_EXPANDED_TO_DETAIL"] += 1
+                    continue
+
+            if has_explicit_non_target_year(source_url, TARGET_YEAR):
+                upsert_visited_page(
+                    visited_pages_ledger,
+                    url=source_url,
+                    fair_slug=gallery.fair_slug,
+                    gallery_name_en=gallery.gallery_name_en,
+                    decision="skipped",
+                    reason_code="OUT_OF_YEAR",
+                    parent_source_url=parent_source_url,
+                )
+                skip_reason_counter["OUT_OF_YEAR"] += 1
+                continue
+            if source_url in saved_source_urls_by_fair[gallery.fair_slug]:
+                upsert_visited_page(
+                    visited_pages_ledger,
+                    url=source_url,
+                    fair_slug=gallery.fair_slug,
+                    gallery_name_en=gallery.gallery_name_en,
+                    decision="skipped",
+                    reason_code="KNOWN_SAVED_SOURCE_URL",
+                    parent_source_url=parent_source_url,
+                )
+                skip_reason_counter["KNOWN_SAVED_SOURCE_URL"] += 1
+                continue
+            base_text = extract_text(page_result["html"])
+            target_year_ok, year_reason = should_include_target_year_page(
+                page_url=source_url,
+                html=page_result["html"],
+                target_year=TARGET_YEAR,
+            )
+            if not target_year_ok:
+                upsert_visited_page(
+                    visited_pages_ledger,
+                    url=source_url,
+                    fair_slug=gallery.fair_slug,
+                    gallery_name_en=gallery.gallery_name_en,
+                    decision="skipped",
+                    reason_code="OUT_OF_YEAR",
+                    parent_source_url=parent_source_url,
+                )
+                skip_reason_counter["OUT_OF_YEAR"] += 1
+                continue
+
+            participating_artists_line = extract_participating_artists_line(base_text)
+            if participating_artists_line:
+                exhibitions_feature_counter["participating_artists_appended"] += 1
+            pdf_text, pdf_debug_rows = fetch_and_extract_pdf_text(
+                session=session,
+                page_url=source_url,
+                html=page_result["html"],
+            )
+            if pdf_text:
+                exhibitions_feature_counter["pdf_text_merged"] += 1
+            text = merge_exhibition_text(
+                base_text=base_text,
+                participating_artists_line=participating_artists_line,
+                pdf_text=pdf_text,
+            )
             if not text:
                 failed_fetches_in_run.append(
                     upsert_failed_fetch(
                         failed_fetches_ledger,
                         kind="page",
                         raw_url=source_url,
-                        parent_source_url=list_page_url,
+                        parent_source_url=parent_source_url,
                         last_error="EMPTY_TEXT",
                         http_status=page_result["status_code"],
                         reason_code="EMPTY_TEXT",
@@ -1527,23 +1802,18 @@ def main() -> int:
                     gallery_name_en=gallery.gallery_name_en,
                     decision="failed",
                     reason_code="EMPTY_TEXT",
-                    parent_source_url=list_page_url,
+                    parent_source_url=parent_source_url,
                 )
                 continue
 
-            if not looks_like_target_year(source_url, page_result["html"]):
-                upsert_visited_page(
-                    visited_pages_ledger,
-                    url=source_url,
-                    fair_slug=gallery.fair_slug,
-                    gallery_name_en=gallery.gallery_name_en,
-                    decision="skipped",
-                    reason_code="OUT_OF_YEAR",
-                    parent_source_url=list_page_url,
-                )
-                skip_reason_counter["OUT_OF_YEAR"] += 1
-                continue
-
+            date_info = extract_exhibition_dates(
+                page_url=source_url,
+                html=page_result["html"],
+                extracted_text=text,
+                target_year=TARGET_YEAR,
+            )
+            if date_info.get("exhibition_start_date") or date_info.get("exhibition_end_date"):
+                exhibitions_feature_counter["date_fields_filled"] += 1
             text_hash = compute_text_hash(text=text, source_url=source_url)
             if text_hash in seen_hashes_by_fair[gallery.fair_slug]:
                 duplicate_reason = (
@@ -1551,6 +1821,19 @@ def main() -> int:
                     if text_hash in existing_text_hashes_by_fair.get(gallery.fair_slug, set())
                     else "DUPLICATE_TEXT_HASH_IN_RUN"
                 )
+                if not append_source_to_existing_record(
+                    by_text_hash=existing_exhibitions_by_hash_by_fair[gallery.fair_slug],
+                    text_hash=text_hash,
+                    source_url=source_url,
+                ):
+                    for existing_row in reversed(records_by_fair.get(gallery.fair_slug, [])):
+                        if str(existing_row.get("text_hash") or "") != text_hash:
+                            continue
+                        existing_row["sources"] = merge_sources(existing_row.get("sources"), source_url)
+                        exhibitions_feature_counter["duplicate_sources_updated"] += 1
+                        break
+                else:
+                    exhibitions_feature_counter["duplicate_sources_updated"] += 1
                 upsert_visited_page(
                     visited_pages_ledger,
                     url=source_url,
@@ -1558,7 +1841,7 @@ def main() -> int:
                     gallery_name_en=gallery.gallery_name_en,
                     decision="skipped",
                     reason_code=duplicate_reason,
-                    parent_source_url=list_page_url,
+                    parent_source_url=parent_source_url,
                 )
                 skip_reason_counter[duplicate_reason] += 1
                 continue
@@ -1568,20 +1851,28 @@ def main() -> int:
                 "gallery_name_en": gallery.gallery_name_en,
                 "gallery_name_kana": gallery.gallery_name_kana,
                 "source_url": source_url,
+                "sources": normalize_sources([], fallback_source_url=source_url),
                 "text": text,
                 "text_hash": text_hash,
                 "headline_ja": "",
                 "summary_ja": "",
                 "extracted_at": utc_now_iso(),
                 "target_year": TARGET_YEAR,
-                "exhibition_start_date": "",
-                "exhibition_end_date": "",
-                "date_source": "heuristic_year_match",
-                "date_confidence": "low",
+                "exhibition_start_date": date_info["exhibition_start_date"],
+                "exhibition_end_date": date_info["exhibition_end_date"],
+                "date_source": date_info["date_source"],
+                "date_confidence": date_info["date_confidence"],
+                "participating_artists": participating_artists_line,
+                "pdf_text_merged": bool(pdf_text),
+                "pdf_text_chars": len(pdf_text),
+                "pdf_debug": pdf_debug_rows[:3],
+                "target_year_signal_reason": year_reason,
                 "fair_slug": gallery.fair_slug,
                 "rag_category": RAG_CATEGORY,
             }
             records_by_fair[gallery.fair_slug].append(record)
+            saved_source_urls_by_fair[gallery.fair_slug].add(source_url)
+            existing_exhibitions_by_source_by_fair[gallery.fair_slug][source_url] = record
             upsert_visited_page(
                 visited_pages_ledger,
                 url=source_url,
@@ -1589,7 +1880,7 @@ def main() -> int:
                 gallery_name_en=gallery.gallery_name_en,
                 decision="saved",
                 reason_code="OK",
-                parent_source_url=list_page_url,
+                parent_source_url=parent_source_url,
             )
 
     if include_artists_text:
@@ -1904,7 +2195,9 @@ def main() -> int:
     output_files: dict[str, str] = {}
     for fair_slug in CSV_PATHS:
         output_path = output_paths_by_fair[fair_slug]
-        append_jsonl(output_path, records_by_fair.get(fair_slug, []))
+        merged_rows = list(existing_exhibitions_rows_by_fair.get(fair_slug, []))
+        merged_rows.extend(records_by_fair.get(fair_slug, []))
+        write_jsonl(output_path, merged_rows)
         output_files[fair_slug] = str(output_path)
 
     artists_output_files: dict[str, str] = {}
@@ -1975,7 +2268,7 @@ def main() -> int:
     records_total_after_run = existing_records_total + new_records_saved_total
     skipped_known_saved_page = int(skip_reason_counter.get("KNOWN_SAVED_PAGE", 0)) + int(
         skip_reason_counter.get("DUPLICATE_TEXT_HASH_EXISTING", 0)
-    )
+    ) + int(skip_reason_counter.get("KNOWN_SAVED_SOURCE_URL", 0))
     skipped_out_of_year = int(skip_reason_counter.get("OUT_OF_YEAR", 0))
     artists_existing_records_total = sum(
         len(artists_existing_text_hashes_by_fair.get(fair_slug, set()))
@@ -1999,6 +2292,9 @@ def main() -> int:
         "seed_gallery_count_after_registry": len(seed_galleries),
         "seed_gallery_registry_skipped_count": seed_gallery_count_before_registry - len(seed_galleries),
         "seed_gallery_registry_skipped_names": sorted(set(registry_skipped_gallery_names)),
+        "startup_min_sync_enabled": bool(startup_min_sync_result.get("enabled")),
+        "startup_min_sync_status": str(startup_min_sync_result.get("status") or ""),
+        "startup_min_sync_steps": startup_min_sync_result.get("steps", []),
         "failure_retry_cooldown_seconds": FAILURE_RETRY_COOLDOWN_SECONDS,
         "max_failure_retries_per_url": MAX_FAILURE_RETRIES_PER_URL,
         "records_saved_total": new_records_saved_total,
@@ -2009,6 +2305,7 @@ def main() -> int:
         "failed_fetches_new_in_run": len(failed_fetches_in_run),
         "failed_fetches_total_ledger": len(failed_fetches_ledger),
         "failed_fetches_reason_counts": dict(Counter(x.get("reason_code", "UNKNOWN") for x in failed_fetches_ledger.values())),
+        "exhibitions_feature_counts": dict(exhibitions_feature_counter),
         "visited_pages_total_ledger": len(visited_pages_ledger),
         "skipped_total": sum(skip_reason_counter.values()),
         "skipped_known_saved_page": skipped_known_saved_page,

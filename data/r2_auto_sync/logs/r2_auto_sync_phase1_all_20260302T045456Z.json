@@ -1,0 +1,87 @@
+{
+  "status": "ok",
+  "target": "phase1_all",
+  "trigger": "run_phase1_seed10.py",
+  "started_at": "2026-03-02T04:48:16Z",
+  "finished_at": "2026-03-02T04:54:56Z",
+  "steps": [
+    {
+      "command": [
+        "C:\\Users\\syatk\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
+        "run_phase1_seed10_r2_sync.py",
+        "--scope",
+        "all",
+        "--dry-run",
+        "--prune"
+      ],
+      "exit_code": 0,
+      "stdout_tail": [
+        "[DRY-RUN] [logs] data/phase1_seed10/logs/task_t113_r2_apply_console.log -> phase1_seed10/logs/task_t113_r2_apply_console.log (189158 bytes)",
+        "[DRY-RUN] [logs] data/phase1_seed10/logs/task_t113_r2_dryrun_console.log -> phase1_seed10/logs/task_t113_r2_dryrun_console.log (289533 bytes)",
+        "[DRY-RUN] [logs] data/phase1_seed10/logs/task_t114_r2_apply_console.log -> phase1_seed10/logs/task_t114_r2_apply_console.log (215954 bytes)",
+        "[DRY-RUN] [logs] data/phase1_seed10/logs/task_t114_r2_dryrun_console.log -> phase1_seed10/logs/task_t114_r2_dryrun_console.log (332876 bytes)",
+        "[DRY-RUN] [logs] data/phase1_seed10/logs/visited_pages_artists_seed10_2025.json -> phase1_seed10/logs/visited_pages_artists_seed10_2025.json (232274 bytes)",
+        "[DRY-RUN] [logs] data/phase1_seed10/logs/visited_pages_seed10_2025.json -> phase1_seed10/logs/visited_pages_seed10_2025.json (71538 bytes)",
+        "[DRY-RUN] [raw] data/phase1_seed10/raw/artists_frieze_london_2025.jsonl -> phase1_seed10/source/artists_frieze_london_2025.jsonl (1013266 bytes)",
+        "[DRY-RUN] [raw] data/phase1_seed10/raw/artists_frieze_london_2025.jsonl.bak_20260227_222406 -> phase1_seed10/source/artists_frieze_london_2025.jsonl.bak_20260227_222406 (198565 bytes)",
+        "[DRY-RUN] [raw] data/phase1_seed10/raw/artists_frieze_london_2025.jsonl.bak_20260227_232746 -> phase1_seed10/source/artists_frieze_london_2025.jsonl.bak_20260227_232746 (199006 bytes)",
+        "[DRY-RUN] [raw] data/phase1_seed10/raw/artists_frieze_london_2025.jsonl.bak_20260301_173725 -> phase1_seed10/source/artists_frieze_london_2025.jsonl.bak_20260301_173725 (1007082 bytes)",
+        "[DRY-RUN] [raw] data/phase1_seed10/raw/artists_liste_2025.jsonl -> phase1_seed10/source/artists_liste_2025.jsonl (711072 bytes)",
+        "[DRY-RUN] [raw] data/phase1_seed10/raw/exhibitions_frieze_london_2025.jsonl -> phase1_seed10/source/exhibitions_frieze_london_2025.jsonl (298634 bytes)",
+        "[DRY-RUN] [raw] data/phase1_seed10/raw/exhibitions_frieze_london_2025.jsonl.bak_20260302_004312 -> phase1_seed10/source/exhibitions_frieze_london_2025.jsonl.bak_20260302_004312 (647579 bytes)",
+        "[DRY-RUN] [raw] data/phase1_seed10/raw/exhibitions_frieze_london_2025.jsonl.bak_20260302_010015 -> phase1_seed10/source/exhibitions_frieze_london_2025.jsonl.bak_20260302_010015 (647579 bytes)",
+        "[DRY-RUN] [raw] data/phase1_seed10/raw/exhibitions_liste_2025.jsonl -> phase1_seed10/source/exhibitions_liste_2025.jsonl (271971 bytes)",
+        "[DRY-RUN] [raw] data/phase1_seed10/raw/exhibitions_liste_2025.jsonl.bak_20260302_004312 -> phase1_seed10/source/exhibitions_liste_2025.jsonl.bak_20260302_004312 (380503 bytes)",
+        "[DRY-RUN] [raw] data/phase1_seed10/raw/exhibitions_liste_2025.jsonl.bak_20260302_010015 -> phase1_seed10/source/exhibitions_liste_2025.jsonl.bak_20260302_010015 (380503 bytes)",
+        "[DONE] status=DRY_RUN_OK uploaded=0 skipped=0 failed=0 pruned=0 prune_failed=0",
+        "[DONE] manifest_local=data/phase1_seed10/derived/phase1_seed10_artifact_manifest.json",
+        "[DONE] summary=data/phase1_seed10/logs/phase1_seed10_r2_sync_all_20260302T044826Z.json"
+      ],
+      "stderr_tail": [],
+      "name": "dry_run_prune"
+    },
+    {
+      "command": [
+        "C:\\Users\\syatk\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
+        "run_phase1_seed10_r2_sync.py",
+        "--scope",
+        "all",
+        "--prune",
+        "--require-dry-run-log",
+        "--max-prune",
+        "600"
+      ],
+      "exit_code": 0,
+      "stdout_tail": [
+        "[SKIP] [logs] phase1_seed10/logs/task_t113_r2_dryrun_console.log reason=EXISTS_SAME_SIZE_AND_SHA256 size=289533",
+        "[SKIP] [logs] phase1_seed10/logs/task_t114_r2_apply_console.log reason=EXISTS_SAME_SIZE_AND_SHA256 size=215954",
+        "[SKIP] [logs] phase1_seed10/logs/task_t114_r2_dryrun_console.log reason=EXISTS_SAME_SIZE_AND_SHA256 size=332876",
+        "[SKIP] [logs] phase1_seed10/logs/visited_pages_artists_seed10_2025.json reason=EXISTS_SAME_SIZE_AND_SHA256 size=232274",
+        "[UPLOAD] [logs] phase1_seed10/logs/visited_pages_seed10_2025.json size=71538 sha256=b748a8de9ef3...",
+        "[SKIP] [raw] phase1_seed10/source/artists_frieze_london_2025.jsonl reason=EXISTS_SAME_SIZE_AND_SHA256 size=1013266",
+        "[SKIP] [raw] phase1_seed10/source/artists_frieze_london_2025.jsonl.bak_20260227_222406 reason=EXISTS_SAME_SIZE_AND_SHA256 size=198565",
+        "[SKIP] [raw] phase1_seed10/source/artists_frieze_london_2025.jsonl.bak_20260227_232746 reason=EXISTS_SAME_SIZE_AND_SHA256 size=199006",
+        "[SKIP] [raw] phase1_seed10/source/artists_frieze_london_2025.jsonl.bak_20260301_173725 reason=EXISTS_SAME_SIZE_AND_SHA256 size=1007082",
+        "[SKIP] [raw] phase1_seed10/source/artists_liste_2025.jsonl reason=EXISTS_SAME_SIZE_AND_SHA256 size=711072",
+        "[SKIP] [raw] phase1_seed10/source/exhibitions_frieze_london_2025.jsonl reason=EXISTS_SAME_SIZE_AND_SHA256 size=298634",
+        "[SKIP] [raw] phase1_seed10/source/exhibitions_frieze_london_2025.jsonl.bak_20260302_004312 reason=EXISTS_SAME_SIZE_AND_SHA256 size=647579",
+        "[SKIP] [raw] phase1_seed10/source/exhibitions_frieze_london_2025.jsonl.bak_20260302_010015 reason=EXISTS_SAME_SIZE_AND_SHA256 size=647579",
+        "[SKIP] [raw] phase1_seed10/source/exhibitions_liste_2025.jsonl reason=EXISTS_SAME_SIZE_AND_SHA256 size=271971",
+        "[SKIP] [raw] phase1_seed10/source/exhibitions_liste_2025.jsonl.bak_20260302_004312 reason=EXISTS_SAME_SIZE_AND_SHA256 size=380503",
+        "[SKIP] [raw] phase1_seed10/source/exhibitions_liste_2025.jsonl.bak_20260302_010015 reason=EXISTS_SAME_SIZE_AND_SHA256 size=380503",
+        "[UPLOAD] [manifest] phase1_seed10/derived/phase1_seed10_artifact_manifest.json size=765718 sha256=d38365ca16ac...",
+        "[DONE] status=OK uploaded=22 skipped=1667 failed=0 pruned=0 prune_failed=0",
+        "[DONE] manifest_local=data/phase1_seed10/derived/phase1_seed10_artifact_manifest.json",
+        "[DONE] summary=data/phase1_seed10/logs/phase1_seed10_r2_sync_all_20260302T045456Z.json"
+      ],
+      "stderr_tail": [],
+      "name": "apply_guarded_with_prune"
+    }
+  ],
+  "dry_run_summary_path": "data/phase1_seed10/logs/phase1_seed10_r2_sync_all_20260302T044826Z.json",
+  "apply_summary_path": "data/phase1_seed10/logs/phase1_seed10_r2_sync_all_20260302T045456Z.json",
+  "delete_policy": "no_prune_candidates",
+  "prune_candidates_count": 0,
+  "prune_stable_hits": 0,
+  "prune_ready": true
+}
