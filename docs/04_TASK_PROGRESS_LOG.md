@@ -4900,3 +4900,73 @@ _trash 運用方針:
 - 補足:
   - The Approach 3URL は `seed=0 / existing_hit_only / target_met維持 / failed_case_count=0` で自然収束寄り。
   - under-target rerun 系は current batch でクローズ扱いとし、T123（文字化けhousekeeping）は low priority 維持。
+
+## 174. TASK182 03/04 DOC SYNC EXECUTION（DESIGN REFLECT ONLY）
+- 実施日: 2026-03-04
+- 目的:
+  - TASK181設計を反映し、03は「現在地/次アクション中心」、04は「milestone block方式」で追跡可能性と簡潔性を両立する。
+- 方針:
+  - rollback/retryは抽出品質失敗ではなく、adoption plumbing修正履歴として記録する。
+  - QA詳細表の貼り付けは省略し、必要最小の指標 + artifact参照に統一する。
+
+### Milestone 1（TASK155/156）3ギャラリー採用完了
+- TASK155: 3ギャラリー detail-grain trial（Adams / Arcadia / Anca）で `seed=25 / ge_1=25 / ge_target=25 / failed=0` を確認。
+  - `data/phase1_seed10/logs/phase1_seed10_exhibition_image_collect_summary_task_t155_trial.json`
+  - `data/phase1_seed10/logs/exhibitions_image_task_t155_trial_manifest.json`
+- TASK156: 3ギャラリー正式採用を safe-replace で完了（expected=actual、wrong_fair/year/route/duplicate=0）。
+  - `data/phase1_seed10/logs/exhibitions_image_task156_adoption_memo.md`
+
+### Milestone 2（TASK169-176）Unit-F chain（Athr / The Approach）
+- TASK169: Unit-F trial rerun + QA pass（`seed=8 / ge_1=8 / ge_target=8 / failed=0`）。
+  - `data/phase1_seed10/logs/phase1_seed10_exhibition_image_collect_summary_task_t169_unitf_rerun.json`
+  - `data/phase1_seed10/logs/exhibitions_image_task_t169_unitf_rerun_result.md`
+- TASK170: Unit-F adoption safe-replace設計を固定（実行境界: backup -> scoped replace -> QA -> rollback）。
+  - `data/phase1_seed10/logs/exhibitions_image_unitf_adoption_safe_replace_design_task170.md`
+- TASK171-175: adoption実行で発生した rollback/retry を adoption plumbing 修正として収束。
+  - root cause: delete-phase path保護漏れ / raw-line比較ノイズ / same-file copy
+  - fixes: delete-phase path保護, keyed semantic diff, same-file no-op
+  - `data/phase1_seed10/logs/exhibitions_image_task_t171_unitf_adoption_result.json`
+  - `data/phase1_seed10/logs/exhibitions_image_task_t172_unitf_rollback_review.md`
+  - `data/phase1_seed10/logs/exhibitions_image_task_t173_unitf_safe_replace_minimal_fix.md`
+  - `data/phase1_seed10/logs/exhibitions_image_task_t174_unitf_adoption_result.json`
+  - `data/phase1_seed10/logs/exhibitions_image_task_t175_unitf_adoption_followup.md`
+- TASK176: Unit-F adoption再実行で正式採用完了（`missing_local_path=0` / `non_unitf_unchanged=true`）。
+  - `data/phase1_seed10/logs/exhibitions_image_task_t176_unitf_adoption_execution_result.json`
+  - `data/phase1_seed10/logs/exhibitions_image_task_t176_unitf_adoption_execution_result.md`
+
+### Milestone 3（TASK177-180）Unit-L chain（Addis / Afriart）
+- TASK177: Unit-L actual trial実行前準備を固定（artifact bundle / run_id / preflight）。
+  - `data/phase1_seed10/logs/exhibitions_image_guardfirst_unitl_actual_trial_execution_prep_task177.md`
+  - `data/phase1_seed10/logs/exhibitions_image_task_t177_unitl_preflight.json`
+- TASK178: Unit-L actual trial + QA pass（`seed=12 / ge_1=12 / ge_target=12 / failed=0`）。
+  - `data/phase1_seed10/logs/phase1_seed10_exhibition_image_collect_summary_task_t178_unitl_trial.json`
+  - `data/phase1_seed10/logs/exhibitions_image_task_t178_unitl_trial_result.json`
+- TASK179: Unit-L adoption safe-replace設計を固定。
+  - `data/phase1_seed10/logs/exhibitions_image_unitl_adoption_safe_replace_design_task179.md`
+- TASK180: Unit-L正式採用完了（`missing_local_path=0` / `non_unitl_unchanged=true`、rollback不要）。
+  - `data/phase1_seed10/logs/exhibitions_image_task_t180_unitl_adoption_result.json`
+  - `data/phase1_seed10/logs/exhibitions_image_task_t180_unitl_adoption_result.md`
+
+## 175. TASK189 03/04 FINAL SYNC EXECUTION
+- 実施日: 2026-03-04
+- 目的:
+  - 10ギャラリー運用の正式状態（3ギャラリー + Unit-F + Unit-L + Safe群 + Keep-Current）を 03/04 に最終同期する。
+- 方針:
+  - 03は「現在地/次アクション中心」、04は「milestone block方式」で追跡可能性を維持。
+  - anti-mixing 固定運用（`trial -> QA -> adoption` / `_trash` 退避後 scoped replace / append禁止）を継続。
+
+### Milestone 4（TASK183-188）Safe群 chain（Gallery Baton / Amanita）
+- TASK183: Safe群を `Safe-But-Provenance-Gated` レーンとして bootstrap（detail-grain seed + provenance gate）を固定。
+  - `data/phase1_seed10/logs/exhibitions_image_safe_group_lane_bootstrap_with_provenance_gate_task183.md`
+  - `data/phase1_seed10/logs/exhibitions_image_task_t183_safe_provenance_gallery_summary.csv`
+- TASK184-185: zero-seed は抽出失敗ではなく BOM/input plumbing 起因と切り分け、collector入口最小修正で解消。
+  - `data/phase1_seed10/logs/phase1_seed10_exhibition_image_collect_summary_task_t184_safe_trial.json`
+  - `data/phase1_seed10/logs/exhibitions_image_task_t185_safe_failure_review.md`
+  - `data/phase1_seed10/logs/phase1_seed10_exhibition_image_collect_summary_task_t185_safe_trial_followup.json`
+- TASK186: followup summary を正として Safe群 trial QA を再評価し、adoption_candidate 判定を確定。
+  - `data/phase1_seed10/logs/exhibitions_image_task_t186_safe_qa_reevaluation.md`
+  - `data/phase1_seed10/logs/exhibitions_image_task_t186_safe_qa_reevaluation_table.csv`
+- TASK187-188: Safe群 safe-replace 設計を経て正式採用完了（provenance gate維持、defer/reject混入なし）。
+  - `data/phase1_seed10/logs/exhibitions_image_safe_group_adoption_safe_replace_design_task187.md`
+  - `data/phase1_seed10/logs/exhibitions_image_task_t188_safe_adoption_result.json`
+  - `data/phase1_seed10/logs/exhibitions_image_task_t188_safe_adoption_result.md`

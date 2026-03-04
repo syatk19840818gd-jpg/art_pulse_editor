@@ -13,7 +13,7 @@ STREAMLIT_ENTRYPOINT（固定）
 - Local run: streamlit run app.py
 
 SOURCE_SSOT: 01_PROJECT_SPEC_CURRENT_FULL.docx
-LAST_UPDATED: 2026-03-02 23:59 JST
+LAST_UPDATED: 2026-03-04 12:53 JST
 
 
 ========================
@@ -78,26 +78,18 @@ LAST_UPDATED: 2026-03-02 23:59 JST
 STATE_SNAPSHOT（現在地）
 ========================
 ■いまの最優先フェーズ（Codexが随時更新する）
-- Phase 1：Exhibitions画像RAGの under-target 運用をクローズし、次フェーズ移行条件を固定する
-  - 直近の到達目標：T-124 close 判定を反映し、10ギャラリー batch の追加 rerun 対象なしを確定する
-  - 重要な前提：MAX_EXHIBITIONS_PER_GALLERY=7 は「上限7件」であり、全ギャラリーで7件揃うことを保証しない
-  - 次の到達目標：Exhibitions Text 再開の最小スコープ設計へ移行し、画像フェーズとの境界条件を明文化する
-  - 直近の改善:
-    - T-118D: year_bucket 集計で 0(target_year) が falsy 扱いされ non-target に潰れていた根因を修正
-    - T-118E: debug-gallery-triage 比較を NFKC / strip / 空白正規化で安定化
-    - T-120: 2桁年（例: 08.11—20.12.25）を「日付文脈の末尾年スロット」の場合のみ target-year signal として扱う helper を追加
-  - 実測メモ:
-    - Adams and Ollman: 2025 0 -> 12
-    - Arcadia Missa: 2025 0 -> 8
-    - Anca Potera… Gallery: 2025 0 -> 4
-    - The Approach: target_year 0 / non-target 32 -> target_year 32 / non-target 0
-  - 最新 triage:
-    - data/phase1_seed10/logs/debug_exhibitions_listing_triage_20260302T093256Z.json
-    - data/phase1_seed10/logs/debug_exhibitions_listing_triage_20260302T094558Z.json
-    - data/phase1_seed10/logs/debug_exhibitions_listing_triage_20260302T102354Z.json
-  - 現在の判断:
-    - Adams / Arcadia / Anca を「未解決の中心」と断定する段階は脱した
-    - The Approach 3URL は `seed=0 / existing_hit_only / target_met維持` のため、current batch では自然収束寄りとして close 判定
+- Phase 1：Exhibitions画像RAG（2025）10ギャラリー正式運用状態を確定済み。次はスケーリング設計フェーズへ移行
+  - 正式採用済み:
+    - detail-grain 3ギャラリー: Adams and Ollman / Arcadia Missa / Anca Poterașu Gallery
+    - Guard-First Unit-F: Athr / The Approach
+    - Guard-First Unit-L: Addis Fine Art / Afriart Gallery
+    - Safe群: Gallery Baton / Amanita
+  - Keep-Current: A+ Works of Art
+  - anti-mixing 固定運用（短縮版）:
+    - `trial -> QA -> adoption`
+    - adoption は `_trash` 退避後の scoped replace のみ（append禁止）
+  - 次の到達目標:
+    - hundreds of galleries 向け標準フローを具体化し、同一運用で横展開できる実行設計を確定する
 ※この「直近の到達目標」は、達成したら必ず書き換える（意味がなくなるので残さない）
 
 ■いま出来ていること（事前準備・現状）
@@ -237,6 +229,19 @@ NEXT_TASKS（次回やること）
 ※追加ルール: 今後追加するテキスト抽出/変換スクリプトも同様に `auto_sync_after_job` フックを必須とする（実装抜け防止）。
 ※共通スキップ（固定）: `data/gallery_lists/skipped_galleries_registry.csv` に登録されたgalleryは Artists/Exhibitions の text/image 抽出すべてで自動スキップする。
 ※共通同期（固定）: Artists/Exhibitions の text/image/vector/derived すべてに同一の guarded R2同期ルール（dry-run -> guarded apply）を適用する。
+
+[ ] 190) hundreds of galleries 向け標準フロー具体化（最優先）
+    - 目的：10ギャラリーで確立した anti-mixing 運用（trial -> QA -> adoption）を大量運用で再利用可能な標準実行フローに固定する
+    - 前提：現在の10ギャラリー正式状態を壊さない。コード変更・rerunは設計確定まで行わない
+    - 成立条件：分類条件（Keep-Current / Safe-But-Provenance-Gated / Guard-First）と、各レーンの入出力・QA・adoption条件を1本化する
+
+[x] 189) 03/04 FINAL SYNC EXECUTION（完了）
+    - 10ギャラリー正式状態を03/04へ最終同期（01/02更新なし）
+[x] 183-188) Safe群（Gallery Baton / Amanita）provenance-gated bootstrap->plumbing修正->trial/QA->正式採用（完了）
+[x] 182) 03/04 DOC SYNC EXECUTION（DESIGN REFLECT ONLY）（完了）
+[x] 155-156) 3ギャラリー（Adams / Arcadia / Anca）detail-grain trial->正式採用（完了）
+[x] 169-176) Unit-F（Athr / The Approach）trial/QA->adoption plumbing修正->正式採用（完了）
+[x] 177-180) Unit-L（Addis / Afriart）prep->trial/QA->正式採用（完了）
 
 [x] 1) ギャラリーリストCSVを repo に配置してコミットする（完了）
     - 置き場所：data/gallery_lists/
@@ -2599,9 +2604,9 @@ NEXT_TASKS（次回やること）
 [x] 120) 10ギャラリー Exhibitions画像の under-target CSV を再評価し、A/B/C/D（再抽出不要/改善余地/重点監視/自然収束）で再分類する（最優先）
 [x] 121) （最優先） under-target 再抽出対象を再確定し、不要な再抽出（A群/D群）を除外した targets CSV を再生成する
 [x] 122) （最優先） 必要最小限で under-target のみ再実行し、ge_1/ge_target/new_saved を再判定する（full rerun 禁止）
-[ ] 123) （低優先 / housekeeping） gallery_name_en 文字化けの保存値修正方針を整理し、実施条件を明記する
+[HOLD] 123) （低優先 / housekeeping） gallery_name_en 文字化けの保存値修正方針を整理し、実施条件を明記する
 [x] 124) （最優先） Exhibitions画像 under-target フェーズの close判定を確定し、次フェーズ（Exhibitions Text再開可否）へ移行条件を決める
-[ ] 125) （最優先） Exhibitions Text 再開の最小スコープ（1フェア×1ギャラリー×最小件数）を確定し、画像フェーズとの非干渉ゲートを定義する
+[HOLD] 125) （最優先） Exhibitions Text 再開の最小スコープ（1フェア×1ギャラリー×最小件数）を確定し、画像フェーズとの非干渉ゲートを定義する
 
 ========================
 BACKLOG（後回し/保留）
@@ -2622,6 +2627,27 @@ CODEX_TASK_PROMPTS（コピペでCodexに渡す指示文）
 - Codexはタスク完了時に「次のTASK n のプロンプト全文」を必ず提示する（Bスニペットで強制）。
 - 大きな変更の前は「まず計画だけ。実装はその後。」を追加してOK。
 - 以後のTASKプロンプトは、下記テンプレ（`運用ルールは前回と同じ...` / `RECOMMENDED_MODE` / 章ID明示 / 固定出力5項目）に必ず準拠する。
+
+------------------------------------------------------------
+TASK 190) HUNDREDS-OF-GALLERIES-STANDARD-FLOW-CONCRETIZATION（最優先）
+------------------------------------------------------------
+運用ルールは前回と同じ。参照は 01/02/03/04 のみ。
+今回は TASK190 のみを行ってください。
+目的は、10ギャラリーで確立した anti-mixing 運用を hundreds of galleries 向けに標準化すること。
+Keep-Current / Safe-But-Provenance-Gated / Guard-First の3分類条件、各レーンの入出力、trial->QA->adoption基準を固定する。
+03/04/01/02更新・コード変更・rerunは行わない（設計のみ）。
+
+------------------------------------------------------------
+TASK 189) 03/04 FINAL SYNC EXECUTION（実施済み）
+------------------------------------------------------------
+運用ルールは前回と同じ。参照は 01/02/03/04 のみ。
+03を「現在地/次アクション中心」、04を「milestone block方式」で最終同期し、10ギャラリー正式状態を文書に反映済み。
+
+------------------------------------------------------------
+TASK 182) 03/04 DOC SYNC EXECUTION（実施済み）
+------------------------------------------------------------
+運用ルールは前回と同じ。参照は 01/02/03/04 のみ。
+TASK181設計を反映し、03/04の現在地同期を完了（01/02更新なし、コード変更なし、rerunなし）。
 
 ------------------------------------------------------------
 TASK 117) T-118D YEAR_BUCKET_WIRING（実施済み）
@@ -6359,6 +6385,7 @@ CODEX_SNIPPETS（頻出コピペ：ここだけ使えば回る）
 
 ========================
 CHANGELOG（このファイルの更新履歴）
+- 2026-03-04 JST: TASK182 実施。TASK181設計を反映して03/04同期方針を更新（現在地を「3ギャラリー + Unit-F + Unit-L 正式採用済み」へ更新、anti-mixing短縮文言を固定、次の最優先をTASK183 Safe群レーン開始準備に一本化）。
 - 2026-03-02 JST: TASK125 文書同期を実施。TASK124 close（verdict=close / remaining_rerun_targets_count=0）を 03/04 に反映し、T123は低優先維持のまま次の最優先を TASK125（Exhibitions Text再開ブートストラップ）へ更新。
 - 2026-03-02 JST: TASK123A 文書同期を実施。TASK122完了（under-target最小rerun）を 03/04 に反映し、T123は低優先維持のまま、次の最優先を TASK124（under-target close判定）へ更新。
 - 2026-03-02 JST: TASK121を実施。T120再分類を正としてA/Dを除外し、B/Cのみの under-target 再抽出CSVを再確定（The Approach 3URLを維持）。次の最優先をTASK122に更新。

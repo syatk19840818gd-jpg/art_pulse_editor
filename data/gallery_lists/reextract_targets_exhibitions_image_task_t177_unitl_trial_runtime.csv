@@ -1,0 +1,13 @@
+run_id,gallery_name_en,fair_slug,source_url,reason,seed_url_type,target_year,route_guard_result,year_guard_result,provenance_guard_result,duplicate_check_result,next_action
+20260303T144251Z-unitl-trial,Addis Fine Art,liste,https://addisfineart.com/exhibitions/129-agape-tizta-berhanu,task177_unitl_guardfirst_trial,detail,2025,pass,pass,pass,pass,to_trial_seed
+20260303T144251Z-unitl-trial,Addis Fine Art,liste,https://addisfineart.com/exhibitions/130-whispers-of-form-dereje-demissie,task177_unitl_guardfirst_trial,detail,2025,pass,pass,pass,pass,to_trial_seed
+20260303T144251Z-unitl-trial,Addis Fine Art,liste,https://addisfineart.com/exhibitions/131-exile-within-adiskidan-ambaye,task177_unitl_guardfirst_trial,detail,2025,pass,pass,pass,pass,to_trial_seed
+20260303T144251Z-unitl-trial,Addis Fine Art,liste,https://addisfineart.com/exhibitions/132-motion-selome-muleta-at-jan-kaps-cologne,task177_unitl_guardfirst_trial,detail,2025,pass,pass,pass,pass,to_trial_seed
+20260303T144251Z-unitl-trial,Addis Fine Art,liste,https://addisfineart.com/exhibitions/133-merikokeb-berhanu-esther-schipper-berlin,task177_unitl_guardfirst_trial,detail,2025,pass,pass,pass,pass,to_trial_seed
+20260303T144251Z-unitl-trial,Addis Fine Art,liste,https://addisfineart.com/exhibitions/134-merikokeb-berhanu-james-cohan-new-york,task177_unitl_guardfirst_trial,detail,2025,pass,pass,pass,pass,to_trial_seed
+20260303T144251Z-unitl-trial,Addis Fine Art,liste,https://addisfineart.com/exhibitions/135-chromatic-bloom-dawit-adnew,task177_unitl_guardfirst_trial,detail,2025,pass,pass,pass,pass,to_trial_seed
+20260303T144251Z-unitl-trial,Afriart Gallery,liste,https://afriartgallery.org/exhibitions/fabric-of-our-being-april-kamunde,task177_unitl_guardfirst_trial,detail,2025,pass,pass,pass,pass,to_trial_seed
+20260303T144251Z-unitl-trial,Afriart Gallery,liste,https://afriartgallery.org/exhibitions/from-addis-to-kampala-a-sensory-geography-fiker-solomon,task177_unitl_guardfirst_trial,detail,2025,pass,pass,pass,pass,to_trial_seed
+20260303T144251Z-unitl-trial,Afriart Gallery,liste,https://afriartgallery.org/exhibitions/the-quiet-weight-of-thoughts-daniel-atenyi-richard-atugonza,task177_unitl_guardfirst_trial,detail,2025,pass,pass,pass,pass,to_trial_seed
+20260303T144251Z-unitl-trial,Afriart Gallery,liste,https://afriartgallery.org/exhibitions/tides-of-being-sungi-mlengeya,task177_unitl_guardfirst_trial,detail,2025,pass,pass,pass,pass,to_trial_seed
+20260303T144251Z-unitl-trial,Afriart Gallery,liste,https://afriartgallery.org/exhibitions/undone-charlene-komuntale-sarah-waiswa,task177_unitl_guardfirst_trial,detail,2025,pass,pass,pass,pass,to_trial_seed

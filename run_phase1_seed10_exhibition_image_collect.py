@@ -2,7 +2,9 @@
 
 import argparse
 import csv
+import hashlib
 import json
+import os
 import re
 from collections import Counter
 from datetime import UTC, datetime
@@ -89,6 +91,7 @@ EXHIBITION_LISTING_PATH_SEGMENTS = {
     "news",
     "category",
 }
+WINDOWS_PATH_SOFT_LIMIT = 240
 
 
 class LinkHTMLParser(HTMLParser):
@@ -238,6 +241,23 @@ def exhibition_slug_from_source_url(url: str) -> str:
     if not last:
         last = "exhibition"
     return artist_img.slugify_token(last, fallback="exhibition", max_len=48)
+
+
+def is_windows_path_too_long(path: Path) -> bool:
+    return os.name == "nt" and len(str(path)) >= WINDOWS_PATH_SOFT_LIMIT
+
+
+def compact_image_filename_for_windows(
+    *,
+    gallery_token: str,
+    exhibition_token: str,
+    source_hash8: str,
+    image_index: int,
+    ext_token: str,
+) -> str:
+    gallery_short = artist_img.slugify_token(gallery_token, fallback="gallery", max_len=18)
+    exhibition_hash12 = hashlib.sha1(exhibition_token.encode("utf-8")).hexdigest()[:12]
+    return f"{gallery_short}__x{exhibition_hash12}__{source_hash8}__img_{image_index:02d}.{ext_token}"
 
 
 def extract_year_tokens(text: str) -> set[int]:
@@ -420,6 +440,165 @@ def resolve_exhibition_detail_urls(
     return ranked[:max_candidates]
 
 
+def collect_detail_pages(
+    *,
+    detail_candidates: list[dict[str, Any]],
+    session: requests.Session,
+    page_cache: dict[str, tuple[bool, str, str]],
+    target_year: int,
+) -> tuple[list[dict[str, Any]], int]:
+    detail_pages: list[dict[str, Any]] = []
+    detail_fetch_failed_count = 0
+    for candidate in detail_candidates:
+        detail_url = str(candidate.get("url") or "").strip()
+        if not detail_url:
+            continue
+        ok_detail, detail_html, detail_final_url = artist_img.fetch_html(
+            session, detail_url
+        )
+        if not ok_detail or not detail_html:
+            detail_fetch_failed_count += 1
+            continue
+        detail_page_url = artist_img.normalize_url_for_link_compare(
+            detail_final_url or detail_url
+        )
+        _year_ok, year_reason = should_include_target_year_page(
+            page_url=detail_page_url,
+            html=detail_html,
+            target_year=target_year,
+        )
+        if (
+            not _year_ok
+            and year_reason == "explicit_non_target_year"
+            and has_target_year_signal_in_url(detail_page_url, target_year)
+        ):
+            _year_ok = True
+            year_reason = "year_signal_in_url_path_override"
+        if year_reason == "no_explicit_year_signal":
+            year_bucket = 1
+        elif _year_ok:
+            year_bucket = 0
+        else:
+            year_bucket = 2
+        detail_pages.append(
+            {
+                "url": detail_page_url,
+                "html": detail_html,
+                "score": int(candidate.get("score") or 0),
+                "year_bucket": year_bucket,
+                "year_reason": year_reason,
+            }
+        )
+    detail_pages = sorted(
+        detail_pages,
+        key=lambda item: (
+            normalize_year_bucket(item.get("year_bucket")),
+            -int(item.get("score") or 0),
+            str(item.get("url") or ""),
+        ),
+    )
+    return detail_pages, detail_fetch_failed_count
+
+
+SECOND_PASS_WAIT_MS = 2500
+
+
+def fetch_hydrated_detail_html(detail_url: str) -> str | None:
+    context = artist_img._ensure_playwright_context()
+    if context is None:
+        return None
+    page = None
+    try:
+        page = context.new_page()
+        page.goto(detail_url, wait_until="domcontentloaded", timeout=artist_img.PLAYWRIGHT_NAV_TIMEOUT_MS)
+        try:
+            page.wait_for_load_state("networkidle", timeout=artist_img.PLAYWRIGHT_NAV_TIMEOUT_MS)
+        except artist_img.PlaywrightTimeoutError:
+            pass
+        page.wait_for_timeout(SECOND_PASS_WAIT_MS)
+        return page.content()
+    except artist_img.PlaywrightError:
+        return None
+    finally:
+        if page is not None:
+            try:
+                page.close()
+            except Exception:
+                pass
+
+
+METADATA_LOGO_KEYWORDS = ("logo", "icon", "avatar", "thumbnail", "badge")
+
+
+def collect_metadata_image_urls(html: str, base_url: str) -> list[str]:
+    urls: list[str] = []
+    for tag_html in re.findall(r"<meta[^>]*>", html, re.IGNORECASE):
+        name_match = re.search(r"(?:property|name)\s*=\s*['\"](og:image|twitter:image)['\"]", tag_html, re.IGNORECASE)
+        if not name_match:
+            continue
+        content_match = re.search(r"content\s*=\s*['\"]([^'\"]+)['\"]", tag_html, re.IGNORECASE)
+        if not content_match:
+            continue
+        urls.append(urljoin(base_url, content_match.group(1).strip()))
+    for link_html in re.findall(r"<link[^>]*rel=['\"][^'\"]*image[^'\"]*['\"][^>]*>", html, re.IGNORECASE):
+        href_match = re.search(r"href\s*=\s*['\"]([^'\"]+)['\"]", link_html, re.IGNORECASE)
+        if href_match:
+            urls.append(urljoin(base_url, href_match.group(1).strip()))
+    normalized: list[str] = []
+    seen: set[str] = set()
+    for candidate in urls:
+        canonical = artist_img.normalize_url_for_link_compare(candidate)
+        if not canonical or canonical in seen:
+            continue
+        seen.add(canonical)
+        normalized.append(candidate)
+    return normalized
+
+
+def collect_basic_meta_image_urls(html: str, base_url: str) -> list[str]:
+    urls: list[str] = []
+    for key in ("og:image", "twitter:image"):
+        for match in re.finditer(rf'{key}[^>]*content=["\']([^"\']+)["\']', html, re.IGNORECASE):
+            urls.append(urljoin(base_url, match.group(1).strip()))
+    normalized: list[str] = []
+    seen: set[str] = set()
+    for candidate in urls:
+        canonical = artist_img.normalize_url_for_link_compare(candidate)
+        if not canonical or canonical in seen:
+            continue
+        seen.add(canonical)
+        normalized.append(candidate)
+    return normalized
+
+
+def build_metadata_fallback_candidates(detail_url: str, html: str) -> list[dict[str, Any]]:
+    urls = [
+        candidate
+        for candidate in collect_metadata_image_urls(html, detail_url)
+        if not any(keyword in candidate.lower() for keyword in METADATA_LOGO_KEYWORDS)
+    ]
+    if not urls:
+        urls = [
+            candidate
+            for candidate in collect_basic_meta_image_urls(html, detail_url)
+            if not any(keyword in candidate.lower() for keyword in METADATA_LOGO_KEYWORDS)
+        ]
+    candidates: list[dict[str, Any]] = []
+    for index, candidate_url in enumerate(urls):
+        candidates.append(
+            {
+                "url": candidate_url,
+                "score": -5,
+                "year": None,
+                "year_candidates": [],
+                "attrs": {"alt": "", "class": ""},
+                "parent_tag": "metadata",
+                "evidence_text": "metadata_fallback",
+                "page_order": index + 1,
+            }
+        )
+    return candidates
+
 def _parse_int_attr(value: Any) -> int:
     raw = str(value or "").strip()
     if not raw:
@@ -536,7 +715,7 @@ def load_targets(
         rows: list[dict[str, Any]] = []
         if not path.exists():
             return rows
-        with path.open("r", encoding="utf-8", newline="") as f:
+        with path.open("r", encoding="utf-8-sig", newline="") as f:
             reader = csv.DictReader(f)
             for row in reader:
                 fair_slug = str(row.get("fair_slug") or "").strip()
@@ -812,51 +991,11 @@ def main() -> int:
                 target_year=args.target_year,
                 max_depth=2,
             )
-            detail_pages: list[dict[str, Any]] = []
-            detail_fetch_failed_count = 0
-            for candidate in detail_candidates:
-                detail_url = str(candidate.get("url") or "").strip()
-                if not detail_url:
-                    continue
-                ok_detail, detail_html, detail_final_url = artist_img.fetch_html(session, detail_url)
-                if not ok_detail or not detail_html:
-                    detail_fetch_failed_count += 1
-                    continue
-                detail_page_url = artist_img.normalize_url_for_link_compare(detail_final_url or detail_url)
-                _year_ok, year_reason = should_include_target_year_page(
-                    page_url=detail_page_url,
-                    html=detail_html,
-                    target_year=args.target_year,
-                )
-                if (
-                    not _year_ok
-                    and year_reason == "explicit_non_target_year"
-                    and has_target_year_signal_in_url(detail_page_url, args.target_year)
-                ):
-                    _year_ok = True
-                    year_reason = "year_signal_in_url_path_override"
-                if year_reason == "no_explicit_year_signal":
-                    year_bucket = 1
-                elif _year_ok:
-                    year_bucket = 0
-                else:
-                    year_bucket = 2
-                detail_pages.append(
-                    {
-                        "url": detail_page_url,
-                        "html": detail_html,
-                        "score": int(candidate.get("score") or 0),
-                        "year_bucket": year_bucket,
-                        "year_reason": year_reason,
-                    }
-                )
-            detail_pages = sorted(
-                detail_pages,
-                key=lambda item: (
-                    normalize_year_bucket(item.get("year_bucket")),
-                    -int(item.get("score") or 0),
-                    str(item.get("url") or ""),
-                ),
+            detail_pages, detail_fetch_failed_count = collect_detail_pages(
+                detail_candidates=detail_candidates,
+                session=session,
+                page_cache=page_cache,
+                target_year=args.target_year,
             )
 
             listing_resolved_to_detail_count = len(detail_pages)
@@ -916,7 +1055,114 @@ def main() -> int:
                 break
 
             image_index = 1
+            listing_detail_reresolved = False
+            metadata_collision_detected = False
             # always attempt candidate loop; skip existing detail during iteration
+            def process_sorted_candidates(sorted_candidates: list[dict[str, Any]]) -> bool:
+                nonlocal image_index, chosen_detail_url, saved_rows, selected_urls, selected_reasons, selected_years, selected_evidence
+                nonlocal metadata_collision_detected
+                saved_before = len(saved_rows)
+                for candidate in sorted_candidates:
+                    if image_index > target_images:
+                        break
+                    candidate_url = str(candidate.get("url") or "").strip()
+                    if not candidate_url:
+                        continue
+                    dedupe_url = artist_img.normalize_image_url_for_dedupe(candidate_url)
+                    if dedupe_url in known_url_hashes or dedupe_url in in_case_url_hashes:
+                        if candidate.get("parent_tag") == "metadata":
+                            metadata_collision_detected = True
+                            case_notes.append("second_pass:metadata_candidate_dedupe_collision")
+                        continue
+                        continue
+                    attrs = candidate.get("attrs") if isinstance(candidate.get("attrs"), dict) else {}
+                    parent_tag = str(candidate.get("parent_tag") or "")
+                    candidate_year = artist_img.normalize_candidate_year(candidate.get("year"))
+                    evidence_text = str(candidate.get("evidence_text") or "")
+                    reject, _ = artist_img.should_reject_image_candidate(
+                        candidate_url,
+                        attrs,
+                        parent_tag,
+                        candidate_year=candidate_year,
+                        evidence_text=evidence_text,
+                    )
+                    if reject:
+                        continue
+
+                    img_ok, payload, content_type, _ = artist_img.fetch_image(session, candidate_url)
+                    if not img_ok or not payload:
+                        continue
+                    payload_ok, normalized_payload, ext = artist_img.normalize_image_payload_for_rag(payload)
+                    if not payload_ok:
+                        continue
+                    ext_token = (ext or "jpg").lstrip(".")
+                    payload_digest = artist_img.payload_hash(normalized_payload)
+                    if payload_digest in known_payload_hashes or payload_digest in in_case_payload_hashes:
+                        continue
+
+                    chosen_detail_url = detail_page_url
+                    exhibition_token = exhibition_slug_from_source_url(chosen_detail_url)
+                    source_hash8 = artist_img.compute_page_url_hash(chosen_detail_url)[:8]
+                    filename = (
+                        f"{gallery_token}__{exhibition_token}__{source_hash8}__img_{image_index:02d}.{ext_token}"
+                    )
+                    local_path = fair_dir / filename
+                    if is_windows_path_too_long(local_path):
+                        filename = compact_image_filename_for_windows(
+                            gallery_token=gallery_token,
+                            exhibition_token=exhibition_token,
+                            source_hash8=source_hash8,
+                            image_index=image_index,
+                            ext_token=ext_token,
+                        )
+                        local_path = fair_dir / filename
+                        case_notes.append("path_safe:compact_filename")
+                        if is_windows_path_too_long(local_path):
+                            gallery_hash8 = hashlib.sha1(gallery_token.encode("utf-8")).hexdigest()[:8]
+                            filename = f"g{gallery_hash8}__{source_hash8}__img_{image_index:02d}.{ext_token}"
+                            local_path = fair_dir / filename
+                            case_notes.append("path_safe:ultra_compact_filename")
+                    # Ensure trial/worktree runs never fail on missing parent output dir.
+                    local_path.parent.mkdir(parents=True, exist_ok=True)
+                    local_path.write_bytes(normalized_payload)
+                    in_case_url_hashes.add(dedupe_url)
+                    in_case_payload_hashes.add(payload_digest)
+                    known_url_hashes.add(dedupe_url)
+                    known_payload_hashes.add(payload_digest)
+
+                    selected_urls.append(candidate_url)
+                    selected_reasons.append("detail_page_candidate_rank")
+                    selected_years.append(candidate_year)
+                    selected_evidence.append(
+                        artist_img.shorten_text(artist_img.sanitize_evidence_text(evidence_text), 120)
+                    )
+
+                    saved_rows.append(
+                        {
+                            "target_year": int(args.target_year),
+                            "fair_slug": fair_slug,
+                            "gallery_name_en": gallery_name_en,
+                            "source_url": chosen_detail_url,
+                            "seed_source_url": source_url,
+                            "seed_url_type": seed_url_type,
+                            "image_url": candidate_url,
+                            "image_url_hash": artist_img.image_url_hash(candidate_url),
+                            "payload_hash": payload_digest,
+                            "r2_key": artist_img.local_path_to_r2_key(local_path),
+                            "selected_reason": "detail_page_candidate_rank",
+                            "candidate_year": candidate_year,
+                            "evidence_text": artist_img.shorten_text(
+                                artist_img.sanitize_evidence_text(evidence_text),
+                                120,
+                            ),
+                            "content_type": content_type,
+                            "local_path": str(local_path),
+                            "extracted_at": utc_now_iso(),
+                        }
+                    )
+                    image_index += 1
+                return len(saved_rows) > saved_before
+
             for page in detail_pages:
                 if image_index > target_images:
                     break
@@ -925,86 +1171,64 @@ def main() -> int:
                 if existing_hit and detail_url_norm == existing_hit_detail_url:
                     continue
                 detail_html = str(page.get("html") or "")
+                detail_html_source = detail_html
                 raw_candidates = artist_img.extract_image_candidates(detail_page_url, detail_html)
+                raw_candidates_existed = bool(raw_candidates)
+                fallback_note = ""
+                metadata_fallback_tried = False
+                usable_candidate_found = False
+                if (
+                    not raw_candidates
+                    and seed_url_type == "listing"
+                    and not listing_detail_reresolved
+                ):
+                    hydrated_listing_html = fetch_hydrated_detail_html(page_url)
+                    listing_detail_reresolved = True
+                    if hydrated_listing_html and hydrated_listing_html != html:
+                        new_detail_candidates = resolve_exhibition_detail_urls(
+                            session=session,
+                            page_cache=page_cache,
+                            seed_url=page_url,
+                            seed_html=hydrated_listing_html,
+                            target_year=args.target_year,
+                            max_depth=2,
+                        )
+                        new_detail_pages, _ = collect_detail_pages(
+                            detail_candidates=new_detail_candidates,
+                            session=session,
+                            page_cache=page_cache,
+                            target_year=args.target_year,
+                        )
+                        if new_detail_pages:
+                            detail_pages.extend(new_detail_pages)
+                            case_notes.append("second_pass:listing_detail_reresolve")
+                if not raw_candidates:
+                    hydrated_html = fetch_hydrated_detail_html(detail_page_url)
+                    if hydrated_html and hydrated_html != detail_html:
+                        detail_html_source = hydrated_html
+                        raw_candidates = artist_img.extract_image_candidates(detail_page_url, hydrated_html)
+                        if raw_candidates:
+                            fallback_note = "networkidle_hydration"
+                    if not raw_candidates:
+                        metadata_candidates = build_metadata_fallback_candidates(
+                            detail_page_url, detail_html_source
+                        )
+                        if metadata_candidates:
+                            raw_candidates = metadata_candidates
+                            fallback_note = fallback_note or "metadata_fallback"
+                            metadata_fallback_tried = True
                 sorted_candidates = sort_exhibition_candidates(raw_candidates)
-                for candidate in sorted_candidates:
-                        if image_index > target_images:
-                            break
-                        candidate_url = str(candidate.get("url") or "").strip()
-                        if not candidate_url:
-                            continue
-                        dedupe_url = artist_img.normalize_image_url_for_dedupe(candidate_url)
-                        if dedupe_url in known_url_hashes or dedupe_url in in_case_url_hashes:
-                            continue
-                        attrs = candidate.get("attrs") if isinstance(candidate.get("attrs"), dict) else {}
-                        parent_tag = str(candidate.get("parent_tag") or "")
-                        candidate_year = artist_img.normalize_candidate_year(candidate.get("year"))
-                        evidence_text = str(candidate.get("evidence_text") or "")
-                        reject, _ = artist_img.should_reject_image_candidate(
-                            candidate_url,
-                            attrs,
-                            parent_tag,
-                            candidate_year=candidate_year,
-                            evidence_text=evidence_text,
-                        )
-                        if reject:
-                            continue
-
-                        img_ok, payload, content_type, _ = artist_img.fetch_image(session, candidate_url)
-                        if not img_ok or not payload:
-                            continue
-                        payload_ok, normalized_payload, ext = artist_img.normalize_image_payload_for_rag(payload)
-                        if not payload_ok:
-                            continue
-                        ext_token = (ext or "jpg").lstrip(".")
-                        payload_digest = artist_img.payload_hash(normalized_payload)
-                        if payload_digest in known_payload_hashes or payload_digest in in_case_payload_hashes:
-                            continue
-
-                        chosen_detail_url = detail_page_url
-                        exhibition_token = exhibition_slug_from_source_url(chosen_detail_url)
-                        source_hash8 = artist_img.compute_page_url_hash(chosen_detail_url)[:8]
-                        filename = (
-                            f"{gallery_token}__{exhibition_token}__{source_hash8}__img_{image_index:02d}.{ext_token}"
-                        )
-                        local_path = fair_dir / filename
-                        local_path.write_bytes(normalized_payload)
-                        in_case_url_hashes.add(dedupe_url)
-                        in_case_payload_hashes.add(payload_digest)
-                        known_url_hashes.add(dedupe_url)
-                        known_payload_hashes.add(payload_digest)
-
-                        selected_urls.append(candidate_url)
-                        selected_reasons.append("detail_page_candidate_rank")
-                        selected_years.append(candidate_year)
-                        selected_evidence.append(
-                            artist_img.shorten_text(artist_img.sanitize_evidence_text(evidence_text), 120)
-                        )
-
-                        saved_rows.append(
-                            {
-                                "target_year": int(args.target_year),
-                                "fair_slug": fair_slug,
-                                "gallery_name_en": gallery_name_en,
-                                "source_url": chosen_detail_url,
-                                "seed_source_url": source_url,
-                                "seed_url_type": seed_url_type,
-                                "image_url": candidate_url,
-                                "image_url_hash": artist_img.image_url_hash(candidate_url),
-                                "payload_hash": payload_digest,
-                                "r2_key": artist_img.local_path_to_r2_key(local_path),
-                                "selected_reason": "detail_page_candidate_rank",
-                                "candidate_year": candidate_year,
-                                "evidence_text": artist_img.shorten_text(
-                                    artist_img.sanitize_evidence_text(evidence_text),
-                                    120,
-                                ),
-                                "content_type": content_type,
-                                "local_path": str(local_path),
-                                "extracted_at": utc_now_iso(),
-                            }
-                        )
-                        image_index += 1
+                usable_candidate_found |= process_sorted_candidates(sorted_candidates)
+                if not usable_candidate_found and raw_candidates_existed and not metadata_fallback_tried:
+                    metadata_candidates = build_metadata_fallback_candidates(detail_page_url, detail_html_source)
+                    if metadata_candidates:
+                        metadata_fallback_tried = True
+                        fallback_note = fallback_note or "metadata_fallback_priority"
+                        case_notes.append(f"second_pass:{fallback_note}")
+                        sorted_candidates = sort_exhibition_candidates(metadata_candidates)
+                        usable_candidate_found |= process_sorted_candidates(sorted_candidates)
+                if fallback_note:
+                    case_notes.append(f"second_pass:{fallback_note}")
 
             if saved_rows:
                 append_jsonl(meta_path, saved_rows)
@@ -1013,6 +1237,11 @@ def main() -> int:
             new_saved_count = len(saved_rows)
             existing_hit_only = False
             saved_count = new_saved_count
+            if metadata_collision_detected and not usable_candidate_found:
+                case_notes.append("metadata_collision:known_url_hash")
+                existing_hit_only = True
+                saved_count = target_images
+                metadata_collision_detected = False
             if existing_hit and new_saved_count < target_images:
                 if new_saved_count == 0:
                     existing_hit_only = True
