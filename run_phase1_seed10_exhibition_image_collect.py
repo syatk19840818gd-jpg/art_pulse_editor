@@ -92,6 +92,222 @@ EXHIBITION_LISTING_PATH_SEGMENTS = {
     "category",
 }
 WINDOWS_PATH_SOFT_LIMIT = 240
+BAD_HARD_ROUTE_SUBSTRINGS = (
+    "/viewing-room",
+    "/viewing_room",
+    "/about",
+    "/artists",
+    "/artist",
+    "/contact",
+    "/team",
+    "/profile",
+    "/biography",
+)
+BAD_SOFT_ROUTE_SUBSTRINGS = (
+    "/past",
+    "/upcoming",
+    "/art-fairs",
+    "/art-fair",
+)
+
+
+def _normalized_path_lower(url: str) -> str:
+    return (urlparse(str(url or "")).path or "").strip().lower()
+
+
+def classify_route_class(url: str) -> str:
+    path = _normalized_path_lower(url)
+    if not path:
+        return "UNKNOWN"
+    if any(token in path for token in BAD_HARD_ROUTE_SUBSTRINGS):
+        return "BAD_HARD"
+    if any(token in path for token in BAD_SOFT_ROUTE_SUBSTRINGS):
+        return "BAD_SOFT"
+    if classify_seed_url_type(url) == "listing":
+        return "LISTING_ROOT"
+    return "DETAIL_CANDIDATE"
+
+
+def evaluate_route_guard(*, detail_url: str, seed_url: str) -> dict[str, Any]:
+    detail_class = classify_route_class(detail_url)
+    seed_class = classify_route_class(seed_url)
+    classes = {detail_class, seed_class}
+    reasons: list[str] = []
+    decision = "allow"
+    if "BAD_HARD" in classes:
+        decision = "reject"
+        reasons.append("route_bad_hard")
+    elif "BAD_SOFT" in classes or "LISTING_ROOT" in classes:
+        decision = "quarantine"
+        reasons.append("route_bad_soft_or_listing")
+    elif detail_class != "DETAIL_CANDIDATE":
+        decision = "quarantine"
+        reasons.append("route_not_detail_candidate")
+    return {
+        "decision": decision,
+        "reasons": reasons,
+        "detail_route_class": detail_class,
+        "seed_route_class": seed_class,
+    }
+
+
+def evaluate_year_evidence_guard(
+    *,
+    candidate_year: int | None,
+    evidence_text: str,
+    detail_url: str,
+    seed_url: str,
+    target_year: int,
+    parent_tag: str,
+) -> dict[str, Any]:
+    reasons: list[str] = []
+    decision = "allow"
+    text = f"{detail_url}\n{seed_url}\n{evidence_text or ''}"
+    year_tokens = extract_year_tokens(text)
+    has_target_year = int(target_year) in year_tokens
+    has_non_target_year = bool(year_tokens - {int(target_year)})
+    metadata_fallback = parent_tag.lower() == "metadata" or "metadata_fallback" in (evidence_text or "").lower()
+
+    if candidate_year is not None and int(candidate_year) != int(target_year):
+        decision = "reject"
+        reasons.append("candidate_year_non_target")
+        year_confidence = "LOW"
+        return {
+            "decision": decision,
+            "reasons": reasons,
+            "year_confidence": year_confidence,
+            "metadata_fallback": metadata_fallback,
+            "year_tokens": sorted(year_tokens),
+        }
+
+    if candidate_year is None and metadata_fallback:
+        decision = "quarantine"
+        reasons.append("metadata_fallback_without_candidate_year")
+
+    if candidate_year is not None and int(candidate_year) == int(target_year):
+        year_confidence = "HIGH"
+    elif has_target_year and not has_non_target_year:
+        year_confidence = "MEDIUM" if metadata_fallback else "HIGH"
+    elif has_non_target_year:
+        year_confidence = "LOW"
+        if decision == "allow":
+            decision = "reject"
+            reasons.append("year_token_non_target")
+    else:
+        year_confidence = "LOW"
+        if decision == "allow":
+            decision = "quarantine"
+            reasons.append("weak_year_signal")
+
+    return {
+        "decision": decision,
+        "reasons": reasons,
+        "year_confidence": year_confidence,
+        "metadata_fallback": metadata_fallback,
+        "year_tokens": sorted(year_tokens),
+    }
+
+
+def evaluate_provenance_guard(
+    *,
+    detail_url: str,
+    seed_url: str,
+    seed_url_type: str,
+    selected_reason: str,
+    parent_tag: str,
+    metadata_fallback: bool,
+) -> dict[str, Any]:
+    reasons: list[str] = []
+    decision = "allow"
+    detail_domain = artist_img.normalize_domain(detail_url)
+    seed_domain = artist_img.normalize_domain(seed_url)
+    detail_type = classify_seed_url_type(detail_url)
+    trace_coherence = bool(detail_domain and seed_domain and detail_domain == seed_domain and detail_type == "detail")
+    if not trace_coherence:
+        decision = "quarantine"
+        reasons.append("trace_coherence_missing")
+    if selected_reason != "detail_page_candidate_rank":
+        decision = "quarantine"
+        reasons.append("selected_reason_nonstandard")
+    if seed_url_type == "listing" and detail_type != "detail":
+        decision = "quarantine"
+        reasons.append("listing_without_detail_transition")
+    if metadata_fallback and parent_tag.lower() == "metadata":
+        decision = "quarantine"
+        reasons.append("metadata_fallback_weak_provenance")
+    return {
+        "decision": decision,
+        "reasons": reasons,
+        "trace_coherence": trace_coherence,
+        "detail_type": detail_type,
+    }
+
+
+def build_semantic_key(
+    *,
+    fair_slug: str,
+    gallery_name_en: str,
+    source_url: str,
+    seed_source_url: str,
+    image_url: str,
+    payload_hash: str,
+) -> str:
+    parts = (
+        str(fair_slug or "").strip().lower(),
+        normalize_gallery_name_for_registry(gallery_name_en),
+        artist_img.normalize_url_for_link_compare(source_url),
+        artist_img.normalize_url_for_link_compare(seed_source_url),
+        artist_img.normalize_image_url_for_dedupe(image_url),
+        str(payload_hash or "").strip().lower(),
+    )
+    return "|".join(parts)
+
+
+def _add_map_value(mapping: dict[str, set[str]], key: str, value: str) -> None:
+    if not key:
+        return
+    bucket = mapping.setdefault(key, set())
+    if value:
+        bucket.add(value)
+
+
+def evaluate_duplicate_collision_guard(
+    *,
+    local_path: str,
+    r2_key: str,
+    semantic_key: str,
+    known_local_path_map: dict[str, set[str]],
+    known_r2_key_map: dict[str, set[str]],
+    in_case_local_path_map: dict[str, set[str]],
+    in_case_r2_key_map: dict[str, set[str]],
+) -> dict[str, Any]:
+    reasons: list[str] = []
+    decision = "allow"
+    no_change_ok = False
+
+    local_semantic_keys = set()
+    if local_path:
+        local_semantic_keys |= known_local_path_map.get(local_path, set())
+        local_semantic_keys |= in_case_local_path_map.get(local_path, set())
+    r2_semantic_keys = set()
+    if r2_key:
+        r2_semantic_keys |= known_r2_key_map.get(r2_key, set())
+        r2_semantic_keys |= in_case_r2_key_map.get(r2_key, set())
+
+    collided_semantic_keys = local_semantic_keys | r2_semantic_keys
+    if collided_semantic_keys:
+        if semantic_key in collided_semantic_keys:
+            no_change_ok = True
+            decision = "no_change_ok"
+            reasons.append("duplicate_semantic_key_observed")
+        else:
+            decision = "reject"
+            if local_semantic_keys:
+                reasons.append("local_path_collision_non_semantic")
+            if r2_semantic_keys:
+                reasons.append("r2_key_collision_non_semantic")
+
+    return {"decision": decision, "reasons": reasons, "no_change_ok": no_change_ok}
 
 
 class LinkHTMLParser(HTMLParser):
@@ -771,10 +987,14 @@ def load_targets(
     return targets
 
 
-def load_existing_image_hashes(meta_path: Path) -> tuple[set[str], set[str], Counter[str]]:
+def load_existing_image_hashes(
+    meta_path: Path,
+) -> tuple[set[str], set[str], Counter[str], dict[str, set[str]], dict[str, set[str]]]:
     url_hashes: set[str] = set()
     payload_hashes: set[str] = set()
     existing_source_counter: Counter[str] = Counter()
+    known_local_path_map: dict[str, set[str]] = {}
+    known_r2_key_map: dict[str, set[str]] = {}
     for row in read_jsonl_rows(meta_path):
         image_url = str(row.get("image_url") or "")
         if image_url:
@@ -785,7 +1005,17 @@ def load_existing_image_hashes(meta_path: Path) -> tuple[set[str], set[str], Cou
         source_url = artist_img.normalize_url_for_link_compare(str(row.get("source_url") or ""))
         if source_url:
             existing_source_counter[source_url] += 1
-    return url_hashes, payload_hashes, existing_source_counter
+        semantic_key = build_semantic_key(
+            fair_slug=str(row.get("fair_slug") or ""),
+            gallery_name_en=str(row.get("gallery_name_en") or ""),
+            source_url=str(row.get("source_url") or ""),
+            seed_source_url=str(row.get("seed_source_url") or ""),
+            image_url=str(row.get("image_url") or ""),
+            payload_hash=ph,
+        )
+        _add_map_value(known_local_path_map, str(row.get("local_path") or ""), semantic_key)
+        _add_map_value(known_r2_key_map, str(row.get("r2_key") or ""), semantic_key)
+    return url_hashes, payload_hashes, existing_source_counter, known_local_path_map, known_r2_key_map
 
 
 def build_breakdowns(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -912,9 +1142,17 @@ def main() -> int:
             fair_dir = IMAGE_ROOT_DIR / str(args.target_year) / fair_token
             fair_dir.mkdir(parents=True, exist_ok=True)
             meta_path = DERIVED_DIR / META_FILENAME_TEMPLATE.format(fair_slug=fair_slug, target_year=args.target_year)
-            known_url_hashes, known_payload_hashes, existing_source_counter = load_existing_image_hashes(meta_path)
+            (
+                known_url_hashes,
+                known_payload_hashes,
+                existing_source_counter,
+                known_local_path_map,
+                known_r2_key_map,
+            ) = load_existing_image_hashes(meta_path)
             in_case_url_hashes: set[str] = set()
             in_case_payload_hashes: set[str] = set()
+            in_case_local_path_map: dict[str, set[str]] = {}
+            in_case_r2_key_map: dict[str, set[str]] = {}
 
             html_ok, html, final_url = artist_img.fetch_html(session, source_url)
             debug_active = (
@@ -1057,6 +1295,9 @@ def main() -> int:
             image_index = 1
             listing_detail_reresolved = False
             metadata_collision_detected = False
+            guard_reject_counter: Counter[str] = Counter()
+            guard_quarantine_counter: Counter[str] = Counter()
+            guard_no_change_counter: Counter[str] = Counter()
             # always attempt candidate loop; skip existing detail during iteration
             def process_sorted_candidates(sorted_candidates: list[dict[str, Any]]) -> bool:
                 nonlocal image_index, chosen_detail_url, saved_rows, selected_urls, selected_reasons, selected_years, selected_evidence
@@ -1079,6 +1320,57 @@ def main() -> int:
                     parent_tag = str(candidate.get("parent_tag") or "")
                     candidate_year = artist_img.normalize_candidate_year(candidate.get("year"))
                     evidence_text = str(candidate.get("evidence_text") or "")
+                    route_guard = evaluate_route_guard(detail_url=detail_page_url, seed_url=source_url)
+                    route_decision = str(route_guard.get("decision") or "allow")
+                    if route_decision in {"reject", "quarantine"}:
+                        counter = guard_reject_counter if route_decision == "reject" else guard_quarantine_counter
+                        for reason in route_guard.get("reasons") or []:
+                            counter[str(reason)] += 1
+                        case_notes.append(
+                            f"guard:{route_decision}:route:{'|'.join(str(x) for x in (route_guard.get('reasons') or []))}"
+                        )
+                        continue
+
+                    year_guard = evaluate_year_evidence_guard(
+                        candidate_year=candidate_year,
+                        evidence_text=evidence_text,
+                        detail_url=detail_page_url,
+                        seed_url=source_url,
+                        target_year=int(args.target_year),
+                        parent_tag=parent_tag,
+                    )
+                    year_decision = str(year_guard.get("decision") or "allow")
+                    metadata_fallback = bool(year_guard.get("metadata_fallback"))
+                    if year_decision in {"reject", "quarantine"}:
+                        counter = guard_reject_counter if year_decision == "reject" else guard_quarantine_counter
+                        for reason in year_guard.get("reasons") or []:
+                            counter[str(reason)] += 1
+                        case_notes.append(
+                            f"guard:{year_decision}:year:{'|'.join(str(x) for x in (year_guard.get('reasons') or []))}"
+                        )
+                        continue
+
+                    provenance_guard = evaluate_provenance_guard(
+                        detail_url=detail_page_url,
+                        seed_url=source_url,
+                        seed_url_type=seed_url_type,
+                        selected_reason="detail_page_candidate_rank",
+                        parent_tag=parent_tag,
+                        metadata_fallback=metadata_fallback,
+                    )
+                    provenance_decision = str(provenance_guard.get("decision") or "allow")
+                    if provenance_decision in {"reject", "quarantine"}:
+                        counter = (
+                            guard_reject_counter if provenance_decision == "reject" else guard_quarantine_counter
+                        )
+                        for reason in provenance_guard.get("reasons") or []:
+                            counter[str(reason)] += 1
+                        case_notes.append(
+                            "guard:"
+                            f"{provenance_decision}:provenance:{'|'.join(str(x) for x in (provenance_guard.get('reasons') or []))}"
+                        )
+                        continue
+
                     reject, _ = artist_img.should_reject_image_candidate(
                         candidate_url,
                         attrs,
@@ -1122,6 +1414,42 @@ def main() -> int:
                             filename = f"g{gallery_hash8}__{source_hash8}__img_{image_index:02d}.{ext_token}"
                             local_path = fair_dir / filename
                             case_notes.append("path_safe:ultra_compact_filename")
+                    r2_key = artist_img.local_path_to_r2_key(local_path)
+                    semantic_key = build_semantic_key(
+                        fair_slug=fair_slug,
+                        gallery_name_en=gallery_name_en,
+                        source_url=chosen_detail_url,
+                        seed_source_url=source_url,
+                        image_url=candidate_url,
+                        payload_hash=payload_digest,
+                    )
+                    collision_guard = evaluate_duplicate_collision_guard(
+                        local_path=str(local_path),
+                        r2_key=r2_key,
+                        semantic_key=semantic_key,
+                        known_local_path_map=known_local_path_map,
+                        known_r2_key_map=known_r2_key_map,
+                        in_case_local_path_map=in_case_local_path_map,
+                        in_case_r2_key_map=in_case_r2_key_map,
+                    )
+                    collision_decision = str(collision_guard.get("decision") or "allow")
+                    if collision_decision == "reject":
+                        for reason in collision_guard.get("reasons") or []:
+                            guard_reject_counter[str(reason)] += 1
+                        case_notes.append(
+                            "guard:reject:collision:"
+                            f"{'|'.join(str(x) for x in (collision_guard.get('reasons') or []))}"
+                        )
+                        continue
+                    if collision_decision == "no_change_ok":
+                        for reason in collision_guard.get("reasons") or []:
+                            guard_no_change_counter[str(reason)] += 1
+                        case_notes.append(
+                            "guard:no_change:collision:"
+                            f"{'|'.join(str(x) for x in (collision_guard.get('reasons') or []))}"
+                        )
+                        continue
+
                     # Ensure trial/worktree runs never fail on missing parent output dir.
                     local_path.parent.mkdir(parents=True, exist_ok=True)
                     local_path.write_bytes(normalized_payload)
@@ -1129,6 +1457,10 @@ def main() -> int:
                     in_case_payload_hashes.add(payload_digest)
                     known_url_hashes.add(dedupe_url)
                     known_payload_hashes.add(payload_digest)
+                    _add_map_value(in_case_local_path_map, str(local_path), semantic_key)
+                    _add_map_value(in_case_r2_key_map, r2_key, semantic_key)
+                    _add_map_value(known_local_path_map, str(local_path), semantic_key)
+                    _add_map_value(known_r2_key_map, r2_key, semantic_key)
 
                     selected_urls.append(candidate_url)
                     selected_reasons.append("detail_page_candidate_rank")
@@ -1148,7 +1480,7 @@ def main() -> int:
                             "image_url": candidate_url,
                             "image_url_hash": artist_img.image_url_hash(candidate_url),
                             "payload_hash": payload_digest,
-                            "r2_key": artist_img.local_path_to_r2_key(local_path),
+                            "r2_key": r2_key,
                             "selected_reason": "detail_page_candidate_rank",
                             "candidate_year": candidate_year,
                             "evidence_text": artist_img.shorten_text(
@@ -1303,6 +1635,9 @@ def main() -> int:
                         "unknown_year": int(year_bucket_counter.get(1, 0)),
                         "non_target_year": int(year_bucket_counter.get(2, 0)),
                     },
+                    "guard_reject_counts": dict(guard_reject_counter),
+                    "guard_quarantine_counts": dict(guard_quarantine_counter),
+                    "guard_no_change_counts": dict(guard_no_change_counter),
                     "saved_images": saved_count,
                     "new_saved_images": new_saved_count,
                     "existing_hit_only": existing_hit_only,

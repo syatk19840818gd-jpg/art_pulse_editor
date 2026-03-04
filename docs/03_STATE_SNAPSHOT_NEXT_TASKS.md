@@ -13,7 +13,7 @@ STREAMLIT_ENTRYPOINT（固定）
 - Local run: streamlit run app.py
 
 SOURCE_SSOT: 01_PROJECT_SPEC_CURRENT_FULL.docx
-LAST_UPDATED: 2026-03-04 12:53 JST
+LAST_UPDATED: 2026-03-05 02:25 JST
 
 
 ========================
@@ -78,19 +78,40 @@ LAST_UPDATED: 2026-03-04 12:53 JST
 STATE_SNAPSHOT（現在地）
 ========================
 ■いまの最優先フェーズ（Codexが随時更新する）
-- Phase 1：Exhibitions画像RAG（2025）10ギャラリー正式運用状態を確定済み。次はスケーリング設計フェーズへ移行
+- Phase 1：Exhibitions画像RAG（2025）10ギャラリー正式運用は、TASK215/216のhygiene remediation、TASK219/TASK220のAthr最終対応、TASK226 guard hardening、TASK227 final isolated verification rerun retry（`PASS_FOR_CLOSURE`）を経て、TASK228で **completion closure 完了**
   - 正式採用済み:
     - detail-grain 3ギャラリー: Adams and Ollman / Arcadia Missa / Anca Poterașu Gallery
     - Guard-First Unit-F: Athr / The Approach
     - Guard-First Unit-L: Addis Fine Art / Afriart Gallery
     - Safe群: Gallery Baton / Amanita
   - Keep-Current: A+ Works of Art
+  - contamination closure:
+    - Gallery Baton の既知汚染問題は remediation 済み（formal contamination closure）
+    - Athr 最終ブロッカー `athr__overview__400754ef__img_01.jpg` は TASK220 で safe removal 済み（formal参照0）
+    - hard bad route 残存 0 / `REEXTRACT_SCOPE_REQUIRED=0` に復帰
   - anti-mixing 固定運用（短縮版）:
     - `trial -> QA -> adoption`
     - adoption は `_trash` 退避後の scoped replace のみ（append禁止）
+  - closure 補足:
+    - final isolated rerun retry では新規1件のみ（`SAFE_BUT_NOT_NEEDED=1`）を検出
+    - 当該1件は formal 採用不要として扱い、closure blocker ではない
   - 次の到達目標:
-    - hundreds of galleries 向け標準フローを具体化し、同一運用で横展開できる実行設計を確定する
+    - ⑤ Exhibitions Text の kickoff / spec start へ進む
 ※この「直近の到達目標」は、達成したら必ず書き換える（意味がなくなるので残さない）
+- 固定して扱う主軸ロードマップ（01準拠）
+  - まず 5種類のRAGを、試作10ギャラリーで汎用抽出ロジックとして成立させる
+    - ① Tarutani_Text
+    - ② Artist Works Images
+    - ③ Artist Text
+    - ④ Exhibitions Image
+    - ⑤ Exhibitions Text
+  - 品質ラインは「汎用ロジックで70%以上」を目標とする
+  - 現在の最優先は ⑤ Exhibitions Text（④ Exhibitions Image は completion closure 完了）
+  - ④ Exhibitions Image は 10ギャラリー運用・現行 formal corpus・現行標準レーン・現行 rerun stability guard の範囲で completion closure 済み
+  - 次段は ⑤ Exhibitions Text へ進む
+  - ①〜⑤の5種類のRAGが揃ったら、10ギャラリーRAGだけでアプリ機能①〜⑥を実装し、実際に使って検証する
+  - その後、2025年分の初回抽出実績ベース（Frieze 95件 + Liste 52件 ≒ 約150ギャラリー）へ拡張する
+  - さらに年次更新で対象を増やし、長期的には約200ギャラリー超へ拡張する
 
 ■いま出来ていること（事前準備・現状）
 - Git（PC側）＋GitHub接続：開発の土台 完了
@@ -230,10 +251,20 @@ NEXT_TASKS（次回やること）
 ※共通スキップ（固定）: `data/gallery_lists/skipped_galleries_registry.csv` に登録されたgalleryは Artists/Exhibitions の text/image 抽出すべてで自動スキップする。
 ※共通同期（固定）: Artists/Exhibitions の text/image/vector/derived すべてに同一の guarded R2同期ルール（dry-run -> guarded apply）を適用する。
 
-[ ] 190) hundreds of galleries 向け標準フロー具体化（最優先）
-    - 目的：10ギャラリーで確立した anti-mixing 運用（trial -> QA -> adoption）を大量運用で再利用可能な標準実行フローに固定する
+[x] 190) hundreds of galleries 向け標準フロー具体化（完了）
+    - 目的：④ Exhibitions Image を、10ギャラリー成功で終わらせず、何百ギャラリーへ横展開できる標準実行フローとして固定する
+    - 位置づけ：これは 5種類RAGのうち「④ Exhibitions Image を先に仕上げる」ための最優先タスク
     - 前提：現在の10ギャラリー正式状態を壊さない。コード変更・rerunは設計確定まで行わない
     - 成立条件：分類条件（Keep-Current / Safe-But-Provenance-Gated / Guard-First）と、各レーンの入出力・QA・adoption条件を1本化する
+    - 次段条件：④ Exhibitions Image が 10ギャラリーで汎用的に70%以上を安定達成したら、次に ⑤ Exhibitions Text へ進む
+
+[x] 228) Exhibitions Image completion closure memo（完了）
+    - 目的：TASK215〜227の remediation / guard hardening / final isolated rerun retry を確定履歴として closure し、④ Exhibitions Image を completion として正式記録する
+    - 完了根拠：`PASS_FOR_CLOSURE` / `READY_FOR_COMPLETION_CLOSURE` / `CURRENT_FORMAL_STILL_VALID` / Baton再発0 / Athr再出現0 / duplicate 0 / `SUSPICIOUS_*=0` / `REJECT_FOR_COMPLETION=0`
+    - 補足：final isolated rerun retry の新規1件は `SAFE_BUT_NOT_NEEDED` として formal 採用不要（closure blocker ではない）
+
+[ ] 229) Exhibitions Text kickoff / spec start（最優先）
+    - 目的：④ completion closure 後の次段として、⑤ Exhibitions Text の標準フローを再起動し、10ギャラリー汎用運用の設計/着手範囲を確定する
 
 [x] 189) 03/04 FINAL SYNC EXECUTION（完了）
     - 10ギャラリー正式状態を03/04へ最終同期（01/02更新なし）
@@ -6385,6 +6416,7 @@ CODEX_SNIPPETS（頻出コピペ：ここだけ使えば回る）
 
 ========================
 CHANGELOG（このファイルの更新履歴）
+- 2026-03-05 JST: TASK228 実施。④ Exhibitions Image の completion closure memo を確定し、STATE_SNAPSHOT を `completion closure 完了` へ更新。TASK227結果（`PASS_FOR_CLOSURE` / `CURRENT_FORMAL_STILL_VALID` / Baton再発0 / Athr再出現0 / duplicate 0）を反映。final isolated rerun retry の新規1件は `SAFE_BUT_NOT_NEEDED` として formal 不採用を明記。次タスクを `TASK229（⑤ Exhibitions Text kickoff / spec start）` に更新。
 - 2026-03-04 JST: TASK182 実施。TASK181設計を反映して03/04同期方針を更新（現在地を「3ギャラリー + Unit-F + Unit-L 正式採用済み」へ更新、anti-mixing短縮文言を固定、次の最優先をTASK183 Safe群レーン開始準備に一本化）。
 - 2026-03-02 JST: TASK125 文書同期を実施。TASK124 close（verdict=close / remaining_rerun_targets_count=0）を 03/04 に反映し、T123は低優先維持のまま次の最優先を TASK125（Exhibitions Text再開ブートストラップ）へ更新。
 - 2026-03-02 JST: TASK123A 文書同期を実施。TASK122完了（under-target最小rerun）を 03/04 に反映し、T123は低優先維持のまま、次の最優先を TASK124（under-target close判定）へ更新。
