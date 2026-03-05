@@ -385,3 +385,22 @@ SSOT_TAG: 01>「開発フロー（Phase1→Phase2）」配下
 推奨：節目での締め
 - 小Taskごとに03更新は必須ではない。
 - 変更ファイル / 実行コマンド / 生成物 / 次の最優先タスクを短く残し、03/04は数Taskごと・実行フェーズ完了時・長めの中断前・handoff前のいずれかでまとめて更新する。
+
+## TASK285 Closeout Update (Exhibitions Text Controlled Operation)
+- status: COMPLETED
+- final_lane_state: READY=58 / ESCALATE=5 / HOLDING=6 / REJECT=0
+- steady_state_policy: routine weekly proof runs are discontinued; normal operation does not require recurring weekly proof runs.
+- reopen_trigger: blocker fired (ratio_two_consecutive / route_degradation / boundary breach / integrity breach), spec change, or monitored state corruption.
+- runbook_policy: use minimal normal-mode checks only; enter full detailed runbook only for incident mode.
+
+## TASK286 Phase1 Closeout Signoff and Phase1.5 Exit Review Freeze
+- phase1_signoff: COMPLETED at 10-gallery operational scope for 5 RAG categories (not a full hundreds-scale guarantee).
+- phase1_5_added: Exit Review is mandatory before Phase 2.
+- fixed_execution_order: 1) Tarutani_Text -> 2) Artist Works Images -> 3) Artist Text -> 4) Exhibitions Image -> 5) Exhibitions Text.
+- fixed_per_category_steps: final check -> minimal fix if needed -> minimal re-validation -> Exit Review completion declaration.
+- fixed_review_axes_6: generality; risky implementation check; commonization/reuse; quality-line fit (70%); operational resilience; next-phase connectivity.
+- fix_classification: A) local fix, B) common core promotion candidate.
+- minimum_artifacts: per-category review report; re-validation evidence only when fixes are applied; one cross-category common-core promotion summary after all 5.
+- phase2_gate: start Phase 2 only after Phase 1.5 completion.
+- phase2_phase3_path: Phase 2 uses 10-gallery RAG for features 1-6; Phase 3 expands first to about 150 then to 200+.
+- operation_policy: do not increase routine weekly proof runs; use minimal normal-mode checks and incident-mode detailed runbook only when triggers fire.

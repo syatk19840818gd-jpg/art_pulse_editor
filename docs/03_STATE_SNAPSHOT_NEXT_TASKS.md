@@ -13,7 +13,7 @@ STREAMLIT_ENTRYPOINT（固定）
 - Local run: streamlit run app.py
 
 SOURCE_SSOT: 01_PROJECT_SPEC_CURRENT_FULL.docx
-LAST_UPDATED: 2026-03-05 02:25 JST
+LAST_UPDATED: 2026-03-05 20:33 JST
 
 
 ========================
@@ -7519,3 +7519,30 @@ TASK A-3A-CLOSE-1 実施結果（2026-02-27 / Adams and Ollman）
 - 2026-03-02：TASK117 fix2 追補。`run_phase1_seed10_exhibition_image_collect_report.py` の `new_saved_images_total` 集計を `saved_images` フォールバックなしへ修正し、summary/reportの整合を回復。MAX7再実測の確定値を `seed=51 / ge1=47 / ge_target=47 / failed=4` に更新。R2 derivedは `dry-run -> guarded apply` を再実行し、`uploaded=0 / skipped=1069 / pruned=8 / failed=0` を確認。
 
 
+
+
+## TASK285 CLOSEOUT SNAPSHOT (Exhibitions Text Controlled Operation)
+- status: COMPLETED (closeout)
+- final_lane_state: READY=58 / ESCALATE=5 / HOLDING=6 / REJECT=0
+- weekly_continuation_policy: Week22+ continuation proof runs are discontinued.
+- reopen_trigger: blocker fired (ratio_two_consecutive / route_degradation / boundary or integrity breach), spec change, or monitored state corruption.
+- next_action: Exhibitions Text controlled operation remains closed; move project focus to the next primary phase unless a reopen trigger occurs.
+
+## TASK286 PHASE1 CLOSEOUT SIGNOFF + PHASE1.5 EXIT REVIEW PROTOCOL FREEZE
+- phase1_signoff: COMPLETED for 5 RAG categories at 10-gallery operational scope.
+- phase1_5_exit_review: mandatory before Phase 2.
+- fixed_order: 1) Tarutani_Text -> 2) Artist Works Images -> 3) Artist Text -> 4) Exhibitions Image -> 5) Exhibitions Text.
+- fixed_per_category_flow: final check -> minimal fix (if needed) -> minimal re-validation -> Exit Review completion declaration.
+- fixed_review_axes_6: generality / risky implementation / commonization-reuse / quality-line fit (70%) / operational resilience / next-phase connectivity.
+- fix_classes: A=local fix, B=common core promotion candidate.
+- minimum_artifacts: per-category review report; re-validation evidence only when fixes were applied; one cross-category common-core promotion summary after all five reviews.
+- operation_switch: do not add routine weekly proof continuation; use normal-mode minimal checks, and incident-mode detailed runbook only for anomaly triggers.
+- phase2_gate: Phase 2 starts only after Phase 1.5 completion.
+- next_mainline_tasks:
+  - TASK287 = PHASE1_5_EXIT_REVIEW_01_TARUTANI_TEXT
+  - TASK288 = PHASE1_5_EXIT_REVIEW_02_ARTIST_WORKS_IMAGES
+  - TASK289 = PHASE1_5_EXIT_REVIEW_03_ARTIST_TEXT
+  - TASK290 = PHASE1_5_EXIT_REVIEW_04_EXHIBITIONS_IMAGE
+  - TASK291 = PHASE1_5_EXIT_REVIEW_05_EXHIBITIONS_TEXT
+  - TASK292 = PHASE1_5_COMMON_CORE_PROMOTION_CANDIDATE_SUMMARY
+  - TASK293 = PHASE2_KICKOFF_GATE_AFTER_PHASE1_5_EXIT_REVIEW

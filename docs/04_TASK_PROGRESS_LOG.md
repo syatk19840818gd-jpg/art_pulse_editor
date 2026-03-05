@@ -5124,3 +5124,27 @@ _trash 驕狗畑譁ｹ驥・
 - Special note:
   - TASK227 rerun retry produced one new row classified as `SAFE_BUT_NOT_NEEDED=1`; formal adoption is not required and it is not a closure blocker.
 
+## 187. TASK285 EXHIBITIONS-TEXT-CONTROLLED-OPERATION-CLOSEOUT-AND-DOC-FINALIZATION
+- Date: 2026-03-05
+- Purpose:
+  - Finalize Exhibitions Text controlled operation as completed and stop weekly proof-loop continuation.
+- Result:
+  - Exhibitions Text controlled operation is closed as completed for current scope.
+  - Final lane state is fixed as READY=58 / ESCALATE=5 / HOLDING=6 / REJECT=0.
+  - Weekly continuation proof runs are discontinued; reopen only on blocker firing, spec change, or monitored state corruption.
+- Artifacts:
+  - `docs/exhibitions_text_mini_runbook.md`
+  - `data/phase1_seed10/logs/task285_docx_inserted_lines.log`
+
+## 188. TASK286 PHASE1-CLOSEOUT-SIGNOFF-AND-PHASE1-EXIT-REVIEW-PROTOCOL-FREEZE
+- Date: 2026-03-05
+- Purpose:
+  - Freeze the policy shift: stop adding routine weekly proof continuation and add Phase 1.5 Exit Review before Phase 2.
+- Result:
+  - Phase 1 is signed off as completed at 10-gallery operational scope for all 5 RAG categories.
+  - Phase 1.5 Exit Review was added with fixed order (1->2->3->4->5), fixed 6 review axes, fix class A/B, and minimum artifact rules.
+  - Phase 2 is explicitly gated to start only after Phase 1.5 completion.
+  - Domain-specific hack proliferation remains prohibited; frequent-domain x generic logic improvement remains the policy.
+- Artifacts:
+  - `data/phase1_seed10/logs/task286_docx_inserted_lines.log`
+

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 import re
+import unicodedata
 from datetime import date, datetime
 from html.parser import HTMLParser
 from typing import Any
@@ -77,6 +78,19 @@ class _VisibleTextHTMLParser(HTMLParser):
 
 def normalize_whitespace(text: str) -> str:
     return re.sub(r"\s+", " ", str(text or "")).strip()
+
+
+def canonicalize_gallery_scope_name(name: str) -> str:
+    """Build a scope-matching key without mutating display names."""
+    raw = str(name or "").strip()
+    if not raw:
+        return ""
+    normalized = unicodedata.normalize("NFKD", raw)
+    without_marks = "".join(ch for ch in normalized if not unicodedata.combining(ch))
+    folded = without_marks.casefold()
+    collapsed = re.sub(r"[_/\-]+", " ", folded)
+    collapsed = re.sub(r"[^0-9a-z ]+", " ", collapsed)
+    return normalize_whitespace(collapsed)
 
 
 def canonicalize_exhibition_url(url: str) -> str:
