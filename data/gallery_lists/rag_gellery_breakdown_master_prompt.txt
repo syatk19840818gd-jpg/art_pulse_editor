@@ -1,0 +1,90 @@
+"運用ルールは前回と同じ。参照は 01/02/03/04 のみ。
+
+TASK_RAG_BREAKDOWN_01 = UPDATE_RAG_GALLERY_BREAKDOWN_XLSX_FROM_FORMAL
+
+目的:
+- rag_gellery_breakdown_master.xlsx を、正式RAG（data/phase1_seed10/raw, derived）を根拠に
+  「ギャラリー別の抽出内訳」を上書き更新する
+- フェアはシート分け（frieze-london / liste）を維持
+- ギャラリーが増えたら行追加、既存は上書き
+- 項目名は日本語のまま（シート構造は壊さない）
+
+重要制約:
+- 正式RAG（data/phase1_seed10/raw, derived, derived/images）は read-only（書き換え禁止）
+- xlsx だけ更新する
+- セル結合や見出し行の改変禁止
+- 一致率(%)はコードで計算して数値を書き込む（Excel関数は使わない）
+- 既存列はそのまま（並び替え・列追加はしない）
+- 既存の色分け・書式・罫線・列幅・固定・条件付き書式は絶対に壊さない（値セルのみ更新）
+
+入力:
+- xlsx: rag_gellery_breakdown_master.xlsx（data/gallery_lists）
+  - シート: frieze-london / liste
+  - ヘッダ（1行目）:
+    ギャラリー名 / 総抽出Artist数 / 画像テキストArtist一致数 / Artist一致率(%) /
+    画像抽出Artist数 / Artist画像枚数 / テキスト抽出Artist数 / Artistテキスト数 /
+    総抽出Exhibition数 / 画像テキストExhibition一致数 / Exhibition一致率(%) /
+    Exhibition画像枚数 / Exhibitionテキスト数 / メモ / 更新日 / run_id
+- 正式RAG:
+  - Artist Text:
+    data/phase1_seed10/raw/artists_frieze_london_2025.jsonl
+    data/phase1_seed10/raw/artists_liste_2025.jsonl
+  - Artist Works Images:
+    data/phase1_seed10/derived/artist_works_images_frieze_london.jsonl
+    data/phase1_seed10/derived/artist_works_images_liste.jsonl
+  - Exhibitions Text:
+    data/phase1_seed10/raw/exhibitions_frieze_london_2025.jsonl
+    data/phase1_seed10/raw/exhibitions_liste_2025.jsonl
+  - Exhibitions Image metadata:
+    （存在する場合）data/phase1_seed10/derived/exhibitions_images_frieze_london_2025.jsonl
+    （存在する場合）data/phase1_seed10/derived/exhibitions_images_liste_2025.jsonl
+
+集計定義（必須）:
+- Artists:
+  - 画像抽出Artist数 = 画像側に存在する unique artist_key 数
+  - Artist画像枚数 = 画像側の画像枚数合計
+  - テキスト抽出Artist数 = テキスト側に存在する unique artist_key 数
+  - Artistテキスト数 = テキスト側の “テキスト単位” 合計（schemaを見て定義。最小は「有効textの数」）
+  - 総抽出Artist数 = union(画像artist_key, テキストartist_key) の件数
+  - 画像テキストArtist一致数 = intersection(画像artist_key, テキストartist_key) の件数
+  - Artist一致率(%) = 100 * 一致数 / 総抽出（総抽出が0なら空）
+- Exhibitions:
+  - Exhibition画像枚数 = 画像側の画像枚数合計（schema準拠）
+  - Exhibitionテキスト数 = テキスト側の “テキスト単位” 合計（schema準拠）
+  - 総抽出Exhibition数 = union(画像exhibition_key, テキストexhibition_key) の件数
+  - 画像テキストExhibition一致数 = intersection の件数
+  - Exhibition一致率(%) = 100 * 一致数 / 総抽出（総抽出が0なら空）
+- key定義:
+  - artist_key / exhibition_key は基本 canonical(source_url) を使用
+  - gallery_key はギャラリー名（行キー）をそのまま使うが、正規化（NFKC/空白圧縮）を内部で行ってよい
+  - ただし xlsx への書き込みは “既存のギャラリー名セル” を優先し、無ければ新規行追加
+
+更新方法（xlsx）:
+1) シートごとに処理:
+   - sheet = frieze-london / liste
+2) 各シートで「ギャラリー名」列を走査し、既存行の辞書を作る（空行で止める）
+3) 集計結果の gallery_name が既存にあれば上書き、無ければ末尾に行追加
+4) 更新日 = 今日の日付（JST）を入れる
+5) run_id = 今回の集計ランID（例: TASK_RAG_BREAKDOWN_01_YYYYMMDDThhmmssZ）を入れる
+6) 既存のメモ列は上書きしない（空なら空のまま）
+
+成果物:
+- 更新された rag_gellery_breakdown_master.xlsx
+- 集計ログ:
+  - data/phase1_seed10/logs/rag_gallery_breakdown_update_task_rag_breakdown_01.md
+  - data/phase1_seed10/logs/rag_gallery_breakdown_update_task_rag_breakdown_01.json
+  （各シートの行数、上書き件数、追加件数、主要合計を記録）
+
+完了条件:
+- 2シートとも、既存ギャラリー行の値が上書き更新されている
+- 新ギャラリーがあれば追加されている
+- 一致率(%)が数値で入っている（0除算は空）
+- xlsxのヘッダ行は変更されていない
+- 書式が壊れていない（色分け維持）
+
+返答フォーマット:
+1) 実施サマリ（5行以内）
+2) 追加/変更ファイル
+3) シート別（上書き件数 / 追加件数 / 合計ギャラリー数）
+4) 代表行プレビュー（各シート2行だけ）
+5) 次タスク候補（1本のみ）"
