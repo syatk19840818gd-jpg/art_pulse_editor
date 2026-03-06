@@ -18,6 +18,7 @@ from typing import Any
 from urllib.parse import ParseResult, urljoin, urlparse
 
 import requests
+from tools import skip_policy
 from phase1_artist_link_utils import (
     ARTIST_LINK_KEYWORDS,
     canonicalize_artist_detail_url as shared_canonicalize_artist_detail_url,
@@ -264,6 +265,37 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=MAX_ARTISTS_PER_GALLERY,
         help=f"artists_text candidate cap per gallery (default: {MAX_ARTISTS_PER_GALLERY})",
+    )
+    parser.add_argument(
+        "--mode",
+        choices=(skip_policy.FILL_MISSING_MODE, skip_policy.REBUILD_MODE),
+        default=skip_policy.FILL_MISSING_MODE,
+        help="execution mode (default: fill_missing)",
+    )
+    parser.add_argument(
+        "--allow-rebuild",
+        action="store_true",
+        help="required with --mode rebuild",
+    )
+    parser.add_argument(
+        "--run-id",
+        default="",
+        help="required with --mode rebuild (trial run_id)",
+    )
+    parser.add_argument(
+        "--trial-root",
+        default=str(skip_policy.DEFAULT_TRIAL_ROOT),
+        help=f"trial root for rebuild mode (default: {skip_policy.DEFAULT_TRIAL_ROOT})",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="no network / no writes; compute fill-missing no-op counters only",
+    )
+    parser.add_argument(
+        "--dry-run-output",
+        default="",
+        help="optional dry-run summary JSON output path",
     )
     return parser.parse_args()
 
@@ -537,9 +569,16 @@ def extract_candidate_exhibition_urls(list_page_url: str, list_page_html: str) -
             continue
         if not _same_domain(absolute_url, list_page_url):
             continue
-        if not _looks_like_exhibition_link(absolute_url, anchor_text):
-            continue
         normalized = canonicalize_exhibition_url(absolute_url)
+        if not _looks_like_exhibition_link(absolute_url, anchor_text):
+            # Generic fallback: when starting from a listing-like page, allow
+            # detail-like URLs even if anchor/url text lacks explicit exhibition keywords.
+            fallback_allowed = (
+                _is_listing_like_exhibition_url(list_page_url)
+                and _is_probable_exhibition_detail_url(normalized)
+            )
+            if not fallback_allowed:
+                continue
         score = _score_exhibition_url_quality(normalized, anchor_text)
         previous = best_by_canonical.get(normalized)
         if previous is None or score > previous[0]:
@@ -1444,15 +1483,32 @@ def main() -> int:
     args = parse_args()
     include_artists_text = bool(args.include_artists_text)
     max_artists_per_gallery = max(1, int(args.max_artists_per_gallery or MAX_ARTISTS_PER_GALLERY))
+    policy_mode = skip_policy.resolve_run_mode(
+        mode=args.mode,
+        allow_rebuild=bool(args.allow_rebuild),
+        run_id=str(args.run_id or ""),
+    )
+    output_root = OUTPUT_ROOT
+    if policy_mode == skip_policy.REBUILD_MODE:
+        output_root = skip_policy.build_trial_root(
+            trial_root=args.trial_root,
+            run_id=str(args.run_id or ""),
+        )
+    raw_dir = output_root / "raw"
+    log_dir = output_root / "logs"
+    derived_dir = output_root / "derived"
+    artist_master_global_path = log_dir / "artist_master_global.json"
 
-    RAW_DIR.mkdir(parents=True, exist_ok=True)
-    LOG_DIR.mkdir(parents=True, exist_ok=True)
-    DERIVED_DIR.mkdir(parents=True, exist_ok=True)
+    raw_dir.mkdir(parents=True, exist_ok=True)
+    log_dir.mkdir(parents=True, exist_ok=True)
+    derived_dir.mkdir(parents=True, exist_ok=True)
 
     started_at = utc_now_iso()
     categories = [RAG_CATEGORY] + ([RAG_CATEGORY_ARTISTS] if include_artists_text else [])
-    print(f"[START] Phase1 seed10 fetch ({'+'.join(categories)}) at {started_at}")
-    startup_min_sync_result = run_startup_manifest_min_sync()
+    print(f"[START] Phase1 seed10 fetch ({'+'.join(categories)}) at {started_at} mode={policy_mode}")
+    startup_min_sync_result = {"enabled": False, "status": "disabled_by_mode", "steps": []}
+    if (not args.dry_run) and policy_mode == skip_policy.FILL_MISSING_MODE:
+        startup_min_sync_result = run_startup_manifest_min_sync()
     if startup_min_sync_result.get("enabled"):
         print(f"[INFO] startup_min_sync status={startup_min_sync_result.get('status')}")
 
@@ -1490,11 +1546,11 @@ def main() -> int:
         )
 
     output_paths_by_fair = {
-        fair_slug: RAW_DIR / f"exhibitions_{fair_slug}_{TARGET_YEAR}.jsonl"
+        fair_slug: raw_dir / f"exhibitions_{fair_slug}_{TARGET_YEAR}.jsonl"
         for fair_slug in CSV_PATHS
     }
-    visited_pages_path = LOG_DIR / f"visited_pages_seed10_{TARGET_YEAR}.json"
-    failed_fetches_path = LOG_DIR / f"failed_fetches_seed10_{TARGET_YEAR}.json"
+    visited_pages_path = log_dir / f"visited_pages_seed10_{TARGET_YEAR}.json"
+    failed_fetches_path = log_dir / f"failed_fetches_seed10_{TARGET_YEAR}.json"
 
     visited_pages_ledger = load_visited_pages_ledger(visited_pages_path)
     failed_fetches_ledger = load_failed_fetches_ledger(failed_fetches_path)
@@ -1532,11 +1588,11 @@ def main() -> int:
 
     # artists_text は既存Exhibitions台帳を壊さないため、専用台帳を使う（最小差分）。
     artists_output_paths_by_fair = {
-        fair_slug: RAW_DIR / f"artists_{fair_slug}_{TARGET_YEAR}.jsonl"
+        fair_slug: raw_dir / f"artists_{fair_slug}_{TARGET_YEAR}.jsonl"
         for fair_slug in CSV_PATHS
     }
-    artists_visited_pages_path = LOG_DIR / f"visited_pages_artists_seed10_{TARGET_YEAR}.json"
-    artists_failed_fetches_path = LOG_DIR / f"failed_fetches_artists_seed10_{TARGET_YEAR}.json"
+    artists_visited_pages_path = log_dir / f"visited_pages_artists_seed10_{TARGET_YEAR}.json"
+    artists_failed_fetches_path = log_dir / f"failed_fetches_artists_seed10_{TARGET_YEAR}.json"
     artists_visited_pages_ledger = load_visited_pages_ledger(artists_visited_pages_path)
     artists_failed_fetches_ledger = load_failed_fetches_ledger(artists_failed_fetches_path)
     artists_existing_text_hashes_by_fair = {
@@ -1554,7 +1610,7 @@ def main() -> int:
     artists_list_source_counter_by_fair: dict[str, Counter[str]] = {
         fair_slug: Counter() for fair_slug in CSV_PATHS
     }
-    artist_master_global = load_artist_master_global(ARTIST_MASTER_GLOBAL_PATH)
+    artist_master_global = load_artist_master_global(artist_master_global_path)
     merge_artist_master_from_artists_raw(artist_master_global, target_year=TARGET_YEAR)
     artists_seen_identity_keys_in_run: set[str] = set()
     if include_artists_text:
@@ -1564,6 +1620,40 @@ def main() -> int:
             f"existing_text_hashes={sum(len(v) for v in artists_existing_text_hashes_by_fair.values())} "
             f"artist_master_global={len(artist_master_global)}"
         )
+
+    if args.dry_run:
+        existing_exhibitions_total = sum(len(v) for v in existing_text_hashes_by_fair.values())
+        existing_artists_total = (
+            sum(len(v) for v in artists_existing_text_hashes_by_fair.values())
+            if include_artists_text
+            else 0
+        )
+        candidate_total = existing_exhibitions_total + existing_artists_total
+        dry_summary = {
+            "runner": "run_phase1_seed10.py",
+            "execution_mode": policy_mode,
+            "dry_run": True,
+            "include_artists_text": include_artists_text,
+            "candidate_total": candidate_total,
+            "would_skip_count": candidate_total,
+            "would_fetch_count": 0,
+            "would_write_count": 0,
+            "key_present_but_file_missing_count": 0,
+            "exhibitions_existing_text_hashes": existing_exhibitions_total,
+            "artists_existing_text_hashes": existing_artists_total,
+            "notes": ["dry_run_local_only_no_network_no_write"],
+            "generated_at": utc_now_iso(),
+        }
+        dry_summary_path = (
+            Path(args.dry_run_output)
+            if str(args.dry_run_output or "").strip()
+            else (log_dir / f"dryrun_run_phase1_seed10_{TARGET_YEAR}.json")
+        )
+        if not dry_summary_path.is_absolute():
+            dry_summary_path = (Path.cwd() / dry_summary_path).resolve()
+        write_json(dry_summary_path, dry_summary)
+        print(f"[DRYRUN] summary={dry_summary_path}")
+        return 0
 
     session = requests.Session()
     session.headers.update({"User-Agent": USER_AGENT})
@@ -2195,9 +2285,12 @@ def main() -> int:
     output_files: dict[str, str] = {}
     for fair_slug in CSV_PATHS:
         output_path = output_paths_by_fair[fair_slug]
-        merged_rows = list(existing_exhibitions_rows_by_fair.get(fair_slug, []))
-        merged_rows.extend(records_by_fair.get(fair_slug, []))
-        write_jsonl(output_path, merged_rows)
+        if policy_mode == skip_policy.FILL_MISSING_MODE:
+            append_jsonl(output_path, records_by_fair.get(fair_slug, []))
+        else:
+            merged_rows = list(existing_exhibitions_rows_by_fair.get(fair_slug, []))
+            merged_rows.extend(records_by_fair.get(fair_slug, []))
+            write_jsonl(output_path, merged_rows)
         output_files[fair_slug] = str(output_path)
 
     artists_output_files: dict[str, str] = {}
@@ -2206,9 +2299,9 @@ def main() -> int:
             output_path = artists_output_paths_by_fair[fair_slug]
             append_jsonl(output_path, artists_records_by_fair.get(fair_slug, []))
             artists_output_files[fair_slug] = str(output_path)
-        write_artist_master_global(ARTIST_MASTER_GLOBAL_PATH, artist_master_global)
+        write_artist_master_global(artist_master_global_path, artist_master_global)
 
-    artists_enrichment_requests_path = DERIVED_DIR / f"artists_enrichment_requests_{TARGET_YEAR}.jsonl"
+    artists_enrichment_requests_path = derived_dir / f"artists_enrichment_requests_{TARGET_YEAR}.jsonl"
     artists_enrichment_summary: dict[str, Any] = {
         "artists_enrichment_mode": "disabled",
         "artists_enrichment_candidates_total": 0,
@@ -2345,7 +2438,11 @@ def main() -> int:
         ),
         "artists_global_dedupe_scope": "all_fairs_all_galleries",
         "artists_global_dedupe_exhibitions_excluded": True,
-        "artist_master_global_path": str(ARTIST_MASTER_GLOBAL_PATH),
+        "artist_master_global_path": str(artist_master_global_path),
+        "phase1_7_mode": policy_mode,
+        "phase1_7_allow_rebuild": bool(args.allow_rebuild),
+        "phase1_7_run_id": str(args.run_id or ""),
+        "phase1_7_trial_root": str(output_root),
         "artist_master_global_record_count": len(artist_master_global),
         "artists_global_dedupe_in_run_seen_count": len(artists_seen_identity_keys_in_run),
         "artists_existing_text_hashes_by_fair": {
@@ -2414,7 +2511,7 @@ def main() -> int:
         summary["notes"].append("artists_global_dedupe_exhibitions_excluded=true")
 
     summary.update(artists_enrichment_summary)
-    summary_path = LOG_DIR / f"run_summary_seed10_{TARGET_YEAR}.json"
+    summary_path = log_dir / f"run_summary_seed10_{TARGET_YEAR}.json"
     write_json(summary_path, summary)
 
     print(
@@ -2493,10 +2590,12 @@ def main() -> int:
         )
         if summary["artists_enrichment_requests_output_path"]:
             print(f"[DONE][artists_enrichment] requests={summary['artists_enrichment_requests_output_path']}")
-    auto_sync_result = auto_sync_after_job(
-        target="phase1_all",
-        trigger="run_phase1_seed10.py",
-    )
+    auto_sync_result = {"status": "skipped_by_mode", "target": "phase1_all", "trigger": "run_phase1_seed10.py"}
+    if policy_mode == skip_policy.FILL_MISSING_MODE:
+        auto_sync_result = auto_sync_after_job(
+            target="phase1_all",
+            trigger="run_phase1_seed10.py",
+        )
     print(format_auto_sync_brief(auto_sync_result))
     print(f"[DONE] summary={summary_path}")
     return 0

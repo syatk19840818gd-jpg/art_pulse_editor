@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 import re
@@ -12,6 +13,7 @@ from typing import Any
 
 from docx import Document
 from r2_auto_sync import auto_sync_after_job, format_auto_sync_brief
+from tools import skip_policy
 
 try:
     from pypdf import PdfReader
@@ -126,16 +128,69 @@ def parse_series_and_source_path(file_path: Path) -> tuple[str, str] | None:
     return series_name, source_path
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Tarutani_Text import runner")
+    parser.add_argument(
+        "--mode",
+        choices=(skip_policy.FILL_MISSING_MODE, skip_policy.REBUILD_MODE),
+        default=skip_policy.FILL_MISSING_MODE,
+        help="execution mode (default: fill_missing)",
+    )
+    parser.add_argument(
+        "--allow-rebuild",
+        action="store_true",
+        help="required with --mode rebuild",
+    )
+    parser.add_argument(
+        "--run-id",
+        default="",
+        help="required with --mode rebuild (trial run_id)",
+    )
+    parser.add_argument(
+        "--trial-root",
+        default=str(skip_policy.DEFAULT_TRIAL_ROOT),
+        help=f"trial root for rebuild mode (default: {skip_policy.DEFAULT_TRIAL_ROOT})",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="no writes; compute fill-missing counters only",
+    )
+    parser.add_argument(
+        "--dry-run-output",
+        default="",
+        help="optional dry-run summary JSON output path",
+    )
+    return parser.parse_args()
+
+
 def main() -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(errors="backslashreplace")
+    args = parse_args()
+    policy_mode = skip_policy.resolve_run_mode(
+        mode=args.mode,
+        allow_rebuild=bool(args.allow_rebuild),
+        run_id=str(args.run_id or ""),
+    )
+
+    output_base_root = TARUTANI_ROOT
+    if policy_mode == skip_policy.REBUILD_MODE:
+        output_base_root = skip_policy.build_trial_root(
+            trial_root=args.trial_root,
+            run_id=str(args.run_id or ""),
+        ) / "Tarutani_data"
+
+    output_jsonl_path = output_base_root / "tarutani_text.jsonl"
+    summary_json_path = output_base_root / "tarutani_text_import_summary.json"
+
     started_at = utc_now_iso()
-    print(f"[START] Tarutani_Text import at {started_at}")
+    print(f"[START] Tarutani_Text import at {started_at} mode={policy_mode}")
 
     if not TARUTANI_ROOT.exists():
         raise FileNotFoundError(f"Missing root directory: {TARUTANI_ROOT}")
 
-    existing_rows = read_jsonl(OUTPUT_JSONL_PATH)
+    existing_rows = read_jsonl(output_jsonl_path)
     existing_source_paths = {
         str(row.get("source_path", "")).strip()
         for row in existing_rows
@@ -201,15 +256,46 @@ def main() -> int:
         counters["records_appended"] += 1
         extract_status_counts[extract_status] += 1
 
-    OUTPUT_JSONL_PATH.parent.mkdir(parents=True, exist_ok=True)
-    append_jsonl(OUTPUT_JSONL_PATH, records_to_append)
+    if args.dry_run:
+        dry_summary = {
+            "runner": "run_tarutani_text_import.py",
+            "execution_mode": policy_mode,
+            "dry_run": True,
+            "candidate_total": int(counters.get("scanned_files_total", 0)),
+            "would_skip_count": int(counters.get("skipped_existing_source_path", 0)),
+            "would_fetch_count": len(records_to_append),
+            "would_write_count": 0,
+            "key_present_but_file_missing_count": 0,
+            "missing_source_paths_top20": [
+                str(row.get("source_path") or "")
+                for row in records_to_append[:20]
+                if str(row.get("source_path") or "")
+            ],
+            "generated_at": utc_now_iso(),
+        }
+        dry_path = (
+            Path(args.dry_run_output)
+            if str(args.dry_run_output or "").strip()
+            else (output_base_root / "tarutani_text_import_dryrun_summary.json")
+        )
+        if not dry_path.is_absolute():
+            dry_path = (Path.cwd() / dry_path).resolve()
+        write_json(dry_path, dry_summary)
+        print(f"[DRYRUN] summary={dry_path}")
+        return 0
+
+    output_jsonl_path.parent.mkdir(parents=True, exist_ok=True)
+    append_jsonl(output_jsonl_path, records_to_append)
 
     completed_at = utc_now_iso()
     summary = {
         "started_at": started_at,
         "completed_at": completed_at,
         "root_path": str(TARUTANI_ROOT),
-        "output_jsonl_path": str(OUTPUT_JSONL_PATH),
+        "output_jsonl_path": str(output_jsonl_path),
+        "execution_mode": policy_mode,
+        "allow_rebuild": bool(args.allow_rebuild),
+        "run_id": str(args.run_id or ""),
         "records_existing_before_run": len(existing_rows),
         "records_appended_in_run": len(records_to_append),
         "records_total_after_run": len(existing_rows) + len(records_to_append),
@@ -217,7 +303,7 @@ def main() -> int:
         "extract_status_counts": dict(extract_status_counts),
         "unexpected_series_names": sorted(unexpected_series),
     }
-    write_json(SUMMARY_JSON_PATH, summary)
+    write_json(summary_json_path, summary)
 
     print(
         f"[DONE] Tarutani_Text import complete. "
@@ -225,8 +311,8 @@ def main() -> int:
         f"appended={summary['records_appended_in_run']} "
         f"total={summary['records_total_after_run']}"
     )
-    print(f"[DONE] output={OUTPUT_JSONL_PATH}")
-    print(f"[DONE] summary={SUMMARY_JSON_PATH}")
+    print(f"[DONE] output={output_jsonl_path}")
+    print(f"[DONE] summary={summary_json_path}")
     auto_sync_result = auto_sync_after_job(
         target="tarutani_all",
         trigger="run_tarutani_text_import.py",

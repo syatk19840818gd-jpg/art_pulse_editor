@@ -11,7 +11,7 @@ import re
 import shutil
 import socket
 import sys
-from collections import defaultdict
+from collections import Counter, defaultdict
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
 from pathlib import Path
@@ -29,6 +29,7 @@ from phase1_artist_link_utils import (
 )
 from requests.adapters import HTTPAdapter
 from r2_auto_sync import auto_sync_after_job, format_auto_sync_brief
+from tools import skip_policy
 try:
     from playwright.sync_api import (
         Error as PlaywrightError,
@@ -79,6 +80,7 @@ WORKS_META_FILENAME_TEMPLATE = "artist_works_images_{fair_slug}.jsonl"
 WORKS_IMAGE_RANK_WINDOW = 20
 ARTIST_MASTER_GLOBAL_PATH = LOG_DIR / "artist_master_global.json"
 FAILED_FETCH_LEDGER_FILENAME_TEMPLATE = "failed_fetches_artist_image_collect_{target_year}.json"
+KNOWN_UNRESOLVABLE_ARTIST_IMAGES_PATH = LOG_DIR / "artist_works_images_known_unresolvable.json"
 MANUAL_SEED_TEXT_MARKERS = (
     "Artist page seed for",
 )
@@ -255,6 +257,37 @@ def parse_args() -> argparse.Namespace:
         default="none",
         help="clear failed URL ledger before run (none|target|all)",
     )
+    parser.add_argument(
+        "--mode",
+        choices=(skip_policy.FILL_MISSING_MODE, skip_policy.REBUILD_MODE),
+        default=skip_policy.FILL_MISSING_MODE,
+        help="execution mode (default: fill_missing)",
+    )
+    parser.add_argument(
+        "--allow-rebuild",
+        action="store_true",
+        help="required with --mode rebuild",
+    )
+    parser.add_argument(
+        "--run-id",
+        default="",
+        help="required with --mode rebuild (trial run_id)",
+    )
+    parser.add_argument(
+        "--trial-root",
+        default=str(skip_policy.DEFAULT_TRIAL_ROOT),
+        help=f"trial root for rebuild mode (default: {skip_policy.DEFAULT_TRIAL_ROOT})",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="no network / no writes; compute fill-missing counters only",
+    )
+    parser.add_argument(
+        "--dry-run-output",
+        default="",
+        help="optional dry-run summary JSON output path",
+    )
     parser.add_argument("--output-json", default="", help="optional summary output path")
     return parser.parse_args()
 
@@ -296,6 +329,26 @@ def read_json(path: Path) -> Any | None:
         return json.loads(path.read_text(encoding="utf-8"))
     except json.JSONDecodeError:
         return None
+
+
+def load_known_unresolvable_source_keys(path: Path) -> set[str]:
+    payload = read_json(path)
+    if not isinstance(payload, dict):
+        return set()
+    items = payload.get("items")
+    if not isinstance(items, list):
+        return set()
+    out: set[str] = set()
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        source_url = str(item.get("source_url") or "").strip()
+        if not source_url:
+            continue
+        key = skip_policy.normalize_url_key(source_url)
+        if key:
+            out.add(key)
+    return out
 
 
 def compute_page_url_hash(url: str) -> str:
@@ -2246,6 +2299,62 @@ def build_valid_existing_metadata_items(
     return items
 
 
+def analyze_existing_metadata_integrity(
+    existing_meta_hashes: list[str],
+    existing_meta_by_hash: dict[str, dict[str, Any]],
+) -> dict[str, int]:
+    missing_local_count = 0
+    invalid_cached_count = 0
+    payload_mismatch_count = 0
+    for url_hash in existing_meta_hashes:
+        prev = existing_meta_by_hash.get(url_hash, {})
+        local_path = resolve_local_cache_path(str(prev.get("local_path") or ""))
+        if local_path is None or not local_path.exists():
+            missing_local_count += 1
+            continue
+        ok_cached, _cached_reason = validate_cached_image_file(local_path)
+        if not ok_cached:
+            invalid_cached_count += 1
+            continue
+        local_payload_hash = payload_hash_from_file(local_path).strip().lower()
+        if not local_payload_hash:
+            invalid_cached_count += 1
+            continue
+        prev_payload_hash = str(prev.get("payload_hash") or "").strip().lower()
+        if prev_payload_hash and prev_payload_hash != local_payload_hash:
+            payload_mismatch_count += 1
+    return {
+        "missing_local_count": missing_local_count,
+        "invalid_cached_count": invalid_cached_count,
+        "payload_mismatch_count": payload_mismatch_count,
+    }
+
+
+def classify_artist_fill_missing_reason(
+    *,
+    has_metadata_row: bool,
+    existing_meta_hashes: list[str],
+    valid_existing_count: int,
+    target_images_per_artist: int,
+    integrity_stats: dict[str, int],
+) -> str:
+    if not has_metadata_row:
+        return skip_policy.ARTIST_IMAGE_REASON_NO_METADATA_ROW
+    if not existing_meta_hashes:
+        return skip_policy.ARTIST_IMAGE_REASON_NO_METADATA_HASHES
+    if int(integrity_stats.get("payload_mismatch_count", 0)) > 0:
+        return skip_policy.ARTIST_IMAGE_REASON_PAYLOAD_HASH_MISMATCH
+    if (
+        int(integrity_stats.get("missing_local_count", 0))
+        + int(integrity_stats.get("invalid_cached_count", 0))
+        > 0
+    ):
+        return skip_policy.ARTIST_IMAGE_REASON_KEY_PRESENT_BUT_FILE_MISSING
+    if valid_existing_count < target_images_per_artist:
+        return skip_policy.ARTIST_IMAGE_REASON_PARTIAL_UNDER_TARGET
+    return skip_policy.ARTIST_IMAGE_REASON_COMPLETE
+
+
 def quarantine_orphan_artist_images(
     files: list[Path],
     *,
@@ -2283,11 +2392,31 @@ def build_candidate_evidence(candidate: dict[str, Any]) -> dict[str, Any]:
 
 
 def main() -> int:
+    global RAW_DIR, LOG_DIR, DERIVED_DIR, IMAGE_ROOT_DIR, ARTIST_MASTER_GLOBAL_PATH, TRASH_ROOT
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(errors="backslashreplace")
     if hasattr(sys.stderr, "reconfigure"):
         sys.stderr.reconfigure(errors="backslashreplace")
     args = parse_args()
+    policy_mode = skip_policy.resolve_run_mode(
+        mode=args.mode,
+        allow_rebuild=bool(args.allow_rebuild),
+        run_id=str(args.run_id or ""),
+    )
+    io_root = Path("data/phase1_seed10")
+    if policy_mode == skip_policy.REBUILD_MODE:
+        io_root = skip_policy.build_trial_root(
+            trial_root=args.trial_root,
+            run_id=str(args.run_id or ""),
+        )
+    RAW_DIR = io_root / "raw"
+    LOG_DIR = io_root / "logs"
+    DERIVED_DIR = io_root / "derived"
+    IMAGE_ROOT_DIR = io_root / "derived" / "images" / "artist_works_images"
+    ARTIST_MASTER_GLOBAL_PATH = LOG_DIR / "artist_master_global.json"
+    if policy_mode == skip_policy.REBUILD_MODE:
+        TRASH_ROOT = io_root / "_trash"
+
     start_time = utc_now_iso()
     target_year = int(args.target_year)
     target_images_per_artist = max(1, int(args.target_images_per_artist))
@@ -2348,6 +2477,14 @@ def main() -> int:
         "clear_failed_ledger_scope": str(args.clear_failed_ledger),
         "failure_retry_cooldown_seconds": FAILURE_RETRY_COOLDOWN_SECONDS,
         "max_failure_retries_per_url": MAX_FAILURE_RETRIES_PER_URL,
+        "execution_mode": policy_mode,
+        "allow_rebuild": bool(args.allow_rebuild),
+        "run_id": str(args.run_id or ""),
+        "io_root": str(io_root),
+        "known_unresolvable_registry_path": str(KNOWN_UNRESOLVABLE_ARTIST_IMAGES_PATH.resolve()),
+        "known_unresolvable_registry_count": 0,
+        "skipped_known_unresolvable_count": 0,
+        "skipped_known_unresolvable": [],
     }
 
     try:
@@ -2517,6 +2654,172 @@ def main() -> int:
         summary["notes"].append("local_image_cache_layout=fair_only_flat_files")
         summary["notes"].append("artist_works_year_sort_rule=desc_unknown_tail")
         summary["notes"].append("artist_dedupe_scope=global_all_fairs_all_galleries")
+        known_unresolvable_source_keys: set[str] = set()
+        if policy_mode == skip_policy.FILL_MISSING_MODE:
+            known_unresolvable_source_keys = load_known_unresolvable_source_keys(
+                KNOWN_UNRESOLVABLE_ARTIST_IMAGES_PATH.resolve()
+            )
+            summary["known_unresolvable_registry_count"] = len(known_unresolvable_source_keys)
+        if args.dry_run:
+            fair_slug_tokens = sorted(
+                {str(row.get("fair_slug") or "").strip() for row in targets if str(row.get("fair_slug") or "").strip()}
+            )
+            works_meta_rows_by_fair: dict[str, list[dict[str, Any]]] = {}
+            works_meta_index_by_fair: dict[str, dict[str, int]] = {}
+            for fair_slug_token in fair_slug_tokens:
+                meta_path = works_meta_path_for_fair(fair_slug_token).resolve()
+                rows = read_jsonl_rows(meta_path)
+                index: dict[str, int] = {}
+                for idx, row in enumerate(rows):
+                    if not isinstance(row, dict):
+                        continue
+                    key = metadata_record_lookup_key(
+                        str(row.get("artist_name_key") or ""),
+                        str(row.get("source_url") or ""),
+                    )
+                    if key not in index:
+                        index[key] = idx
+                works_meta_rows_by_fair[fair_slug_token] = rows
+                works_meta_index_by_fair[fair_slug_token] = index
+
+            candidate_total = len(targets)
+            would_skip_count = 0
+            would_fetch_count = 0
+            key_present_but_file_missing_count = 0
+            missing_examples: list[dict[str, Any]] = []
+            would_fetch_reason_counts: Counter[str] = Counter()
+            would_skip_reason_counts: Counter[str] = Counter()
+            root_cause_examples: list[dict[str, Any]] = []
+
+            for target in targets:
+                source_url = str(target.get("source_url") or "")
+                fair_slug = str(target.get("fair_slug") or "")
+                gallery_name_en = str(target.get("gallery_name_en") or "")
+                skip_known_unresolvable, skip_known_reason = skip_policy.should_skip_known_unresolvable_target(
+                    mode=policy_mode,
+                    source_url=source_url,
+                    known_source_keys=known_unresolvable_source_keys,
+                )
+                if skip_known_unresolvable:
+                    would_skip_count += 1
+                    would_skip_reason_counts[skip_known_reason] += 1
+                    continue
+                artist_name_en = str(target.get("artist_name_en") or "").strip() or build_artist_name_en_from_source_url(source_url)
+                artist_name_key = str(target.get("artist_name_key") or "").strip() or build_artist_name_key(artist_name_en, source_url)
+                meta_lookup_key = metadata_record_lookup_key(artist_name_key, source_url)
+                fair_rows = works_meta_rows_by_fair.get(fair_slug, [])
+                fair_index = works_meta_index_by_fair.get(fair_slug, {})
+                existing_meta_idx = fair_index.get(meta_lookup_key)
+                existing_meta_row = (
+                    fair_rows[existing_meta_idx]
+                    if existing_meta_idx is not None and 0 <= existing_meta_idx < len(fair_rows) and isinstance(fair_rows[existing_meta_idx], dict)
+                    else None
+                )
+                existing_meta_hashes = normalize_hash_list(
+                    existing_meta_row.get("works_image_url_hashes") if isinstance(existing_meta_row, dict) else []
+                )
+                existing_meta_urls = existing_meta_row.get("works_image_urls") if isinstance(existing_meta_row, dict) else []
+                existing_meta_captions = existing_meta_row.get("works_image_captions") if isinstance(existing_meta_row, dict) else []
+                existing_meta_years = normalize_year_list(
+                    existing_meta_row.get("works_image_years") if isinstance(existing_meta_row, dict) else []
+                )
+                existing_meta_r2_keys = existing_meta_row.get("works_image_r2_keys") if isinstance(existing_meta_row, dict) else []
+                existing_meta_local_paths = existing_meta_row.get("works_image_local_paths") if isinstance(existing_meta_row, dict) else []
+                existing_meta_year_sources = existing_meta_row.get("works_image_year_sources") if isinstance(existing_meta_row, dict) else []
+                existing_meta_year_confidences = existing_meta_row.get("works_image_year_confidences") if isinstance(existing_meta_row, dict) else []
+                existing_meta_payload_hashes = existing_meta_row.get("works_image_payload_hashes") if isinstance(existing_meta_row, dict) else []
+                existing_meta_by_hash: dict[str, dict[str, Any]] = {}
+                for idx, url_hash in enumerate(existing_meta_hashes):
+                    existing_meta_by_hash[url_hash] = {
+                        "url": str(existing_meta_urls[idx]) if isinstance(existing_meta_urls, list) and idx < len(existing_meta_urls) else "",
+                        "caption": str(existing_meta_captions[idx]) if isinstance(existing_meta_captions, list) and idx < len(existing_meta_captions) else "",
+                        "year": int(existing_meta_years[idx]) if idx < len(existing_meta_years) else 0,
+                        "r2_key": str(existing_meta_r2_keys[idx]) if isinstance(existing_meta_r2_keys, list) and idx < len(existing_meta_r2_keys) else "",
+                        "local_path": str(existing_meta_local_paths[idx]) if isinstance(existing_meta_local_paths, list) and idx < len(existing_meta_local_paths) else "",
+                        "year_source": str(existing_meta_year_sources[idx]) if isinstance(existing_meta_year_sources, list) and idx < len(existing_meta_year_sources) else "none",
+                        "year_confidence": str(existing_meta_year_confidences[idx]) if isinstance(existing_meta_year_confidences, list) and idx < len(existing_meta_year_confidences) else "low",
+                        "payload_hash": str(existing_meta_payload_hashes[idx]) if isinstance(existing_meta_payload_hashes, list) and idx < len(existing_meta_payload_hashes) else "",
+                    }
+                valid_existing = build_valid_existing_metadata_items(
+                    existing_meta_hashes,
+                    existing_meta_by_hash,
+                    target_images_per_artist=target_images_per_artist,
+                )
+                integrity_stats = analyze_existing_metadata_integrity(
+                    existing_meta_hashes,
+                    existing_meta_by_hash,
+                )
+                missing_for_target = int(integrity_stats.get("missing_local_count", 0)) + int(
+                    integrity_stats.get("invalid_cached_count", 0)
+                )
+                key_present_but_file_missing_count += missing_for_target
+                if missing_for_target > 0 and len(missing_examples) < 20:
+                    sample = next((item for item in existing_meta_by_hash.values() if item), {})
+                    missing_examples.append(
+                        {
+                            "fair_slug": fair_slug,
+                            "gallery_name_en": gallery_name_en,
+                            "source_url": source_url,
+                            "local_path": str(sample.get("local_path") or ""),
+                            "image_url_hash": str(existing_meta_hashes[0] if existing_meta_hashes else ""),
+                        }
+                    )
+                reason = classify_artist_fill_missing_reason(
+                    has_metadata_row=isinstance(existing_meta_row, dict),
+                    existing_meta_hashes=existing_meta_hashes,
+                    valid_existing_count=len(valid_existing),
+                    target_images_per_artist=target_images_per_artist,
+                    integrity_stats=integrity_stats,
+                )
+                should_fetch, effective_reason = skip_policy.should_fetch_artist_image_in_mode(
+                    mode=policy_mode,
+                    reason=reason,
+                    fill_missing_topup=skip_policy.FILL_MISSING_TOPUP_DEFAULT,
+                )
+                if should_fetch:
+                    would_fetch_count += 1
+                    would_fetch_reason_counts[effective_reason] += 1
+                    if len(root_cause_examples) < 10:
+                        root_cause_examples.append(
+                            {
+                                "fair_slug": fair_slug,
+                                "gallery_name_en": gallery_name_en,
+                                "source_url": source_url,
+                                "reason": effective_reason,
+                            }
+                        )
+                else:
+                    would_skip_count += 1
+                    would_skip_reason_counts[effective_reason] += 1
+
+            dry_summary = {
+                "runner": SOURCE_CLI,
+                "execution_mode": policy_mode,
+                "dry_run": True,
+                "target_year": target_year,
+                "candidate_total": candidate_total,
+                "would_skip_count": would_skip_count,
+                "would_fetch_count": would_fetch_count,
+                "would_write_count": 0,
+                "key_present_but_file_missing_count": key_present_but_file_missing_count,
+                "would_fetch_reason_counts": dict(would_fetch_reason_counts),
+                "would_skip_reason_counts": dict(would_skip_reason_counts),
+                "root_cause_examples_top10": root_cause_examples,
+                "fill_missing_topup_enabled": bool(skip_policy.FILL_MISSING_TOPUP_DEFAULT),
+                "missing_examples_top20": missing_examples,
+                "generated_at": utc_now_iso(),
+            }
+            dry_output_path = (
+                Path(args.dry_run_output)
+                if str(args.dry_run_output or "").strip()
+                else (LOG_DIR / f"dryrun_{SOURCE_CLI.replace('.py', '')}_{target_year}.json")
+            )
+            if not dry_output_path.is_absolute():
+                dry_output_path = (Path.cwd() / dry_output_path).resolve()
+            write_json(dry_output_path, dry_summary)
+            print(f"[DRYRUN] summary={dry_output_path}")
+            return 0
+
         if not targets:
             summary["notes"].append(f"no_artist_raw_records_found:artists_*_{target_year}.jsonl")
             failed_fetches_for_save = {
@@ -2541,6 +2844,7 @@ def main() -> int:
         works_meta_rows_by_fair: dict[str, list[dict[str, Any]]] = {}
         works_meta_index_by_fair: dict[str, dict[str, int]] = {}
         works_meta_paths_by_fair: dict[str, Path] = {}
+        existing_meta_count_by_fair: dict[str, int] = {}
         for fair_slug_token in fair_slug_tokens:
             meta_path = works_meta_path_for_fair(fair_slug_token).resolve()
             rows = read_jsonl_rows(meta_path)
@@ -2557,6 +2861,7 @@ def main() -> int:
             works_meta_rows_by_fair[fair_slug_token] = rows
             works_meta_index_by_fair[fair_slug_token] = index
             works_meta_paths_by_fair[fair_slug_token] = meta_path
+            existing_meta_count_by_fair[fair_slug_token] = len(rows)
 
         domain_stats: dict[str, dict[str, int]] = defaultdict(
             lambda: {
@@ -2632,6 +2937,24 @@ def main() -> int:
             source_url = str(target["source_url"])
             fair_slug = str(target["fair_slug"])
             gallery_name_en = str(target["gallery_name_en"])
+            skip_known_unresolvable, skip_known_reason = skip_policy.should_skip_known_unresolvable_target(
+                mode=policy_mode,
+                source_url=source_url,
+                known_source_keys=known_unresolvable_source_keys,
+            )
+            if skip_known_unresolvable:
+                summary["skipped_known_unresolvable_count"] = int(summary.get("skipped_known_unresolvable_count") or 0) + 1
+                if len(summary["skipped_known_unresolvable"]) < 50:
+                    summary["skipped_known_unresolvable"].append(
+                        {
+                            "artist_id": artist_id,
+                            "fair_slug": fair_slug,
+                            "gallery_name_en": gallery_name_en,
+                            "source_url": source_url,
+                            "reason_code": skip_known_reason,
+                        }
+                    )
+                continue
             artist_name_en = str(target.get("artist_name_en") or "").strip() or build_artist_name_en_from_source_url(source_url)
             artist_name_key = str(target.get("artist_name_key") or "").strip() or build_artist_name_key(artist_name_en, source_url)
             artist_identity_key = str(target.get("artist_identity_key") or "").strip().lower() or build_artist_identity_key(
@@ -3414,6 +3737,12 @@ def main() -> int:
         written_meta_paths: list[str] = []
         for fair_slug_token, rows in works_meta_rows_by_fair.items():
             meta_path = works_meta_paths_by_fair.get(fair_slug_token) or works_meta_path_for_fair(fair_slug_token).resolve()
+            if policy_mode == skip_policy.FILL_MISSING_MODE:
+                prev_count = int(existing_meta_count_by_fair.get(fair_slug_token, 0))
+                if len(rows) < prev_count:
+                    raise RuntimeError(
+                        f"fill_missing_guard_row_drop:{fair_slug_token}:before={prev_count}:after={len(rows)}"
+                    )
             write_jsonl_rows(meta_path, rows)
             written_meta_paths.append(str(meta_path))
         summary["artist_works_metadata_paths"] = sorted(written_meta_paths)
@@ -3475,10 +3804,12 @@ def main() -> int:
                     f"rate={row.get('success_rate_ge_target')} "
                     f"({row.get('success_rate_ge_target_pct')}%)"
                 )
-        auto_sync_result = auto_sync_after_job(
-            target="phase1_derived",
-            trigger=SOURCE_CLI,
-        )
+        auto_sync_result = {"status": "skipped_by_mode", "target": "phase1_derived", "trigger": SOURCE_CLI}
+        if policy_mode == skip_policy.FILL_MISSING_MODE:
+            auto_sync_result = auto_sync_after_job(
+                target="phase1_derived",
+                trigger=SOURCE_CLI,
+            )
         print(format_auto_sync_brief(auto_sync_result))
         print(f"[DONE] summary={summary_path}")
         return 0

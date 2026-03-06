@@ -19,6 +19,7 @@ import unicodedata
 
 import run_phase1_seed10_artist_image_collect as artist_img
 from phase1_exhibitions_text_utils import should_include_target_year_page
+from tools import skip_policy
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 RAW_DIR = PROJECT_ROOT / "data" / "phase1_seed10" / "raw"
@@ -376,7 +377,38 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--targets-csv", default="")
     parser.add_argument(
         "--output-json",
-        default=str(LOGS_DIR / "phase1_seed10_exhibition_image_collect_summary_latest.json"),
+        default="",
+    )
+    parser.add_argument(
+        "--mode",
+        choices=(skip_policy.FILL_MISSING_MODE, skip_policy.REBUILD_MODE),
+        default=skip_policy.FILL_MISSING_MODE,
+        help="execution mode (default: fill_missing)",
+    )
+    parser.add_argument(
+        "--allow-rebuild",
+        action="store_true",
+        help="required with --mode rebuild",
+    )
+    parser.add_argument(
+        "--run-id",
+        default="",
+        help="required with --mode rebuild (trial run_id)",
+    )
+    parser.add_argument(
+        "--trial-root",
+        default=str(skip_policy.DEFAULT_TRIAL_ROOT),
+        help=f"trial root for rebuild mode (default: {skip_policy.DEFAULT_TRIAL_ROOT})",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="no network / no writes; compute fill-missing counters only",
+    )
+    parser.add_argument(
+        "--dry-run-output",
+        default="",
+        help="optional dry-run summary JSON output path",
     )
     parser.add_argument(
         "--debug-gallery-triage",
@@ -919,6 +951,7 @@ def normalize_year_bucket(value: Any) -> int:
 def load_targets(
     target_year: int,
     *,
+    raw_dir: Path,
     only_fair_slug: str = "",
     only_gallery_name: str = "",
     only_source_url: str = "",
@@ -958,7 +991,7 @@ def load_targets(
     only_fair_slug_norm = (only_fair_slug or "").strip().lower()
     only_gallery_name_norm = normalize_gallery_name_for_registry(only_gallery_name)
     only_source_url_norm = artist_img.normalize_url_for_link_compare(only_source_url)
-    for path in sorted(RAW_DIR.glob(f"exhibitions_*_{target_year}.jsonl")):
+    for path in sorted(raw_dir.glob(f"exhibitions_*_{target_year}.jsonl")):
         for row in read_jsonl_rows(path):
             fair_slug = str(row.get("fair_slug") or "").strip()
             if only_fair_slug_norm and fair_slug.lower() != only_fair_slug_norm:
@@ -996,6 +1029,12 @@ def load_existing_image_hashes(
     known_local_path_map: dict[str, set[str]] = {}
     known_r2_key_map: dict[str, set[str]] = {}
     for row in read_jsonl_rows(meta_path):
+        local_path_resolved = artist_img.resolve_local_cache_path(str(row.get("local_path") or ""))
+        has_local_file = bool(local_path_resolved and local_path_resolved.exists() and local_path_resolved.is_file())
+        # Phase1.7 missing-only rule:
+        # key-only rows with missing local file are treated as missing-recovery targets.
+        if not has_local_file:
+            continue
         image_url = str(row.get("image_url") or "")
         if image_url:
             url_hashes.add(artist_img.normalize_image_url_for_dedupe(image_url))
@@ -1033,6 +1072,22 @@ def build_breakdowns(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 def main() -> int:
     args = parse_args()
+    policy_mode = skip_policy.resolve_run_mode(
+        mode=args.mode,
+        allow_rebuild=bool(args.allow_rebuild),
+        run_id=str(args.run_id or ""),
+    )
+    io_root = PROJECT_ROOT / "data" / "phase1_seed10"
+    if policy_mode == skip_policy.REBUILD_MODE:
+        io_root = skip_policy.build_trial_root(
+            trial_root=args.trial_root,
+            run_id=str(args.run_id or ""),
+        )
+    raw_dir = io_root / "raw"
+    derived_dir = io_root / "derived"
+    logs_dir = io_root / "logs"
+    image_root_dir = derived_dir / "images" / "exhibition_works_images"
+
     # SSOT 4-2 / 5-2: exhibition image is fixed to 1 per exhibition.
     if int(args.target_images_per_exhibition) != 1:
         print(
@@ -1040,8 +1095,8 @@ def main() -> int:
             f"target-images-per-exhibition={args.target_images_per_exhibition} ignored by SSOT; forced to 1"
         )
     args.target_images_per_exhibition = 1
-    LOGS_DIR.mkdir(parents=True, exist_ok=True)
-    IMAGE_ROOT_DIR.mkdir(parents=True, exist_ok=True)
+    logs_dir.mkdir(parents=True, exist_ok=True)
+    image_root_dir.mkdir(parents=True, exist_ok=True)
     debug_gallery_inputs = [name.strip() for name in args.debug_gallery_triage.split(",") if name.strip()]
     debug_galleries = {normalize_gallery_debug(name) for name in debug_gallery_inputs}
     debug_run_id = utc_timestamp_compact() if debug_galleries else ""
@@ -1049,7 +1104,7 @@ def main() -> int:
     debug_links_dir = None
     debug_output_base: Path | None = None
     if debug_run_id:
-        debug_output_base = Path(args.debug_output_dir or LOGS_DIR)
+        debug_output_base = Path(args.debug_output_dir or logs_dir)
         if not debug_output_base.is_absolute():
             debug_output_base = PROJECT_ROOT / debug_output_base
         debug_html_dir, debug_links_dir = ensure_debug_dirs(debug_output_base, debug_run_id)
@@ -1058,11 +1113,90 @@ def main() -> int:
     skipped_gallery_set = load_skipped_gallery_name_set(SKIPPED_GALLERIES_REGISTRY_PATH)
     targets = load_targets(
         args.target_year,
+        raw_dir=raw_dir,
         only_fair_slug=args.only_fair_slug,
         only_gallery_name=args.only_gallery_name,
         only_source_url=args.only_source_url,
         targets_csv=args.targets_csv,
     )
+
+    if args.dry_run:
+        meta_rows_by_fair: dict[str, list[dict[str, Any]]] = {}
+        candidate_total = len(targets)
+        would_skip_count = 0
+        would_fetch_count = 0
+        key_present_but_file_missing_count = 0
+        missing_examples: list[dict[str, Any]] = []
+
+        for target in targets:
+            fair_slug = str(target.get("fair_slug") or "")
+            gallery_name_en = str(target.get("gallery_name_en") or "")
+            source_url = str(target.get("source_url") or "")
+            target_images = int(args.target_images_per_exhibition)
+            source_norm = artist_img.normalize_url_for_link_compare(source_url)
+
+            rows = meta_rows_by_fair.get(fair_slug)
+            if rows is None:
+                meta_path = derived_dir / META_FILENAME_TEMPLATE.format(
+                    fair_slug=fair_slug,
+                    target_year=args.target_year,
+                )
+                rows = read_jsonl_rows(meta_path)
+                meta_rows_by_fair[fair_slug] = rows
+
+            valid_existing = 0
+            missing_for_target = 0
+            for row in rows:
+                row_source_norm = artist_img.normalize_url_for_link_compare(str(row.get("source_url") or ""))
+                if not row_source_norm or row_source_norm != source_norm:
+                    continue
+                local_path = artist_img.resolve_local_cache_path(str(row.get("local_path") or ""))
+                has_local = bool(local_path and local_path.exists() and local_path.is_file())
+                if has_local:
+                    valid_existing += 1
+                else:
+                    missing_for_target += 1
+                    if len(missing_examples) < 20:
+                        missing_examples.append(
+                            {
+                                "fair_slug": fair_slug,
+                                "gallery_name_en": gallery_name_en,
+                                "source_url": source_url,
+                                "local_path": str(row.get("local_path") or ""),
+                                "image_url_hash": str(row.get("image_url_hash") or ""),
+                            }
+                        )
+
+            key_present_but_file_missing_count += missing_for_target
+            if valid_existing >= target_images:
+                would_skip_count += 1
+            else:
+                would_fetch_count += 1
+
+        dry_summary = {
+            "runner": "run_phase1_seed10_exhibition_image_collect.py",
+            "execution_mode": policy_mode,
+            "dry_run": True,
+            "target_year": int(args.target_year),
+            "candidate_total": candidate_total,
+            "would_skip_count": would_skip_count,
+            "would_fetch_count": would_fetch_count,
+            "would_write_count": 0,
+            "key_present_but_file_missing_count": key_present_but_file_missing_count,
+            "missing_examples_top20": missing_examples,
+            "notes": ["dry_run_local_only_no_network_no_write"],
+            "generated_at": utc_now_iso(),
+        }
+        dry_output_path = (
+            Path(args.dry_run_output)
+            if str(args.dry_run_output or "").strip()
+            else (logs_dir / f"dryrun_run_phase1_seed10_exhibition_image_collect_{args.target_year}.json")
+        )
+        if not dry_output_path.is_absolute():
+            dry_output_path = (PROJECT_ROOT / dry_output_path).resolve()
+        write_json(dry_output_path, dry_summary)
+        print(f"[exhibitions-image-collect][DRYRUN] output={dry_output_path}")
+        return 0
 
     cases: list[dict[str, Any]] = []
     failed_cases: list[dict[str, Any]] = []
@@ -1139,9 +1273,9 @@ def main() -> int:
             fair_token = fair_slug_to_token(fair_slug)
             gallery_token = gallery_slug(gallery_name_en)
 
-            fair_dir = IMAGE_ROOT_DIR / str(args.target_year) / fair_token
+            fair_dir = image_root_dir / str(args.target_year) / fair_token
             fair_dir.mkdir(parents=True, exist_ok=True)
-            meta_path = DERIVED_DIR / META_FILENAME_TEMPLATE.format(fair_slug=fair_slug, target_year=args.target_year)
+            meta_path = derived_dir / META_FILENAME_TEMPLATE.format(fair_slug=fair_slug, target_year=args.target_year)
             (
                 known_url_hashes,
                 known_payload_hashes,
@@ -1735,6 +1869,10 @@ def main() -> int:
     target_met_cases_new = [c for c in cases if bool(c.get("target_met_new"))]
     summary = {
         "artifact": "phase1_seed10_exhibition_image_collect_summary",
+        "execution_mode": policy_mode,
+        "allow_rebuild": bool(args.allow_rebuild),
+        "run_id_external": str(args.run_id or ""),
+        "io_root": str(io_root),
         "target_year": int(args.target_year),
         "target_images_per_exhibition": int(args.target_images_per_exhibition),
         "seed_exhibition_count": len(targets),
@@ -1764,8 +1902,15 @@ def main() -> int:
     if debug_triage_entries and debug_run_id and debug_output_base:
         triage_path = debug_output_base / DEBUG_TRIAGE_FILENAME_TEMPLATE.format(run_id=debug_run_id)
         write_json(triage_path, debug_triage_entries)
-    write_json(Path(args.output_json), summary)
-    print(f"[exhibitions-image-collect] output={args.output_json}")
+    output_json_path = (
+        Path(args.output_json)
+        if str(args.output_json or "").strip()
+        else (logs_dir / "phase1_seed10_exhibition_image_collect_summary_latest.json")
+    )
+    if not output_json_path.is_absolute():
+        output_json_path = (PROJECT_ROOT / output_json_path).resolve()
+    write_json(output_json_path, summary)
+    print(f"[exhibitions-image-collect] output={output_json_path}")
     print(
         "[exhibitions-image-collect] "
         f"seed={summary['seed_exhibition_count']} "

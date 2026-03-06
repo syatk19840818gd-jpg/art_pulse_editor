@@ -7546,3 +7546,32 @@ TASK A-3A-CLOSE-1 実施結果（2026-02-27 / Adams and Ollman）
   - TASK291 = PHASE1_5_EXIT_REVIEW_05_EXHIBITIONS_TEXT
   - TASK292 = PHASE1_5_COMMON_CORE_PROMOTION_CANDIDATE_SUMMARY
   - TASK293 = PHASE2_KICKOFF_GATE_AFTER_PHASE1_5_EXIT_REVIEW
+- deferred_verification (anti-mixing safety):
+  - 汎用抽出ロジック（候補URL選別 / URL正規化 / dedupe / listing→detail fallback など）を変更した場合、
+    “後から忘れて混線”を防ぐため、10ギャラリーだけで「統合trial/isolated再検証」を1回だけ実施して回帰有無を確認する。
+  - ルール: current formal は read-only / trial は run_id 付きで隔離 / 差分（matched coverage・gallery別）を保存 / diff gateなしでadoptionしない。
+
+## TASK292 PHASE1.5 COMMON CORE PROMOTION CANDIDATE SUMMARY
+- status: COMPLETED (summary-only; no cross-RAG rollout in this task).
+- phase1_5_review_status: TASK287/TASK288/TASK289/TASK290/TASK291 are completed.
+- exhibitions_text_fact: baseline matched coverage 51/76=0.671053; isolated trial reached 54/76=0.710526.
+- adams_arcadia_fact: generic listing-origin fallback improvement was effective in isolated revalidation (Adams overlap 10/13, Arcadia overlap 4/8); keep as watchlist for further generic tuning only.
+- anti_mixing: no current formal write, no weekly proof restart, trial outputs isolated.
+- next_mainline_task: TASK293 = PHASE2_KICKOFF_GATE_AFTER_PHASE1_5_EXIT_REVIEW.
+
+## PHASE1.6 FORMALIZE OPERATION FREEZE (Minimal)
+- formal_ssot_filesystem: `data/phase1_seed10/raw` + `data/phase1_seed10/derived` + `data/phase1_seed10/derived/images` is the single formal truth.
+- adoption_rule: scoped replace only (`_trash` backup -> move/rename replace), append is prohibited.
+- images_prune_rule: union required of Exhibitions Image + Artist Works Images is mandatory; `missing_required_count=0` is enforced.
+- guard_rule: preflight/postflight gates are mandatory; `0 rows / sudden drop / required-key missing / required-image missing / required-count mismatch` => HOLD.
+- next_task: `TASK_FORMALIZE_02 = PHASE1_7_MISSING_ONLY_DEFAULT_ENFORCEMENT`.
+- phase2_gate: `TASK293` remains waiting and starts only after explicit user OK.
+
+## PHASE1.7 MISSING-ONLY DEFAULT (Freeze)
+- default_mode: `FILL_MISSING` (all 5 categories); existing keys are skipped and only missing records/files are eligible.
+- rebuild_mode: `REBUILD` requires explicit flags and must write to run_id-isolated trial only (`trial -> gate -> adopt`).
+- image_missing_rule: image key without local file is treated as missing-recovery target (not as already-saved).
+- known_unresolvable_ledger: `data/phase1_seed10/logs/artist_works_images_known_unresolvable.json`
+- fill_missing_behavior: entries in ledger are skipped (no-op stability); rebuild may retry.
+- scope: Artist Works Images only (current).
+- phase2_status: `TASK293` remains not started until user OK.

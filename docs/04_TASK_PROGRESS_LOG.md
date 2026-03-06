@@ -5148,3 +5148,55 @@ _trash 驕狗畑譁ｹ驥・
 - Artifacts:
   - `data/phase1_seed10/logs/task286_docx_inserted_lines.log`
 
+## 189. TASK292 PHASE1_5_COMMON_CORE_PROMOTION_CANDIDATE_SUMMARY
+- Date: 2026-03-06
+- Purpose:
+  - Consolidate B-class common-core candidates once from Phase1.5 Exit Review outputs (TASK287-291 + Adams/Arcadia pinpoint) without rollout implementation.
+- Result:
+  - Common-core candidates were de-duplicated into fixed categories A-G.
+  - Exhibitions Text evidence was carried forward as facts only: baseline 51/76=0.671053, isolated trial 54/76=0.710526.
+  - Adams/Arcadia pinpoint outcome was recorded as generic improvement effective in isolated mode, while keeping anti-mixing and no-formal-write policy.
+  - Next mainline task is fixed to TASK293 (Phase2 kickoff gate).
+- Artifacts:
+  - `data/phase1_seed10/logs/phase1_5_common_core_promotion_candidate_summary_task292.md`
+  - `data/phase1_seed10/logs/adams_arcadia_zero_match_pinpoint_task292_prep02.md`
+
+- NOTE (deferred, anti-mixing): 汎用抽出ロジック変更後は、10ギャラリー統合trial/isolated再検証を1回だけ実施し（run_id隔離・差分保存）、diff gateなしでformalに混ぜない。
+
+## 190. TASK_FORMALIZE_01 PHASE1_6_FORMAL_ONE_FOLDER_ADOPTION_AND_IMAGE_PRUNE
+- Date: 2026-03-06
+- Result:
+  - Scoped replace completed for 6 formal files (`_trash` backup -> move replace, append not used).
+  - Images prune executed with rollback-capable flow; baseline run result recorded with rollback path.
+  - Phase1.6 formal pointer created to lock adopted files and hashes.
+
+## 191. TASK_FORMALIZE_01_FIX RESTORE_ARTIST_IMAGES_AND_REPRUNE
+- Date: 2026-03-06
+- Result:
+  - Re-prune fixed with union required (Exhibitions + Artist Works Images) basis.
+  - `union_required_count=990`, `missing_required_count=0`.
+  - `adopt_fix_trash_path=data/phase1_seed10/_trash/ADOPT_FIX_20260306T030131Z`.
+
+## 192. TASK_F6_GUARD_01 FORMAL_PREFLIGHT_POSTFLIGHT_GATES
+- Date: 2026-03-06
+- Result:
+  - Preflight/Postflight gates added and PASS confirmed.
+  - HOLD conditions fixed: `0 rows`, sudden-drop (`DEFAULT_MIN_RATIO=0.80`), required-key-missing (`DEFAULT_MAX_MISSING_KEY_RATIO=0.05`), required-image missing, required-count mismatch.
+  - Union-required generator is mandatory for images prune.
+
+- Phase2 status: user OK pending; not started yet.
+
+## 193. TASK_FORMALIZE_02 PHASE1_7_MISSING_ONLY_DEFAULT_ENFORCEMENT
+- Date: 2026-03-06
+- Result:
+  - Default mode fixed to `FILL_MISSING`; explicit `REBUILD` now requires `--mode rebuild --allow-rebuild --run-id`.
+  - Rebuild output is trial-isolated only; direct formal adoption is blocked outside trial->gate->adopt flow.
+  - Image skip policy hardened: key-only metadata rows without local files are treated as missing-recovery (no false “already saved”).
+  - Phase2 (`TASK293`) remains user-OK gated and not started.
+
+## 194. TASK_F5_DOCS_02 (known_unresolvable ledger note)
+- Date: 2026-03-06
+- Ledger: `data/phase1_seed10/logs/artist_works_images_known_unresolvable.json`
+- Rule: FILL_MISSING skips ledger entries for no-op stability; REBUILD may retry those targets.
+- Phase2 status: user OK pending; not started.
+
