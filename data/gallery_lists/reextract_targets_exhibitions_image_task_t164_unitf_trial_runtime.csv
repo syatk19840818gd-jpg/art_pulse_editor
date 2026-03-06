@@ -1,9 +1,0 @@
-run_id,gallery_name_en,fair_slug,source_url,reason,seed_url_type,target_year,route_guard_result,year_guard_result,provenance_guard_result,duplicate_check_result,next_action
-20260303T130509Z-unitf-trial,Athr,frieze_london,https://athrart.com/exhibitions/39-afterschool-curated-by-rania-majinyan/works,task164_unitf_guardfirst_trial,detail,2025,pass,pass,pass,pass,to_trial_seed
-20260303T130509Z-unitf-trial,Athr,frieze_london,https://athrart.com/exhibitions/40-sarah-abu-abdallah-you-ask-we-answer-commissioned-by-sharjah-art-foundation/overview,task164_unitf_guardfirst_trial,detail,2025,pass,pass,pass,pass,to_trial_seed
-20260303T130509Z-unitf-trial,Athr,frieze_london,https://athrart.com/exhibitions/41-between-memory-and-matter-solo-exhibition-by-zahrah-alghamdi/works,task164_unitf_guardfirst_trial,detail,2025,pass,pass,pass,pass,to_trial_seed
-20260303T130509Z-unitf-trial,Athr,frieze_london,https://athrart.com/exhibitions/43-behind-the-frame-curated-by-athr-art-handlers/overview,task164_unitf_guardfirst_trial,detail,2025,pass,pass,pass,pass,to_trial_seed
-20260303T130509Z-unitf-trial,Athr,frieze_london,https://athrart.com/exhibitions/18-and-make-me-light-solo-exhibition-by-fahrah-behbehani/overview,task164_unitf_guardfirst_trial,detail,2025,pass,pass,pass,pass,to_trial_seed
-20260303T130509Z-unitf-trial,The Approach,frieze_london,https://www.theapproach.co.uk/exhibitions/past/2025,task164_unitf_guardfirst_trial,detail,2025,pass,pass,pass,pass,to_trial_seed
-20260303T130509Z-unitf-trial,The Approach,frieze_london,https://www.theapproach.co.uk/exhibitions/condo-2025-hosting-philipp-zollinger-zurich,task164_unitf_guardfirst_trial,detail,2025,pass,pass,pass,pass,to_trial_seed
-20260303T130509Z-unitf-trial,The Approach,frieze_london,https://www.theapproach.co.uk/exhibitions/condo-2025-hosting-sophie-tappeiner-vienna,task164_unitf_guardfirst_trial,detail,2025,pass,pass,pass,pass,to_trial_seed
