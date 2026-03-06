@@ -281,9 +281,9 @@ SSOT_TAG: 01>「SSOT整合ゲート（再発防止・強制運用）」
 - タスク終了時の出力テンプレは「【タスク終了時に行うこと】」を固定採用し、03更新は必ず 02→01→03 の順で実施する。
 - 03更新時は、対象TASKを `[x]` に変更し、CHANGELOG/LAST_UPDATED/完了実行内容を同時更新する。
 - 理由付きスキップを確定したgalleryは `data/gallery_lists/skipped_galleries_registry.csv` に1行追記し、以後の Artists/Exhibitions の画像・テキスト抽出すべてで共通の自動スキップ対象とする。
-- RAG成果物（Artists/Exhibitions の images/text/vector/derived）はローカル生成のみではR2へ反映されない。`run_phase1_seed10_r2_sync.py` で `dry-run -> apply` を実行して初めてR2へ反映される。
-- 自動同期運用（固定）: 生成系スクリプト完了時に `run_r2_auto_sync.py` 相当の guarded sync を自動実行する（追加/更新は即反映、削除は prune候補が2回連続一致した場合のみ実行）。この運用は Artists/Exhibitions の画像・テキスト・ベクターを含むRAG全体へ共通適用する。
-- 実装ゲート（固定）: 新規に追加する「RAGを変更し得るスクリプト」（画像抽出/テキスト抽出/ベクター化/enrichment apply）は、終了時に `r2_auto_sync.auto_sync_after_job` を必ず呼ぶ（カテゴリ共通）。
+- RAG成果物（Artists/Exhibitions の images/text/vector/derived）はローカル生成のみではR2へ反映されない。`run_r2_sync.py` で `plan -> apply-upload -> apply-prune` を明示実行して反映する。
+- 同期運用（固定）: 同期入口は `run_r2_sync.py` に一本化し、追加/更新は `apply-upload`、削除反映は `apply-prune`（confirm + max-prune + stability確認）で実行する。
+- 実装ゲート（固定）: 新規に追加する「RAGを変更し得るスクリプト」（画像抽出/テキスト抽出/ベクター化/enrichment apply）は、同期時に `run_r2_sync.py` の明示実行を必須とする（カテゴリ共通）。
 - 失敗URLの運用（固定）: image collect は failed URL ledger を永続化し、次回は cooldown + retry上限で自動スキップする。テスト時のみ `--force-retry-failed` と `--clear-failed-ledger target|all` で一時解除する。
 
 運用ゲート（増殖防止）

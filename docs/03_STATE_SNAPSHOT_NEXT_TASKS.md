@@ -244,10 +244,10 @@ NEXT_TASKS（次回やること）
 ※各タスクは「計画→実装→動作確認→短い結果報告」を1セットで回す。03/04更新は数Taskごと・実行フェーズの節目・長めの中断前・handoff前にまとめて行う。
 ※R2運用テンプレは `TASK PREP-R2-GUARD-20260227` を参照（dry-run -> apply固定）。
 ※重要: RAG生成（画像/ベクター/派生JSON）だけではR2へ自動反映されない。生成タスクの完了条件に「R2同期（dry-run -> guarded apply）」を必須で含める。
-  - 例（Phase1 derived）: `python run_phase1_seed10_r2_sync.py --scope derived --dry-run --prune`
-  - 例（Phase1 derived apply）: `python run_phase1_seed10_r2_sync.py --scope derived --prune --require-dry-run-log --max-prune 600`
-※自動化（2026-02-28適用）: 生成系スクリプトの正常終了時に `r2_auto_sync` が自動実行される。削除反映は安全のため「同一prune候補の2回連続検出」後に実行。
-※追加ルール: 今後追加するテキスト抽出/変換スクリプトも同様に `auto_sync_after_job` フックを必須とする（実装抜け防止）。
+  - 例（Phase1 derived plan）: `python run_r2_sync.py plan --scope phase1_seed10_formal --run-id <RUN_ID>`
+  - 例（Phase1 derived apply-upload）: `python run_r2_sync.py apply-upload --scope phase1_seed10_formal --apply --run-id <RUN_ID>`
+※同期運用（現行）: R2同期入口は `run_r2_sync.py` のみ。`plan -> apply-upload -> apply-prune` を明示実行する。
+※追加ルール: prune は `--confirm-prune` + `--max-prune` + stability確認（2回一致）を必須とする。
 ※共通スキップ（固定）: `data/gallery_lists/skipped_galleries_registry.csv` に登録されたgalleryは Artists/Exhibitions の text/image 抽出すべてで自動スキップする。
 ※共通同期（固定）: Artists/Exhibitions の text/image/vector/derived すべてに同一の guarded R2同期ルール（dry-run -> guarded apply）を適用する。
 

@@ -1,0 +1,82 @@
+{
+  "version": "v1",
+  "global_exclude_globs": [
+    "**/__pycache__/**",
+    "**/*.pyc",
+    "**/_trial/**",
+    "**/_trash/**",
+    "**/*.tmp",
+    "**/*.bak*",
+    "**/Thumbs.db"
+  ],
+  "scopes": {
+    "phase1_seed10_formal": {
+      "description": "Phase1 seed10 formal artifacts (raw + derived).",
+      "enabled_by_default": true,
+      "prune_allowed": true,
+      "targets": [
+        {
+          "local_root": "data/phase1_seed10/raw",
+          "r2_prefix": "phase1_seed10/source",
+          "include_globs": [
+            "**/*"
+          ],
+          "exclude_globs": []
+        },
+        {
+          "local_root": "data/phase1_seed10/derived",
+          "r2_prefix": "phase1_seed10/derived",
+          "include_globs": [
+            "**/*"
+          ],
+          "exclude_globs": []
+        }
+      ]
+    },
+    "tarutani_source": {
+      "description": "Tarutani source tree mirror.",
+      "enabled_by_default": true,
+      "prune_allowed": true,
+      "targets": [
+        {
+          "local_root": "data/Tarutani_data",
+          "r2_prefix": "data/Tarutani_data",
+          "include_globs": [
+            "**/*"
+          ],
+          "exclude_globs": []
+        }
+      ]
+    },
+    "gallery_lists": {
+      "description": "Gallery list assets (csv/xlsx/prompts).",
+      "enabled_by_default": false,
+      "prune_allowed": false,
+      "targets": [
+        {
+          "local_root": "data/gallery_lists",
+          "r2_prefix": "data/gallery_lists",
+          "include_globs": [
+            "**/*"
+          ],
+          "exclude_globs": []
+        }
+      ]
+    },
+    "docs": {
+      "description": "Project docs (optional scope).",
+      "enabled_by_default": false,
+      "prune_allowed": true,
+      "targets": [
+        {
+          "local_root": "docs",
+          "r2_prefix": "docs",
+          "include_globs": [
+            "**/*"
+          ],
+          "exclude_globs": []
+        }
+      ]
+    }
+  }
+}
