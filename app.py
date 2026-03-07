@@ -1,9 +1,9 @@
-import os
-import time
+import re
+from html import escape
 
 import streamlit as st
 
-from phase2_art_pulse_config import ANGLES, PERSONAS
+from phase2_art_pulse_config import PERSONAS
 from phase2_art_pulse_draft import generate_art_pulse_draft
 from phase2_art_pulse_readonly import build_art_pulse_overview
 from phase2_advisor_draft import ADVISOR_TEXT_MAX_CHARS, generate_advisor_grounded_draft
@@ -25,7 +25,6 @@ from phase2_exhibition_search_readonly import (
     apply_exhibition_filters,
     load_exhibition_records_readonly,
 )
-from phase2_formal_readonly_summary import build_counts
 
 try:
     from dotenv import load_dotenv
@@ -35,94 +34,320 @@ except Exception:
     pass
 
 APP_TITLE = "Art Pulse Editor"
-PHASE2_LABEL = "Phase2 キックオフ（formal読み取り専用ビュー）"
-
-REQUIRED = [
-    "OPENAI_API_KEY",
-    "GEMINI_API_KEY",
-    "R2_ACCESS_KEY_ID",
-    "R2_SECRET_ACCESS_KEY",
-    "R2_ENDPOINT",
-    "R2_BUCKET",
-]
-
-ALIASES = {
-    "R2_ENDPOINT": ["R2_ENDPOINT", "R2_ENDPOINT_URL", "R2_S3_ENDPOINT"],
-    "OPENAI_API_KEY": ["OPENAI_API_KEY"],
-    "GEMINI_API_KEY": ["GEMINI_API_KEY", "GOOGLE_API_KEY"],
-    "R2_BUCKET": ["R2_BUCKET"],
-    "R2_ACCESS_KEY_ID": ["R2_ACCESS_KEY_ID"],
-    "R2_SECRET_ACCESS_KEY": ["R2_SECRET_ACCESS_KEY"],
-    "R2_REGION": ["R2_REGION"],
-    "TEXT_MODEL": ["TEXT_MODEL"],
-    "TEXT_EMBEDDING_MODEL": ["TEXT_EMBEDDING_MODEL"],
-    "TEXT_EMBEDDING_OUTPUT_DIM": ["TEXT_EMBEDDING_OUTPUT_DIM"],
-}
-
 FAIR_OPTIONS = ["Frieze London", "Liste Art Fair Basel", "Frieze London + Liste Art Fair Basel"]
+MODE_HEADING_FONT_SIZE_PX = 22
+EXPLANATION_OF_MODES_FONT_SIZE_PX = 15
+IMAGE_MARKDOWN_RE = re.compile(r"!\[(?P<alt>[^\]]*)\]\((?P<url>[^)]+)\)")
+SOURCE_LINE_RE = re.compile(r"^Source:\s*<(?P<url>[^>]+)>\s*$")
 
 
-def get_any(names, default=None):
-    for key in names:
-        try:
-            if key in st.secrets:
-                value = st.secrets[key]
-                if value:
-                    return value
-        except Exception:
-            pass
-        value = os.getenv(key)
-        if value:
-            return value
-    return default
+def apply_global_font_styles() -> None:
+    st.markdown(
+        """
+        <style>
+        :root {
+          --font-latin: "DIN 2014", "DIN Alternate", "DIN Next LT Pro", "DINPro", "DIN";
+          --font-cjk: "Yu Gothic", "YuGothic", "游ゴシック", "Meiryo", sans-serif;
+          color-scheme: light;
+        }
+        html, body {
+          background-color: #f5f7fb !important;
+          color: #111111 !important;
+        }
+        .stApp, .stApp * {
+          font-family: var(--font-latin), var(--font-cjk) !important;
+        }
+        .stApp {
+          --background-color: #f5f7fb !important;
+          --secondary-background-color: #ffffff !important;
+          --text-color: #111111 !important;
+          --primary-color: #0f62fe !important;
+          background-color: #f5f7fb !important;
+          color: #111111 !important;
+        }
+        .stApp [data-testid="stAppViewContainer"],
+        .stApp [data-testid="stMain"],
+        .stApp [data-testid="stMainBlockContainer"],
+        .stApp [data-testid="stSidebar"] {
+          background-color: #f5f7fb !important;
+          color: #111111 !important;
+        }
+        /* Layout: PC は広く、モバイルは画面幅に追従 */
+        .stApp [data-testid="stMainBlockContainer"],
+        .stApp .block-container {
+          max-width: min(1680px, 96vw) !important;
+          width: 100% !important;
+          padding-left: clamp(0.75rem, 2vw, 2.25rem) !important;
+          padding-right: clamp(0.75rem, 2vw, 2.25rem) !important;
+        }
+        @media (max-width: 900px) {
+          .stApp [data-testid="stMainBlockContainer"],
+          .stApp .block-container {
+            max-width: 100vw !important;
+            padding-left: 0.55rem !important;
+            padding-right: 0.55rem !important;
+          }
+        }
+        .stApp [data-testid="stVerticalBlockBorderWrapper"] {
+          background-color: #ffffff !important;
+          border: 1px solid #d9dbe2 !important;
+          border-radius: 12px !important;
+        }
+        .stApp [data-testid="stMarkdownContainer"],
+        .stApp [data-testid="stCaptionContainer"],
+        .stApp [data-testid="stMetricValue"],
+        .stApp [data-testid="stMetricLabel"],
+        .stApp p,
+        .stApp label,
+        .stApp li {
+          color: #111111 !important;
+        }
+        .stApp a {
+          color: #0a66c2 !important;
+        }
+        .stApp input,
+        .stApp textarea,
+        .stApp div[data-baseweb="select"] > div,
+        .stApp div[data-baseweb="tag"] {
+          background-color: #ffffff !important;
+          color: #111111 !important;
+          border-color: #cfcfcf !important;
+        }
+        .stApp input::placeholder,
+        .stApp textarea::placeholder {
+          color: #6b7280 !important;
+          opacity: 1 !important;
+        }
+        .stApp [data-testid="stTextInputRootElement"],
+        .stApp [data-testid="stTextAreaRootElement"],
+        .stApp [data-testid="stSelectbox"] > div {
+          color: #111111 !important;
+        }
+        .stApp [data-testid="stButton"] > button {
+          background-color: #f3f4f6 !important;
+          color: #111111 !important;
+          border: 1px solid #cfcfcf !important;
+        }
+        .stApp [data-testid="stButton"] > button:disabled {
+          background-color: #f3f4f6 !important;
+          color: #6b7280 !important;
+          opacity: 1 !important;
+          border-color: #d5d8df !important;
+        }
+        .stApp [data-testid="stFileUploaderDropzone"] {
+          background-color: #f8fafc !important;
+          color: #111111 !important;
+          border: 1px solid #d5d8df !important;
+        }
+        .stApp section[data-testid="stFileUploader"] button {
+          background-color: #f3f4f6 !important;
+          color: #111111 !important;
+          border: 1px solid #cfcfcf !important;
+        }
+        .stApp [data-testid="stFileUploaderDropzone"] [data-baseweb="button"],
+        .stApp [data-testid="stFileUploaderDropzone"] button {
+          background-color: #f3f4f6 !important;
+          color: #111111 !important;
+          border: 1px solid #cfcfcf !important;
+        }
+        .stApp [data-testid="stDataFrame"] {
+          --gdg-bg-cell: #ffffff;
+          --gdg-bg-cell-medium: #f9fafb;
+          --gdg-bg-header: #f1f3f7;
+          --gdg-bg-header-hovered: #e9edf5;
+          --gdg-bg-bubble: #f8fafc;
+          --gdg-bg-bubble-selected: #e8eefc;
+          --gdg-bg-search-result: #fff7d6;
+          --gdg-border-color: #d4d7de;
+          --gdg-horizontal-border-color: #e2e6ee;
+          --gdg-drilldown-border: #d4d7de;
+          --gdg-link-color: #0a66c2;
+          --gdg-text-dark: #111111;
+          --gdg-text-medium: #374151;
+          --gdg-text-light: #6b7280;
+          --gdg-text-bubble: #111111;
+        }
+        .stApp [data-testid="stDataFrame"] canvas {
+          background-color: #ffffff !important;
+        }
+        .stApp [data-testid="stJson"],
+        .stApp [data-testid="stJson"] * {
+          background-color: #ffffff !important;
+          color: #111111 !important;
+        }
+        .stApp [data-testid="stCodeBlock"],
+        .stApp [data-testid="stCodeBlock"] * {
+          background-color: #ffffff !important;
+          color: #111111 !important;
+        }
+        .stApp pre, .stApp code {
+          background-color: #f8fafc !important;
+          color: #111111 !important;
+        }
+        /* Art Pulse image gallery: PC横並び / モバイル自動追従 */
+        .ap-gallery {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+          gap: 0.9rem;
+          margin: 0.4rem 0 1.1rem 0;
+        }
+        .ap-gallery-item {
+          display: flex;
+          flex-direction: column;
+          gap: 0.35rem;
+        }
+        .ap-gallery-thumb {
+          display: block;
+          width: 100%;
+          aspect-ratio: 4 / 3;
+          overflow: hidden;
+          border-radius: 10px;
+          border: 1px solid #d9dbe2;
+          background: #f4f6fb;
+        }
+        .ap-gallery-thumb img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+        }
+        .ap-gallery-source {
+          font-size: 0.83rem;
+          line-height: 1.25;
+          color: #374151;
+          word-break: break-word;
+        }
+        @media (max-width: 900px) {
+          .ap-gallery {
+            grid-template-columns: 1fr;
+            gap: 0.75rem;
+          }
+          .ap-gallery-thumb {
+            aspect-ratio: 16 / 10;
+          }
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
-def get_key(key: str, default=None):
-    return get_any(ALIASES.get(key, [key]), default=default)
-
-
-def render_sidebar() -> str:
-    st.sidebar.header("Phase2 対象範囲")
-    selected_fair = st.sidebar.selectbox("フェア", FAIR_OPTIONS, index=2)
-    st.sidebar.text_input("対象年", value="2025（固定）", disabled=True)
-    st.sidebar.caption("読み取り専用: formal参照のみ（抽出/R2同期/formal更新なし）")
-    return selected_fair
-
-
-def render_header(selected_fair: str) -> None:
+def render_header() -> None:
     st.title(APP_TITLE)
-    st.caption(PHASE2_LABEL)
-    st.info(
-        f"対象フェア: {selected_fair} / 年: 2025\n\n"
-        "この画面は formal データを読み取り専用で表示します。"
+
+
+def _render_mode_heading(text: str) -> None:
+    st.markdown(
+        (
+            f'<h3 style="margin:0.15rem 0 0.6rem 0; '
+            f'font-size:{MODE_HEADING_FONT_SIZE_PX}px; font-weight:700;">{text}</h3>'
+        ),
+        unsafe_allow_html=True,
     )
 
 
-def render_count_summary(selected_fair: str) -> None:
-    st.subheader("formal 件数サマリ（読み取り専用）")
-    try:
-        counts = build_counts(selected_fair)
-    except Exception as exc:
-        st.error(f"件数サマリ生成エラー: {type(exc).__name__}: {exc}")
+def _render_mode_explanation(text: str) -> None:
+    st.markdown(
+        (
+            f'<p style="margin:0.1rem 0 0.7rem 0; color:#111111; font-weight:550; '
+            f'font-size:{EXPLANATION_OF_MODES_FONT_SIZE_PX}px;">{text}</p>'
+        ),
+        unsafe_allow_html=True,
+    )
+
+
+def _split_markdown_and_image_blocks(markdown_text: str):
+    lines = (markdown_text or "").splitlines()
+    blocks = []
+    text_buf = []
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        image_match = IMAGE_MARKDOWN_RE.match(line.strip())
+        if not image_match:
+            text_buf.append(line)
+            i += 1
+            continue
+
+        if text_buf:
+            text = "\n".join(text_buf).strip()
+            if text:
+                blocks.append(("markdown", text))
+            text_buf = []
+
+        images = []
+        while i < len(lines):
+            image_match = IMAGE_MARKDOWN_RE.match(lines[i].strip())
+            if not image_match:
+                break
+            image_alt = image_match.group("alt") or "reference"
+            image_url = image_match.group("url") or ""
+            i += 1
+            source_url = ""
+            if i < len(lines):
+                source_match = SOURCE_LINE_RE.match(lines[i].strip())
+                if source_match:
+                    source_url = source_match.group("url") or ""
+                    i += 1
+            while i < len(lines) and not lines[i].strip():
+                i += 1
+            images.append(
+                {
+                    "alt": image_alt,
+                    "image_url": image_url,
+                    "source_url": source_url,
+                }
+            )
+        if images:
+            blocks.append(("gallery", images))
+
+    if text_buf:
+        text = "\n".join(text_buf).strip()
+        if text:
+            blocks.append(("markdown", text))
+    return blocks
+
+
+def _render_responsive_image_gallery(images: list[dict]) -> None:
+    if not images:
         return
+    html_items = []
+    for item in images:
+        image_url = str(item.get("image_url") or "").strip()
+        source_url = str(item.get("source_url") or "").strip()
+        alt = escape(str(item.get("alt") or "reference"))
+        if not image_url:
+            continue
+        safe_img = escape(image_url, quote=True)
+        safe_src = escape(source_url, quote=True)
+        source_html = (
+            f'<div class="ap-gallery-source">Source: <a href="{safe_src}" target="_blank">{safe_src}</a></div>'
+            if source_url
+            else '<div class="ap-gallery-source">Source: (not available)</div>'
+        )
+        html_items.append(
+            (
+                '<div class="ap-gallery-item">'
+                f'<a class="ap-gallery-thumb" href="{safe_img}" target="_blank" title="画像を拡大表示">'
+                f'<img src="{safe_img}" alt="{alt}" loading="lazy" />'
+                "</a>"
+                f"{source_html}"
+                "</div>"
+            )
+        )
+    if not html_items:
+        return
+    st.markdown(f'<div class="ap-gallery">{"".join(html_items)}</div>', unsafe_allow_html=True)
 
-    rows = list(counts["breakdown_rows"])
-    if counts["total_row"]:
-        rows.append(counts["total_row"])
-    st.table(rows)
-    st.metric("Tarutani Text行数", counts["tarutani_total_rows"])
-    st.caption(
-        f"Tarutani非空行: {counts['tarutani_non_empty_text_rows']} / "
-        f"derived/images ファイル数: {counts['images_cache_file_count']}"
-    )
-    st.caption(f"件数定義: {counts['count_note']}")
 
-    if counts["warnings"]:
-        with st.expander("警告/注記（件数サマリ）", expanded=False):
-            for warning in counts["warnings"][:20]:
-                st.write(f"- {warning}")
+def _render_markdown_with_galleries(markdown_text: str) -> None:
+    for kind, payload in _split_markdown_and_image_blocks(markdown_text):
+        if kind == "markdown":
+            st.markdown(payload)
+        else:
+            _render_responsive_image_gallery(payload)
 
-
+@st.cache_data(show_spinner=False)
 @st.cache_data(show_spinner=False)
 def get_exhibition_search_data():
     return load_exhibition_records_readonly()
@@ -219,15 +444,15 @@ def _render_reference_image_candidates(
         st.info(empty_message)
 
 
-def render_art_pulse(selected_fair: str) -> None:
-    st.markdown("**① Art Pulse**")
-    st.caption("記事生成の前段として、読み取り専用で evidence overview を表示します。")
+def render_art_pulse() -> None:
+    _render_mode_heading("① Art Pulse")
+    _render_mode_explanation("アート編集記者が「現代アートの今（Now）」を取材した記事を書く")
 
     col1, col2 = st.columns([1, 1])
     fair_mode = col1.selectbox(
         "フェア選択",
-        ["サイドバー選択を使用"] + FAIR_OPTIONS,
-        index=0,
+        FAIR_OPTIONS,
+        index=2,
         key="artpulse_fair",
     )
     col2.text_input("対象年", value="2025（固定）", disabled=True, key="artpulse_year")
@@ -238,159 +463,62 @@ def render_art_pulse(selected_fair: str) -> None:
         format_func=lambda p: f"{p['label']} - {p['description']}",
         key="artpulse_reporter",
     )
-    selected_angles = st.multiselect(
-        "切り口（angles）",
-        options=ANGLES,
-        default=ANGLES[:2],
-        format_func=lambda a: a["label"],
-        key="artpulse_angles",
-    )
+    reporter_angles = list(reporter.get("angles", []) or [])
+    def _format_angle_full(angle: dict) -> str:
+        label = str(angle.get("label") or "")
+        description = str(angle.get("description") or "")
+        return f"{label}：{description}" if description else label
 
-    run = st.button("Art Pulse overview を表示", key="artpulse_run")
-    if not run:
-        st.caption("上の条件を選んでボタンを押すと、根拠候補の概要を表示します。")
-        overview = st.session_state.get("artpulse_overview")
-        if not overview:
-            return
+    if reporter_angles:
+        selected_angle = st.selectbox(
+            "テーマ",
+            options=reporter_angles,
+            format_func=_format_angle_full,
+            key="artpulse_angle",
+        )
+        angle_keys = [str(selected_angle.get("key") or "")]
     else:
-        effective_fair = selected_fair if fair_mode == "サイドバー選択を使用" else fair_mode
-        angle_keys = [a["key"] for a in selected_angles]
+        st.warning("この記者に切り口が定義されていません。")
+        angle_keys = []
 
+    st.caption("上の条件を選んで「Art Pulse」を押すと 担当記者が記事を書きます。")
+    run = st.button("Art Pulse", key="artpulse_generate")
+
+    if run:
         try:
             overview = build_art_pulse_overview(
-                fair_label=effective_fair,
+                fair_label=fair_mode,
                 reporter_id=reporter["id"],
                 angle_keys=angle_keys,
             )
-        except Exception as exc:
-            st.error(f"Art Pulse overview 生成エラー: {type(exc).__name__}: {exc}")
-            return
-
-        st.session_state["artpulse_overview"] = overview
-        st.session_state["artpulse_selection"] = {
-            "fair": effective_fair,
-            "reporter_id": reporter["id"],
-            "angle_keys": angle_keys,
-        }
-        st.session_state["artpulse_draft"] = None
-    overview = st.session_state.get("artpulse_overview")
-    selection = st.session_state.get("artpulse_selection", {})
-
-    st.markdown("**選択中の条件**")
-    st.write(
-        {
-            "fair": overview["selection"]["fair_label"],
-            "year": overview["selection"]["year"],
-            "reporter": overview["selection"]["reporter_label"],
-            "angles": overview["selection"]["angle_labels"],
-        }
-    )
-
-    _render_evidence_summary(
-        {
-            "Exhibitions根拠件数": overview["counts"]["exhibitions_text_count"],
-            "Artists根拠件数": overview["counts"]["artist_text_count"],
-            "Exhibitions画像候補件数": overview["counts"]["exhibitions_image_candidate_count"],
-            "Artist画像候補件数": overview["counts"]["artist_image_candidate_count"],
-        }
-    )
-    st.caption(f"注記: {overview['count_note']}")
-
-    c1, c2 = st.columns(2)
-    c1.markdown("**根拠ブロック（gallery分布）**")
-    c1.dataframe(overview["top_galleries"], use_container_width=True, hide_index=True, height=220)
-    c2.markdown("**根拠ブロック（artist頻出）**")
-    c2.dataframe(overview["top_artists"], use_container_width=True, hide_index=True, height=220)
-
-    st.markdown("**根拠ブロック（exhibition候補）**")
-    st.dataframe(
-        overview["exhibition_candidates"],
-        use_container_width=True,
-        hide_index=True,
-        height=260,
-    )
-
-    st.markdown("**参考画像候補**")
-    plan = overview["image_reference_plan"]
-    p1, p2 = st.columns(2)
-    p1.write(
-        {
-            "target_exhibition_images": plan["target_exhibition_images"],
-            "available_exhibition_images": plan["available_exhibition_images"],
-        }
-    )
-    p2.write(
-        {
-            "target_artist_images": plan["target_artist_images"],
-            "available_artist_images": plan["available_artist_images"],
-        }
-    )
-    image_rows = list(plan["exhibition_image_candidates"] + plan["artist_image_candidates"])
-    if image_rows:
-        st.dataframe(
-            image_rows,
-            use_container_width=True,
-            hide_index=True,
-            height=220,
-        )
-    else:
-        st.info("参考画像候補はありません。")
-
-    st.info(overview["preview_note"])
-    if overview["warnings"]:
-        with st.expander("警告/注記（Art Pulse）", expanded=False):
-            for warning in overview["warnings"][:20]:
-                st.write(f"- {warning}")
-
-    st.markdown("**Art Pulse 下書き生成（日本語 / 2000字上限）**")
-    st.caption("複数angle選択時は先頭1件のみ生成に使用します。")
-    if st.button("この条件で下書きを生成", key="artpulse_draft_run"):
-        try:
             draft = generate_art_pulse_draft(
                 overview=overview,
-                reporter_id=str(selection.get("reporter_id") or reporter["id"]),
-                angle_keys=list(selection.get("angle_keys") or [ANGLES[0]["key"]]),
+                reporter_id=reporter["id"],
+                angle_keys=angle_keys,
             )
-            st.session_state["artpulse_draft"] = draft
+            st.session_state["artpulse_result"] = {"overview": overview, "draft": draft}
         except Exception as exc:
-            st.error(f"Art Pulse 下書き生成エラー: {type(exc).__name__}: {exc}")
+            st.error(f"Art Pulse 生成エラー: {type(exc).__name__}: {exc}")
+            return
 
-    draft = st.session_state.get("artpulse_draft")
-    if draft:
-        st.markdown("**生成下書き**")
-        st.write(
-            {
-                "title": draft["title"],
-                "persona": draft["persona_label"],
-                "angle": draft["angle_label"],
-                "fair": draft["fair_label"],
-                "body_chars": draft["body_chars"],
-                "mode": draft["mode"],
-                "evidence_count": draft["evidence_counts"]["all_unique_urls"],
-            }
-        )
-        st.text_area("Art Pulse下書き（本文）", value=draft["body"], height=300, disabled=True)
-        st.caption("本文文字数は上限2000字で制御（URL一覧は本文文字数に含めない）。")
+    result = st.session_state.get("artpulse_result")
+    if not result:
+        return
 
-        urls = draft.get("evidence_urls", {})
-        ex_urls = urls.get("exhibition", [])
-        ar_urls = urls.get("artist", [])
-        _render_evidence_summary({"根拠件数": draft["evidence_counts"]["all_unique_urls"]})
-        _render_evidence_urls("根拠URL一覧", ex_urls, ar_urls)
-        _render_reference_image_candidates(
-            title="参考画像候補",
-            reference_images={"all": image_rows},
-            target_total=8,
-        )
-        if draft.get("warnings"):
-            with st.expander("警告/注記（Art Pulse）", expanded=False):
-                for warning in draft["warnings"]:
-                    st.write(f"- {warning}")
+    draft = result.get("draft", {})
+    st.markdown(f"### {draft.get('title', 'Art Pulse')}")
+    _render_markdown_with_galleries(draft.get("body", ""))
+    st.caption(f"本文文字数（画像/Source行を除く）: {int(draft.get('body_chars', 0))} / 2000")
+    warnings = list(draft.get("warnings", []) or [])
+    if warnings:
+        with st.expander("警告/注記（Art Pulse）", expanded=False):
+            for warning in warnings:
+                st.write(f"- {warning}")
 
 
-def render_exhibition_search(selected_fair: str) -> None:
-    st.markdown("**② Exhibition Search（展示検索）**")
-    st.caption("formal exhibitions text の読み取り専用一覧です。")
+def render_exhibition_search() -> None:
+    _render_mode_heading("② Exhibition Search（展示検索）")
+    _render_mode_explanation("formal exhibitions text の読み取り専用一覧です。")
 
     try:
         data = get_exhibition_search_data()
@@ -401,17 +529,18 @@ def render_exhibition_search(selected_fair: str) -> None:
     col1, col2 = st.columns([1, 2])
     fair_mode = col1.selectbox(
         "フェア絞り込み",
-        ["サイドバー選択を使用"] + FAIR_OPTIONS,
-        index=0,
+        FAIR_OPTIONS,
+        index=2,
         key="exh_fair_filter",
     )
     keyword = col2.text_input(
         "キーワード（gallery / title / artist names / source_url）",
         value="",
+        placeholder="例: Adams and Ollman / Antonia Kuo / https://adamsandollman.com/Antonia-Kuo-Subcycle",
         key="exh_keyword",
     )
 
-    effective_fair = selected_fair if fair_mode == "サイドバー選択を使用" else fair_mode
+    effective_fair = fair_mode
     filtered = apply_exhibition_filters(data.records, effective_fair, keyword)
 
     st.caption(
@@ -488,9 +617,9 @@ def render_exhibition_search(selected_fair: str) -> None:
         st.warning("このレコードには本文テキストがありません。")
 
 
-def render_artist_search(selected_fair: str) -> None:
-    st.markdown("**③ Artist Search（作家検索）**")
-    st.caption("formal artists text の読み取り専用一覧です。")
+def render_artist_search() -> None:
+    _render_mode_heading("③ Artist Search（作家検索）")
+    _render_mode_explanation("formal artists text の読み取り専用一覧です。")
 
     try:
         data = get_artist_search_data()
@@ -501,17 +630,18 @@ def render_artist_search(selected_fair: str) -> None:
     col1, col2 = st.columns([1, 2])
     fair_mode = col1.selectbox(
         "フェア絞り込み",
-        ["サイドバー選択を使用"] + FAIR_OPTIONS,
-        index=0,
+        FAIR_OPTIONS,
+        index=2,
         key="artist_fair_filter",
     )
     keyword = col2.text_input(
         "キーワード（artist / gallery / text / source_url）",
         value="",
+        placeholder="例: Sarah Abu Abdallah / Athr / painting / https://athrart.com/artists/",
         key="artist_keyword",
     )
 
-    effective_fair = selected_fair if fair_mode == "サイドバー選択を使用" else fair_mode
+    effective_fair = fair_mode
     filtered = apply_artist_filters(data.records, effective_fair, keyword)
 
     st.caption(
@@ -591,9 +721,9 @@ def render_artist_search(selected_fair: str) -> None:
         st.warning("このレコードには本文テキストがありません。")
 
 
-def render_advisor(selected_fair: str) -> None:
-    st.markdown("**④ Advisor（相談）**")
-    st.caption(
+def render_advisor() -> None:
+    _render_mode_heading("④ Advisor（相談）")
+    _render_mode_explanation(
         "question type 1（テキスト回答）と type 2（テキスト＋画像生成）を実装。"
         "type 2 は gate 条件を満たした場合のみ実行。"
     )
@@ -601,8 +731,8 @@ def render_advisor(selected_fair: str) -> None:
     col1, col2 = st.columns([1, 1])
     fair_mode = col1.selectbox(
         "フェア選択",
-        ["サイドバー選択を使用"] + FAIR_OPTIONS,
-        index=0,
+        FAIR_OPTIONS,
+        index=2,
         key="advisor_fair_filter",
     )
     question_type_label = col2.selectbox(
@@ -653,7 +783,7 @@ def render_advisor(selected_fair: str) -> None:
             st.warning("相談内容を入力してください。")
             return
 
-        effective_fair = selected_fair if fair_mode == "サイドバー選択を使用" else fair_mode
+        effective_fair = fair_mode
         try:
             context = build_advisor_grounded_context(
                 fair_label=effective_fair,
@@ -897,9 +1027,9 @@ def render_advisor(selected_fair: str) -> None:
                 st.write(f"- {warning}")
 
 
-def render_exclusive_advisor(selected_fair: str) -> None:
-    st.markdown("**⑤ Exclusive Advisor（垂谷専属）**")
-    st.caption(
+def render_exclusive_advisor() -> None:
+    _render_mode_heading("⑤ Exclusive Advisor（垂谷専属）")
+    _render_mode_explanation(
         "type 1（テキスト回答）と type 2（テキスト＋画像生成）を実装。"
         "Tarutani_Text は文脈参照としてのみ使用します。"
     )
@@ -907,8 +1037,8 @@ def render_exclusive_advisor(selected_fair: str) -> None:
     col1, col2 = st.columns([1, 1])
     fair_mode = col1.selectbox(
         "フェア選択",
-        ["サイドバー選択を使用"] + FAIR_OPTIONS,
-        index=0,
+        FAIR_OPTIONS,
+        index=2,
         key="exclusive_fair_filter",
     )
     question_type_label = col2.selectbox(
@@ -956,7 +1086,7 @@ def render_exclusive_advisor(selected_fair: str) -> None:
         if not question_text.strip():
             st.warning("相談内容を入力してください。")
             return
-        effective_fair = selected_fair if fair_mode == "サイドバー選択を使用" else fair_mode
+        effective_fair = fair_mode
         try:
             context = build_exclusive_advisor_context(
                 fair_label=effective_fair,
@@ -1230,9 +1360,9 @@ def render_exclusive_advisor(selected_fair: str) -> None:
                 st.write(f"- {warning}")
 
 
-def render_gallery_list(selected_fair: str) -> None:
-    st.markdown("**⑥ Gallery list（登録ギャラリー一覧 / 読み取り専用）**")
-    st.caption("CSV正本を読み取り専用で表示します（編集・追加・削除・保存なし）。")
+def render_gallery_list() -> None:
+    _render_mode_heading("⑥ Gallery list（登録ギャラリー一覧 / 読み取り専用）")
+    _render_mode_explanation("CSV正本を読み取り専用で表示します（編集・追加・削除・保存なし）。")
 
     try:
         data = get_gallery_list_data()
@@ -1243,17 +1373,18 @@ def render_gallery_list(selected_fair: str) -> None:
     col1, col2 = st.columns([1, 2])
     fair_mode = col1.selectbox(
         "フェア切替",
-        ["サイドバー選択を使用"] + FAIR_OPTIONS,
-        index=0,
+        FAIR_OPTIONS,
+        index=2,
         key="gallery_list_fair_filter",
     )
     keyword = col2.text_input(
         "ギャラリー名キーワード",
         value="",
+        placeholder="例: Athr / Adams and Ollman / A+ Works of Art",
         key="gallery_list_keyword",
     )
 
-    effective_fair = selected_fair if fair_mode == "サイドバー選択を使用" else fair_mode
+    effective_fair = fair_mode
     filtered = apply_gallery_list_filters(data.records, effective_fair, keyword)
 
     m1, m2, m3, m4, m5 = st.columns(5)
@@ -1311,109 +1442,31 @@ def render_gallery_list(selected_fair: str) -> None:
     )
 
 
-def render_phase2_sections(selected_fair: str) -> None:
-    st.subheader("機能骨格（Phase2）")
+def render_phase2_sections() -> None:
+    with st.container(border=True):
+        render_art_pulse()
 
     with st.container(border=True):
-        render_art_pulse(selected_fair)
+        render_exhibition_search()
 
     with st.container(border=True):
-        render_exhibition_search(selected_fair)
+        render_artist_search()
 
     with st.container(border=True):
-        render_artist_search(selected_fair)
+        render_advisor()
 
     with st.container(border=True):
-        render_advisor(selected_fair)
+        render_exclusive_advisor()
 
     with st.container(border=True):
-        render_exclusive_advisor(selected_fair)
-
-    with st.container(border=True):
-        render_gallery_list(selected_fair)
-
-
-def render_legacy_smoke_checks() -> None:
-    with st.expander("Legacy Cloud Smoke Checks（既存機能）", expanded=False):
-        st.caption("既存の接続確認機能を保持しています。")
-        for key in REQUIRED:
-            st.write(f"[env] {key} set:", bool(get_key(key)))
-
-        col1, col2, col3 = st.columns(3)
-
-        if col1.button("OpenAI ping"):
-            try:
-                from openai import OpenAI
-
-                client = OpenAI(api_key=get_key("OPENAI_API_KEY"))
-                model = get_key("TEXT_MODEL", "gpt-5-mini")
-                result = client.responses.create(model=model, input="ping")
-                st.success(f"OpenAI OK: {result.output_text}")
-            except Exception as exc:
-                st.error(f"OpenAI ERROR: {type(exc).__name__}: {exc}")
-
-        if col2.button("Gemini embedding"):
-            try:
-                from google import genai
-                from google.genai import types
-
-                client = genai.Client(api_key=get_key("GEMINI_API_KEY"))
-                model = get_key("TEXT_EMBEDDING_MODEL", "gemini-embedding-001")
-                dim_raw = get_key("TEXT_EMBEDDING_OUTPUT_DIM", 1536)
-                dim = int(dim_raw)
-                result = client.models.embed_content(
-                    model=model,
-                    contents="ping",
-                    config=types.EmbedContentConfig(output_dimensionality=dim),
-                )
-                emb = result.embeddings[0].values
-                st.success(f"Gemini OK: embedding_len={len(emb)}")
-            except Exception as exc:
-                st.error(f"Gemini ERROR: {type(exc).__name__}: {exc}")
-
-        if col3.button("R2 upload/list/download"):
-            try:
-                import boto3
-
-                bucket = get_key("R2_BUCKET")
-                endpoint = get_key("R2_ENDPOINT")
-                access_key = get_key("R2_ACCESS_KEY_ID")
-                secret_key = get_key("R2_SECRET_ACCESS_KEY")
-                region = get_key("R2_REGION", "auto")
-
-                s3 = boto3.client(
-                    "s3",
-                    endpoint_url=endpoint,
-                    aws_access_key_id=access_key,
-                    aws_secret_access_key=secret_key,
-                    region_name=region,
-                )
-
-                ts = int(time.time())
-                key = f"smoke_test_cloud/{ts}.txt"
-                body = f"hello r2 cloud {ts}".encode("utf-8")
-                s3.put_object(Bucket=bucket, Key=key, Body=body)
-                st.write("upload: OK", key)
-
-                resp = s3.list_objects_v2(Bucket=bucket, Prefix="smoke_test_cloud/")
-                keys = [x["Key"] for x in resp.get("Contents", [])]
-                st.write("list (last 10):", keys[-10:])
-
-                obj = s3.get_object(Bucket=bucket, Key=key)
-                data = obj["Body"].read().decode("utf-8")
-                st.success(f"download OK: {data}")
-            except Exception as exc:
-                st.error(f"R2 ERROR: {type(exc).__name__}: {exc}")
+        render_gallery_list()
 
 
 def main() -> None:
-    selected_fair = render_sidebar()
-    render_header(selected_fair)
-    render_count_summary(selected_fair)
-    st.divider()
-    render_phase2_sections(selected_fair)
-    st.divider()
-    render_legacy_smoke_checks()
+    st.set_page_config(page_title=APP_TITLE, layout="wide", initial_sidebar_state="collapsed")
+    apply_global_font_styles()
+    render_header()
+    render_phase2_sections()
 
 
 if __name__ == "__main__":

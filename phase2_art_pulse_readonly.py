@@ -6,7 +6,7 @@ from collections import Counter
 from pathlib import Path
 from typing import Dict, List, Tuple
 
-from phase2_art_pulse_config import ANGLES, PERSONAS
+from phase2_art_pulse_config import find_persona, find_persona_angle
 
 REPO_ROOT = Path(__file__).resolve().parent
 
@@ -36,6 +36,8 @@ ARTIST_WORKS_IMAGE_PATHS = {
     "frieze_london": REPO_ROOT / "data/phase1_seed10/derived/artist_works_images_frieze_london.jsonl",
     "liste": REPO_ROOT / "data/phase1_seed10/derived/artist_works_images_liste.jsonl",
 }
+
+ART_PULSE_IMAGE_POOL_PER_KIND = 24
 
 
 def _safe_load_jsonl(path: Path) -> Tuple[List[dict], List[str]]:
@@ -105,6 +107,27 @@ def _resolve_fair_slugs(fair_label: str) -> List[str]:
     return ["frieze_london", "liste"]
 
 
+def _round_robin_by_fair(candidates: List[Dict[str, object]], max_count: int) -> List[Dict[str, object]]:
+    by_fair: Dict[str, List[Dict[str, object]]] = {}
+    for row in candidates:
+        fair = str(row.get("fair") or "")
+        by_fair.setdefault(fair, []).append(row)
+    order = [label for label in ("Frieze London", "Liste Art Fair Basel") if label in by_fair]
+    for fair in sorted(by_fair.keys()):
+        if fair not in order:
+            order.append(fair)
+    selected: List[Dict[str, object]] = []
+    while len(selected) < max_count and any(by_fair.get(fair) for fair in order):
+        for fair in order:
+            rows = by_fair.get(fair) or []
+            if not rows:
+                continue
+            selected.append(rows.pop(0))
+            if len(selected) >= max_count:
+                break
+    return selected
+
+
 def build_art_pulse_overview(fair_label: str, reporter_id: str, angle_keys: List[str]) -> Dict[str, object]:
     fair_slugs = _resolve_fair_slugs(fair_label)
     warnings: List[str] = []
@@ -165,6 +188,8 @@ def build_art_pulse_overview(fair_label: str, reporter_id: str, angle_keys: List
                 "fair": row.get("_fair_label"),
                 "gallery": gallery,
                 "artist": artist_name,
+                "artist_name_en": artist_name,
+                "artist_name_kana": row.get("artist_name_kana") or "",
                 "year": row.get("target_year") or 2025,
                 "source_url": row.get("source_url") or "",
                 "text_snippet": (str(row.get("text") or "").strip())[:220],
@@ -189,37 +214,63 @@ def build_art_pulse_overview(fair_label: str, reporter_id: str, angle_keys: List
         )
     )
 
-    ex_image_candidates = []
-    for row in exhibition_image_rows[:4]:
-        ex_image_candidates.append(
+    exhibition_source_urls = {str(r.get("source_url") or "").strip() for r in exhibition_candidates if r.get("source_url")}
+    all_ex_image_candidates: List[Dict[str, object]] = []
+    for row in exhibition_image_rows:
+        all_ex_image_candidates.append(
             {
                 "kind": "exhibition",
                 "fair": row.get("_fair_label"),
                 "gallery": row.get("gallery_name_en") or "",
                 "source_url": row.get("source_url") or "",
                 "local_path": row.get("local_path") or "",
+                "image_url": row.get("image_url") or "",
             }
         )
+    matched_ex = [
+        r for r in all_ex_image_candidates if str(r.get("source_url") or "").strip() in exhibition_source_urls
+    ]
+    ex_image_candidates = _round_robin_by_fair(
+        matched_ex or all_ex_image_candidates,
+        max_count=ART_PULSE_IMAGE_POOL_PER_KIND,
+    )
 
-    ar_image_candidates = []
-    for row in artist_image_rows[:4]:
+    artist_source_urls = {str(r.get("source_url") or "").strip() for r in artist_candidates if r.get("source_url")}
+    all_ar_image_candidates: List[Dict[str, object]] = []
+    for row in artist_image_rows:
         first_local = ""
         local_paths = row.get("works_image_local_paths")
         if isinstance(local_paths, list) and local_paths:
             first_local = str(local_paths[0] or "")
-        ar_image_candidates.append(
+        first_image_url = ""
+        image_urls = row.get("works_image_urls")
+        if isinstance(image_urls, list) and image_urls:
+            first_image_url = str(image_urls[0] or "")
+        all_ar_image_candidates.append(
             {
                 "kind": "artist",
                 "fair": row.get("_fair_label"),
                 "gallery": row.get("gallery_name_en") or "",
                 "source_url": row.get("source_url") or "",
                 "local_path": first_local,
+                "image_url": first_image_url,
+                "artist_name_en": row.get("artist_name_en") or "",
             }
         )
+    matched_ar = [r for r in all_ar_image_candidates if str(r.get("source_url") or "").strip() in artist_source_urls]
+    ar_image_candidates = _round_robin_by_fair(
+        matched_ar or all_ar_image_candidates,
+        max_count=ART_PULSE_IMAGE_POOL_PER_KIND,
+    )
 
-    reporter = next((p for p in PERSONAS if p["id"] == reporter_id), PERSONAS[0])
-    angle_label_map = {a["key"]: a["label"] for a in ANGLES}
-    angle_labels = [angle_label_map.get(key, key) for key in angle_keys]
+    reporter = find_persona(reporter_id)
+    normalized_angle_keys = list(angle_keys or [])
+    if not normalized_angle_keys and reporter.get("angles"):
+        normalized_angle_keys = [str(reporter["angles"][0].get("key"))]
+    angle_labels: List[str] = []
+    for key in normalized_angle_keys:
+        angle_obj = find_persona_angle(reporter, key)
+        angle_labels.append(str(angle_obj.get("label")) if angle_obj else key)
 
     return {
         "selection": {
@@ -227,7 +278,7 @@ def build_art_pulse_overview(fair_label: str, reporter_id: str, angle_keys: List
             "year": 2025,
             "reporter_id": reporter["id"],
             "reporter_label": reporter["label"],
-            "angle_keys": angle_keys,
+            "angle_keys": normalized_angle_keys,
             "angle_labels": angle_labels,
         },
         "counts": {
@@ -238,8 +289,8 @@ def build_art_pulse_overview(fair_label: str, reporter_id: str, angle_keys: List
         },
         "top_galleries": top_galleries,
         "top_artists": top_artists,
-        "exhibition_candidates": exhibition_candidates[:30],
-        "artist_candidates": artist_candidates[:30],
+        "exhibition_candidates": _round_robin_by_fair(exhibition_candidates, max_count=30),
+        "artist_candidates": _round_robin_by_fair(artist_candidates, max_count=30),
         "image_reference_plan": {
             "target_exhibition_images": 4,
             "target_artist_images": 4,
@@ -250,10 +301,8 @@ def build_art_pulse_overview(fair_label: str, reporter_id: str, angle_keys: List
         },
         "warnings": sorted(set(warnings)),
         "count_note": (
-            "Evidence overview uses formal raw texts (exhibitions/artists). "
-            "Image references are optional strict metadata reads only."
+            "formal の Exhibitions Text / Artist Text を主根拠として集計。"
+            "画像候補は metadata の読み取り専用参照のみ。"
         ),
-        "preview_note": (
-            "?????????????????? text/image ?????????????????????????????"
-        ),
+        "preview_note": "この overview は記事生成前の根拠確認用です（read-only）。",
     }
