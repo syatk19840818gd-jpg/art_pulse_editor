@@ -129,8 +129,8 @@ def load_artist_records_readonly() -> ArtistSearchData:
         total_rows=len(records),
         fair_rows=fair_rows,
         count_note=(
-            "Artist rows come from formal raw (artists_*_2025.jsonl). "
-            "works_image_count_hint is strict source_url match against formal artist works-image metadata."
+            "Artist行は formal raw（artists_*_2025.jsonl）由来。"
+            " works_image_count_hint は formal artist works-imageメタとの source_url 厳密一致。"
         ),
     )
 

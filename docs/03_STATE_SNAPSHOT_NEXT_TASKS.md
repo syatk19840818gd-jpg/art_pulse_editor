@@ -7589,3 +7589,12 @@ TASK A-3A-CLOSE-1 実施結果（2026-02-27 / Adams and Ollman）
 - ⑥ Gallery list: read-only baseline + quality tuning（CSV 2列/3列互換、fallback表示、件数/警告表示）。
 - 重要注記: ⑥は「Gallery list」が正。01は当初から正しく、今回は03/04の現状記録の是正のみ（仕様変更なし、01未変更）。
 - 次の最優先タスク: TASK293_NEXT_15 = PHASE2_MILESTONE_REVIEW_AND_GO_NO_GO_FOR_POLISH_ROUND
+
+## TASK293_CLOSEOUT_01 PHASE2 POLISH CLOSEOUT SNAPSHOT
+- 現在地: Phase2は機能①〜⑥のbaseline/minimal実装とpolishingを完了し、copy freezeは `COPY_FREEZE_OK`。
+- ① Art Pulse: read-only overview + draft generation（根拠URL表示）。
+- ② Exhibition Search / ③ Artist Search: read-only listing + detail（fair/keyword絞り込み）。
+- ④ Advisor / ⑤ Exclusive Advisor: type1 + type2（minimal+tuned、gate制御、保存なし、⑤は外部根拠URLとTarutani_Text抜粋を分離表示）。
+- ⑥ Gallery list: read-only baseline + tuning（CSV 2列/3列互換、fallback/警告表示）。
+- 重要注記: ⑥はGallery listが正。今回は03/04へのcloseout syncであり、01仕様変更ではない（01/02は未変更）。
+- 次の最優先タスク: TASK293_NEXT_16 = PHASE2_CLOSEOUT_REVIEW_AND_GO_NO_GO_FOR_NEXT_PHASE

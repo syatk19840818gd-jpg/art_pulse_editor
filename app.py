@@ -35,7 +35,7 @@ except Exception:
     pass
 
 APP_TITLE = "Art Pulse Editor"
-PHASE2_LABEL = "Phase2 kickoff: read-only formal viewer"
+PHASE2_LABEL = "Phase2 キックオフ（formal読み取り専用ビュー）"
 
 REQUIRED = [
     "OPENAI_API_KEY",
@@ -82,10 +82,10 @@ def get_key(key: str, default=None):
 
 
 def render_sidebar() -> str:
-    st.sidebar.header("Phase2 scope")
+    st.sidebar.header("Phase2 対象範囲")
     selected_fair = st.sidebar.selectbox("フェア", FAIR_OPTIONS, index=2)
     st.sidebar.text_input("対象年", value="2025（固定）", disabled=True)
-    st.sidebar.caption("read-only: formal参照のみ（抽出/R2同期/formal更新なし）")
+    st.sidebar.caption("読み取り専用: formal参照のみ（抽出/R2同期/formal更新なし）")
     return selected_fair
 
 
@@ -99,7 +99,7 @@ def render_header(selected_fair: str) -> None:
 
 
 def render_count_summary(selected_fair: str) -> None:
-    st.subheader("formal 件数サマリ（read-only）")
+    st.subheader("formal 件数サマリ（読み取り専用）")
     try:
         counts = build_counts(selected_fair)
     except Exception as exc:
@@ -110,15 +110,15 @@ def render_count_summary(selected_fair: str) -> None:
     if counts["total_row"]:
         rows.append(counts["total_row"])
     st.table(rows)
-    st.metric("Tarutani Text rows", counts["tarutani_total_rows"])
+    st.metric("Tarutani Text行数", counts["tarutani_total_rows"])
     st.caption(
-        f"Tarutani non-empty rows: {counts['tarutani_non_empty_text_rows']} / "
-        f"derived/images files: {counts['images_cache_file_count']}"
+        f"Tarutani非空行: {counts['tarutani_non_empty_text_rows']} / "
+        f"derived/images ファイル数: {counts['images_cache_file_count']}"
     )
-    st.caption(f"count note: {counts['count_note']}")
+    st.caption(f"件数定義: {counts['count_note']}")
 
     if counts["warnings"]:
-        with st.expander("件数サマリ警告", expanded=False):
+        with st.expander("警告/注記（件数サマリ）", expanded=False):
             for warning in counts["warnings"][:20]:
                 st.write(f"- {warning}")
 
@@ -139,24 +139,89 @@ def get_gallery_list_data():
 
 
 def _exhibition_row_label(row: dict) -> str:
-    title = row.get("exhibition_title") or "(untitled)"
-    gallery = row.get("gallery_name") or "(no gallery)"
-    fair = row.get("fair_label") or "(no fair)"
+    title = row.get("exhibition_title") or "(無題)"
+    gallery = row.get("gallery_name") or "(ギャラリー不明)"
+    fair = row.get("fair_label") or "(フェア不明)"
     year = row.get("year") or "-"
     return f"[{fair}] {gallery} | {title} ({year})"
 
 
 def _artist_row_label(row: dict) -> str:
-    artist_name = row.get("artist_name") or "(unknown artist)"
-    gallery = row.get("gallery_name") or "(no gallery)"
-    fair = row.get("fair_label") or "(no fair)"
+    artist_name = row.get("artist_name") or "(作家名不明)"
+    gallery = row.get("gallery_name") or "(ギャラリー不明)"
+    fair = row.get("fair_label") or "(フェア不明)"
     year = row.get("year") or "-"
     return f"[{fair}] {gallery} | {artist_name} ({year})"
 
 
+def _render_evidence_summary(summary: dict) -> None:
+    st.markdown("**根拠サマリ**")
+    st.write(summary)
+
+
+def _render_evidence_urls(
+    title: str,
+    exhibition_urls: list,
+    artist_urls: list,
+    empty_message: str = "表示できる根拠URLはありません。",
+) -> None:
+    ex_rows = exhibition_urls or []
+    ar_rows = artist_urls or []
+    ex_urls = [str(x) for x in ex_rows if str(x).strip()]
+    ar_urls = [str(x) for x in ar_rows if str(x).strip()]
+    total = len(ex_urls) + len(ar_urls)
+    st.markdown(f"**{title}**")
+    st.caption(f"URL件数: {total}件")
+    if total == 0:
+        st.info(empty_message)
+        return
+    c1, c2 = st.columns(2)
+    with c1:
+        st.write(f"Exhibition URL数: {len(ex_urls)}")
+        if ex_urls:
+            for url in ex_urls[:30]:
+                st.write(f"- {url}")
+        else:
+            st.caption("表示できるExhibition根拠URLはありません。")
+    with c2:
+        st.write(f"Artist URL数: {len(ar_urls)}")
+        if ar_urls:
+            for url in ar_urls[:30]:
+                st.write(f"- {url}")
+        else:
+            st.caption("表示できるArtist根拠URLはありません。")
+
+
+def _render_reference_image_candidates(
+    title: str,
+    reference_images: dict,
+    target_total: int = 8,
+    empty_message: str = "参考画像候補はありません。",
+) -> None:
+    rows = []
+    if isinstance(reference_images, dict):
+        rows = list(reference_images.get("all", []) or [])
+    st.markdown(f"**{title}**")
+    summary = {
+        "目安": target_total,
+        "参考画像候補件数": len(rows),
+    }
+    if isinstance(reference_images, dict):
+        if "target_exhibition_images" in reference_images:
+            summary["目安(Exhibition)"] = reference_images.get("target_exhibition_images")
+        if "target_artist_images" in reference_images:
+            summary["目安(Artist)"] = reference_images.get("target_artist_images")
+    st.write(summary)
+    if rows:
+        st.dataframe(rows[:8], use_container_width=True, hide_index=True, height=220)
+        st.caption("参考画像候補は、安全な一致で取得できた範囲のみ表示しています。")
+    else:
+        st.info(empty_message)
+
+
 def render_art_pulse(selected_fair: str) -> None:
     st.markdown("**① Art Pulse**")
-    st.caption("記事生成の前段として、read-only で evidence overview を表示します。")
+    st.caption("記事生成の前段として、読み取り専用で evidence overview を表示します。")
 
     col1, col2 = st.columns([1, 1])
     fair_mode = col1.selectbox(
@@ -168,7 +233,7 @@ def render_art_pulse(selected_fair: str) -> None:
     col2.text_input("対象年", value="2025（固定）", disabled=True, key="artpulse_year")
 
     reporter = st.selectbox(
-        "担当記者（8名）",
+        "担当記者（8人）",
         options=PERSONAS,
         format_func=lambda p: f"{p['label']} - {p['description']}",
         key="artpulse_reporter",
@@ -221,25 +286,23 @@ def render_art_pulse(selected_fair: str) -> None:
         }
     )
 
-    m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Exhibitions text", overview["counts"]["exhibitions_text_count"])
-    m2.metric("Artist text", overview["counts"]["artist_text_count"])
-    m3.metric("Exhibitions image候補", overview["counts"]["exhibitions_image_candidate_count"])
-    m4.metric("Artist works image候補", overview["counts"]["artist_image_candidate_count"])
-    st.caption(overview["count_note"])
-
-    if overview["warnings"]:
-        with st.expander("Art Pulse 読み込み警告", expanded=False):
-            for warning in overview["warnings"][:20]:
-                st.write(f"- {warning}")
+    _render_evidence_summary(
+        {
+            "Exhibitions根拠件数": overview["counts"]["exhibitions_text_count"],
+            "Artists根拠件数": overview["counts"]["artist_text_count"],
+            "Exhibitions画像候補件数": overview["counts"]["exhibitions_image_candidate_count"],
+            "Artist画像候補件数": overview["counts"]["artist_image_candidate_count"],
+        }
+    )
+    st.caption(f"注記: {overview['count_note']}")
 
     c1, c2 = st.columns(2)
-    c1.markdown("**gallery分布（上位）**")
+    c1.markdown("**根拠ブロック（gallery分布）**")
     c1.dataframe(overview["top_galleries"], use_container_width=True, hide_index=True, height=220)
-    c2.markdown("**artist頻出（上位）**")
+    c2.markdown("**根拠ブロック（artist頻出）**")
     c2.dataframe(overview["top_artists"], use_container_width=True, hide_index=True, height=220)
 
-    st.markdown("**exhibition候補（上位）**")
+    st.markdown("**根拠ブロック（exhibition候補）**")
     st.dataframe(
         overview["exhibition_candidates"],
         use_container_width=True,
@@ -247,7 +310,7 @@ def render_art_pulse(selected_fair: str) -> None:
         height=260,
     )
 
-    st.markdown("**参照画像候補（目安: Exhibition 4 + Artist 4）**")
+    st.markdown("**参考画像候補**")
     plan = overview["image_reference_plan"]
     p1, p2 = st.columns(2)
     p1.write(
@@ -262,14 +325,22 @@ def render_art_pulse(selected_fair: str) -> None:
             "available_artist_images": plan["available_artist_images"],
         }
     )
-    st.dataframe(
-        plan["exhibition_image_candidates"] + plan["artist_image_candidates"],
-        use_container_width=True,
-        hide_index=True,
-        height=220,
-    )
+    image_rows = list(plan["exhibition_image_candidates"] + plan["artist_image_candidates"])
+    if image_rows:
+        st.dataframe(
+            image_rows,
+            use_container_width=True,
+            hide_index=True,
+            height=220,
+        )
+    else:
+        st.info("参考画像候補はありません。")
 
     st.info(overview["preview_note"])
+    if overview["warnings"]:
+        with st.expander("警告/注記（Art Pulse）", expanded=False):
+            for warning in overview["warnings"][:20]:
+                st.write(f"- {warning}")
 
     st.markdown("**Art Pulse 下書き生成（日本語 / 2000字上限）**")
     st.caption("複数angle選択時は先頭1件のみ生成に使用します。")
@@ -298,31 +369,28 @@ def render_art_pulse(selected_fair: str) -> None:
                 "evidence_count": draft["evidence_counts"]["all_unique_urls"],
             }
         )
-        st.text_area("Art Pulse draft（本文）", value=draft["body"], height=300, disabled=True)
+        st.text_area("Art Pulse下書き（本文）", value=draft["body"], height=300, disabled=True)
         st.caption("本文文字数は上限2000字で制御（URL一覧は本文文字数に含めない）。")
 
         urls = draft.get("evidence_urls", {})
         ex_urls = urls.get("exhibition", [])
         ar_urls = urls.get("artist", [])
-        st.markdown("**根拠URL一覧**")
-        c1, c2 = st.columns(2)
-        with c1:
-            st.write(f"Exhibition URLs: {len(ex_urls)}")
-            for url in ex_urls[:30]:
-                st.write(f"- {url}")
-        with c2:
-            st.write(f"Artist URLs: {len(ar_urls)}")
-            for url in ar_urls[:30]:
-                st.write(f"- {url}")
+        _render_evidence_summary({"根拠件数": draft["evidence_counts"]["all_unique_urls"]})
+        _render_evidence_urls("根拠URL一覧", ex_urls, ar_urls)
+        _render_reference_image_candidates(
+            title="参考画像候補",
+            reference_images={"all": image_rows},
+            target_total=8,
+        )
         if draft.get("warnings"):
-            with st.expander("Draft generation warnings", expanded=False):
+            with st.expander("警告/注記（Art Pulse）", expanded=False):
                 for warning in draft["warnings"]:
                     st.write(f"- {warning}")
 
 
 def render_exhibition_search(selected_fair: str) -> None:
     st.markdown("**② Exhibition Search（展示検索）**")
-    st.caption("formal exhibitions text の read-only 一覧です。")
+    st.caption("formal exhibitions text の読み取り専用一覧です。")
 
     try:
         data = get_exhibition_search_data()
@@ -347,18 +415,18 @@ def render_exhibition_search(selected_fair: str) -> None:
     filtered = apply_exhibition_filters(data.records, effective_fair, keyword)
 
     st.caption(
-        f"rows: loaded={data.total_rows} / filtered={len(filtered)} / "
+        f"件数: 読込={data.total_rows} / 表示={len(filtered)} / "
         f"frieze={data.fair_rows.get('frieze_london', 0)} / liste={data.fair_rows.get('liste', 0)}"
     )
-    st.caption(f"data note: {data.count_note}")
+    st.caption(f"注記: {data.count_note}")
 
     if data.warnings:
-        with st.expander("Exhibition 読み込み警告", expanded=False):
+        with st.expander("警告/注記（Exhibition Search）", expanded=False):
             for warning in data.warnings[:20]:
                 st.write(f"- {warning}")
 
     if not filtered:
-        st.warning("該当する展示データがありません。")
+        st.warning("条件に一致する展示データはありません。")
         return
 
     view_rows = [
@@ -383,29 +451,46 @@ def render_exhibition_search(selected_fair: str) -> None:
     )
     selected = filtered[selected_idx]
 
-    st.markdown("**展示詳細（read-only）**")
+    st.markdown("**展示詳細（読み取り専用）**")
     left, right = st.columns([2, 1])
-    left.write(f"Fair: {selected.get('fair_label')}")
-    left.write(f"Gallery: {selected.get('gallery_name')}")
-    left.write(f"Title: {selected.get('exhibition_title')}")
-    left.write(f"Year: {selected.get('year')}")
-    left.write(f"Artist names: {selected.get('artist_names') or '(empty)'}")
+    left.write(f"フェア: {selected.get('fair_label')}")
+    left.write(f"ギャラリー: {selected.get('gallery_name')}")
+    left.write(f"展示タイトル: {selected.get('exhibition_title')}")
+    left.write(f"年: {selected.get('year')}")
+    left.write(f"参加作家: {selected.get('artist_names') or '(空)'}")
     if selected.get("source_url"):
         left.markdown(f"Source URL: {selected.get('source_url')}")
 
-    right.metric("Image count hint", int(selected.get("image_count_hint") or 0))
-    right.caption("source_url strict-match hint only")
+    right.metric("画像件数ヒント", int(selected.get("image_count_hint") or 0))
+    right.caption("source_url の厳密一致ベース")
+    _render_evidence_summary(
+        {
+            "根拠件数": 1 if selected.get("source_url") else 0,
+            "URL件数": 1 if selected.get("source_url") else 0,
+            "参考画像候補件数(ヒント)": int(selected.get("image_count_hint") or 0),
+        }
+    )
+    _render_evidence_urls(
+        title="根拠URL一覧",
+        exhibition_urls=[selected.get("source_url")] if selected.get("source_url") else [],
+        artist_urls=[],
+    )
+    st.markdown("**参考画像候補**")
+    if int(selected.get("image_count_hint") or 0) > 0:
+        st.caption("参考画像候補の件数ヒントのみ表示しています（一覧はこの画面では未表示）。")
+    else:
+        st.info("参考画像候補はありません。")
 
     body = (selected.get("text") or "").strip()
     if body:
-        st.text_area("Exhibition text", value=body[:8000], height=260, disabled=True)
+        st.text_area("展示テキスト", value=body[:8000], height=260, disabled=True)
     else:
-        st.warning("このレコードは text が空です。")
+        st.warning("このレコードには本文テキストがありません。")
 
 
 def render_artist_search(selected_fair: str) -> None:
     st.markdown("**③ Artist Search（作家検索）**")
-    st.caption("formal artists text の read-only 一覧です。")
+    st.caption("formal artists text の読み取り専用一覧です。")
 
     try:
         data = get_artist_search_data()
@@ -430,18 +515,18 @@ def render_artist_search(selected_fair: str) -> None:
     filtered = apply_artist_filters(data.records, effective_fair, keyword)
 
     st.caption(
-        f"rows: loaded={data.total_rows} / filtered={len(filtered)} / "
+        f"件数: 読込={data.total_rows} / 表示={len(filtered)} / "
         f"frieze={data.fair_rows.get('frieze_london', 0)} / liste={data.fair_rows.get('liste', 0)}"
     )
-    st.caption(f"data note: {data.count_note}")
+    st.caption(f"注記: {data.count_note}")
 
     if data.warnings:
-        with st.expander("Artist 読み込み警告", expanded=False):
+        with st.expander("警告/注記（Artist Search）", expanded=False):
             for warning in data.warnings[:20]:
                 st.write(f"- {warning}")
 
     if not filtered:
-        st.warning("該当する作家データがありません。")
+        st.warning("条件に一致する作家データはありません。")
         return
 
     view_rows = [
@@ -466,32 +551,52 @@ def render_artist_search(selected_fair: str) -> None:
     )
     selected = filtered[selected_idx]
 
-    st.markdown("**作家詳細（read-only）**")
+    st.markdown("**作家詳細（読み取り専用）**")
     left, right = st.columns([2, 1])
-    left.write(f"Fair: {selected.get('fair_label')}")
-    left.write(f"Gallery: {selected.get('gallery_name')}")
-    left.write(f"Artist: {selected.get('artist_name')}")
-    left.write(f"Year: {selected.get('year')}")
+    left.write(f"フェア: {selected.get('fair_label')}")
+    left.write(f"ギャラリー: {selected.get('gallery_name')}")
+    left.write(f"作家名: {selected.get('artist_name')}")
+    left.write(f"年: {selected.get('year')}")
     if selected.get("source_url"):
         left.markdown(f"Source URL: {selected.get('source_url')}")
 
     summary_ja = (selected.get("summary_ja") or "").strip()
     if summary_ja:
-        left.write(f"Summary: {summary_ja[:300]}")
+        left.write(f"要約: {summary_ja[:300]}")
 
-    right.metric("Works image hint", int(selected.get("works_image_count_hint") or 0))
-    right.caption("source_url strict-match hint only")
+    right.metric("作品画像ヒント", int(selected.get("works_image_count_hint") or 0))
+    right.caption("source_url の厳密一致ベース")
+    _render_evidence_summary(
+        {
+            "根拠件数": 1 if selected.get("source_url") else 0,
+            "URL件数": 1 if selected.get("source_url") else 0,
+            "参考画像候補件数(ヒント)": int(selected.get("works_image_count_hint") or 0),
+        }
+    )
+    _render_evidence_urls(
+        title="根拠URL一覧",
+        exhibition_urls=[],
+        artist_urls=[selected.get("source_url")] if selected.get("source_url") else [],
+    )
+    st.markdown("**参考画像候補**")
+    if int(selected.get("works_image_count_hint") or 0) > 0:
+        st.caption("参考画像候補の件数ヒントのみ表示しています（一覧はこの画面では未表示）。")
+    else:
+        st.info("参考画像候補はありません。")
 
     body = (selected.get("text") or "").strip()
     if body:
-        st.text_area("Artist text", value=body[:8000], height=260, disabled=True)
+        st.text_area("作家テキスト", value=body[:8000], height=260, disabled=True)
     else:
-        st.warning("このレコードは text が空です。")
+        st.warning("このレコードには本文テキストがありません。")
 
 
 def render_advisor(selected_fair: str) -> None:
     st.markdown("**④ Advisor（相談）**")
-    st.caption("question type 1（テキスト回答）実装済み。type 2（テキスト＋画像生成）は gate/design preview のみ。")
+    st.caption(
+        "question type 1（テキスト回答）と type 2（テキスト＋画像生成）を実装。"
+        "type 2 は gate 条件を満たした場合のみ実行。"
+    )
 
     col1, col2 = st.columns([1, 1])
     fair_mode = col1.selectbox(
@@ -504,7 +609,7 @@ def render_advisor(selected_fair: str) -> None:
         "質問タイプ",
         [
             "type 1 = テキスト回答のみ（今回実装）",
-            "type 2 = テキスト＋画像生成（未実装）",
+            "type 2 = テキスト＋画像生成（gate付き）",
         ],
         index=0,
         key="advisor_question_type",
@@ -529,19 +634,18 @@ def render_advisor(selected_fair: str) -> None:
             raw = uploaded_image.getvalue()
             mime = str(getattr(uploaded_image, "type", "") or "")
             if not raw:
-                upload_note = "添付画像を読み取れなかったため、画像入力なしとして扱います。"
+                upload_note = "添付画像を読み込めなかったため、画像なしとして処理します。"
             elif mime and not mime.startswith("image/"):
-                upload_note = "添付ファイルが画像形式ではないため、画像入力なしとして扱います。"
+                upload_note = "添付ファイルが画像形式ではないため、画像なしとして処理します。"
             else:
                 upload_valid = True
-                upload_note = f"添付画像: {uploaded_image.name}（保存しない / ベクトル化しない / RAG混入しない）"
+                upload_note = f"添付画像: {uploaded_image.name}（保存しない / ベクトル化しない / RAG混入なし）"
         except Exception:
-            upload_note = "添付画像の読み取りに失敗したため、画像入力なしとして扱います。"
+            upload_note = "添付画像の読み込みに失敗したため、画像なしとして処理します。"
 
     st.caption(upload_note)
-
     if question_type_label.startswith("type 2"):
-        st.info("type 2 は本実装前です。今回は gate 判定と prompt preview のみ表示します（画像生成APIは未実行）。")
+        st.info("type 2 は gate 条件を満たした場合のみ画像生成APIを実行します。条件不足時は本文と根拠のみ表示します。")
 
     run = st.button("Advisor を実行", key="advisor_run")
     if run:
@@ -562,7 +666,7 @@ def render_advisor(selected_fair: str) -> None:
                 "question_type_label": question_type_label,
             }
 
-            # type2でも、まず grounded type1 を必ず作る（text基盤）。
+            # type2でも、まずgrounded type1を作る（text回答の基盤）
             draft_type1 = generate_advisor_grounded_draft(
                 question_text=question_text,
                 context=context,
@@ -599,7 +703,7 @@ def render_advisor(selected_fair: str) -> None:
         st.caption("相談内容を入力して「Advisor を実行」を押すと、根拠束と回答下書きを表示します。")
         return
 
-    st.markdown("**Advisor grounding overview（read-only）**")
+    st.markdown("**Advisor grounding overview（読み取り専用）**")
     st.write(
         {
             "fair": context["selection"]["fair_label"],
@@ -608,20 +712,16 @@ def render_advisor(selected_fair: str) -> None:
             "token_count": len(context["selection"].get("tokens", [])),
         }
     )
-    m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Exhibitions evidence", context["counts"]["exhibitions_text_evidence_count"])
-    m2.metric("Artists evidence", context["counts"]["artist_text_evidence_count"])
-    m3.metric("Unique URLs", context["counts"]["all_unique_url_count"])
-    m4.metric(
-        "Ref images",
-        int(context["counts"]["reference_exhibition_images"]) + int(context["counts"]["reference_artist_images"]),
+    _render_evidence_summary(
+        {
+            "Exhibitions根拠件数": context["counts"]["exhibitions_text_evidence_count"],
+            "Artists根拠件数": context["counts"]["artist_text_evidence_count"],
+            "URL件数": context["counts"]["all_unique_url_count"],
+            "参考画像候補件数": int(context["counts"]["reference_exhibition_images"])
+            + int(context["counts"]["reference_artist_images"]),
+        }
     )
-    st.caption(context["count_note"])
-
-    if context.get("warnings"):
-        with st.expander("Advisor 読み込み警告", expanded=False):
-            for warning in context["warnings"][:20]:
-                st.write(f"- {warning}")
+    st.caption(f"注記: {context['count_note']}")
 
     ex_view = [
         {
@@ -645,80 +745,61 @@ def render_advisor(selected_fair: str) -> None:
     ]
     c1, c2 = st.columns(2)
     with c1:
-        st.markdown("**Exhibitions evidence（上位）**")
+        st.markdown("**根拠ブロック（Exhibitions）**")
         st.dataframe(ex_view, use_container_width=True, hide_index=True, height=220)
     with c2:
-        st.markdown("**Artists evidence（上位）**")
+        st.markdown("**根拠ブロック（Artists）**")
         st.dataframe(ar_view, use_container_width=True, hide_index=True, height=220)
 
     ref_images = context.get("reference_images", {})
-    st.markdown("**参考画像候補（read-only）**")
-    st.write(
-        {
-            "target_total": 8,
-            "target_exhibition_images": ref_images.get("target_exhibition_images", 4),
-            "target_artist_images": ref_images.get("target_artist_images", 4),
-            "available_total": len(ref_images.get("all", [])),
-        }
-    )
-    if ref_images.get("all"):
-        st.dataframe(ref_images.get("all", [])[:8], use_container_width=True, hide_index=True, height=220)
+    _render_reference_image_candidates("参考画像候補", ref_images, target_total=8)
+    if context.get("warnings"):
+        with st.expander("警告/注記（Advisor）", expanded=False):
+            for warning in context["warnings"][:20]:
+                st.write(f"- {warning}")
 
     if selected_qtype.startswith("type 2"):
-        st.markdown("**Advisor type 2（gated execution）**")
+        st.markdown("**Advisor type 2（gate付き実行）**")
         if not type2_preview:
-            st.caption("type 2 を選んで Advisor を実行すると、gate判定と生成結果を表示します。")
+            st.caption("type 2 を選んで Advisor を実行すると、gate判定後に本文と画像生成結果を表示します。")
             return
 
         gate_ok = bool(type2_preview.get("gate_ok"))
-        if gate_ok:
-            st.success("type 2 gate: PASS")
+        status = str(type2_preview.get("status") or ("success" if gate_ok else "gate_hold"))
+        user_message = str(type2_preview.get("user_message") or "")
+        if status == "success":
+            st.success("type 2 状態: 実行成功")
+        elif status == "image_failed":
+            st.warning("type 2 状態: 画像生成失敗（本文と根拠は表示）")
+        elif status == "gate_hold":
+            st.error("type 2 状態: gate未通過（条件不足で実行不可）")
+        elif status == "ready_for_api":
+            st.info("type 2 状態: 利用可能")
         else:
-            st.error("type 2 gate: HOLD（画像生成APIは未実行）")
+            st.info("type 2 状態: 条件確認中")
+        if user_message:
+            st.caption(user_message)
+
+        if status == "gate_hold":
             failed = collect_failed_checks(type2_preview)
             if failed:
-                st.markdown("**未通過条件**")
-                for reason in failed:
+                st.markdown("**未通過条件（要点）**")
+                for reason in failed[:8]:
                     st.write(f"- {reason}")
 
-        check_rows = [
-            {
-                "check_id": c.get("id"),
-                "ok": bool(c.get("ok")),
-                "detail": c.get("detail"),
-            }
-            for c in type2_preview.get("checks", [])
-        ]
-        st.dataframe(check_rows, use_container_width=True, hide_index=True, height=260)
-        st.write(
-            {
-                "required_env_keys": type2_preview.get("required_env_keys", []),
-                "optional_env_keys": type2_preview.get("optional_env_keys", []),
-                "resolved_env": type2_preview.get("resolved_env", {}),
-                "api_called": bool(type2_preview.get("api_called", False)),
-            }
-        )
+        evidence_urls = type2_preview.get("evidence_urls", {}) or {}
+        ex_urls = evidence_urls.get("exhibition") or []
+        ar_urls = evidence_urls.get("artist") or []
+        ref_images = type2_preview.get("reference_images", {}) or {}
+        ref_rows = ref_images.get("all") or []
 
-        st.text_area(
-            "type 2 prompt preview",
-            value=str(type2_preview.get("prompt_preview") or ""),
-            height=260,
-            disabled=True,
-        )
-        if type2_preview.get("error"):
-            st.warning(f"画像生成結果: {type2_preview.get('error')}")
-            debug_err = str(type2_preview.get("debug_error") or "")
-            if debug_err:
-                with st.expander("生成エラー詳細（開発確認用）", expanded=False):
-                    st.code(debug_err)
-
-        st.markdown("**type 2 テキスト回答（500字以内）**")
-        st.write(
+        st.markdown("**Advisor回答（日本語、type 2）**")
+        _render_evidence_summary(
             {
-                "text_chars": type2_preview.get("text_chars"),
-                "max_chars": ADVISOR_TEXT_MAX_CHARS,
-                "image_source": type2_preview.get("image_source_label", "AI generated"),
-                "generated_image_count": type2_preview.get("generated_image_count", 0),
+                "本文文字数": type2_preview.get("text_chars"),
+                "本文上限": ADVISOR_TEXT_MAX_CHARS,
+                "URL件数": len(ex_urls) + len(ar_urls),
+                "参考画像候補件数": len(ref_rows),
             }
         )
         st.text_area(
@@ -728,6 +809,7 @@ def render_advisor(selected_fair: str) -> None:
             disabled=True,
         )
         st.caption(str(type2_preview.get("attachment_note") or ""))
+        st.caption("添付画像/生成画像は保存しません（セッション内表示のみ）。")
 
         image_bytes = type2_preview.get("generated_image_bytes")
         image_url = str(type2_preview.get("generated_image_url") or "")
@@ -738,36 +820,46 @@ def render_advisor(selected_fair: str) -> None:
             st.image(image_url, caption="AI generated", use_container_width=True)
             st.caption("Source: AI generated")
         else:
-            st.info("生成画像はまだありません（gate未通過または生成失敗）。")
+            st.info("生成画像はありません（gate未通過または画像生成失敗）。")
 
-        urls = type2_preview.get("evidence_urls", {})
-        ex_urls = urls.get("exhibition", [])
-        ar_urls = urls.get("artist", [])
-        st.markdown("**根拠URL一覧**")
-        c1, c2 = st.columns(2)
-        with c1:
-            st.write(f"Exhibition URLs: {len(ex_urls)}")
-            for url in ex_urls[:30]:
-                st.write(f"- {url}")
-        with c2:
-            st.write(f"Artist URLs: {len(ar_urls)}")
-            for url in ar_urls[:30]:
-                st.write(f"- {url}")
+        _render_evidence_urls("根拠URL一覧", ex_urls, ar_urls)
 
-        ref_images = type2_preview.get("reference_images", {})
         if isinstance(ref_images, dict):
-            st.markdown("**参考画像候補（read-only）**")
+            _render_reference_image_candidates("参考画像候補", ref_images, target_total=8)
+
+        with st.expander("type2 gate 詳細 / prompt preview（開発確認用）", expanded=False):
+            check_rows = [
+                {
+                    "check_id": c.get("id"),
+                    "ok": bool(c.get("ok")),
+                    "detail": c.get("detail"),
+                }
+                for c in type2_preview.get("checks", [])
+            ]
+            st.dataframe(check_rows, use_container_width=True, hide_index=True, height=260)
             st.write(
                 {
-                    "target_total": 8,
-                    "available_total": len(ref_images.get("all", [])),
+                    "status": status,
+                    "required_env_keys": type2_preview.get("required_env_keys", []),
+                    "optional_env_keys": type2_preview.get("optional_env_keys", []),
+                    "resolved_env": type2_preview.get("resolved_env", {}),
+                    "api_called": bool(type2_preview.get("api_called", False)),
                 }
             )
-            if ref_images.get("all"):
-                st.dataframe(ref_images.get("all", [])[:8], use_container_width=True, hide_index=True, height=220)
+            st.text_area(
+                "type 2 prompt プレビュー",
+                value=str(type2_preview.get("prompt_preview") or ""),
+                height=260,
+                disabled=True,
+            )
+            if type2_preview.get("error"):
+                st.warning(f"画像生成結果: {type2_preview.get('error')}")
+                debug_err = str(type2_preview.get("debug_error") or "")
+                if debug_err:
+                    st.code(debug_err)
 
         if draft:
-            st.markdown("**type 2 前提の grounded baseline（type 1）**")
+            st.markdown("**type 2 実行前の grounded baseline（type 1）**")
             st.write(
                 {
                     "answer_chars": draft.get("answer_chars"),
@@ -775,20 +867,20 @@ def render_advisor(selected_fair: str) -> None:
                     "evidence_count": draft.get("evidence_counts", {}).get("all_unique_urls", 0),
                 }
             )
-            st.text_area("grounded text baseline", value=draft.get("answer", ""), height=180, disabled=True)
+            st.text_area("grounded ベースライン（type 1）", value=draft.get("answer", ""), height=180, disabled=True)
         return
 
     if not draft:
         return
 
     st.markdown("**Advisor grounded draft（type 1）**")
-    st.write(
+    _render_evidence_summary(
         {
-            "question_type": draft.get("question_type"),
-            "mode": draft.get("mode"),
-            "answer_chars": draft.get("answer_chars"),
-            "max_chars": ADVISOR_TEXT_MAX_CHARS,
-            "evidence_count": draft.get("evidence_counts", {}).get("all_unique_urls", 0),
+            "質問タイプ": draft.get("question_type"),
+            "モード": draft.get("mode"),
+            "本文文字数": draft.get("answer_chars"),
+            "本文上限": ADVISOR_TEXT_MAX_CHARS,
+            "URL件数": draft.get("evidence_counts", {}).get("all_unique_urls", 0),
         }
     )
     st.text_area("Advisor回答（日本語）", value=draft.get("answer", ""), height=200, disabled=True)
@@ -797,18 +889,10 @@ def render_advisor(selected_fair: str) -> None:
     urls = draft.get("evidence_urls", {})
     ex_urls = urls.get("exhibition", [])
     ar_urls = urls.get("artist", [])
-    st.markdown("**根拠URL一覧**")
-    c1, c2 = st.columns(2)
-    with c1:
-        st.write(f"Exhibition URLs: {len(ex_urls)}")
-        for url in ex_urls[:30]:
-            st.write(f"- {url}")
-    with c2:
-        st.write(f"Artist URLs: {len(ar_urls)}")
-        for url in ar_urls[:30]:
-            st.write(f"- {url}")
+    _render_evidence_urls("根拠URL一覧", ex_urls, ar_urls)
+    _render_reference_image_candidates("参考画像候補", context.get("reference_images", {}), target_total=8)
     if draft.get("warnings"):
-        with st.expander("Advisor generation warnings", expanded=False):
+        with st.expander("警告/注記（Advisor）", expanded=False):
             for warning in draft["warnings"]:
                 st.write(f"- {warning}")
 
@@ -817,7 +901,7 @@ def render_exclusive_advisor(selected_fair: str) -> None:
     st.markdown("**⑤ Exclusive Advisor（垂谷専属）**")
     st.caption(
         "type 1（テキスト回答）と type 2（テキスト＋画像生成）を実装。"
-        "Tarutani_Textは内部文脈としてのみ利用します。"
+        "Tarutani_Text は文脈参照としてのみ使用します。"
     )
 
     col1, col2 = st.columns([1, 1])
@@ -842,7 +926,7 @@ def render_exclusive_advisor(selected_fair: str) -> None:
         value="",
         height=140,
         key="exclusive_question_text",
-        placeholder="例: 曲線と直線のシリーズ文脈を保ちつつ、2025年フェアで通用する展示構成にしたい。",
+        placeholder="例: 過去作と近作のシリーズ文脈を踏まえて、2025年フェアで機能する展示提案にしたい。",
     )
     uploaded_image = st.file_uploader(
         "質問画像（任意）",
@@ -857,14 +941,14 @@ def render_exclusive_advisor(selected_fair: str) -> None:
             raw = uploaded_image.getvalue()
             mime = str(getattr(uploaded_image, "type", "") or "")
             if not raw:
-                upload_note = "添付画像を読み取れなかったため、画像入力なしとして扱います。"
+                upload_note = "添付画像を読み込めなかったため、画像なしとして処理します。"
             elif mime and not mime.startswith("image/"):
-                upload_note = "添付ファイルが画像形式ではないため、画像入力なしとして扱います。"
+                upload_note = "添付ファイルが画像形式ではないため、画像なしとして処理します。"
             else:
                 upload_valid = True
-                upload_note = f"添付画像: {uploaded_image.name}（保存しない / ベクトル化しない / RAG混入しない）"
+                upload_note = f"添付画像: {uploaded_image.name}（保存しない / ベクトル化しない / RAG混入なし）"
         except Exception:
-            upload_note = "添付画像の読み取りに失敗したため、画像入力なしとして扱います。"
+            upload_note = "添付画像の読み込みに失敗したため、画像なしとして処理します。"
     st.caption(upload_note)
 
     run = st.button("Exclusive Advisor を実行", key="exclusive_run")
@@ -924,7 +1008,7 @@ def render_exclusive_advisor(selected_fair: str) -> None:
         st.caption("相談内容を入力して「Exclusive Advisor を実行」を押すと、grounded draft を表示します。")
         return
 
-    st.markdown("**Exclusive Advisor grounding overview（read-only）**")
+    st.markdown("**Exclusive Advisor grounding overview（読み取り専用）**")
     st.write(
         {
             "fair": context["selection"]["fair_label"],
@@ -933,18 +1017,17 @@ def render_exclusive_advisor(selected_fair: str) -> None:
             "token_count": len(context["selection"].get("tokens", [])),
         }
     )
-    m1, m2, m3, m4 = st.columns(4)
-    m1.metric("External Exh evidence", context["external"].get("counts", {}).get("exhibitions_text_evidence_count", 0))
-    m2.metric("External Artist evidence", context["external"].get("counts", {}).get("artist_text_evidence_count", 0))
-    m3.metric("External URLs", context["external"].get("counts", {}).get("all_unique_url_count", 0))
-    m4.metric("Tarutani excerpts", context["tarutani"].get("count", 0))
-    st.caption(context["external"].get("count_note", ""))
-    st.caption(context["tarutani"].get("count_note", ""))
-
-    if context.get("warnings"):
-        with st.expander("Exclusive Advisor 読み込み警告", expanded=False):
-            for warning in context["warnings"][:20]:
-                st.write(f"- {warning}")
+    _render_evidence_summary(
+        {
+            "外部Exhibitions根拠件数": context["external"].get("counts", {}).get("exhibitions_text_evidence_count", 0),
+            "外部Artists根拠件数": context["external"].get("counts", {}).get("artist_text_evidence_count", 0),
+            "外部URL件数": context["external"].get("counts", {}).get("all_unique_url_count", 0),
+            "Tarutani抜粋件数": context["tarutani"].get("count", 0),
+            "参考画像候補件数": len((context["external"].get("reference_images", {}) or {}).get("all", [])),
+        }
+    )
+    st.caption(f"注記(外部): {context['external'].get('count_note', '')}")
+    st.caption(f"注記(Tarutani): {context['tarutani'].get('count_note', '')}")
 
     ex_view = [
         {
@@ -968,85 +1051,63 @@ def render_exclusive_advisor(selected_fair: str) -> None:
     ]
     c1, c2 = st.columns(2)
     with c1:
-        st.markdown("**外部RAG: Exhibitions（上位）**")
+        st.markdown("**根拠ブロック（外部Exhibitions）**")
         st.dataframe(ex_view, use_container_width=True, hide_index=True, height=220)
     with c2:
-        st.markdown("**外部RAG: Artists（上位）**")
+        st.markdown("**根拠ブロック（外部Artists）**")
         st.dataframe(ar_view, use_container_width=True, hide_index=True, height=220)
 
     ref_images = context["external"].get("reference_images", {})
-    st.markdown("**外部参考画像候補（read-only, 最大8目安）**")
-    st.write(
-        {
-            "target_total": 8,
-            "available_total": len(ref_images.get("all", [])),
-        }
-    )
-    if ref_images.get("all"):
-        st.dataframe(ref_images.get("all", [])[:8], use_container_width=True, hide_index=True, height=220)
+    _render_reference_image_candidates("参考画像候補", ref_images, target_total=8)
+    if context.get("warnings"):
+        with st.expander("警告/注記（Exclusive Advisor）", expanded=False):
+            for warning in context["warnings"][:20]:
+                st.write(f"- {warning}")
 
     if active_qtype.startswith("type 2"):
-        st.markdown("**Exclusive Advisor type 2（gated execution）**")
+        st.markdown("**Exclusive Advisor type 2（gate付き実行）**")
         if not type2_result:
-            st.caption("type 2 を選んで Exclusive Advisor を実行すると、gate判定と生成結果を表示します。")
+            st.caption("type 2 を選んで Exclusive Advisor を実行すると、gate判定後に本文と画像生成結果を表示します。")
             return
 
         gate_ok = bool(type2_result.get("gate_ok"))
         status = str(type2_result.get("status") or "")
         user_message = str(type2_result.get("user_message") or "")
-        if gate_ok:
-            st.success("type 2 gate: PASS（条件通過）")
+        if status == "success":
+            st.success("type 2 状態: 実行成功")
+        elif status == "image_failed":
+            st.warning("type 2 状態: 画像生成失敗（本文と根拠は表示）")
+        elif status == "gate_hold":
+            st.error("type 2 状態: gate未通過（条件不足で実行不可）")
+        elif gate_ok:
+            st.info("type 2 状態: 利用可能")
         else:
-            st.error("type 2 gate: HOLD（画像生成APIは未実行）")
+            st.info("type 2 状態: 条件確認中")
         if user_message:
             st.caption(user_message)
 
-        st.write(
-            {
-                "status": status or ("success" if gate_ok else "gate_hold"),
-                "required_env_keys": type2_result.get("required_env_keys", []),
-                "optional_env_keys": type2_result.get("optional_env_keys", []),
-                "api_called": bool(type2_result.get("api_called", False)),
-            }
-        )
-        failed = collect_failed_checks_exclusive_type2(type2_result)
-        if failed:
-            st.markdown("**未通過条件（要点）**")
-            for reason in failed[:8]:
-                st.write(f"- {reason}")
+        if status == "gate_hold":
+            failed = collect_failed_checks_exclusive_type2(type2_result)
+            if failed:
+                st.markdown("**未通過条件（要点）**")
+                for reason in failed[:8]:
+                    st.write(f"- {reason}")
 
-        with st.expander("type2 gate 詳細 / prompt preview（開発確認用）", expanded=False):
-            check_rows = [
-                {
-                    "check_id": c.get("id"),
-                    "ok": bool(c.get("ok")),
-                    "detail": c.get("detail"),
-                }
-                for c in type2_result.get("checks", [])
-            ]
-            st.dataframe(check_rows, use_container_width=True, hide_index=True, height=240)
-            st.write({"resolved_env": type2_result.get("resolved_env", {})})
-            st.text_area(
-                "type 2 prompt preview",
-                value=str(type2_result.get("prompt_preview") or ""),
-                height=220,
-                disabled=True,
-            )
-
-        if type2_result.get("error"):
-            st.warning(f"画像生成結果: {type2_result.get('error')}")
-            debug_err = str(type2_result.get("debug_error") or "")
-            if debug_err:
-                with st.expander("生成エラー詳細（開発確認用）", expanded=False):
-                    st.code(debug_err)
+        external_urls = type2_result.get("external_evidence_urls", {}) or {}
+        ex_urls = external_urls.get("exhibition") or []
+        ar_urls = external_urls.get("artist") or []
+        tarutani_rows = type2_result.get("tarutani_evidence_excerpts", []) or []
+        ref_images = type2_result.get("reference_images", {}) or {}
+        ref_rows = ref_images.get("all") or []
 
         st.markdown("**Exclusive Advisor回答（日本語、type 2）**")
-        st.write(
+        _render_evidence_summary(
             {
-                "text_chars": type2_result.get("text_chars"),
-                "max_chars": EXCLUSIVE_ADVISOR_TEXT_MAX_CHARS,
-                "generated_image_count": type2_result.get("generated_image_count", 0),
-                "image_source": type2_result.get("image_source_label", "AI generated"),
+                "本文文字数": type2_result.get("text_chars"),
+                "本文上限": EXCLUSIVE_ADVISOR_TEXT_MAX_CHARS,
+                "外部URL件数": len(ex_urls) + len(ar_urls),
+                "Tarutani抜粋件数": len(tarutani_rows),
+                "参考画像候補件数": len(ref_rows),
             }
         )
         st.text_area(
@@ -1067,24 +1128,11 @@ def render_exclusive_advisor(selected_fair: str) -> None:
             st.image(image_url, caption="AI generated", use_container_width=True)
             st.caption("Source: AI generated")
         else:
-            st.info("生成画像はまだありません（gate未通過または生成失敗）。")
+            st.info("生成画像はありません（gate未通過または画像生成失敗）。")
 
-        urls = type2_result.get("external_evidence_urls", {})
-        ex_urls = urls.get("exhibition", [])
-        ar_urls = urls.get("artist", [])
-        st.markdown("**外部根拠URL一覧**")
-        c1, c2 = st.columns(2)
-        with c1:
-            st.write(f"Exhibition URLs: {len(ex_urls)}")
-            for url in ex_urls[:30]:
-                st.write(f"- {url}")
-        with c2:
-            st.write(f"Artist URLs: {len(ar_urls)}")
-            for url in ar_urls[:30]:
-                st.write(f"- {url}")
+        _render_evidence_urls("外部根拠URL", ex_urls, ar_urls)
 
-        st.markdown("**根拠（Tarutani_Text 抜粋）**")
-        tarutani_rows = type2_result.get("tarutani_evidence_excerpts", [])
+        st.markdown("**Tarutani_Text抜粋**")
         t_view = [
             {
                 "series_name": r.get("series_name"),
@@ -1093,32 +1141,58 @@ def render_exclusive_advisor(selected_fair: str) -> None:
             }
             for r in tarutani_rows[:8]
         ]
-        st.dataframe(t_view, use_container_width=True, hide_index=True, height=220)
+        if t_view:
+            st.dataframe(t_view, use_container_width=True, hide_index=True, height=220)
+        else:
+            st.info("表示できるTarutani_Text抜粋はありません。")
 
-        ref_images = type2_result.get("reference_images", {})
         if isinstance(ref_images, dict):
-            st.markdown("**外部参考画像候補（read-only, 最大8目安）**")
+            _render_reference_image_candidates("参考画像候補", ref_images, target_total=8)
+
+        with st.expander("type2 gate 詳細 / prompt preview（開発確認用）", expanded=False):
+            check_rows = [
+                {
+                    "check_id": c.get("id"),
+                    "ok": bool(c.get("ok")),
+                    "detail": c.get("detail"),
+                }
+                for c in type2_result.get("checks", [])
+            ]
+            st.dataframe(check_rows, use_container_width=True, hide_index=True, height=240)
             st.write(
                 {
-                    "target_total": 8,
-                    "available_total": len(ref_images.get("all", [])),
+                    "status": status or ("success" if gate_ok else "gate_hold"),
+                    "required_env_keys": type2_result.get("required_env_keys", []),
+                    "optional_env_keys": type2_result.get("optional_env_keys", []),
+                    "resolved_env": type2_result.get("resolved_env", {}),
+                    "api_called": bool(type2_result.get("api_called", False)),
                 }
             )
-            if ref_images.get("all"):
-                st.dataframe(ref_images.get("all", [])[:8], use_container_width=True, hide_index=True, height=220)
+            st.text_area(
+                "type 2 prompt プレビュー",
+                value=str(type2_result.get("prompt_preview") or ""),
+                height=220,
+                disabled=True,
+            )
+            if type2_result.get("error"):
+                st.warning(f"画像生成結果: {type2_result.get('error')}")
+                debug_err = str(type2_result.get("debug_error") or "")
+                if debug_err:
+                    st.code(debug_err)
         return
 
     if not draft:
         return
 
     st.markdown("**Exclusive Advisor grounded draft（type 1）**")
-    st.write(
+    _render_evidence_summary(
         {
-            "mode": draft.get("mode"),
-            "answer_chars": draft.get("answer_chars"),
-            "max_chars": EXCLUSIVE_ADVISOR_TEXT_MAX_CHARS,
-            "external_url_count": draft.get("counts", {}).get("external_url_count", 0),
-            "tarutani_excerpt_count": draft.get("counts", {}).get("tarutani_excerpt_count", 0),
+            "モード": draft.get("mode"),
+            "本文文字数": draft.get("answer_chars"),
+            "本文上限": EXCLUSIVE_ADVISOR_TEXT_MAX_CHARS,
+            "外部URL件数": draft.get("counts", {}).get("external_url_count", 0),
+            "Tarutani抜粋件数": draft.get("counts", {}).get("tarutani_excerpt_count", 0),
+            "参考画像候補件数": len((context["external"].get("reference_images", {}) or {}).get("all", [])),
         }
     )
     st.text_area("Exclusive Advisor回答（日本語）", value=draft.get("answer", ""), height=260, disabled=True)
@@ -1127,18 +1201,9 @@ def render_exclusive_advisor(selected_fair: str) -> None:
     urls = draft.get("external_evidence_urls", {})
     ex_urls = urls.get("exhibition", [])
     ar_urls = urls.get("artist", [])
-    st.markdown("**外部根拠URL一覧**")
-    c1, c2 = st.columns(2)
-    with c1:
-        st.write(f"Exhibition URLs: {len(ex_urls)}")
-        for url in ex_urls[:30]:
-            st.write(f"- {url}")
-    with c2:
-        st.write(f"Artist URLs: {len(ar_urls)}")
-        for url in ar_urls[:30]:
-            st.write(f"- {url}")
+    _render_evidence_urls("外部根拠URL", ex_urls, ar_urls)
 
-    st.markdown("**根拠（Tarutani_Text 抜粋）**")
+    st.markdown("**Tarutani_Text抜粋**")
     tarutani_rows = draft.get("tarutani_evidence_excerpts", [])
     t_view = [
         {
@@ -1148,16 +1213,25 @@ def render_exclusive_advisor(selected_fair: str) -> None:
         }
         for r in tarutani_rows[:8]
     ]
-    st.dataframe(t_view, use_container_width=True, hide_index=True, height=220)
+    if t_view:
+        st.dataframe(t_view, use_container_width=True, hide_index=True, height=220)
+    else:
+        st.info("表示できるTarutani_Text抜粋はありません。")
+
+    _render_reference_image_candidates(
+        "参考画像候補",
+        context["external"].get("reference_images", {}),
+        target_total=8,
+    )
 
     if draft.get("warnings"):
-        with st.expander("Exclusive Advisor generation warnings", expanded=False):
+        with st.expander("警告/注記（Exclusive Advisor）", expanded=False):
             for warning in draft["warnings"]:
                 st.write(f"- {warning}")
 
 
 def render_gallery_list(selected_fair: str) -> None:
-    st.markdown("**⑥ Gallery list（登録ギャラリー一覧 / read-only）**")
+    st.markdown("**⑥ Gallery list（登録ギャラリー一覧 / 読み取り専用）**")
     st.caption("CSV正本を読み取り専用で表示します（編集・追加・削除・保存なし）。")
 
     try:
@@ -1190,22 +1264,22 @@ def render_gallery_list(selected_fair: str) -> None:
     m5.metric("警告件数", len(data.warnings))
     st.write(
         {
-            "filtered_rows": len(filtered),
-            "artists_url_raw_rows": getattr(data, "artists_raw_rows", 0),
-            "artists_url_empty_rows": getattr(data, "artists_empty_rows", 0),
-            "warning_summary": getattr(data, "warning_counts", {}),
+            "表示件数": len(filtered),
+            "artists_url入力あり行": getattr(data, "artists_raw_rows", 0),
+            "artists_url空行": getattr(data, "artists_empty_rows", 0),
+            "警告サマリ": getattr(data, "warning_counts", {}),
         }
     )
     st.caption(data.count_note)
-    st.caption("列互換: 3列=そのまま / 2列=artists_url は exhibitions_url fallback（表示専用）。")
+    st.caption("列互換: 3列はそのまま / 2列は artists_url に exhibitions_url を使用（表示専用）。")
 
     if data.warnings:
-        with st.expander("Gallery list 読み込み警告", expanded=False):
+        with st.expander("警告/注記（Gallery list）", expanded=False):
             for warning in data.warnings[:30]:
                 st.write(f"- {warning}")
 
     if not filtered:
-        st.warning("該当するギャラリーがありません。")
+        st.warning("条件に一致するギャラリーはありません。")
         return
 
     view_rows = [
@@ -1230,9 +1304,9 @@ def render_gallery_list(selected_fair: str) -> None:
             "gallery_name": st.column_config.TextColumn("gallery_name", width="medium"),
             "exhibitions_url": st.column_config.TextColumn("exhibitions_url", width="large"),
             "artists_url": st.column_config.TextColumn("artists_url", width="large"),
-            "artists_mode": st.column_config.TextColumn("artists_mode", width="small"),
-            "exhibitions_link": st.column_config.LinkColumn("Exhibitions link", display_text="open"),
-            "artists_link": st.column_config.LinkColumn("Artists link", display_text="open"),
+            "artists_mode": st.column_config.TextColumn("artists_url種別", width="small"),
+            "exhibitions_link": st.column_config.LinkColumn("Exhibitions URL", display_text="開く"),
+            "artists_link": st.column_config.LinkColumn("Artists URL", display_text="開く"),
         },
     )
 

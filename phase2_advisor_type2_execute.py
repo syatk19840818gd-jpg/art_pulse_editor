@@ -99,6 +99,8 @@ def run_type2_gated_image_generation(
         "model": os.getenv("IMAGE_MODEL", "gpt-image-1"),
         "error": "",
         "debug_error": "",
+        "status": "gate_hold" if not bool(gate.get("gate_ok")) else "ready_for_api",
+        "user_message": "",
         "evidence_urls": evidence_urls,
         "reference_images": context.get("reference_images", {}),
         "attachment_note": (
@@ -109,11 +111,14 @@ def run_type2_gated_image_generation(
     }
 
     if not result["gate_ok"]:
+        result["user_message"] = "type2 の実行条件を満たしていないため、画像生成APIは未実行です。本文と根拠のみ表示します。"
         return result
 
     openai_key = os.getenv("OPENAI_API_KEY", "").strip()
     if not openai_key:
         result["error"] = "OPENAI_API_KEY が未設定のため、画像生成を実行できません。"
+        result["status"] = "gate_hold"
+        result["user_message"] = "OpenAI APIキー未設定のため、画像生成は実行しません。"
         return result
 
     prompt = _build_type2_image_prompt(
@@ -148,6 +153,8 @@ def run_type2_gated_image_generation(
         data = getattr(response, "data", None) or []
         if not data:
             result["error"] = "画像生成の応答が空でした。本文と根拠のみ表示します。"
+            result["status"] = "image_failed"
+            result["user_message"] = "画像生成の応答が空のため、本文と根拠のみ表示します。"
             return result
 
         first = data[0]
@@ -160,11 +167,16 @@ def run_type2_gated_image_generation(
 
         if result["generated_image_bytes"] is not None or result["generated_image_url"]:
             result["generated_image_count"] = 1
+            result["status"] = "success"
+            result["user_message"] = "type2 画像生成に成功しました（1枚）。"
         else:
             result["error"] = "画像データが取得できませんでした。本文と根拠のみ表示します。"
+            result["status"] = "image_failed"
+            result["user_message"] = "画像データ未取得のため、本文と根拠のみ表示します。"
     except Exception as exc:
         result["error"] = _user_friendly_error(exc)
         result["debug_error"] = f"{type(exc).__name__}: {exc}"
+        result["status"] = "image_failed"
+        result["user_message"] = "画像生成でエラーが発生したため、本文と根拠のみ表示します。"
 
     return result
-

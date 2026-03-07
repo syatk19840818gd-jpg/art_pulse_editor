@@ -4767,3 +4767,11 @@ _trash 運用方針:
 - Changed: docs/03_STATE_SNAPSHOT_NEXT_TASKS.md and docs/04_TASK_PROGRESS_LOG.md only.
 - Unchanged: docs/01_PROJECT_SPEC_CURRENT_FULL.docx (no spec change).
 - Result: Phase2 minimal implementation milestone documented.
+
+## 173. TASK293_CLOSEOUT_01 = PHASE2_POLISH_CLOSEOUT_REVIEW_AND_DOC_SYNC_03_04
+- 目的: Phase2 baseline/minimal実装 + polishing完了の現在地を03/04へcloseout同期（docsのみ更新）。
+- 事前確認: copy freeze=`COPY_FREEZE_OK`、01/02の定義どおり「⑥=Gallery list」が正。
+- 変更: `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md` と `docs/04_TASK_PROGRESS_LOG.md` のみ更新。`docs/01_PROJECT_SPEC_CURRENT_FULL.docx` / `docs/02_RAG_SPEC_DERIVED.md` は未変更（仕様変更なし、closeout syncのため）。
+- 到達点要約: ①Art Pulse、②Exhibition Search、③Artist Search、④Advisor(type1/type2 tuned)、⑤Exclusive Advisor(type1/type2 tuned)、⑥Gallery list(read-only+tuning) を確認済み。
+- 判定: Phase2 polish closeout documented（copy freeze OKを記録）。
+- 次の最優先タスク: TASK293_NEXT_16 = PHASE2_CLOSEOUT_REVIEW_AND_GO_NO_GO_FOR_NEXT_PHASE

@@ -105,12 +105,12 @@ def evaluate_type2_gate(
         {
             "id": "env_openai_api_key",
             "ok": openai_key_set,
-            "detail": "OPENAI_API_KEY is required for type2 image generation.",
+            "detail": "type2画像生成には OPENAI_API_KEY が必要です。",
         },
         {
             "id": "grounded_type1_success",
             "ok": bool(type1_answer) and 0 < type1_chars <= ADVISOR_TEXT_MAX_CHARS and evidence_count > 0,
-            "detail": "type1 grounded draft must exist (<=500 chars and evidence>0).",
+            "detail": "type1 grounded draft（500字以内・根拠1件以上）が必要です。",
         },
         {
             "id": "input_fair_valid",
@@ -119,22 +119,22 @@ def evaluate_type2_gate(
                 "Liste Art Fair Basel",
                 "Frieze London + Liste Art Fair Basel",
             },
-            "detail": "fair must be one of fixed options.",
+            "detail": "フェア選択は固定オプションから選ぶ必要があります。",
         },
         {
             "id": "input_question_text_present",
             "ok": bool(_safe_str(question_text)),
-            "detail": "question text is required.",
+            "detail": "相談内容（テキスト入力）が必要です。",
         },
         {
             "id": "evidence_scope_formal_readonly",
             "ok": int(context.get("counts", {}).get("all_unique_url_count") or 0) > 0,
-            "detail": "formal read-only evidence URL must exist.",
+            "detail": "formal read-only の根拠URLが1件以上必要です。",
         },
         {
             "id": "persistence_forbidden",
             "ok": True,
-            "detail": "save/R2/formal-write paths are forbidden by design.",
+            "detail": "保存/R2/formal書き込みは設計上禁止です。",
         },
     ]
 
@@ -152,7 +152,7 @@ def evaluate_type2_gate(
             {
                 "id": "prompt_has_root_evidence_urls",
                 "ok": False,
-                "detail": "prompt preview must include at least one evidence URL.",
+                "detail": "prompt preview に根拠URLを最低1件含める必要があります。",
             }
         )
     else:
@@ -160,7 +160,7 @@ def evaluate_type2_gate(
             {
                 "id": "prompt_has_root_evidence_urls",
                 "ok": True,
-                "detail": "prompt preview contains evidence URLs.",
+                "detail": "prompt preview に根拠URLを含んでいます。",
             }
         )
 
@@ -175,7 +175,7 @@ def evaluate_type2_gate(
         },
         "design_spec": get_type2_design_spec(),
         "prompt_preview": prompt_preview,
-        "note": "Type2 is gated. API call is allowed only when all checks pass.",
+        "note": "Type2はgate制御です。全条件を満たした場合のみAPIを呼びます。",
     }
 
 
@@ -185,4 +185,3 @@ def collect_failed_checks(gate_result: Dict[str, object]) -> List[str]:
         if not bool(c.get("ok")):
             failed.append(f"{c.get('id')}: {c.get('detail')}")
     return failed
-

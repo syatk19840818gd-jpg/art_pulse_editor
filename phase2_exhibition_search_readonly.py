@@ -146,8 +146,8 @@ def load_exhibition_records_readonly() -> ExhibitionSearchData:
         total_rows=len(records),
         fair_rows=fair_rows,
         count_note=(
-            "Exhibition rows come from formal raw (exhibitions_*_2025.jsonl). "
-            "image_count_hint is read-only source_url match against formal derived image metadata."
+            "Exhibition行は formal raw（exhibitions_*_2025.jsonl）由来。"
+            " image_count_hint は formal derived画像メタとの source_url 厳密一致（読み取り専用）。"
         ),
     )
 

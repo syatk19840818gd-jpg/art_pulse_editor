@@ -194,8 +194,8 @@ def build_counts(selected_fair: str) -> Dict[str, object]:
         "images_cache_file_count": images_cache.rows,
         "warnings": sorted(set(all_warnings)),
         "count_note": (
-            "Text counts are formal jsonl row counts. "
-            "Image counts are formal metadata rows; existing files are verified local_path hits (read-only check)."
+            "Text件数は formal jsonl の行数。"
+            " 画像件数は formal metadata 行数で、existing files は local_path 実在確認（読み取り専用チェック）。"
         ),
     }
 

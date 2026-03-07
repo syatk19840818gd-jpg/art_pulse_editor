@@ -141,9 +141,9 @@ def load_gallery_list_records_readonly() -> GalleryListData:
                     "artists_url_display": _short_url(artists_url),
                     "artists_url_mode": artists_mode,
                     "artists_url_mode_label": (
-                        "fallback"
+                        "fallback（Exhibitions URLを流用）"
                         if artists_mode == "fallback_to_exhibitions_url"
-                        else ("empty" if artists_mode == "empty" else "raw")
+                        else ("空欄" if artists_mode == "empty" else "独立artists_url")
                     ),
                 }
             )
@@ -167,9 +167,9 @@ def load_gallery_list_records_readonly() -> GalleryListData:
         artists_raw_rows=artists_raw_rows,
         artists_empty_rows=artists_empty_rows,
         count_note=(
-            "Gallery list comes from CSV (no header, UTF-8 expected). "
-            "2-column rows are accepted with artists_url fallback to exhibitions_url. "
-            "Display is normalized for read-only viewing only (no CSV rewrite)."
+            "Gallery listはCSV正本（ヘッダーなし、UTF-8想定）を読み取り専用で表示。"
+            " 2列行は artists_url を exhibitions_url でfallback。"
+            " 表示整形のみ行い、CSV自体は更新しない。"
         ),
     )
 

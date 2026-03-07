@@ -125,22 +125,22 @@ def evaluate_exclusive_type2_gate(
         {
             "id": "env_openai_api_key",
             "ok": bool(_safe_str(os.getenv("OPENAI_API_KEY"))),
-            "detail": "OPENAI_API_KEY is required for type2 image generation.",
+            "detail": "type2画像生成には OPENAI_API_KEY が必要です。",
         },
         {
             "id": "grounded_type1_success",
             "ok": bool(type1_answer) and 0 < type1_chars <= EXCLUSIVE_ADVISOR_TEXT_MAX_CHARS,
-            "detail": "type1 grounded draft must exist and be <= 1000 chars.",
+            "detail": "type1 grounded draft（1000字以内）が必要です。",
         },
         {
             "id": "external_evidence_urls_present",
             "ok": external_url_count > 0,
-            "detail": "at least one external evidence URL is required.",
+            "detail": "外部根拠URLが1件以上必要です。",
         },
         {
             "id": "tarutani_excerpt_present",
             "ok": tarutani_excerpt_count > 0,
-            "detail": "at least one Tarutani excerpt is required.",
+            "detail": "Tarutani抜粋が1件以上必要です。",
         },
         {
             "id": "input_fair_valid",
@@ -150,22 +150,22 @@ def evaluate_exclusive_type2_gate(
                 "Liste Art Fair Basel",
                 "Frieze London + Liste Art Fair Basel",
             },
-            "detail": "fair must be one of fixed options.",
+            "detail": "フェア選択は固定オプションから選ぶ必要があります。",
         },
         {
             "id": "input_question_text_present",
             "ok": bool(_safe_str(question_text)),
-            "detail": "question text is required.",
+            "detail": "相談内容（テキスト入力）が必要です。",
         },
         {
             "id": "prompt_preview_composable",
             "ok": bool(_safe_str(prompt_preview)),
-            "detail": "prompt preview must be buildable.",
+            "detail": "prompt preview を組み立て可能である必要があります。",
         },
         {
             "id": "persistence_forbidden",
             "ok": True,
-            "detail": "save/R2/formal-write paths are forbidden by design.",
+            "detail": "保存/R2/formal書き込みは設計上禁止です。",
         },
     ]
 
@@ -180,7 +180,7 @@ def evaluate_exclusive_type2_gate(
             "VISION_MODEL": _safe_str(os.getenv("VISION_MODEL")),
         },
         "prompt_preview": prompt_preview,
-        "note": "Exclusive type2 is gated. API call is allowed only when all checks pass.",
+        "note": "Exclusive type2はgate制御です。全条件を満たした場合のみAPIを呼びます。",
     }
 
 
@@ -299,7 +299,7 @@ def run_exclusive_type2_gated_image_generation(
     }
 
     if not result["gate_ok"]:
-        result["user_message"] = "type2 の実行条件を満たしていないため、本文と根拠のみ表示します。"
+        result["user_message"] = "type2 の実行条件を満たしていないため、画像生成APIは未実行です。本文と根拠のみ表示します。"
         return result
 
     openai_key = _safe_str(os.getenv("OPENAI_API_KEY"))
