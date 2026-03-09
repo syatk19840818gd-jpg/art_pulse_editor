@@ -1,18 +1,24 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
-from typing import Dict, List, Tuple
-from urllib.parse import quote_plus
+import unicodedata
+from typing import Callable, Dict, List, Tuple
+from urllib.parse import parse_qs, quote_plus, urlparse
 
-from phase2_art_pulse_config import ART_PULSE_TEXT_MAX_CHARS, find_persona, find_persona_angle
-
-BODY_CHAR_LIMIT = ART_PULSE_TEXT_MAX_CHARS
-BODY_MIN_TARGET_CHARS = 1800
-BODY_TARGET_CHARS = 1900
+from phase2_art_pulse_config import (
+    ART_PULSE_TEXT_MAX_CHARS,
+    ART_PULSE_TEXT_MIN_CHARS,
+    find_persona,
+    find_persona_angle,
+)
+from phase2_response_style import PLAIN_JAPANESE_RULE
 MAX_EVIDENCE_URLS = 8
 MAX_IMAGE_TOTAL = 8
+MIN_IMAGE_PER_NONEMPTY_SECTION = 1
+logger = logging.getLogger(__name__)
 
 REQUIRED_HEADINGS = [
     "## 今年のトレンド",
@@ -20,9 +26,17 @@ REQUIRED_HEADINGS = [
     "## トレンドではないが面白かったExhibitionまたはArtist",
 ]
 
-SECTION_IMAGE_QUOTAS = [3, 3, 2]
 SECTION_KEYS = ["section1", "section2", "section3"]
 MARKDOWN_LINK_PATTERN = re.compile(r"\[([^\]]+)\]\((https?://[^)]+)\)")
+ARTIST_GOOGLE_LINK_PATTERN = re.compile(
+    r"\[[^\]]+\]\(https://www\.google\.com/search\?tbm=isch&q=[^)]+\)"
+)
+ARTIST_WITH_KANA_PATTERN = re.compile(
+    r"\[[^\]]+\]\(https://www\.google\.com/search\?tbm=isch&q=[^)]+\)（[^）]+）"
+)
+ARTIST_DUP_EN_NAME_PATTERN = re.compile(
+    r"\[([^\]]+)\]\(https://www\.google\.com/search\?tbm=isch&q=[^)]+\)（\1）"
+)
 
 KANA_WORD_MAP = {
     "ALEX": "アレックス",
@@ -83,13 +97,20 @@ def _persona_first_person(reporter: Dict[str, object]) -> str:
 
 
 def _google_image_search_url(name_en: str) -> str:
-    return f"https://www.google.com/search?tbm=isch&q={quote_plus(name_en)}"
+    # 01章「9.リンクの扱い」に合わせ、qはURLエンコードしつつ +art を付与
+    return f"https://www.google.com/search?tbm=isch&q={quote_plus((name_en or '').strip() + ' art')}"
 
 
 def _clean_artist_name(name: str) -> str:
     text = re.sub(r"\s+", " ", (name or "").strip())
     text = re.sub(r"\s+\d+$", "", text)
     return text.strip()
+
+
+def _normalize_name_token(text: str) -> str:
+    normalized = unicodedata.normalize("NFKD", (text or "").strip())
+    no_marks = "".join(ch for ch in normalized if not unicodedata.combining(ch))
+    return re.sub(r"[^0-9A-Za-z]+", "", no_marks).lower()
 
 
 def _normalize_kana(kana: str) -> str:
@@ -134,25 +155,7 @@ def _clean_exhibition_title(title: str, gallery: str) -> str:
     return text or "(untitled)"
 
 
-def _format_exhibition_marker(row: Dict[str, object]) -> str:
-    gallery = str(row.get("gallery") or "").strip() or "(unknown gallery)"
-    title = _clean_exhibition_title(str(row.get("title") or ""), gallery)
-    source_url = str(row.get("source_url") or "").strip()
-    if source_url:
-        return f"([{title}]({source_url}) @ {gallery})"
-    return f"({title} @ {gallery})"
-
-
-def _format_artist_marker(row: Dict[str, object]) -> str:
-    name_en = _clean_artist_name(str(row.get("artist_name_en") or row.get("artist") or "(unknown artist)"))
-    google_url = _google_image_search_url(name_en)
-    kana = _normalize_kana(str(row.get("artist_name_kana") or "")) or _guess_kana_from_name(name_en)
-    if kana:
-        return f"[{name_en}]({google_url})（{kana}）"
-    return f"[{name_en}]({google_url})"
-
-
-def _build_evidence_payload(overview: Dict[str, object], cap: int = 18) -> Dict[str, object]:
+def _build_evidence_payload(overview: Dict[str, object], cap: int = 24) -> Dict[str, object]:
     ex_candidates = list(overview.get("exhibition_candidates", []) or [])
     ar_candidates = list(overview.get("artist_candidates", []) or [])
 
@@ -171,6 +174,8 @@ def _build_evidence_payload(overview: Dict[str, object], cap: int = 18) -> Dict[
                 "gallery": str(row.get("gallery") or "").strip(),
                 "title": title,
                 "source_url": source_url,
+                "retrieval_score": int(row.get("_retrieval_score") or 0),
+                "retrieval_reason": str(row.get("_retrieval_reason") or ""),
             }
         )
 
@@ -192,30 +197,95 @@ def _build_evidence_payload(overview: Dict[str, object], cap: int = 18) -> Dict[
                 "artist_name_kana": str(row.get("artist_name_kana") or "").strip(),
                 "source_url": source_url,
                 "text_snippet": str(row.get("text_snippet") or "").strip(),
+                "retrieval_score": int(row.get("_retrieval_score") or 0),
+                "retrieval_reason": str(row.get("_retrieval_reason") or ""),
             }
         )
 
-    def _fair_round_robin(rows: List[Dict[str, object]], max_count: int) -> List[Dict[str, object]]:
-        grouped: Dict[str, List[Dict[str, object]]] = {}
-        for row in rows:
-            grouped.setdefault(str(row.get("fair") or ""), []).append(row)
-        order = [k for k in ("Frieze London", "Liste Art Fair Basel") if k in grouped]
-        for key in sorted(grouped.keys()):
+    def _fair_order(keys: List[str]) -> List[str]:
+        order = [k for k in ("Frieze London", "Liste Art Fair Basel") if k in keys]
+        for key in sorted(keys):
             if key not in order:
                 order.append(key)
-        out: List[Dict[str, object]] = []
-        while len(out) < max_count and any(grouped.get(key) for key in order):
-            for key in order:
-                bucket = grouped.get(key) or []
+        return order
+
+    def _diversified_pick(rows: List[Dict[str, object]], max_count: int) -> List[Dict[str, object]]:
+        by_fair_gallery: Dict[str, Dict[str, List[Dict[str, object]]]] = {}
+        for row in rows:
+            fair = str(row.get("fair") or "").strip() or "(unknown)"
+            gallery = str(row.get("gallery") or "").strip() or "(unknown)"
+            by_fair_gallery.setdefault(fair, {}).setdefault(gallery, []).append(row)
+
+        selected: List[Dict[str, object]] = []
+        gallery_use_count: Dict[Tuple[str, str], int] = {}
+        fair_keys = _fair_order(list(by_fair_gallery.keys()))
+
+        # Pass 1: one row per gallery (fair-balanced)
+        made_progress = True
+        while made_progress and len(selected) < max_count:
+            made_progress = False
+            for fair in fair_keys:
+                galleries = by_fair_gallery.get(fair, {})
+                for gallery in list(galleries.keys()):
+                    bucket = galleries.get(gallery) or []
+                    if not bucket:
+                        continue
+                    row = bucket.pop(0)
+                    selected.append(row)
+                    gallery_use_count[(fair, gallery)] = gallery_use_count.get((fair, gallery), 0) + 1
+                    made_progress = True
+                    if len(selected) >= max_count:
+                        break
+                if len(selected) >= max_count:
+                    break
+
+        if len(selected) >= max_count:
+            return selected[:max_count]
+
+        # Pass 2: fill remaining slots with fair round-robin, but cap per-gallery concentration.
+        remaining_by_fair: Dict[str, List[Dict[str, object]]] = {}
+        for fair, galleries in by_fair_gallery.items():
+            remaining: List[Dict[str, object]] = []
+            for gallery in list(galleries.keys()):
+                remaining.extend(galleries.get(gallery) or [])
+            remaining_by_fair[fair] = remaining
+
+        per_gallery_cap = 2
+        while len(selected) < max_count and any(remaining_by_fair.get(fair) for fair in fair_keys):
+            progressed = False
+            for fair in fair_keys:
+                bucket = remaining_by_fair.get(fair) or []
                 if not bucket:
                     continue
-                out.append(bucket.pop(0))
-                if len(out) >= max_count:
+                picked = False
+                for idx, row in enumerate(bucket):
+                    gallery = str(row.get("gallery") or "").strip() or "(unknown)"
+                    key = (fair, gallery)
+                    if gallery_use_count.get(key, 0) >= per_gallery_cap:
+                        continue
+                    selected.append(row)
+                    gallery_use_count[key] = gallery_use_count.get(key, 0) + 1
+                    bucket.pop(idx)
+                    picked = True
+                    progressed = True
                     break
-        return out
+                if not picked and bucket:
+                    # fallback if all rows hit gallery cap
+                    row = bucket.pop(0)
+                    gallery = str(row.get("gallery") or "").strip() or "(unknown)"
+                    key = (fair, gallery)
+                    selected.append(row)
+                    gallery_use_count[key] = gallery_use_count.get(key, 0) + 1
+                    progressed = True
+                if len(selected) >= max_count:
+                    break
+            if not progressed:
+                break
 
-    ex_rows = _fair_round_robin(ex_deduped, cap)
-    ar_rows = _fair_round_robin(ar_deduped, cap)
+        return selected[:max_count]
+
+    ex_rows = _diversified_pick(ex_deduped, cap)
+    ar_rows = _diversified_pick(ar_deduped, cap)
 
     ex_urls = _unique_urls([str(row.get("source_url") or "") for row in ex_rows])
     ar_urls = _unique_urls([str(row.get("source_url") or "") for row in ar_rows])
@@ -250,7 +320,7 @@ def _body_text_len(body: str) -> int:
     return len("\n".join(lines).strip())
 
 
-def _truncate_body_text(body: str, limit: int = BODY_CHAR_LIMIT) -> str:
+def _truncate_body_text(body: str, limit: int = ART_PULSE_TEXT_MAX_CHARS) -> str:
     text = (body or "").strip()
     if _body_text_len(text) <= limit:
         return text
@@ -270,8 +340,6 @@ def _truncate_body_text(body: str, limit: int = BODY_CHAR_LIMIT) -> str:
 def _has_required_structure(body: str) -> bool:
     text = body or ""
     if any(heading not in text for heading in REQUIRED_HEADINGS):
-        return False
-    if "### 根拠URL" in text or "### 参考画像（この節）" in text:
         return False
     slash_runs = max((len(match.group(0)) for match in re.finditer(r"(?:\s*/\s*){4,}", text)), default=0)
     if slash_runs >= 1:
@@ -425,69 +493,104 @@ def _build_section_image_buckets(
         if source_url:
             ar_by_source.setdefault(source_url, []).append(row)
 
+    section_pool: Dict[str, List[Dict[str, object]]] = {}
+    section_weights: Dict[str, int] = {}
+    all_selected_unique_images = set()
+
+    for sec_key in SECTION_KEYS:
+        sec = selection_plan.get(sec_key, {}) or {}
+        ex_urls = list(sec.get("exhibition_urls", []) or [])
+        ar_urls = list(sec.get("artist_urls", []) or [])
+        weight = len(ex_urls) + len(ar_urls)
+        section_weights[sec_key] = weight
+
+        pool: List[Dict[str, object]] = []
+        seen_in_section = set()
+        for source_url in ex_urls:
+            for row in ex_by_source.get(source_url, []):
+                image_url = str(row.get("image_url") or "").strip()
+                if not image_url or image_url in seen_in_section:
+                    continue
+                seen_in_section.add(image_url)
+                pool.append(row)
+                all_selected_unique_images.add(image_url)
+        for source_url in ar_urls:
+            for row in ar_by_source.get(source_url, []):
+                image_url = str(row.get("image_url") or "").strip()
+                if not image_url or image_url in seen_in_section:
+                    continue
+                seen_in_section.add(image_url)
+                pool.append(row)
+                all_selected_unique_images.add(image_url)
+        section_pool[sec_key] = pool
+
+    target_total = min(MAX_IMAGE_TOTAL, len(all_selected_unique_images))
+    if target_total <= 0:
+        return [[] for _ in SECTION_KEYS]
+
+    nonempty_sections = [k for k in SECTION_KEYS if section_pool.get(k)]
+    if not nonempty_sections:
+        return [[] for _ in SECTION_KEYS]
+
+    quotas: Dict[str, int] = {k: 0 for k in SECTION_KEYS}
+
+    # まず各セクションに最低1枚（非空セクションのみ）
+    for key in nonempty_sections:
+        if sum(quotas.values()) < target_total:
+            quotas[key] = MIN_IMAGE_PER_NONEMPTY_SECTION
+
+    remaining = target_total - sum(quotas.values())
+    if remaining < 0:
+        remaining = 0
+
+    # 残りはセクション重み（参照URL数）に比例配分
+    total_weight = sum(section_weights.get(k, 0) for k in nonempty_sections) or len(nonempty_sections)
+    fractional: List[Tuple[str, float]] = []
+    for key in nonempty_sections:
+        weight = section_weights.get(key, 0)
+        raw = (remaining * (weight if weight > 0 else 1)) / total_weight
+        add_floor = int(raw)
+        quotas[key] += add_floor
+        fractional.append((key, raw - add_floor))
+
+    left = target_total - sum(quotas.values())
+    if left > 0:
+        for key, _frac in sorted(fractional, key=lambda kv: kv[1], reverse=True):
+            if left <= 0:
+                break
+            quotas[key] += 1
+            left -= 1
+
     used_images = set()
     buckets: List[List[Dict[str, object]]] = []
 
-    global_pool: List[Dict[str, object]] = []
-    for key in SECTION_KEYS:
-        sec = selection_plan.get(key, {})
-        for source_url in list(sec.get("exhibition_urls", []) or []):
-            for row in ex_by_source.get(source_url, []):
-                global_pool.append(row)
-        for source_url in list(sec.get("artist_urls", []) or []):
-            for row in ar_by_source.get(source_url, []):
-                global_pool.append(row)
-
-    for idx, sec_key in enumerate(SECTION_KEYS):
-        quota = SECTION_IMAGE_QUOTAS[idx] if idx < len(SECTION_IMAGE_QUOTAS) else 0
-        sec = selection_plan.get(sec_key, {})
+    for sec_key in SECTION_KEYS:
+        quota = max(0, quotas.get(sec_key, 0))
         selected_rows: List[Dict[str, object]] = []
-
-        for source_url in list(sec.get("exhibition_urls", []) or []):
-            for row in ex_by_source.get(source_url, []):
-                image_url = str(row.get("image_url") or "").strip()
-                if not image_url or image_url in used_images:
-                    continue
-                selected_rows.append(row)
-                used_images.add(image_url)
-                if len(selected_rows) >= quota:
-                    break
+        for row in section_pool.get(sec_key, []):
             if len(selected_rows) >= quota:
                 break
+            image_url = str(row.get("image_url") or "").strip()
+            if not image_url or image_url in used_images:
+                continue
+            selected_rows.append(row)
+            used_images.add(image_url)
+        buckets.append(selected_rows)
 
-        if len(selected_rows) < quota:
-            for source_url in list(sec.get("artist_urls", []) or []):
-                for row in ar_by_source.get(source_url, []):
-                    image_url = str(row.get("image_url") or "").strip()
-                    if not image_url or image_url in used_images:
-                        continue
-                    selected_rows.append(row)
-                    used_images.add(image_url)
-                    if len(selected_rows) >= quota:
-                        break
-                if len(selected_rows) >= quota:
-                    break
-
-        if len(selected_rows) < quota:
-            for row in global_pool:
-                image_url = str(row.get("image_url") or "").strip()
-                if not image_url or image_url in used_images:
-                    continue
-                selected_rows.append(row)
-                used_images.add(image_url)
-                if len(selected_rows) >= quota:
-                    break
-
-        buckets.append(selected_rows[:quota])
-
-    total = sum(len(b) for b in buckets)
-    if total < MAX_IMAGE_TOTAL:
-        leftovers = [row for row in ex_candidates + ar_candidates if str(row.get("image_url") or "").strip() not in used_images]
-        for row in leftovers:
-            if sum(len(b) for b in buckets) >= MAX_IMAGE_TOTAL:
+    # セクション内重複で穴が出た場合、同一selection内の未使用画像で最低限補完
+    if sum(len(b) for b in buckets) < target_total:
+        fallback_pool: List[Dict[str, object]] = []
+        for key in SECTION_KEYS:
+            fallback_pool.extend(section_pool.get(key, []))
+        for row in fallback_pool:
+            if sum(len(b) for b in buckets) >= target_total:
                 break
-            buckets[-1].append(row)
-            used_images.add(str(row.get("image_url") or "").strip())
+            image_url = str(row.get("image_url") or "").strip()
+            if not image_url or image_url in used_images:
+                continue
+            min_idx = min(range(len(buckets)), key=lambda i: len(buckets[i]))
+            buckets[min_idx].append(row)
+            used_images.add(image_url)
 
     return buckets
 
@@ -495,7 +598,7 @@ def _build_section_image_buckets(
 def _build_section_image_block(rows: List[Dict[str, object]]) -> str:
     if not rows:
         return ""
-    lines = ["", "**参考画像（この節）**"]
+    lines = [""]
     for idx, row in enumerate(rows, start=1):
         image_url = str(row.get("image_url") or "").strip()
         source_url = str(row.get("source_url") or "").strip()
@@ -541,12 +644,89 @@ def _flatten_selection_urls(
 
 def _compose_url_block(urls: List[str]) -> str:
     urls = list(urls or [])[:MAX_EVIDENCE_URLS]
-    lines = ["### 根拠URL"]
+    lines = ["**根拠URL**"]
     if urls:
         lines.extend([f"- {url}" for url in urls])
     else:
         lines.append("- 根拠URLは表示できませんでした。")
     return "\n".join(lines)
+
+
+def _is_google_image_search_url(url: str) -> bool:
+    try:
+        parsed = urlparse((url or "").strip())
+        if parsed.scheme not in {"http", "https"}:
+            return False
+        if parsed.netloc.lower() != "www.google.com":
+            return False
+        q = parse_qs(parsed.query)
+        return "isch" in [v.lower() for v in q.get("tbm", [])]
+    except Exception:
+        return False
+
+
+def _google_query_artist_token(url: str) -> str:
+    try:
+        q = parse_qs(urlparse((url or "").strip()).query).get("q", [""])[0]
+    except Exception:
+        return ""
+    value = re.sub(r"\bart\s*$", "", (q or ""), flags=re.IGNORECASE).strip()
+    return _normalize_name_token(value)
+
+
+def _validate_links_against_payload(body: str, payload: Dict[str, object]) -> List[str]:
+    issues: List[str] = []
+    links = MARKDOWN_LINK_PATTERN.findall(body or "")
+    if not links:
+        return issues
+
+    allowed_rag_urls = {
+        str(row.get("source_url") or "").strip()
+        for row in list(payload.get("exhibition_rows", []) or []) + list(payload.get("artist_rows", []) or [])
+        if str(row.get("source_url") or "").strip()
+    }
+    known_artist_tokens = {
+        _normalize_name_token(_clean_artist_name(str(row.get("artist_name_en") or row.get("artist") or "")))
+        for row in list(payload.get("artist_rows", []) or [])
+        if str(row.get("artist_name_en") or row.get("artist") or "").strip()
+    }
+
+    unknown_rag_links: List[str] = []
+    unknown_artist_links: List[str] = []
+    malformed_google_links: List[str] = []
+
+    for label, url in links:
+        cleaned_url = (url or "").strip()
+        cleaned_label = _clean_artist_name(label or "")
+        if _is_google_image_search_url(cleaned_url):
+            label_token = _normalize_name_token(cleaned_label)
+            query_token = _google_query_artist_token(cleaned_url)
+            if not label_token or not query_token or label_token != query_token:
+                malformed_google_links.append(cleaned_url)
+                continue
+            if label_token not in known_artist_tokens:
+                unknown_artist_links.append(cleaned_label or cleaned_url)
+            continue
+
+        if cleaned_url not in allowed_rag_urls:
+            unknown_rag_links.append(cleaned_url)
+
+    if unknown_rag_links:
+        preview = ", ".join(unknown_rag_links[:3])
+        issues.append(
+            f"RAG外URLのリンクが含まれています（最大3件表示: {preview}）。事実リンクはpayload由来URLのみ使用してください。"
+        )
+    if unknown_artist_links:
+        preview = ", ".join(unknown_artist_links[:3])
+        issues.append(
+            f"payload外のArtistリンクが含まれています（最大3件表示: {preview}）。Artistリンクは候補Artist名のみ使用してください。"
+        )
+    if malformed_google_links:
+        preview = ", ".join(malformed_google_links[:3])
+        issues.append(
+            f"Artistリンク形式が不正です（最大3件表示: {preview}）。[Artist Name](Google画像検索URL) 形式で統一してください。"
+        )
+    return issues
 
 
 def _build_prompt(
@@ -556,16 +736,24 @@ def _build_prompt(
     angle_description: str,
     payload: Dict[str, object],
 ) -> str:
+    first_person = _persona_first_person(reporter)
+    is_cross_fair = fair_label == "Frieze London + Liste Art Fair Basel"
+    fair_balance_rule = (
+        "- 対象フェアが Frieze London + Liste Art Fair Basel の場合、本文全体で両フェアを必ず扱う。"
+        " selected_evidence でも Frieze/Liste の両方から最低1件ずつ含める。"
+        if is_cross_fair
+        else "- 対象フェア外の事例を主根拠として混ぜない。"
+    )
     ex_lines = [
         f"- fair={row.get('fair')} | gallery={row.get('gallery')} | title={row.get('title')} | source_url={row.get('source_url')}"
-        for row in list(payload.get("exhibition_rows", []))[:12]
+        for row in list(payload.get("exhibition_rows", []))
     ]
     ar_lines = [
         f"- fair={row.get('fair')} | gallery={row.get('gallery')} | artist={row.get('artist_name_en')} | source_url={row.get('source_url')} | text_snippet={str(row.get('text_snippet') or '')[:120]}"
-        for row in list(payload.get("artist_rows", []))[:12]
+        for row in list(payload.get("artist_rows", []))
     ]
     return f"""
-あなたは日本語の現代アート編集者です。以下の根拠だけを使って Art Pulse 記事を作成してください。
+あなたは日本語の現代アート編集者です。以下のRAG根拠を主軸に Art Pulse 記事を作成してください。
 
 【出力形式】
 - JSONのみ:
@@ -581,24 +769,28 @@ def _build_prompt(
 
 【本文ルール】
 - 日本語
-- 本文テキストは 1800〜2000字を目標（上限は2000字）
-- 可視文字数で 1800〜2000字（MarkdownのリンクURL文字列は字数に含めない）
+ - {PLAIN_JAPANESE_RULE}
+- 本文テキストは {ART_PULSE_TEXT_MIN_CHARS}〜{ART_PULSE_TEXT_MAX_CHARS}字を目標
+- 可視文字数で {ART_PULSE_TEXT_MIN_CHARS}〜{ART_PULSE_TEXT_MAX_CHARS}字（MarkdownのリンクURL文字列は字数に含めない）
 - 必ず以下の3見出しをこの順で入れる:
   1) ## 今年のトレンド
   2) ## トレンドに沿った重要なExhibitionまたはArtist
   3) ## トレンドではないが面白かったExhibitionまたはArtist
-- 一人称で書く（私/僕）。「Alexの視点」「◯◯の視点」などの三人称導入は禁止
+- 一人称で書く（この記者の一人称は「{first_person}」）。「Alexの視点」「◯◯の視点」などの三人称導入は禁止
 - Exhibition/Artist名の羅列をしない（解説を必ず伴う）
 - 同一段落・同一文の重複を禁止（末尾の繰り返し禁止）
+- 第1節「今年のトレンド」は全体傾向の要約に徹し、固有名詞（展示名/作家名）は原則ゼロ。最大でも合計1件まで
+- 第2節・第3節は役割を分ける。第2節は「主流トレンドに沿う重要事例」、第3節は「非主流だが重要な事例」を必ず具体名つきで示す
+- 第2節と第3節で同じ事例の重複を避ける
 - Exhibitionは可能な範囲で「([展示名](source_url) @ ギャラリー英名)」表記
 - Exhibition名から開催日程などのノイズは削除する
-- 「A+ Works of Art @ A+ Works of Art」のような重複は絶対に避ける
-- Artist表記は「[Artist Name](Google画像検索URL)（カナ読み）」を優先
+- Artist表記は「[Artist Name](Google画像検索URL)（カナ読み）」を必須
 - 「英名: ...」というラベルは出力しない
-- カナ読みは推定してよい
-- RAG根拠（特にExhibitions Text）を厳守しつつ、必要に応じて内部知識で文脈補完してよい
-- 内部知識による補完部分に、無理な出典URL付与は不要
-- 過度な断定を避け、根拠に沿って論を組み立てる
+- カナ読みは推定でよいが、省略禁止（「（カナ未設定）」は出力禁止）
+- RAG根拠（特にExhibitions Text）を厳守し、展示名・作家名・ギャラリー名・URLなどの事実主張は必ずRAG根拠内に限定する
+- 補完的に、内部知識（あなたが持つ美術史、現代思想、トレンドの背景知識等、文脈に応じて）活用し、RAGに書かれていない文脈を追加し深掘りすること。
+- 内部知識に基づく文脈補完部分は、出典URLの記載は不要（無理にURLを紐付けない）。
+{fair_balance_rule}
 - selected_evidence は、本文の各節で実際に参照した URL のみを入れる
 - 画像候補は selected_evidence を基に提示されるため、機械的選択は避ける
 
@@ -653,7 +845,65 @@ def _section3_has_required_mentions(body: str, payload: Dict[str, object]) -> bo
     return has_ex and has_ar
 
 
-def _validate_main_body(body: str, payload: Dict[str, object]) -> List[str]:
+def _count_named_mentions_in_section(section_text: str, payload: Dict[str, object]) -> int:
+    text = section_text or ""
+    if not text:
+        return 0
+    hits = set()
+    for row in list(payload.get("exhibition_rows", []) or []):
+        title = str(row.get("title") or "").strip()
+        if title and title in text:
+            hits.add(("ex", title))
+    for row in list(payload.get("artist_rows", []) or []):
+        name = str(row.get("artist_name_en") or "").strip()
+        if name and name in text:
+            hits.add(("ar", name))
+    return len(hits)
+
+
+def _section_overlap_count(
+    selection_plan: Dict[str, Dict[str, List[str]]],
+    section_a: str,
+    section_b: str,
+) -> int:
+    a_ex = set(selection_plan.get(section_a, {}).get("exhibition_urls", []) or [])
+    a_ar = set(selection_plan.get(section_a, {}).get("artist_urls", []) or [])
+    b_ex = set(selection_plan.get(section_b, {}).get("exhibition_urls", []) or [])
+    b_ar = set(selection_plan.get(section_b, {}).get("artist_urls", []) or [])
+    return len((a_ex | a_ar) & (b_ex | b_ar))
+
+
+def _selection_fairs(
+    selection_plan: Dict[str, Dict[str, List[str]]],
+    payload: Dict[str, object],
+    section_key: str | None = None,
+) -> set:
+    url_to_fair: Dict[str, str] = {}
+    for row in list(payload.get("exhibition_rows", []) or []) + list(payload.get("artist_rows", []) or []):
+        source_url = str(row.get("source_url") or "").strip()
+        fair = str(row.get("fair") or "").strip()
+        if source_url and fair:
+            url_to_fair[source_url] = fair
+
+    fairs = set()
+    keys = [section_key] if section_key else SECTION_KEYS
+    for key in keys:
+        if not key:
+            continue
+        sec = selection_plan.get(key, {}) or {}
+        for url in list(sec.get("exhibition_urls", []) or []) + list(sec.get("artist_urls", []) or []):
+            fair = url_to_fair.get(str(url or "").strip())
+            if fair:
+                fairs.add(fair)
+    return fairs
+
+
+def _validate_main_body(
+    body: str,
+    payload: Dict[str, object],
+    selection_plan: Dict[str, Dict[str, List[str]]] | None = None,
+    fair_label: str = "",
+) -> List[str]:
     issues: List[str] = []
     if not body.strip():
         issues.append("本文が空です。")
@@ -661,14 +911,51 @@ def _validate_main_body(body: str, payload: Dict[str, object]) -> List[str]:
     if not _has_required_structure(body):
         issues.append("3見出し構成が不足しています。")
     chars = _body_text_len(body)
-    if chars < BODY_MIN_TARGET_CHARS:
+    if chars < ART_PULSE_TEXT_MIN_CHARS:
         issues.append(f"本文文字数が不足しています（{chars}字）。1800字以上にしてください。")
-    if chars > BODY_CHAR_LIMIT:
+    if chars > ART_PULSE_TEXT_MAX_CHARS:
         issues.append(f"本文文字数が超過しています（{chars}字）。2000字以内にしてください。")
     if _count_duplicate_paragraphs(body) > 0:
         issues.append("同一段落の重複があります。重複を除去してください。")
+    if "（カナ未設定）" in body:
+        issues.append("Artistのカナ読みが未設定です。全Artist表記にカナ読みを入れてください。")
+    if ARTIST_DUP_EN_NAME_PATTERN.search(body):
+        issues.append("Artist表記で英名の重複括弧があります。重複を削除し、カナ読みのみを括弧で表示してください。")
+    artist_links = ARTIST_GOOGLE_LINK_PATTERN.findall(body)
+    artist_with_kana = ARTIST_WITH_KANA_PATTERN.findall(body)
+    if artist_links and len(artist_with_kana) < len(artist_links):
+        issues.append(
+            "Artist表記は全件「[Artist Name](Google画像検索URL)（カナ読み）」形式にしてください。"
+        )
     if not _section3_has_required_mentions(body, payload):
         issues.append("第3節に Exhibition と Artist の具体名が不足しています。")
+    issues.extend(_validate_links_against_payload(body, payload))
+
+    sections = _split_body_by_required_headings(body)
+    if sections:
+        section1_text = sections.get(REQUIRED_HEADINGS[0], "")
+        named_in_section1 = _count_named_mentions_in_section(section1_text, payload)
+        if named_in_section1 > 1:
+            issues.append("第1節（今年のトレンド）で固有名詞が多すぎます。展示名/作家名は合計1件以内にしてください。")
+
+    if selection_plan:
+        overlap = _section_overlap_count(selection_plan, "section2", "section3")
+        if overlap > 0:
+            issues.append("第2節と第3節で同一根拠URLが重複しています。役割分担のため重複を避けてください。")
+
+        if fair_label == "Frieze London + Liste Art Fair Basel":
+            available_fairs = {
+                str(row.get("fair") or "").strip()
+                for row in list(payload.get("exhibition_rows", []) or []) + list(payload.get("artist_rows", []) or [])
+                if str(row.get("fair") or "").strip()
+            }
+            if {"Frieze London", "Liste Art Fair Basel"}.issubset(available_fairs):
+                used_fairs_all = _selection_fairs(selection_plan, payload)
+                used_fairs_sec2 = _selection_fairs(selection_plan, payload, section_key="section2")
+                if not {"Frieze London", "Liste Art Fair Basel"}.issubset(used_fairs_all):
+                    issues.append("Frieze+Liste選択時は、根拠URLが両フェアを跨ぐ必要があります。")
+                if not {"Frieze London", "Liste Art Fair Basel"}.issubset(used_fairs_sec2):
+                    issues.append("第2節（重要事例）はFrieze/Listeの両方から最低1件ずつ扱ってください。")
     return issues
 
 
@@ -704,11 +991,20 @@ def generate_art_pulse_draft(
     overview: Dict[str, object],
     reporter_id: str,
     angle_keys: List[str],
+    progress_callback: Callable[[int], None] | None = None,
 ) -> Dict[str, object]:
+    def _emit_progress(pct: int) -> None:
+        if progress_callback:
+            try:
+                progress_callback(max(0, min(100, int(pct))))
+            except Exception:
+                pass
+
     selection = overview.get("selection", {})
     fair_label = str(selection.get("fair_label") or "Frieze London + Liste Art Fair Basel")
     reporter = find_persona(reporter_id)
     angle_key, angle_label, angle_description = _pick_angle(reporter, angle_keys)
+    _emit_progress(30)
     payload = _build_evidence_payload(overview)
 
     model = os.getenv("TEXT_MODEL", "gpt-5-mini")
@@ -718,6 +1014,14 @@ def generate_art_pulse_draft(
     main_body = ""
     selected_plan = _empty_selection_plan()
     warnings: List[str] = []
+    retry_metrics = {
+        "attempts_total": 0,
+        "json_parse_fail": 0,
+        "empty_title_body": 0,
+        "validation_fail": 0,
+        "selected_evidence_empty": 0,
+        "success_attempt": 0,
+    }
 
     if not api_key:
         warnings.append("OPENAI_API_KEY が未設定のため、Art Pulse 本文を生成できません。")
@@ -733,6 +1037,10 @@ def generate_art_pulse_draft(
             max_attempts = 3
 
             for attempt in range(1, max_attempts + 1):
+                # 35-85% を執筆リトライ枠に割り当てる
+                attempt_pct = 35 + int(((attempt - 1) / max_attempts) * 50)
+                _emit_progress(attempt_pct)
+                retry_metrics["attempts_total"] += 1
                 response = client.responses.create(model=model, input=prompt)
                 raw = (response.output_text or "").strip()
                 try:
@@ -740,6 +1048,7 @@ def generate_art_pulse_draft(
                     cand_title = str(parsed.get("title") or "").strip()
                     cand_body = str(parsed.get("body") or "").strip()
                 except Exception as exc:
+                    retry_metrics["json_parse_fail"] += 1
                     warnings.append(f"attempt_{attempt}: JSON解析失敗({type(exc).__name__})")
                     prompt = (
                         _build_prompt(fair_label, reporter, angle_label, angle_description, payload)
@@ -748,6 +1057,7 @@ def generate_art_pulse_draft(
                     continue
 
                 if not cand_title or not cand_body:
+                    retry_metrics["empty_title_body"] += 1
                     warnings.append(f"attempt_{attempt}: title/body が空です")
                     prompt = (
                         _build_prompt(fair_label, reporter, angle_label, angle_description, payload)
@@ -762,8 +1072,14 @@ def generate_art_pulse_draft(
                 last_title, last_body = cand_title, cand_body
                 last_selected_plan = cand_selection
 
-                issues = _validate_main_body(cand_body, payload)
+                issues = _validate_main_body(
+                    cand_body,
+                    payload,
+                    selection_plan=cand_selection,
+                    fair_label=fair_label,
+                )
                 if _count_selection_urls(cand_selection) == 0:
+                    retry_metrics["selected_evidence_empty"] += 1
                     issues.append(
                         "selected_evidence が本文に対応していません。本文で参照したURLを selected_evidence に必ず入れてください。"
                     )
@@ -772,8 +1088,11 @@ def generate_art_pulse_draft(
                     title, main_body = cand_title, cand_body
                     selected_plan = cand_selection
                     mode = "openai"
+                    retry_metrics["success_attempt"] = attempt
                     break
 
+                _emit_progress(90)
+                retry_metrics["validation_fail"] += 1
                 warnings.append(f"attempt_{attempt}: " + " / ".join(issues))
                 prompt = _build_revision_prompt(
                     fair_label=fair_label,
@@ -802,7 +1121,8 @@ def generate_art_pulse_draft(
         title = f"{fair_label}のArt Pulse（{angle_label}）"
 
     if main_body:
-        main_body = _truncate_body_text(main_body, BODY_CHAR_LIMIT)
+        _emit_progress(96)
+        main_body = _truncate_body_text(main_body, ART_PULSE_TEXT_MAX_CHARS)
         buckets = _build_section_image_buckets(overview, selected_plan)
         main_body = _inject_images_into_sections(main_body, buckets)
     else:
@@ -817,6 +1137,15 @@ def generate_art_pulse_draft(
 
     url_block = _compose_url_block(selected_all_urls)
     body = "\n\n".join([main_body, url_block]).strip()
+
+    logger.info(
+        "art_pulse_retry_metrics mode=%s reporter=%s angle=%s fair=%s metrics=%s",
+        mode,
+        reporter.get("id"),
+        angle_key,
+        fair_label,
+        json.dumps(retry_metrics, ensure_ascii=False),
+    )
 
     return {
         "mode": mode,
@@ -844,6 +1173,7 @@ def generate_art_pulse_draft(
             "all": selected_all_urls,
         },
         "selected_evidence": selected_plan,
+        "retry_metrics": retry_metrics,
         "warnings": warnings,
         "note": (
             "本文は1800〜2000字を目標（上限2000字）。"

@@ -22,12 +22,8 @@ from phase2_exclusive_advisor_type2_execute import (
 from phase2_gallery_list_readonly import apply_gallery_list_filters, load_gallery_list_records_readonly
 from phase2_artist_search_readonly import apply_artist_filters, load_artist_records_readonly
 from phase2_exhibition_search_readonly import (
-    EXHIBITION_SEARCH_RESULT_COUNT,
-    EXHIBITION_SEARCH_SUMMARY_MAX_CHARS,
-    answer_exhibition_followup,
-    build_exhibition_summary_ja,
+    apply_exhibition_filters,
     load_exhibition_records_readonly,
-    search_exhibitions,
 )
 
 try:
@@ -60,15 +56,6 @@ def apply_global_font_styles() -> None:
         }
         .stApp, .stApp * {
           font-family: var(--font-latin), var(--font-cjk) !important;
-        }
-        /* Keep expander toggle icons rendered with Material icon fonts. */
-        .stApp [data-testid="stExpanderToggleIcon"],
-        .stApp [data-testid="stExpanderToggleIcon"] *,
-        .stApp [class*="material-symbols"],
-        .stApp [class*="material-icons"] {
-          font-family: "Material Symbols Rounded", "Material Symbols Outlined",
-            "Material Symbols Sharp", "Material Icons", "Material Icons Outlined" !important;
-          font-style: normal !important;
         }
         .stApp {
           --background-color: #f5f7fb !important;
@@ -239,108 +226,6 @@ def apply_global_font_styles() -> None:
             aspect-ratio: 16 / 10;
           }
         }
-        .exh-search-grid {
-          display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-          gap: 1rem;
-          margin: 0.4rem 0 0.9rem 0;
-        }
-        .exh-search-card {
-          border: 1px solid #d9dbe2;
-          border-radius: 10px;
-          background: #ffffff;
-          padding: 0.65rem;
-          display: flex;
-          flex-direction: column;
-          gap: 0.5rem;
-        }
-        .exh-search-title {
-          font-size: 0.98rem;
-          line-height: 1.4;
-          font-weight: 700;
-          color: #111111;
-          margin: 0;
-        }
-        .exh-search-thumb {
-          display: block;
-          width: 100%;
-          min-height: 240px;
-          max-height: 240px;
-          border-radius: 8px;
-          border: 1px solid #d9dbe2;
-          background: #f6f8fb;
-          overflow: hidden;
-          position: relative;
-        }
-        .exh-search-thumb img {
-          width: 100%;
-          height: 100%;
-          object-fit: contain;
-          display: block;
-          background: #f6f8fb;
-        }
-        .exh-search-fallback {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 100%;
-          min-height: 240px;
-          max-height: 240px;
-          border-radius: 8px;
-          border: 1px solid #d9dbe2;
-          color: #5f6b7a;
-          font-size: 0.88rem;
-          line-height: 1.45;
-          text-align: center;
-          background: #f6f8fb;
-          padding: 0.8rem;
-        }
-        .exh-search-source {
-          font-size: 0.82rem;
-          line-height: 1.3;
-          color: #374151;
-          word-break: break-word;
-          margin: 0;
-        }
-        .exh-search-summary {
-          font-size: 0.94rem;
-          line-height: 1.55;
-          color: #111111;
-          margin: 0;
-        }
-        .ap-progress-row {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.5rem;
-          font-size: 0.95rem;
-          line-height: 1.4;
-          color: rgba(49, 51, 63, 0.6);
-          margin-top: 0.15rem;
-          margin-bottom: 0.15rem;
-        }
-        .ap-progress-spinner {
-          width: 0.95rem;
-          height: 0.95rem;
-          border: 2px solid rgba(49, 51, 63, 0.25);
-          border-top-color: rgba(49, 51, 63, 0.6);
-          border-radius: 50%;
-          animation: ap-spin 0.9s linear infinite;
-          flex: 0 0 auto;
-        }
-        @keyframes ap-spin {
-          to { transform: rotate(360deg); }
-        }
-        @media (max-width: 900px) {
-          .exh-search-grid {
-            grid-template-columns: 1fr;
-            gap: 0.8rem;
-          }
-          .exh-search-thumb,
-          .exh-search-fallback {
-            min-height: 210px;
-            max-height: 210px;
-          }
-        }
         </style>
         """,
         unsafe_allow_html=True,
@@ -462,88 +347,7 @@ def _render_markdown_with_galleries(markdown_text: str) -> None:
         else:
             _render_responsive_image_gallery(payload)
 
-
-def _render_exhibition_result_cards(rows: list[dict]) -> None:
-    cards: list[str] = []
-    for idx, row in enumerate(rows, start=1):
-        title = escape(str(row.get("exhibition_title") or "(untitled)"))
-        source_url = str(row.get("source_url") or "").strip()
-        safe_src = escape(source_url, quote=True)
-        summary = escape(str(row.get("summary_display_ja") or "\u672a\u4ed8\u4e0e"))
-
-        image_url = str(row.get("image_preview") or "").strip()
-        if not image_url:
-            reference_images = list(row.get("reference_images") or [])
-            if reference_images:
-                image_url = str((reference_images[0] or {}).get("image_url") or "").strip()
-
-        if image_url:
-            safe_img = escape(image_url, quote=True)
-            image_html = (
-                f'<a class="exh-search-thumb" href="{safe_img}" target="_blank" rel="noopener noreferrer" '
-                'title="\u753b\u50cf\u3092\u62e1\u5927\u8868\u793a">'
-                f'<img src="{safe_img}" alt="{title}" loading="lazy" /></a>'
-            )
-        else:
-            image_html = (
-                '<div class="exh-search-fallback">'
-                "\u53c2\u8003\u753b\u50cf\u306f\u672a\u53d6\u5f97\u3067\u3059\u3002<br>"
-                "Source\u304b\u3089\u78ba\u8a8d\u3067\u304d\u307e\u3059\u3002"
-                "</div>"
-            )
-
-        source_html = (
-            f'<p class="exh-search-source">Source: <a href="{safe_src}" '
-            f'target="_blank" rel="noopener noreferrer">{safe_src}</a></p>'
-            if source_url
-            else '<p class="exh-search-source">Source: (not available)</p>'
-        )
-
-        cards.append(
-            (
-                '<div class="exh-search-card">'
-                f'<p class="exh-search-title">{idx}. {title}</p>'
-                f"{image_html}"
-                f"{source_html}"
-                f'<p class="exh-search-summary">{summary}</p>'
-                "</div>"
-            )
-        )
-
-    if cards:
-        st.markdown(f'<div class="exh-search-grid">{"".join(cards)}</div>', unsafe_allow_html=True)
-
-
-def _build_exhibition_followup_context(rows: list[dict]) -> dict:
-    if not rows:
-        return {}
-    titles = [str(r.get("exhibition_title") or "").strip() for r in rows if str(r.get("exhibition_title") or "").strip()]
-    galleries = [str(r.get("gallery_name") or "").strip() for r in rows if str(r.get("gallery_name") or "").strip()]
-    fairs = [str(r.get("fair_label") or "").strip() for r in rows if str(r.get("fair_label") or "").strip()]
-    artist_names = [str(r.get("artist_names") or "").strip() for r in rows if str(r.get("artist_names") or "").strip()]
-    summaries = [str(r.get("summary_display_ja") or "").strip() for r in rows if str(r.get("summary_display_ja") or "").strip()]
-    texts = [str(r.get("text") or "").strip()[:1200] for r in rows if str(r.get("text") or "").strip()]
-    source_urls = [str(r.get("source_url") or "").strip() for r in rows if str(r.get("source_url") or "").strip()]
-    return {
-        "exhibition_title": " / ".join(titles[:3]) or "検索結果3件",
-        "gallery_name": " / ".join(galleries[:3]),
-        "fair_label": " / ".join(sorted(set([f for f in fairs if f]))),
-        "artist_names": " / ".join(artist_names[:3]),
-        "summary_ja": " ".join(summaries[:3]),
-        "text": "\n".join(texts[:3]),
-        "source_url": source_urls[0] if source_urls else "",
-    }
-
-
-def _sanitize_exhibition_followup_seed(value: str) -> str:
-    text = str(value or "").strip()
-    if not text:
-        return ""
-    if "_arrow_right" in text or ":material/" in text:
-        return ""
-    return text
-
-
+@st.cache_data(show_spinner=False)
 @st.cache_data(show_spinner=False)
 def get_exhibition_search_data():
     return load_exhibition_records_readonly()
@@ -681,51 +485,19 @@ def render_art_pulse() -> None:
     run = st.button("Art Pulse", key="artpulse_generate")
 
     if run:
-        progress_line = st.empty()
-        waiting_line = st.empty()
-        waiting_line.caption("担当記者が執筆中...数分おまちください。")
-
-        def _render_progress_row(text: str, active: bool) -> None:
-            if active:
-                progress_line.markdown(
-                    (
-                        '<div class="ap-progress-row">'
-                        '<span class="ap-progress-spinner"></span>'
-                        f"<span>{escape(text)}</span>"
-                        "</div>"
-                    ),
-                    unsafe_allow_html=True,
-                )
-            else:
-                progress_line.caption(text)
-
-        def _on_progress(pct: int) -> None:
-            safe_pct = max(0, min(100, int(pct)))
-            if safe_pct >= 100:
-                _render_progress_row("Done", active=False)
-                waiting_line.empty()
-                return
-            _render_progress_row(f"{safe_pct}%", active=True)
-
         try:
-            _on_progress(5)
             overview = build_art_pulse_overview(
                 fair_label=fair_mode,
                 reporter_id=reporter["id"],
                 angle_keys=angle_keys,
             )
-            _on_progress(20)
             draft = generate_art_pulse_draft(
                 overview=overview,
                 reporter_id=reporter["id"],
                 angle_keys=angle_keys,
-                progress_callback=_on_progress,
             )
-            _on_progress(100)
             st.session_state["artpulse_result"] = {"overview": overview, "draft": draft}
         except Exception as exc:
-            progress_line.empty()
-            waiting_line.empty()
             st.error(f"Art Pulse 生成エラー: {type(exc).__name__}: {exc}")
             return
 
@@ -767,41 +539,9 @@ def render_exhibition_search() -> None:
         placeholder="例: Adams and Ollman / Antonia Kuo / https://adamsandollman.com/Antonia-Kuo-Subcycle",
         key="exh_keyword",
     )
-    uploaded_image = st.file_uploader(
-        "画像添付（任意）",
-        type=["png", "jpg", "jpeg", "webp"],
-        key="exh_uploaded_image",
-    )
-    image_hint_text = ""
-    if uploaded_image is not None:
-        image_hint_text = str(getattr(uploaded_image, "name", "") or "").strip()
-        if image_hint_text:
-            st.caption(f"画像名: {image_hint_text}（ファイル名を検索補助に利用）")
-    search_clicked = st.button("Search", key="exh_search_button")
 
-    results_key = "exh_search_results"
-    query_key = "exh_search_query"
-    current_query = {
-        "fair": fair_mode,
-        "keyword": (keyword or "").strip(),
-        "image_hint": image_hint_text,
-    }
-    if search_clicked:
-        st.session_state[results_key] = search_exhibitions(
-            data.records,
-            fair_mode,
-            current_query["keyword"],
-            image_hint_text=image_hint_text,
-        )
-        st.session_state[query_key] = current_query
-
-    filtered = st.session_state.get(results_key)
-    last_query = st.session_state.get(query_key)
-    if filtered is None:
-        st.caption("Searchを押すと、検索上位3件を表示します。")
-        return
-    if last_query != current_query:
-        st.caption("検索条件が変更されています。Searchを押して更新してください。")
+    effective_fair = fair_mode
+    filtered = apply_exhibition_filters(data.records, effective_fair, keyword)
 
     st.caption(
         f"件数: 読込={data.total_rows} / 表示={len(filtered)} / "
@@ -818,41 +558,63 @@ def render_exhibition_search() -> None:
         st.warning("条件に一致する展示データはありません。")
         return
 
-    display_rows_raw = list(filtered)[:EXHIBITION_SEARCH_RESULT_COUNT]
-    display_rows: list[dict] = []
-    for row in display_rows_raw:
-        row_copy = dict(row)
-        row_copy["summary_display_ja"] = build_exhibition_summary_ja(
-            row_copy,
-            max_chars=EXHIBITION_SEARCH_SUMMARY_MAX_CHARS,
-        )
-        display_rows.append(row_copy)
+    view_rows = [
+        {
+            "fair": row.get("fair_label"),
+            "gallery": row.get("gallery_name"),
+            "title": row.get("exhibition_title"),
+            "year": row.get("year"),
+            "artists": row.get("artist_names"),
+            "source_url": row.get("source_url"),
+            "image_count_hint": row.get("image_count_hint", 0),
+        }
+        for row in filtered
+    ]
+    st.dataframe(view_rows, use_container_width=True, hide_index=True, height=320)
 
-    st.caption(f"検索結果: {len(display_rows)}件（上限{EXHIBITION_SEARCH_RESULT_COUNT}件）")
-    _render_exhibition_result_cards(display_rows)
-
-    st.markdown("**追加質問（展示を深掘り）**")
-    seed_q = _sanitize_exhibition_followup_seed(
-        st.session_state.get("exh_followup_question_global", "")
+    selected_idx = st.selectbox(
+        "詳細表示",
+        options=list(range(len(filtered))),
+        format_func=lambda i: _exhibition_row_label(filtered[i]),
+        key="exh_detail_select",
     )
-    if seed_q != st.session_state.get("exh_followup_question_global", ""):
-        st.session_state["exh_followup_question_global"] = seed_q
-    followup_q = st.text_area(
-        "追加質問（検索結果3件を対象）",
-        value=seed_q,
-        placeholder="例: この3展示を比較して、鑑賞の順番と注目点を教えてください。",
-        key="exh_followup_question_global",
-        height=90,
-    )
-    if st.button("追加質問を送る", key="exh_followup_run_global"):
-        context_row = _build_exhibition_followup_context(display_rows)
-        answer = answer_exhibition_followup(followup_q, context_row)
-        st.session_state["exh_followup_answer_global"] = answer
+    selected = filtered[selected_idx]
 
-    followup_answer = str(st.session_state.get("exh_followup_answer_global", "") or "").strip()
-    if followup_answer:
-        st.markdown("**追加質問への回答**")
-        st.write(followup_answer)
+    st.markdown("**展示詳細（読み取り専用）**")
+    left, right = st.columns([2, 1])
+    left.write(f"フェア: {selected.get('fair_label')}")
+    left.write(f"ギャラリー: {selected.get('gallery_name')}")
+    left.write(f"展示タイトル: {selected.get('exhibition_title')}")
+    left.write(f"年: {selected.get('year')}")
+    left.write(f"参加作家: {selected.get('artist_names') or '(空)'}")
+    if selected.get("source_url"):
+        left.markdown(f"Source URL: {selected.get('source_url')}")
+
+    right.metric("画像件数ヒント", int(selected.get("image_count_hint") or 0))
+    right.caption("source_url の厳密一致ベース")
+    _render_evidence_summary(
+        {
+            "根拠件数": 1 if selected.get("source_url") else 0,
+            "URL件数": 1 if selected.get("source_url") else 0,
+            "参考画像候補件数(ヒント)": int(selected.get("image_count_hint") or 0),
+        }
+    )
+    _render_evidence_urls(
+        title="根拠URL一覧",
+        exhibition_urls=[selected.get("source_url")] if selected.get("source_url") else [],
+        artist_urls=[],
+    )
+    st.markdown("**参考画像候補**")
+    if int(selected.get("image_count_hint") or 0) > 0:
+        st.caption("参考画像候補の件数ヒントのみ表示しています（一覧はこの画面では未表示）。")
+    else:
+        st.info("参考画像候補はありません。")
+
+    body = (selected.get("text") or "").strip()
+    if body:
+        st.text_area("展示テキスト", value=body[:8000], height=260, disabled=True)
+    else:
+        st.warning("このレコードには本文テキストがありません。")
 
 
 def render_artist_search() -> None:

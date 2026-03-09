@@ -1,94 +1,33 @@
 from __future__ import annotations
 
-import json
+import hashlib
 import re
 from collections import Counter
+from functools import lru_cache
 from pathlib import Path
 from typing import Dict, List, Tuple
 
-from phase2_art_pulse_config import find_persona, find_persona_angle
-
-REPO_ROOT = Path(__file__).resolve().parent
-
-FAIR_LABEL_TO_SLUG = {
-    "Frieze London": "frieze_london",
-    "Liste Art Fair Basel": "liste",
-}
-
-FAIR_SLUG_TO_LABEL = {value: key for key, value in FAIR_LABEL_TO_SLUG.items()}
-
-EXHIBITIONS_TEXT_PATHS = {
-    "frieze_london": REPO_ROOT / "data/phase1_seed10/raw/exhibitions_frieze_london_2025.jsonl",
-    "liste": REPO_ROOT / "data/phase1_seed10/raw/exhibitions_liste_2025.jsonl",
-}
-
-ARTISTS_TEXT_PATHS = {
-    "frieze_london": REPO_ROOT / "data/phase1_seed10/raw/artists_frieze_london_2025.jsonl",
-    "liste": REPO_ROOT / "data/phase1_seed10/raw/artists_liste_2025.jsonl",
-}
-
-EXHIBITIONS_IMAGE_META_PATHS = {
-    "frieze_london": REPO_ROOT / "data/phase1_seed10/derived/exhibitions_images_frieze_london_2025.jsonl",
-    "liste": REPO_ROOT / "data/phase1_seed10/derived/exhibitions_images_liste_2025.jsonl",
-}
-
-ARTIST_WORKS_IMAGE_PATHS = {
-    "frieze_london": REPO_ROOT / "data/phase1_seed10/derived/artist_works_images_frieze_london.jsonl",
-    "liste": REPO_ROOT / "data/phase1_seed10/derived/artist_works_images_liste.jsonl",
-}
+from phase2_art_pulse_config import find_persona, find_persona_angle, get_angle_query_terms
+from phase2_common_readonly import (
+    ARTISTS_TEXT_PATHS,
+    ARTIST_WORKS_IMAGE_PATHS,
+    EXHIBITIONS_IMAGE_META_PATHS,
+    EXHIBITIONS_TEXT_PATHS,
+    FAIR_SLUG_TO_LABEL,
+    derive_artist_name,
+    derive_exhibition_title,
+    resolve_fair_slugs,
+    safe_load_jsonl,
+)
 
 ART_PULSE_IMAGE_POOL_PER_KIND = 24
 
 
-def _safe_load_jsonl(path: Path) -> Tuple[List[dict], List[str]]:
-    rows: List[dict] = []
-    warnings: List[str] = []
-    if not path.exists():
-        warnings.append(f"missing: {path}")
-        return rows, warnings
+def _path_mtime_ns(path: Path) -> int:
     try:
-        with path.open("r", encoding="utf-8") as f:
-            for idx, line in enumerate(f, start=1):
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    rows.append(json.loads(line))
-                except json.JSONDecodeError:
-                    warnings.append(f"json_decode_error: {path} line={idx}")
-    except OSError as exc:
-        warnings.append(f"read_error: {path} ({exc})")
-    return rows, warnings
-
-
-def _derive_exhibition_title(row: dict) -> str:
-    headline = (row.get("headline_ja") or "").strip()
-    if headline:
-        return headline
-    text = (row.get("text") or "").strip()
-    if text:
-        first_line = text.splitlines()[0].strip()
-        if first_line:
-            return first_line[:120]
-    source = (row.get("source_url") or "").strip().rstrip("/")
-    if source:
-        tail = source.split("/")[-1]
-        if tail:
-            return tail.replace("-", " ")
-    return "(untitled)"
-
-
-def _derive_artist_name(row: dict) -> str:
-    explicit = str(row.get("artist_name_en") or "").strip()
-    if explicit:
-        return explicit
-    source = (row.get("source_url") or "").strip().rstrip("/")
-    if source:
-        tail = source.split("/")[-1]
-        if tail:
-            tail = re.sub(r"^\d+-", "", tail)
-            return tail.replace("-", " ")
-    return "(unknown artist)"
+        return path.stat().st_mtime_ns
+    except OSError:
+        return -1
 
 
 def _extract_artists_from_exhibition(row: dict) -> List[str]:
@@ -99,12 +38,154 @@ def _extract_artists_from_exhibition(row: dict) -> List[str]:
     return [t[:120] for t in tokens]
 
 
-def _resolve_fair_slugs(fair_label: str) -> List[str]:
-    if fair_label == "Frieze London + Liste Art Fair Basel":
-        return ["frieze_london", "liste"]
-    if fair_label in FAIR_LABEL_TO_SLUG:
-        return [FAIR_LABEL_TO_SLUG[fair_label]]
-    return ["frieze_london", "liste"]
+def _stable_rank_value(seed: str, value: str) -> int:
+    digest = hashlib.sha1(f"{seed}|{value}".encode("utf-8", errors="ignore")).hexdigest()
+    return int(digest[:12], 16)
+
+
+def _collect_persona_query_terms(reporter: Dict[str, object], angle_keys: List[str]) -> List[str]:
+    terms: List[str] = []
+    for key in angle_keys:
+        angle = find_persona_angle(reporter, key)
+        label = str(angle.get("label") or "") if angle else key
+        description = str(angle.get("description") or "") if angle else ""
+        terms.extend(get_angle_query_terms(key, label, description))
+
+    seen = set()
+    out: List[str] = []
+    for term in terms:
+        t = str(term or "").strip()
+        if len(t) < 2:
+            continue
+        norm = t.casefold()
+        if norm in seen:
+            continue
+        seen.add(norm)
+        out.append(t)
+    return out
+
+
+def _score_candidate(search_text: str, query_terms: List[str]) -> Tuple[int, List[str]]:
+    if not query_terms:
+        return 0, []
+    text = (search_text or "").casefold()
+    score = 0
+    matched: List[str] = []
+    seen = set()
+    for term in query_terms:
+        token = str(term or "").strip()
+        if len(token) < 2:
+            continue
+        token_norm = token.casefold()
+        if token_norm in seen:
+            continue
+        if token_norm and token_norm in text:
+            seen.add(token_norm)
+            matched.append(token)
+            score += 2 if len(token_norm) >= 4 else 1
+    return score, matched
+
+
+def _select_persona_candidates(
+    rows: List[Dict[str, object]],
+    max_count: int,
+    fair_label: str,
+    query_terms: List[str],
+    seed: str,
+    per_gallery_cap: int,
+) -> Tuple[List[Dict[str, object]], Dict[str, object]]:
+    prepared: List[Dict[str, object]] = []
+    for row in rows:
+        source_url = str(row.get("source_url") or "").strip()
+        row_key = source_url or str(row.get("title") or row.get("artist") or "")
+        score, matched = _score_candidate(str(row.get("_search_text") or ""), query_terms)
+        prepared.append(
+            {
+                **row,
+                "_retrieval_score": score,
+                "_retrieval_matched_terms": matched,
+                "_retrieval_rank_seed": _stable_rank_value(seed, row_key),
+            }
+        )
+
+    if not prepared:
+        return [], {
+            "query_terms_count": len(query_terms),
+            "fallback_mode": "empty_rows",
+            "selected_count": 0,
+            "gallery_cap": per_gallery_cap,
+        }
+
+    max_score = max(int(r.get("_retrieval_score") or 0) for r in prepared)
+    fallback_mode = "keyword"
+    if max_score <= 0:
+        fallback_mode = "no_keyword_hit"
+
+    prepared.sort(
+        key=lambda r: (
+            -int(r.get("_retrieval_score") or 0),
+            int(r.get("_retrieval_rank_seed") or 0),
+        )
+    )
+
+    cross_fair = fair_label == "Frieze London + Liste Art Fair Basel"
+    selected: List[Dict[str, object]] = []
+    used_urls = set()
+    gallery_counter: Counter[Tuple[str, str]] = Counter()
+
+    # Cross-fair minimum quota (1 each if available)
+    if cross_fair:
+        fair_targets = ("Frieze London", "Liste Art Fair Basel")
+        for fair in fair_targets:
+            picked = next((r for r in prepared if str(r.get("fair") or "") == fair), None)
+            if picked:
+                url = str(picked.get("source_url") or "").strip()
+                if url:
+                    used_urls.add(url)
+                gallery_counter[(str(picked.get("fair") or ""), str(picked.get("gallery") or ""))] += 1
+                picked["_retrieval_reason"] = "fair_quota"
+                selected.append(picked)
+
+    for row in prepared:
+        if len(selected) >= max_count:
+            break
+        url = str(row.get("source_url") or "").strip()
+        fair = str(row.get("fair") or "")
+        gallery = str(row.get("gallery") or "")
+        if url and url in used_urls:
+            continue
+        if gallery_counter[(fair, gallery)] >= per_gallery_cap:
+            continue
+        if url:
+            used_urls.add(url)
+        gallery_counter[(fair, gallery)] += 1
+        if "_retrieval_reason" not in row:
+            row["_retrieval_reason"] = "keyword_match" if int(row.get("_retrieval_score") or 0) > 0 else "fallback_pick"
+        selected.append(row)
+
+    # Last-resort fill if caps were too strict.
+    if len(selected) < max_count:
+        for row in prepared:
+            if len(selected) >= max_count:
+                break
+            url = str(row.get("source_url") or "").strip()
+            if url and url in used_urls:
+                continue
+            if url:
+                used_urls.add(url)
+            if "_retrieval_reason" not in row:
+                row["_retrieval_reason"] = "fallback_fill"
+            selected.append(row)
+
+    meta = {
+        "query_terms_count": len(query_terms),
+        "query_terms_preview": query_terms[:12],
+        "fallback_mode": fallback_mode,
+        "max_score": max_score,
+        "selected_count": len(selected),
+        "gallery_cap": per_gallery_cap,
+    }
+    return selected[:max_count], meta
 
 
 def _round_robin_by_fair(candidates: List[Dict[str, object]], max_count: int) -> List[Dict[str, object]]:
@@ -128,33 +209,132 @@ def _round_robin_by_fair(candidates: List[Dict[str, object]], max_count: int) ->
     return selected
 
 
+@lru_cache(maxsize=8)
+def _load_fair_bundle_cached(
+    fair_slug: str,
+    exhibitions_text_mtime_ns: int,
+    artists_text_mtime_ns: int,
+    exhibitions_image_mtime_ns: int,
+    artist_works_image_mtime_ns: int,
+) -> Dict[str, object]:
+    del exhibitions_text_mtime_ns, artists_text_mtime_ns, exhibitions_image_mtime_ns, artist_works_image_mtime_ns
+
+    ex_rows, ex_warn = safe_load_jsonl(EXHIBITIONS_TEXT_PATHS[fair_slug])
+    ar_rows, ar_warn = safe_load_jsonl(ARTISTS_TEXT_PATHS[fair_slug])
+    exi_rows, exi_warn = safe_load_jsonl(EXHIBITIONS_IMAGE_META_PATHS[fair_slug])
+    ari_rows, ari_warn = safe_load_jsonl(ARTIST_WORKS_IMAGE_PATHS[fair_slug])
+
+    fair_label = FAIR_SLUG_TO_LABEL[fair_slug]
+
+    ex_image_candidates: List[Dict[str, object]] = []
+    for row in exi_rows:
+        ex_image_candidates.append(
+            {
+                "kind": "exhibition",
+                "fair": fair_label,
+                "gallery": row.get("gallery_name_en") or "",
+                "source_url": row.get("source_url") or "",
+                "local_path": row.get("local_path") or "",
+                "image_url": row.get("image_url") or "",
+            }
+        )
+    ex_image_by_source: Dict[str, List[Dict[str, object]]] = {}
+    for row in ex_image_candidates:
+        source_url = str(row.get("source_url") or "").strip()
+        if source_url:
+            ex_image_by_source.setdefault(source_url, []).append(row)
+
+    ar_image_candidates: List[Dict[str, object]] = []
+    for row in ari_rows:
+        first_local = ""
+        local_paths = row.get("works_image_local_paths")
+        if isinstance(local_paths, list) and local_paths:
+            first_local = str(local_paths[0] or "")
+        first_image_url = ""
+        image_urls = row.get("works_image_urls")
+        if isinstance(image_urls, list) and image_urls:
+            first_image_url = str(image_urls[0] or "")
+        ar_image_candidates.append(
+            {
+                "kind": "artist",
+                "fair": fair_label,
+                "gallery": row.get("gallery_name_en") or "",
+                "source_url": row.get("source_url") or "",
+                "local_path": first_local,
+                "image_url": first_image_url,
+                "artist_name_en": row.get("artist_name_en") or "",
+            }
+        )
+    ar_image_by_source: Dict[str, List[Dict[str, object]]] = {}
+    for row in ar_image_candidates:
+        source_url = str(row.get("source_url") or "").strip()
+        if source_url:
+            ar_image_by_source.setdefault(source_url, []).append(row)
+
+    return {
+        "exhibition_rows": ex_rows,
+        "artist_rows": ar_rows,
+        "exhibition_image_rows": exi_rows,
+        "artist_image_rows": ari_rows,
+        "exhibition_image_candidates": ex_image_candidates,
+        "artist_image_candidates": ar_image_candidates,
+        "exhibition_image_by_source": ex_image_by_source,
+        "artist_image_by_source": ar_image_by_source,
+        "warnings": ex_warn + ar_warn + exi_warn + ari_warn,
+    }
+
+
+def _load_fair_bundle(fair_slug: str) -> Dict[str, object]:
+    return _load_fair_bundle_cached(
+        fair_slug,
+        _path_mtime_ns(EXHIBITIONS_TEXT_PATHS[fair_slug]),
+        _path_mtime_ns(ARTISTS_TEXT_PATHS[fair_slug]),
+        _path_mtime_ns(EXHIBITIONS_IMAGE_META_PATHS[fair_slug]),
+        _path_mtime_ns(ARTIST_WORKS_IMAGE_PATHS[fair_slug]),
+    )
+
+
 def build_art_pulse_overview(fair_label: str, reporter_id: str, angle_keys: List[str]) -> Dict[str, object]:
-    fair_slugs = _resolve_fair_slugs(fair_label)
+    fair_slugs = resolve_fair_slugs(fair_label)
     warnings: List[str] = []
 
     exhibition_rows: List[dict] = []
     artist_rows: List[dict] = []
     exhibition_image_rows: List[dict] = []
     artist_image_rows: List[dict] = []
+    all_ex_image_candidates: List[Dict[str, object]] = []
+    all_ar_image_candidates: List[Dict[str, object]] = []
+    ex_image_by_source: Dict[str, List[Dict[str, object]]] = {}
+    ar_image_by_source: Dict[str, List[Dict[str, object]]] = {}
 
     for fair_slug in fair_slugs:
-        ex_rows, ex_warn = _safe_load_jsonl(EXHIBITIONS_TEXT_PATHS[fair_slug])
-        ar_rows, ar_warn = _safe_load_jsonl(ARTISTS_TEXT_PATHS[fair_slug])
-        exi_rows, exi_warn = _safe_load_jsonl(EXHIBITIONS_IMAGE_META_PATHS[fair_slug])
-        ari_rows, ari_warn = _safe_load_jsonl(ARTIST_WORKS_IMAGE_PATHS[fair_slug])
-        warnings.extend(ex_warn + ar_warn + exi_warn + ari_warn)
+        fair_label_value = FAIR_SLUG_TO_LABEL[fair_slug]
+        bundle = _load_fair_bundle(fair_slug)
+        warnings.extend(list(bundle.get("warnings", []) or []))
+
+        ex_rows = list(bundle.get("exhibition_rows", []) or [])
+        ar_rows = list(bundle.get("artist_rows", []) or [])
+        exi_rows = list(bundle.get("exhibition_image_rows", []) or [])
+        ari_rows = list(bundle.get("artist_image_rows", []) or [])
         exhibition_rows.extend(
-            [{**row, "_fair_slug": fair_slug, "_fair_label": FAIR_SLUG_TO_LABEL[fair_slug]} for row in ex_rows]
+            [{**row, "_fair_slug": fair_slug, "_fair_label": fair_label_value} for row in ex_rows]
         )
         artist_rows.extend(
-            [{**row, "_fair_slug": fair_slug, "_fair_label": FAIR_SLUG_TO_LABEL[fair_slug]} for row in ar_rows]
+            [{**row, "_fair_slug": fair_slug, "_fair_label": fair_label_value} for row in ar_rows]
         )
         exhibition_image_rows.extend(
-            [{**row, "_fair_slug": fair_slug, "_fair_label": FAIR_SLUG_TO_LABEL[fair_slug]} for row in exi_rows]
+            [{**row, "_fair_slug": fair_slug, "_fair_label": fair_label_value} for row in exi_rows]
         )
         artist_image_rows.extend(
-            [{**row, "_fair_slug": fair_slug, "_fair_label": FAIR_SLUG_TO_LABEL[fair_slug]} for row in ari_rows]
+            [{**row, "_fair_slug": fair_slug, "_fair_label": fair_label_value} for row in ari_rows]
         )
+
+        all_ex_image_candidates.extend(list(bundle.get("exhibition_image_candidates", []) or []))
+        all_ar_image_candidates.extend(list(bundle.get("artist_image_candidates", []) or []))
+        for source_url, rows in dict(bundle.get("exhibition_image_by_source", {}) or {}).items():
+            ex_image_by_source.setdefault(str(source_url), []).extend(list(rows or []))
+        for source_url, rows in dict(bundle.get("artist_image_by_source", {}) or {}).items():
+            ar_image_by_source.setdefault(str(source_url), []).extend(list(rows or []))
 
     gallery_counter: Counter[str] = Counter()
     artist_counter: Counter[str] = Counter()
@@ -171,9 +351,18 @@ def build_art_pulse_overview(fair_label: str, reporter_id: str, angle_keys: List
             {
                 "fair": row.get("_fair_label"),
                 "gallery": gallery,
-                "title": _derive_exhibition_title(row),
+                "title": derive_exhibition_title(row),
                 "year": row.get("target_year") or 2025,
                 "source_url": row.get("source_url") or "",
+                "_search_text": " ".join(
+                    [
+                        str(row.get("gallery_name_en") or ""),
+                        str(row.get("headline_ja") or ""),
+                        str(row.get("participating_artists") or ""),
+                        str(row.get("text") or ""),
+                        str(row.get("source_url") or ""),
+                    ]
+                ),
             }
         )
 
@@ -181,7 +370,7 @@ def build_art_pulse_overview(fair_label: str, reporter_id: str, angle_keys: List
         gallery = str(row.get("gallery_name_en") or "")
         if gallery:
             gallery_counter[gallery] += 1
-        artist_name = _derive_artist_name(row)
+        artist_name = derive_artist_name(source_url, str(row.get("artist_name_en") or ""))
         artist_counter[artist_name] += 1
         artist_candidates.append(
             {
@@ -193,75 +382,19 @@ def build_art_pulse_overview(fair_label: str, reporter_id: str, angle_keys: List
                 "year": row.get("target_year") or 2025,
                 "source_url": row.get("source_url") or "",
                 "text_snippet": (str(row.get("text") or "").strip())[:220],
+                "_search_text": " ".join(
+                    [
+                        str(row.get("gallery_name_en") or ""),
+                        str(artist_name or ""),
+                        str(row.get("text") or ""),
+                        str(row.get("source_url") or ""),
+                    ]
+                ),
             }
         )
 
     top_galleries = [{"gallery_name": name, "count": count} for name, count in gallery_counter.most_common(12)]
     top_artists = [{"artist_name": name, "count": count} for name, count in artist_counter.most_common(12)]
-
-    exhibition_candidates.sort(
-        key=lambda r: (
-            str(r.get("fair") or ""),
-            str(r.get("gallery") or ""),
-            str(r.get("title") or ""),
-        )
-    )
-    artist_candidates.sort(
-        key=lambda r: (
-            str(r.get("fair") or ""),
-            str(r.get("gallery") or ""),
-            str(r.get("artist") or ""),
-        )
-    )
-
-    exhibition_source_urls = {str(r.get("source_url") or "").strip() for r in exhibition_candidates if r.get("source_url")}
-    all_ex_image_candidates: List[Dict[str, object]] = []
-    for row in exhibition_image_rows:
-        all_ex_image_candidates.append(
-            {
-                "kind": "exhibition",
-                "fair": row.get("_fair_label"),
-                "gallery": row.get("gallery_name_en") or "",
-                "source_url": row.get("source_url") or "",
-                "local_path": row.get("local_path") or "",
-                "image_url": row.get("image_url") or "",
-            }
-        )
-    matched_ex = [
-        r for r in all_ex_image_candidates if str(r.get("source_url") or "").strip() in exhibition_source_urls
-    ]
-    ex_image_candidates = _round_robin_by_fair(
-        matched_ex or all_ex_image_candidates,
-        max_count=ART_PULSE_IMAGE_POOL_PER_KIND,
-    )
-
-    artist_source_urls = {str(r.get("source_url") or "").strip() for r in artist_candidates if r.get("source_url")}
-    all_ar_image_candidates: List[Dict[str, object]] = []
-    for row in artist_image_rows:
-        first_local = ""
-        local_paths = row.get("works_image_local_paths")
-        if isinstance(local_paths, list) and local_paths:
-            first_local = str(local_paths[0] or "")
-        first_image_url = ""
-        image_urls = row.get("works_image_urls")
-        if isinstance(image_urls, list) and image_urls:
-            first_image_url = str(image_urls[0] or "")
-        all_ar_image_candidates.append(
-            {
-                "kind": "artist",
-                "fair": row.get("_fair_label"),
-                "gallery": row.get("gallery_name_en") or "",
-                "source_url": row.get("source_url") or "",
-                "local_path": first_local,
-                "image_url": first_image_url,
-                "artist_name_en": row.get("artist_name_en") or "",
-            }
-        )
-    matched_ar = [r for r in all_ar_image_candidates if str(r.get("source_url") or "").strip() in artist_source_urls]
-    ar_image_candidates = _round_robin_by_fair(
-        matched_ar or all_ar_image_candidates,
-        max_count=ART_PULSE_IMAGE_POOL_PER_KIND,
-    )
 
     reporter = find_persona(reporter_id)
     normalized_angle_keys = list(angle_keys or [])
@@ -271,6 +404,71 @@ def build_art_pulse_overview(fair_label: str, reporter_id: str, angle_keys: List
     for key in normalized_angle_keys:
         angle_obj = find_persona_angle(reporter, key)
         angle_labels.append(str(angle_obj.get("label")) if angle_obj else key)
+    query_terms = _collect_persona_query_terms(reporter, normalized_angle_keys)
+    primary_angle_key = normalized_angle_keys[0] if normalized_angle_keys else "angle_unknown"
+    selection_seed = f"{reporter_id}|{primary_angle_key}"
+
+    exhibition_candidates, ex_retrieval_meta = _select_persona_candidates(
+        rows=exhibition_candidates,
+        max_count=30,
+        fair_label=fair_label,
+        query_terms=query_terms,
+        seed=f"{selection_seed}|exhibition",
+        per_gallery_cap=3,
+    )
+    artist_candidates, ar_retrieval_meta = _select_persona_candidates(
+        rows=artist_candidates,
+        max_count=30,
+        fair_label=fair_label,
+        query_terms=query_terms,
+        seed=f"{selection_seed}|artist",
+        per_gallery_cap=3,
+    )
+
+    exhibition_source_urls = {
+        str(r.get("source_url") or "").strip() for r in exhibition_candidates if str(r.get("source_url") or "").strip()
+    }
+    matched_ex: List[Dict[str, object]] = []
+    matched_ex_keys = set()
+    for source_url in exhibition_source_urls:
+        for row in ex_image_by_source.get(source_url, []):
+            row_key = (
+                str(row.get("source_url") or ""),
+                str(row.get("local_path") or ""),
+                str(row.get("image_url") or ""),
+                str(row.get("fair") or ""),
+            )
+            if row_key in matched_ex_keys:
+                continue
+            matched_ex_keys.add(row_key)
+            matched_ex.append(row)
+    ex_image_candidates = _round_robin_by_fair(
+        matched_ex or all_ex_image_candidates,
+        max_count=ART_PULSE_IMAGE_POOL_PER_KIND,
+    )
+
+    artist_source_urls = {
+        str(r.get("source_url") or "").strip() for r in artist_candidates if str(r.get("source_url") or "").strip()
+    }
+    matched_ar: List[Dict[str, object]] = []
+    matched_ar_keys = set()
+    for source_url in artist_source_urls:
+        for row in ar_image_by_source.get(source_url, []):
+            row_key = (
+                str(row.get("source_url") or ""),
+                str(row.get("local_path") or ""),
+                str(row.get("image_url") or ""),
+                str(row.get("artist_name_en") or ""),
+                str(row.get("fair") or ""),
+            )
+            if row_key in matched_ar_keys:
+                continue
+            matched_ar_keys.add(row_key)
+            matched_ar.append(row)
+    ar_image_candidates = _round_robin_by_fair(
+        matched_ar or all_ar_image_candidates,
+        max_count=ART_PULSE_IMAGE_POOL_PER_KIND,
+    )
 
     return {
         "selection": {
@@ -289,8 +487,13 @@ def build_art_pulse_overview(fair_label: str, reporter_id: str, angle_keys: List
         },
         "top_galleries": top_galleries,
         "top_artists": top_artists,
-        "exhibition_candidates": _round_robin_by_fair(exhibition_candidates, max_count=30),
-        "artist_candidates": _round_robin_by_fair(artist_candidates, max_count=30),
+        "exhibition_candidates": exhibition_candidates,
+        "artist_candidates": artist_candidates,
+        "retrieval_meta": {
+            "query_terms": query_terms,
+            "exhibition": ex_retrieval_meta,
+            "artist": ar_retrieval_meta,
+        },
         "image_reference_plan": {
             "target_exhibition_images": 4,
             "target_artist_images": 4,

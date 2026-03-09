@@ -1,38 +1,13 @@
 from __future__ import annotations
 
-import json
 import re
-from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List
 
 from phase2_advisor_readonly import build_advisor_grounded_context
-
-REPO_ROOT = Path(__file__).resolve().parent
-TARUTANI_TEXT_PATH = REPO_ROOT / "data/Tarutani_data/tarutani_text.jsonl"
+from phase2_common_readonly import TARUTANI_TEXT_PATH, safe_load_jsonl
 
 EXCLUSIVE_TEXT_MAX_CHARS = 1000
 EXCLUSIVE_REF_IMAGE_TOTAL = 8
-
-
-def _safe_load_jsonl(path: Path) -> Tuple[List[dict], List[str]]:
-    rows: List[dict] = []
-    warnings: List[str] = []
-    if not path.exists():
-        warnings.append(f"missing: {path}")
-        return rows, warnings
-    try:
-        with path.open("r", encoding="utf-8") as f:
-            for idx, line in enumerate(f, start=1):
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    rows.append(json.loads(line))
-                except json.JSONDecodeError:
-                    warnings.append(f"json_decode_error: {path} line={idx}")
-    except OSError as exc:
-        warnings.append(f"read_error: {path} ({exc})")
-    return rows, warnings
 
 
 def _tokenize_query(query_text: str) -> List[str]:
@@ -114,7 +89,7 @@ def build_exclusive_advisor_context(
         text_limit_per_kind=external_text_limit_per_kind,
     )
 
-    tarutani_rows, t_warnings = _safe_load_jsonl(TARUTANI_TEXT_PATH)
+    tarutani_rows, t_warnings = safe_load_jsonl(TARUTANI_TEXT_PATH)
     tokens = _tokenize_query(question_text)
     tarutani_context = _select_tarutani_context_rows(
         rows=tarutani_rows,
@@ -148,4 +123,3 @@ def build_exclusive_advisor_context(
         },
         "warnings": warnings,
     }
-

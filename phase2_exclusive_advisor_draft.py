@@ -3,6 +3,8 @@ from __future__ import annotations
 import os
 from typing import Dict, List
 
+from phase2_response_style import PLAIN_JAPANESE_RULE
+
 EXCLUSIVE_ADVISOR_TEXT_MAX_CHARS = 1000
 
 
@@ -55,6 +57,7 @@ def _build_prompt(question_text: str, context: Dict[str, object]) -> str:
 
 重要制約:
 - 本文は日本語1000字以内
+- {PLAIN_JAPANESE_RULE}
 - 外部RAGの事実とTarutani文脈を混同しない
 - 根拠にない固有事実を作らない
 - 回答は実制作で使える具体的な次アクションを含む
@@ -163,4 +166,3 @@ def generate_exclusive_advisor_draft(
         ),
         "warnings": warnings,
     }
-

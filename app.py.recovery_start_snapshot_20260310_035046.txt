@@ -22,12 +22,9 @@ from phase2_exclusive_advisor_type2_execute import (
 from phase2_gallery_list_readonly import apply_gallery_list_filters, load_gallery_list_records_readonly
 from phase2_artist_search_readonly import apply_artist_filters, load_artist_records_readonly
 from phase2_exhibition_search_readonly import (
-    EXHIBITION_SEARCH_RESULT_COUNT,
-    EXHIBITION_SEARCH_SUMMARY_MAX_CHARS,
-    answer_exhibition_followup,
+    apply_exhibition_filters,
     build_exhibition_summary_ja,
     load_exhibition_records_readonly,
-    search_exhibitions,
 )
 
 try:
@@ -60,15 +57,6 @@ def apply_global_font_styles() -> None:
         }
         .stApp, .stApp * {
           font-family: var(--font-latin), var(--font-cjk) !important;
-        }
-        /* Keep expander toggle icons rendered with Material icon fonts. */
-        .stApp [data-testid="stExpanderToggleIcon"],
-        .stApp [data-testid="stExpanderToggleIcon"] *,
-        .stApp [class*="material-symbols"],
-        .stApp [class*="material-icons"] {
-          font-family: "Material Symbols Rounded", "Material Symbols Outlined",
-            "Material Symbols Sharp", "Material Icons", "Material Icons Outlined" !important;
-          font-style: normal !important;
         }
         .stApp {
           --background-color: #f5f7fb !important;
@@ -513,37 +501,7 @@ def _render_exhibition_result_cards(rows: list[dict]) -> None:
     if cards:
         st.markdown(f'<div class="exh-search-grid">{"".join(cards)}</div>', unsafe_allow_html=True)
 
-
-def _build_exhibition_followup_context(rows: list[dict]) -> dict:
-    if not rows:
-        return {}
-    titles = [str(r.get("exhibition_title") or "").strip() for r in rows if str(r.get("exhibition_title") or "").strip()]
-    galleries = [str(r.get("gallery_name") or "").strip() for r in rows if str(r.get("gallery_name") or "").strip()]
-    fairs = [str(r.get("fair_label") or "").strip() for r in rows if str(r.get("fair_label") or "").strip()]
-    artist_names = [str(r.get("artist_names") or "").strip() for r in rows if str(r.get("artist_names") or "").strip()]
-    summaries = [str(r.get("summary_display_ja") or "").strip() for r in rows if str(r.get("summary_display_ja") or "").strip()]
-    texts = [str(r.get("text") or "").strip()[:1200] for r in rows if str(r.get("text") or "").strip()]
-    source_urls = [str(r.get("source_url") or "").strip() for r in rows if str(r.get("source_url") or "").strip()]
-    return {
-        "exhibition_title": " / ".join(titles[:3]) or "検索結果3件",
-        "gallery_name": " / ".join(galleries[:3]),
-        "fair_label": " / ".join(sorted(set([f for f in fairs if f]))),
-        "artist_names": " / ".join(artist_names[:3]),
-        "summary_ja": " ".join(summaries[:3]),
-        "text": "\n".join(texts[:3]),
-        "source_url": source_urls[0] if source_urls else "",
-    }
-
-
-def _sanitize_exhibition_followup_seed(value: str) -> str:
-    text = str(value or "").strip()
-    if not text:
-        return ""
-    if "_arrow_right" in text or ":material/" in text:
-        return ""
-    return text
-
-
+@st.cache_data(show_spinner=False)
 @st.cache_data(show_spinner=False)
 def get_exhibition_search_data():
     return load_exhibition_records_readonly()
@@ -683,7 +641,7 @@ def render_art_pulse() -> None:
     if run:
         progress_line = st.empty()
         waiting_line = st.empty()
-        waiting_line.caption("担当記者が執筆中...数分おまちください。")
+        waiting_line.caption("Generating... please wait.")
 
         def _render_progress_row(text: str, active: bool) -> None:
             if active:
@@ -787,12 +745,8 @@ def render_exhibition_search() -> None:
         "image_hint": image_hint_text,
     }
     if search_clicked:
-        st.session_state[results_key] = search_exhibitions(
-            data.records,
-            fair_mode,
-            current_query["keyword"],
-            image_hint_text=image_hint_text,
-        )
+        merged_keyword = " ".join([current_query["keyword"], image_hint_text]).strip()
+        st.session_state[results_key] = apply_exhibition_filters(data.records, fair_mode, merged_keyword)
         st.session_state[query_key] = current_query
 
     filtered = st.session_state.get(results_key)
@@ -818,41 +772,18 @@ def render_exhibition_search() -> None:
         st.warning("条件に一致する展示データはありません。")
         return
 
-    display_rows_raw = list(filtered)[:EXHIBITION_SEARCH_RESULT_COUNT]
+    display_rows_raw = list(filtered)[:3]
     display_rows: list[dict] = []
     for row in display_rows_raw:
         row_copy = dict(row)
-        row_copy["summary_display_ja"] = build_exhibition_summary_ja(
-            row_copy,
-            max_chars=EXHIBITION_SEARCH_SUMMARY_MAX_CHARS,
-        )
+        row_copy["summary_display_ja"] = build_exhibition_summary_ja(row_copy)
+        row_copy["summary_display_ja"] = str(row_copy.get("summary_ja") or "").strip() or "未付与"
         display_rows.append(row_copy)
 
-    st.caption(f"検索結果: {len(display_rows)}件（上限{EXHIBITION_SEARCH_RESULT_COUNT}件）")
+    st.caption(f"検索結果: {len(display_rows)}件（上限3件）")
     _render_exhibition_result_cards(display_rows)
 
-    st.markdown("**追加質問（展示を深掘り）**")
-    seed_q = _sanitize_exhibition_followup_seed(
-        st.session_state.get("exh_followup_question_global", "")
-    )
-    if seed_q != st.session_state.get("exh_followup_question_global", ""):
-        st.session_state["exh_followup_question_global"] = seed_q
-    followup_q = st.text_area(
-        "追加質問（検索結果3件を対象）",
-        value=seed_q,
-        placeholder="例: この3展示を比較して、鑑賞の順番と注目点を教えてください。",
-        key="exh_followup_question_global",
-        height=90,
-    )
-    if st.button("追加質問を送る", key="exh_followup_run_global"):
-        context_row = _build_exhibition_followup_context(display_rows)
-        answer = answer_exhibition_followup(followup_q, context_row)
-        st.session_state["exh_followup_answer_global"] = answer
-
-    followup_answer = str(st.session_state.get("exh_followup_answer_global", "") or "").strip()
-    if followup_answer:
-        st.markdown("**追加質問への回答**")
-        st.write(followup_answer)
+    return
 
 
 def render_artist_search() -> None:

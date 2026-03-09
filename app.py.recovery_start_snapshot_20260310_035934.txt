@@ -61,15 +61,6 @@ def apply_global_font_styles() -> None:
         .stApp, .stApp * {
           font-family: var(--font-latin), var(--font-cjk) !important;
         }
-        /* Keep expander toggle icons rendered with Material icon fonts. */
-        .stApp [data-testid="stExpanderToggleIcon"],
-        .stApp [data-testid="stExpanderToggleIcon"] *,
-        .stApp [class*="material-symbols"],
-        .stApp [class*="material-icons"] {
-          font-family: "Material Symbols Rounded", "Material Symbols Outlined",
-            "Material Symbols Sharp", "Material Icons", "Material Icons Outlined" !important;
-          font-style: normal !important;
-        }
         .stApp {
           --background-color: #f5f7fb !important;
           --secondary-background-color: #ffffff !important;

@@ -2,6 +2,7 @@
 
 TARGET_YEAR = 2025
 PERSONA_COUNT = 8
+ART_PULSE_TEXT_MIN_CHARS = 1800
 ART_PULSE_TEXT_MAX_CHARS = 2000
 ART_PULSE_THUMB_FROM_EXHIB = 4
 ART_PULSE_THUMB_FROM_ARTIST = 4
@@ -222,6 +223,273 @@ ANGLES = [
     for persona in PERSONAS
     for angle in persona["angles"]
 ]
+
+
+ART_PULSE_ANGLE_QUERY_TERMS = {
+    "alex_politics_social_message": [
+        "政治",
+        "社会",
+        "制度",
+        "権力",
+        "批評",
+        "protest",
+        "activism",
+        "social",
+        "political",
+    ],
+    "alex_market_anti_thesis": [
+        "市場",
+        "商業",
+        "コレクター",
+        "価格",
+        "資本",
+        "market",
+        "commercial",
+        "collector",
+        "auction",
+    ],
+    "alex_curation_intent": [
+        "キュレーション",
+        "展示構成",
+        "空間",
+        "導線",
+        "curation",
+        "installation",
+        "display",
+        "layout",
+    ],
+    "sophia_energy_emotion": [
+        "エネルギー",
+        "感情",
+        "情熱",
+        "解放",
+        "衝動",
+        "energy",
+        "emotion",
+        "passion",
+        "intensity",
+    ],
+    "sophia_artist_story": [
+        "背景",
+        "物語",
+        "人生",
+        "個人的",
+        "story",
+        "biography",
+        "narrative",
+        "personal",
+    ],
+    "sophia_process": [
+        "制作プロセス",
+        "手法",
+        "工程",
+        "素材",
+        "process",
+        "method",
+        "material",
+        "technique",
+    ],
+    "marcus_quote_reinterpret": [
+        "引用",
+        "再解釈",
+        "参照",
+        "歴史",
+        "quotation",
+        "reinterpretation",
+        "reference",
+        "history",
+    ],
+    "marcus_traditional_technique": [
+        "伝統",
+        "技法",
+        "古典",
+        "継承",
+        "traditional",
+        "craft",
+        "technique",
+        "classical",
+    ],
+    "marcus_contemporaneity": [
+        "同時代",
+        "現代性",
+        "今",
+        "社会応答",
+        "contemporary",
+        "current",
+        "present",
+    ],
+    "kai_multispecies": [
+        "共生",
+        "生態系",
+        "動植物",
+        "菌",
+        "multispecies",
+        "ecology",
+        "ecosystem",
+        "nonhuman",
+    ],
+    "kai_future_insight": [
+        "未来",
+        "科学",
+        "バイオ",
+        "技術",
+        "future",
+        "science",
+        "bio",
+        "technology",
+    ],
+    "kai_invisible_visible": [
+        "不可視",
+        "可視化",
+        "気候",
+        "物理",
+        "invisible",
+        "visualize",
+        "climate",
+        "physics",
+    ],
+    "zoe_sns_visual_power": [
+        "SNS",
+        "拡散",
+        "ミーム",
+        "見栄え",
+        "viral",
+        "meme",
+        "instagram",
+        "visual power",
+    ],
+    "zoe_post_internet": [
+        "ポストインターネット",
+        "仮想",
+        "現実",
+        "ネット",
+        "post-internet",
+        "virtual",
+        "online",
+        "hybrid",
+    ],
+    "zoe_high_low_boundary": [
+        "ハイ＆ロー",
+        "サブカル",
+        "境界",
+        "越境",
+        "high and low",
+        "subculture",
+        "boundary",
+        "crossover",
+    ],
+    "leo_asset_value": [
+        "資産価値",
+        "将来性",
+        "投資",
+        "価格",
+        "asset",
+        "value",
+        "investment",
+        "price",
+    ],
+    "leo_self_branding": [
+        "セルフブランディング",
+        "ブランド",
+        "発信",
+        "戦略",
+        "branding",
+        "positioning",
+        "profile",
+        "strategy",
+    ],
+    "leo_collector_desire": [
+        "所有欲",
+        "コレクター",
+        "保存性",
+        "需要",
+        "collector",
+        "demand",
+        "collectible",
+        "acquisition",
+    ],
+    "ren_handcraft_trace": [
+        "手仕事",
+        "痕跡",
+        "執念",
+        "密度",
+        "handmade",
+        "handcraft",
+        "trace",
+        "labor",
+    ],
+    "ren_material_fetish": [
+        "素材",
+        "質感",
+        "テクスチャー",
+        "物性",
+        "material",
+        "texture",
+        "surface",
+        "tactile",
+    ],
+    "ren_durability_finish": [
+        "耐久性",
+        "完成度",
+        "仕上げ",
+        "保存",
+        "durability",
+        "finish",
+        "craftsmanship",
+        "preservation",
+    ],
+    "nadia_local_climate": [
+        "風土",
+        "ローカル",
+        "土地",
+        "地域史",
+        "local",
+        "regional",
+        "climate",
+        "site-specific",
+    ],
+    "nadia_minority_diversity": [
+        "多様性",
+        "マイノリティ",
+        "ジェンダー",
+        "可視化",
+        "diversity",
+        "minority",
+        "gender",
+        "inclusion",
+    ],
+    "nadia_exhibition_as_ritual": [
+        "儀式",
+        "共同体",
+        "振る舞い",
+        "社会機能",
+        "ritual",
+        "community",
+        "participation",
+        "social function",
+    ],
+}
+
+
+def get_angle_query_terms(angle_key: str, angle_label: str = "", angle_description: str = "") -> list[str]:
+    base = list(ART_PULSE_ANGLE_QUERY_TERMS.get(angle_key, []))
+    if angle_label:
+        base.append(angle_label)
+    if angle_description:
+        base.append(angle_description)
+
+    out: list[str] = []
+    seen = set()
+    for term in base:
+        t = str(term or "").strip()
+        if len(t) < 2:
+            continue
+        key = t.casefold()
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(t)
+    return out
 
 
 def find_persona(reporter_id: str):

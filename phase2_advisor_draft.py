@@ -3,6 +3,8 @@ from __future__ import annotations
 import os
 from typing import Dict, List
 
+from phase2_response_style import PLAIN_JAPANESE_RULE
+
 ADVISOR_TEXT_MAX_CHARS = 500
 ADVISOR_REF_IMAGE_TOTAL = 8
 
@@ -59,6 +61,7 @@ def _build_prompt(question_text: str, context: Dict[str, object]) -> str:
 
 制約:
 - 本文は日本語500字以内
+- {PLAIN_JAPANESE_RULE}
 - 断定しすぎる推測を避ける
 - evidence にない固有事実を追加しない
 - 実制作で使える具体的な次アクションを短く含める

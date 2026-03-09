@@ -1,41 +1,20 @@
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Iterable, List, Tuple
 
-
-REPO_ROOT = Path(__file__).resolve().parent
-
-FAIR_LABEL_TO_SLUG = {
-    "Frieze London": "frieze_london",
-    "Liste Art Fair Basel": "liste",
-}
-
-FAIR_SLUG_TO_LABEL = {v: k for k, v in FAIR_LABEL_TO_SLUG.items()}
-
-FORMAL_JSONL_PATHS = {
-    "artist_text": {
-        "frieze_london": REPO_ROOT / "data/phase1_seed10/raw/artists_frieze_london_2025.jsonl",
-        "liste": REPO_ROOT / "data/phase1_seed10/raw/artists_liste_2025.jsonl",
-    },
-    "exhibitions_text": {
-        "frieze_london": REPO_ROOT / "data/phase1_seed10/raw/exhibitions_frieze_london_2025.jsonl",
-        "liste": REPO_ROOT / "data/phase1_seed10/raw/exhibitions_liste_2025.jsonl",
-    },
-    "artist_works_images": {
-        "frieze_london": REPO_ROOT / "data/phase1_seed10/derived/artist_works_images_frieze_london.jsonl",
-        "liste": REPO_ROOT / "data/phase1_seed10/derived/artist_works_images_liste.jsonl",
-    },
-    "exhibitions_images": {
-        "frieze_london": REPO_ROOT / "data/phase1_seed10/derived/exhibitions_images_frieze_london_2025.jsonl",
-        "liste": REPO_ROOT / "data/phase1_seed10/derived/exhibitions_images_liste_2025.jsonl",
-    },
-}
-
-TARUTANI_TEXT_PATH = REPO_ROOT / "data/Tarutani_data/tarutani_text.jsonl"
-IMAGES_CACHE_DIR = REPO_ROOT / "data/phase1_seed10/derived/images"
+from phase2_common_readonly import (
+    ARTISTS_TEXT_PATHS,
+    ARTIST_WORKS_IMAGE_PATHS,
+    EXHIBITIONS_IMAGE_META_PATHS,
+    EXHIBITIONS_TEXT_PATHS,
+    FAIR_LABEL_TO_SLUG,
+    FAIR_SLUG_TO_LABEL,
+    IMAGES_CACHE_DIR,
+    TARUTANI_TEXT_PATH,
+    safe_load_jsonl,
+)
 
 
 @dataclass
@@ -49,23 +28,7 @@ class CountResult:
 
 
 def _iter_jsonl(path: Path) -> Tuple[Iterable[dict], List[str]]:
-    warnings: List[str] = []
-    rows: List[dict] = []
-    if not path.exists():
-        warnings.append(f"missing: {path}")
-        return rows, warnings
-    try:
-        with path.open("r", encoding="utf-8") as f:
-            for idx, line in enumerate(f, start=1):
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    rows.append(json.loads(line))
-                except json.JSONDecodeError:
-                    warnings.append(f"json_decode_error: {path} line={idx}")
-    except OSError as exc:
-        warnings.append(f"read_error: {path} ({exc})")
+    rows, warnings = safe_load_jsonl(path)
     return rows, warnings
 
 
@@ -108,15 +71,6 @@ def _count_referenced_image_files(path: Path, list_key: str | None, item_key: st
     return CountResult(rows=exists_count, warnings=warnings)
 
 
-def _sum_results(results: List[CountResult]) -> CountResult:
-    warnings: List[str] = []
-    total = 0
-    for r in results:
-        total += r.rows
-        warnings.extend(r.warnings or [])
-    return CountResult(rows=total, warnings=warnings)
-
-
 def _safe_dir_file_count(path: Path) -> CountResult:
     if not path.exists():
         return CountResult(rows=0, warnings=[f"missing: {path}"])
@@ -137,15 +91,15 @@ def build_counts(selected_fair: str) -> Dict[str, object]:
     all_warnings: List[str] = []
 
     for fair_slug in fair_slugs:
-        artist_text = _count_jsonl_rows(FORMAL_JSONL_PATHS["artist_text"][fair_slug])
-        exhibitions_text = _count_jsonl_rows(FORMAL_JSONL_PATHS["exhibitions_text"][fair_slug])
-        artist_images_meta = _count_jsonl_rows(FORMAL_JSONL_PATHS["artist_works_images"][fair_slug])
-        exhibitions_images_meta = _count_jsonl_rows(FORMAL_JSONL_PATHS["exhibitions_images"][fair_slug])
+        artist_text = _count_jsonl_rows(ARTISTS_TEXT_PATHS[fair_slug])
+        exhibitions_text = _count_jsonl_rows(EXHIBITIONS_TEXT_PATHS[fair_slug])
+        artist_images_meta = _count_jsonl_rows(ARTIST_WORKS_IMAGE_PATHS[fair_slug])
+        exhibitions_images_meta = _count_jsonl_rows(EXHIBITIONS_IMAGE_META_PATHS[fair_slug])
         artist_images_files = _count_referenced_image_files(
-            FORMAL_JSONL_PATHS["artist_works_images"][fair_slug], "works_image_local_paths", None
+            ARTIST_WORKS_IMAGE_PATHS[fair_slug], "works_image_local_paths", None
         )
         exhibitions_images_files = _count_referenced_image_files(
-            FORMAL_JSONL_PATHS["exhibitions_images"][fair_slug], None, "local_path"
+            EXHIBITIONS_IMAGE_META_PATHS[fair_slug], None, "local_path"
         )
 
         all_warnings.extend(

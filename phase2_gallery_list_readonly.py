@@ -6,19 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Tuple
 
-
-REPO_ROOT = Path(__file__).resolve().parent
-
-GALLERY_LIST_PATHS = {
-    "frieze_london": REPO_ROOT / "data/gallery_lists/gallery_list_frieze_london.csv",
-    "liste": REPO_ROOT / "data/gallery_lists/gallery_list_liste.csv",
-}
-
-FAIR_LABEL_TO_SLUG = {
-    "Frieze London": "frieze_london",
-    "Liste Art Fair Basel": "liste",
-}
-FAIR_SLUG_TO_LABEL = {value: key for key, value in FAIR_LABEL_TO_SLUG.items()}
+from phase2_common_readonly import FAIR_LABEL_TO_SLUG, FAIR_SLUG_TO_LABEL, GALLERY_LIST_PATHS
 
 
 def _read_rows_with_fallback(path: Path) -> Tuple[List[List[str]], List[str]]:
