@@ -38,10 +38,6 @@ def _extract_year_from_date(date_value: str) -> int | None:
 
 
 def _derive_title(row: dict) -> str:
-    headline = (row.get("headline_ja") or "").strip()
-    if headline:
-        return headline
-
     text = (row.get("text") or "").strip()
     if text:
         first_line = text.splitlines()[0].strip()
@@ -139,7 +135,7 @@ def load_exhibition_records_readonly() -> ExhibitionSearchData:
                 "fair_slug": fair_slug,
                 "fair_label": FAIR_SLUG_TO_LABEL.get(fair_slug, fair_slug),
                 "gallery_name": str(row.get("gallery_name_en") or ""),
-                "exhibition_title": headline_ja or _derive_title(row),
+                "exhibition_title": _derive_title(row),
                 "year": year if isinstance(year, int) else None,
                 "artist_names": str(row.get("participating_artists") or ""),
                 "source_url": source_url,

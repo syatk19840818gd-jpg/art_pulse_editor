@@ -32,6 +32,7 @@ from phase2_artist_search_readonly import apply_artist_filters, load_artist_reco
 from phase2_exhibition_search_readonly import (
     EXHIBITION_SEARCH_RESULT_COUNT,
     EXHIBITION_SEARCH_SUMMARY_MAX_CHARS,
+    _derive_title,
     answer_exhibition_followup,
     build_exhibition_summary_ja,
     load_exhibition_records_readonly,
@@ -1048,48 +1049,69 @@ def render_art_pulse() -> None:
 
 
 def render_exhibition_search() -> None:
-    _render_mode_heading("② Exhibition Search（展示検索）")
-    _render_mode_explanation("formal exhibitions text の読み取り専用一覧です。")
-
+    _render_mode_heading("Exhibitions Search")
+    _render_mode_explanation("トップギャラリーの展示検索（キーワード入力）")
     try:
         data = get_exhibition_search_data()
     except Exception as exc:
         st.error(f"Exhibition 読み込みエラー: {type(exc).__name__}: {exc}")
         return
 
+    results_key = "exh_search_results"
+    query_key = "exh_search_query"
+    page_key = "exh_search_page"
+    keyword_key = "exh_keyword"
+    followup_question_key = "exh_followup_question_global"
+    followup_answer_key = "exh_followup_answer_global"
+    search_reset_requested_key = "exh_search_reset_requested"
+    followup_reset_requested_key = "exh_followup_reset_requested_global"
+
+    if st.session_state.pop(search_reset_requested_key, False):
+        st.session_state[keyword_key] = ""
+        st.session_state.pop(results_key, None)
+        st.session_state.pop(query_key, None)
+        st.session_state.pop(page_key, None)
+    if st.session_state.pop(followup_reset_requested_key, False):
+        st.session_state[followup_question_key] = ""
+        st.session_state[followup_answer_key] = ""
+
     col1, col2 = st.columns([1, 2])
     fair_mode = col1.selectbox(
-        "フェア絞り込み",
+        "フェア選択",
         FAIR_OPTIONS,
         index=2,
         key="exh_fair_filter",
     )
     keyword = col2.text_input(
-        "キーワード（gallery / title / artist names / source_url）",
+        "キーワード",
         value="",
-        placeholder="例: Adams and Ollman / Antonia Kuo / https://adamsandollman.com/Antonia-Kuo-Subcycle",
-        key="exh_keyword",
+        placeholder="例 : ジャンル / アーティスト名 / 動物・光・水などの名詞",
+        key=keyword_key,
     )
+    st.caption("キーワード入力 ＋ Search で「展示情報」を表示します。")
     search_clicked = st.button("Search", key="exh_search_button")
-
-    results_key = "exh_search_results"
-    query_key = "exh_search_query"
+    if st.button("リセット", key="exh_search_reset_button"):
+        st.session_state[search_reset_requested_key] = True
+        st.rerun()
     current_query = {
         "fair": fair_mode,
         "keyword": (keyword or "").strip(),
     }
     if search_clicked:
+        st.session_state[followup_question_key] = ""
+        st.session_state[followup_answer_key] = ""
+        st.session_state[page_key] = 0
         st.session_state[results_key] = search_exhibitions(
             data.records,
             fair_mode,
             current_query["keyword"],
+            limit=max(1, len(data.records)),
         )
         st.session_state[query_key] = current_query
 
     filtered = st.session_state.get(results_key)
     last_query = st.session_state.get(query_key)
     if filtered is None:
-        st.caption("Searchを押すと、検索上位3件を表示します。")
         return
     if last_query != current_query:
         return
@@ -1102,45 +1124,69 @@ def render_exhibition_search() -> None:
         st.warning("条件に一致する展示データはありません。")
         return
 
-    display_rows_raw = list(filtered)[:EXHIBITION_SEARCH_RESULT_COUNT]
+    all_rows = list(filtered)
+    total_hits = len(all_rows)
+    page_index = int(st.session_state.get(page_key, 0) or 0)
+    max_page = max((total_hits - 1) // EXHIBITION_SEARCH_RESULT_COUNT, 0)
+    if page_index < 0:
+        page_index = 0
+    if page_index > max_page:
+        page_index = max_page
+    st.session_state[page_key] = page_index
+
+    start_idx = page_index * EXHIBITION_SEARCH_RESULT_COUNT
+    end_idx = min(start_idx + EXHIBITION_SEARCH_RESULT_COUNT, total_hits)
+    display_rows_raw = all_rows[start_idx:end_idx]
     display_rows: list[dict] = []
     for row in display_rows_raw:
         row_copy = dict(row)
+        row_copy["exhibition_title"] = _derive_title(row_copy)
         row_copy["summary_display_ja"] = build_exhibition_summary_ja(
             row_copy,
             max_chars=EXHIBITION_SEARCH_SUMMARY_MAX_CHARS,
         )
         display_rows.append(row_copy)
 
-    st.caption(f"検索結果: {len(display_rows)}件（上限{EXHIBITION_SEARCH_RESULT_COUNT}件）")
+    st.caption(f"検索結果: {total_hits}件（表示 {start_idx + 1}-{end_idx} 件）")
     _render_exhibition_result_cards(display_rows)
+    _, nav_col_prev, nav_col_next = st.columns([6, 1, 1])
+    if page_index > 0 and nav_col_prev.button("戻る", key="exh_page_prev"):
+        st.session_state[page_key] = page_index - 1
+        st.rerun()
+    if end_idx < total_hits and nav_col_next.button("次へ", key="exh_page_next"):
+        st.session_state[page_key] = page_index + 1
+        st.rerun()
 
-    st.markdown("**追加質問（展示を深掘り）**")
+    st.markdown("**質問**")
     seed_q = _sanitize_exhibition_followup_seed(
-        st.session_state.get("exh_followup_question_global", "")
+        st.session_state.get(followup_question_key, "")
     )
-    if seed_q != st.session_state.get("exh_followup_question_global", ""):
-        st.session_state["exh_followup_question_global"] = seed_q
+    if seed_q != st.session_state.get(followup_question_key, ""):
+        st.session_state[followup_question_key] = seed_q
     followup_q = st.text_area(
-        "追加質問（検索結果3件を対象）",
+        "",
         value=seed_q,
-        placeholder="例: この3展示を比較して、鑑賞の順番と注目点を教えてください。",
-        key="exh_followup_question_global",
+        placeholder="例: 展示作家のゲルハルト・リヒターについて詳しく教えて。",
+        key=followup_question_key,
         height=90,
+        label_visibility="collapsed",
     )
-    if st.button("追加質問を送る", key="exh_followup_run_global"):
+    if st.button("質問する", key="exh_followup_run_global"):
         context_row = _build_exhibition_followup_context(display_rows)
         answer = answer_exhibition_followup(followup_q, context_row)
-        st.session_state["exh_followup_answer_global"] = answer
+        st.session_state[followup_answer_key] = answer
+    if st.button("リセット", key="exh_followup_reset_global"):
+        st.session_state[followup_reset_requested_key] = True
+        st.rerun()
 
-    followup_answer = str(st.session_state.get("exh_followup_answer_global", "") or "").strip()
+    followup_answer = str(st.session_state.get(followup_answer_key, "") or "").strip()
     if followup_answer:
         st.markdown("**追加質問への回答**")
         st.write(followup_answer)
 
 
 def render_artist_search() -> None:
-    _render_mode_heading("③ Artist Search（作家検索）")
+    _render_mode_heading("Artist Search")
     _render_mode_explanation("formal artists text の読み取り専用一覧です。")
 
     try:
