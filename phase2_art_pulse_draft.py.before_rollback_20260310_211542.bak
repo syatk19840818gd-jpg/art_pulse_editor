@@ -19,10 +19,13 @@ from phase2_response_style import PLAIN_JAPANESE_RULE
 MAX_EVIDENCE_URLS = 8
 MAX_IMAGE_TOTAL = 8
 MIN_IMAGE_PER_NONEMPTY_SECTION = 1
-ART_PULSE_TEXT_SOFT_OVER_CHARS = 200
+ART_PULSE_TEXT_SOFT_OVER_CHARS = 0
 ART_PULSE_TARGET_CHARS = 1900
 ART_PULSE_TARGET_TOLERANCE = 100
-ART_PULSE_EXPAND_TRIGGER_CHARS = 1700
+ART_PULSE_EXPAND_TRIGGER_CHARS = ART_PULSE_TEXT_MIN_CHARS
+ART_PULSE_ACCEPT_MIN_CHARS = ART_PULSE_TEXT_MIN_CHARS
+ART_PULSE_PASS1_MIN_CHARS = 500
+ART_PULSE_EXPAND_MIN_CHARS = 1200
 ART_PULSE_PAYLOAD_CANDIDATE_CAP = 18
 ART_PULSE_PROMPT_EXHIBITION_ROWS = 12
 ART_PULSE_PROMPT_ARTIST_ROWS = 12
@@ -31,6 +34,7 @@ ART_PULSE_MAX_OUTPUT_TOKENS = 3600
 ART_PULSE_SECTION1_MIN_CHARS = 450
 ART_PULSE_SECTION2_MIN_CHARS = 600
 ART_PULSE_SECTION3_MIN_CHARS = 600
+ART_PULSE_VALIDATION_HOLD_MIN_CHARS = ART_PULSE_EXPAND_MIN_CHARS
 logger = logging.getLogger(__name__)
 
 REQUIRED_HEADINGS = [
@@ -41,15 +45,6 @@ REQUIRED_HEADINGS = [
 
 SECTION_KEYS = ["section1", "section2", "section3"]
 MARKDOWN_LINK_PATTERN = re.compile(r"\[([^\]]+)\]\((https?://[^)]+)\)")
-ARTIST_GOOGLE_LINK_PATTERN = re.compile(
-    r"\[[^\]]+\]\(https://www\.google\.com/search\?tbm=isch&q=[^)]+\)"
-)
-ARTIST_WITH_KANA_PATTERN = re.compile(
-    r"\[[^\]]+\]\(https://www\.google\.com/search\?tbm=isch&q=[^)]+\)（[^）]+）"
-)
-ARTIST_DUP_EN_NAME_PATTERN = re.compile(
-    r"\[([^\]]+)\]\(https://www\.google\.com/search\?tbm=isch&q=[^)]+\)（\1）"
-)
 
 KANA_WORD_MAP = {
     "ALEX": "アレックス",
@@ -215,26 +210,10 @@ def _build_evidence_payload(overview: Dict[str, object], cap: int = 24) -> Dict[
             }
         )
 
-    def _fair_order(keys: List[str]) -> List[str]:
-        order = [k for k in ("Frieze London", "Liste Art Fair Basel") if k in keys]
-        for key in sorted(keys):
-            if key not in order:
-                order.append(key)
-        return order
-
     def _diversified_pick(rows: List[Dict[str, object]], max_count: int) -> List[Dict[str, object]]:
         if not rows or max_count <= 0:
             return []
 
-        fair_keys = _fair_order(
-            sorted(
-                {
-                    str(row.get("fair") or "").strip() or "(unknown)"
-                    for row in rows
-                }
-            )
-        )
-        fair_rank = {fair: idx for idx, fair in enumerate(fair_keys)}
         per_gallery_cap = 2
 
         def _row_fair(row: Dict[str, object]) -> str:
@@ -253,7 +232,6 @@ def _build_evidence_payload(overview: Dict[str, object], cap: int = 24) -> Dict[
             rows,
             key=lambda row: (
                 -int(row.get("retrieval_score") or 0),
-                fair_rank.get(_row_fair(row), len(fair_rank)),
                 _row_gallery(row),
                 _row_uid(row),
             ),
@@ -363,6 +341,53 @@ def _count_required_headings_present(body: str) -> int:
     return sum(1 for heading in REQUIRED_HEADINGS if heading in text)
 
 
+def _minimum_acceptance_gate(
+    body: str,
+    overview: Dict[str, object],
+    payload: Dict[str, object],
+    selection_plan: Dict[str, Dict[str, List[str]]],
+) -> Tuple[bool, Dict[str, Dict[str, List[str]]]]:
+    payload_url_set = {
+        str(u or "").strip()
+        for u in list(payload.get("exhibition_urls", []) or []) + list(payload.get("artist_urls", []) or [])
+        if str(u or "").strip()
+    }
+
+    def _section_has_payload_evidence(
+        plan: Dict[str, Dict[str, List[str]]],
+        section_key: str,
+    ) -> bool:
+        sec = plan.get(section_key, {}) or {}
+        urls = list(sec.get("exhibition_urls", []) or []) + list(sec.get("artist_urls", []) or [])
+        return any(str(u or "").strip() in payload_url_set for u in urls)
+
+    if _body_text_len(body) < ART_PULSE_ACCEPT_MIN_CHARS:
+        return False, selection_plan
+    if _count_required_headings_present(body) < len(REQUIRED_HEADINGS):
+        return False, selection_plan
+    if not (
+        _section_has_payload_evidence(selection_plan, "section2")
+        and _section_has_payload_evidence(selection_plan, "section3")
+    ):
+        seeded_for_sections = _merge_selection_plan(selection_plan, _build_image_seed_selection(payload, overview))
+        if not (
+            _section_has_payload_evidence(seeded_for_sections, "section2")
+            and _section_has_payload_evidence(seeded_for_sections, "section3")
+        ):
+            return False, selection_plan
+        selection_plan = seeded_for_sections
+
+    buckets = _build_section_image_buckets(overview, selection_plan)
+    if sum(len(bucket) for bucket in buckets) > 0:
+        return True, selection_plan
+
+    seeded = _merge_selection_plan(selection_plan, _build_image_seed_selection(payload, overview))
+    buckets = _build_section_image_buckets(overview, seeded)
+    if sum(len(bucket) for bucket in buckets) > 0:
+        return True, seeded
+    return False, selection_plan
+
+
 def _split_body_by_required_headings(body: str) -> Dict[str, str]:
     text = (body or "").strip()
     starts: List[Tuple[str, int]] = []
@@ -396,6 +421,30 @@ def _dedupe_preserve_order(values: List[str]) -> List[str]:
         seen.add(normalized)
         out.append(normalized)
     return out
+
+
+def _parse_selected_evidence_from_json(parsed: Dict[str, object], payload: Dict[str, object]) -> Dict[str, Dict[str, List[str]]]:
+    selection = _empty_selection_plan()
+    raw = parsed.get("selected_evidence")
+    if not isinstance(raw, dict):
+        return selection
+
+    ex_allowed = {str(row.get("source_url") or "").strip() for row in list(payload.get("exhibition_rows", []) or [])}
+    ar_allowed = {str(row.get("source_url") or "").strip() for row in list(payload.get("artist_rows", []) or [])}
+    heading_to_key = {heading: SECTION_KEYS[idx] for idx, heading in enumerate(REQUIRED_HEADINGS)}
+
+    for raw_key, sec in raw.items():
+        if not isinstance(sec, dict):
+            continue
+        key = str(raw_key or "").strip()
+        sec_key = key if key in SECTION_KEYS else heading_to_key.get(key)
+        if not sec_key:
+            continue
+        ex_urls = [str(u or "").strip() for u in list(sec.get("exhibition_urls", []) or [])]
+        ar_urls = [str(u or "").strip() for u in list(sec.get("artist_urls", []) or [])]
+        selection[sec_key]["exhibition_urls"] = [u for u in _dedupe_preserve_order(ex_urls) if u in ex_allowed]
+        selection[sec_key]["artist_urls"] = [u for u in _dedupe_preserve_order(ar_urls) if u in ar_allowed]
+    return selection
 
 
 def _infer_selected_evidence_from_body(body: str, payload: Dict[str, object]) -> Dict[str, Dict[str, List[str]]]:
@@ -709,14 +758,7 @@ def _validate_links_against_payload(body: str, payload: Dict[str, object]) -> Li
         for row in list(payload.get("exhibition_rows", []) or []) + list(payload.get("artist_rows", []) or [])
         if str(row.get("source_url") or "").strip()
     }
-    known_artist_tokens = {
-        _normalize_name_token(_clean_artist_name(str(row.get("artist_name_en") or row.get("artist") or "")))
-        for row in list(payload.get("artist_rows", []) or [])
-        if str(row.get("artist_name_en") or row.get("artist") or "").strip()
-    }
-
     unknown_rag_links: List[str] = []
-    unknown_artist_links: List[str] = []
     malformed_google_links: List[str] = []
 
     for label, url in links:
@@ -728,8 +770,6 @@ def _validate_links_against_payload(body: str, payload: Dict[str, object]) -> Li
             if not label_token or not query_token or label_token != query_token:
                 malformed_google_links.append(cleaned_url)
                 continue
-            if label_token not in known_artist_tokens:
-                unknown_artist_links.append(cleaned_label or cleaned_url)
             continue
 
         if cleaned_url not in allowed_rag_urls:
@@ -739,11 +779,6 @@ def _validate_links_against_payload(body: str, payload: Dict[str, object]) -> Li
         preview = ", ".join(unknown_rag_links[:3])
         issues.append(
             f"RAG外URLのリンクが含まれています（最大3件表示: {preview}）。事実リンクはpayload由来URLのみ使用してください。"
-        )
-    if unknown_artist_links:
-        preview = ", ".join(unknown_artist_links[:3])
-        issues.append(
-            f"payload外のArtistリンクが含まれています（最大3件表示: {preview}）。Artistリンクは候補Artist名のみ使用してください。"
         )
     if malformed_google_links:
         preview = ", ".join(malformed_google_links[:3])
@@ -787,10 +822,7 @@ def _build_prompt(
 
 【本文ルール】
 - 日本語
- - {PLAIN_JAPANESE_RULE}
-- 本文テキストは {ART_PULSE_TEXT_MIN_CHARS}～{ART_PULSE_TEXT_MAX_CHARS}字を必須
-- 可視文字数で {ART_PULSE_TEXT_MIN_CHARS}～{ART_PULSE_TEXT_MAX_CHARS}字（MarkdownのリンクURL文字列は字数に含めない）
-- 最終出力前に可視文字数を自己点検し、必ず範囲内に収めてから JSON を返す
+- 本文は3見出しの骨格と文脈整合を最優先にする（文字数要件は後段指示に従う）
 - 必ず以下の3見出しをこの順で入れる:
   1) ## 今年のトレンド
   2) ## トレンドに沿った重要なExhibitionまたはArtist
@@ -801,14 +833,12 @@ def _build_prompt(
 - 第1節「今年のトレンド」は全体傾向の要約に徹し、固有名詞（展示名/作家名）は原則ゼロ。最大でも合計1件まで
 - 第2節・第3節は役割を分ける。第2節は「主流トレンドに沿う重要事例」、第3節は「非主流だが重要な事例」を必ず具体名つきで示す
 - 第2節と第3節で同じ事例の重複を避ける
-- Exhibitionは可能な範囲で「([展示名](source_url) @ ギャラリー英名)」表記
+- Exhibitionは「([展示名](source_url) @ ギャラリー英名)」表記
 - Exhibition名から開催日程などのノイズは削除する
 - Artist表記は「[Artist Name](Google画像検索URL)（カナ読み）」を必須
 - 「英名: ...」というラベルは出力しない
 - カナ読みは推定でよいが、省略禁止（「（カナ未設定）」は出力禁止）
-- RAG根拠（特にExhibitions Text）を厳守し、展示名・作家名・ギャラリー名・URLなどの事実主張は必ずRAG根拠内に限定する
-- 補完的に、内部知識（あなたが持つ美術史、現代思想、トレンドの背景知識等、文脈に応じて）活用し、RAGに書かれていない文脈を追加し深掘りすること。
-- 内部知識に基づく文脈補完部分は、出典URLの記載は不要（無理にURLを紐付けない）。
+- RAG根拠（特にExhibitions Text）を厳守し、事実リンク（URL）はRAG根拠内に限定する。
 {fair_balance_rule}
 - selected_evidence は、本文の各節で実際に参照した URL のみを入れる
 - 画像候補は selected_evidence を基に提示されるため、機械的選択は避ける
@@ -891,7 +921,7 @@ def _coerce_non_json_output(raw_text: str) -> Tuple[str, str]:
     if heading_pos >= 0:
         body = body[heading_pos:].strip()
 
-    # Strip leaked selected_evidence fragments from malformed non-JSON outputs.
+    # Non-JSON救済時に末尾へ混入しやすい selected_evidence 断片を除去する。
     for marker in ('"selected_evidence"', ",'selected_evidence'", ',"selected_evidence"'):
         pos = body.find(marker)
         if pos > 0:
@@ -904,7 +934,45 @@ def _coerce_non_json_output(raw_text: str) -> Tuple[str, str]:
         if cut > 0 and (len(body) - cut) <= 220:
             body = body[: cut + 1].rstrip()
 
-    return title, body
+    return title, _sanitize_generated_body_text(body)
+
+
+def _sanitize_generated_body_text(body: str) -> str:
+    text = (body or "").strip()
+    if not text:
+        return ""
+
+    # Remove leaked selected_evidence tail fragments from malformed outputs.
+    tail_patterns = [
+        r'(?is),?\s*["\']selected_evidence["\']\s*:\s*\{.*$',
+        r'(?is),?\s*\\+"selected_evidence\\+"\s*:\s*\{.*$',
+    ]
+    for pattern in tail_patterns:
+        cleaned = re.sub(pattern, "", text).rstrip(" \t\r\n,}\"'")
+        if cleaned != text:
+            text = cleaned
+            break
+
+    # Keep article body from the first required heading when present.
+    heading_pos = text.find("## ")
+    if heading_pos > 0:
+        text = text[heading_pos:].strip()
+
+    # Trim trailing broken URL tail fragments.
+    text = re.sub(r"https?://[^\s)\]]*[\u3000\s]+$", "", text).rstrip()
+
+    if text and text[-1] not in "。！？":
+        cut = max(text.rfind("。"), text.rfind("！"), text.rfind("？"))
+        if cut > 0 and (len(text) - cut) <= 260:
+            text = text[: cut + 1].rstrip()
+    return text
+
+
+def _extract_urls_from_body_text(body: str) -> List[str]:
+    text = body or ""
+    urls: List[str] = [str(u or "").strip() for _, u in MARKDOWN_LINK_PATTERN.findall(text)]
+    urls.extend([str(u or "").strip() for u in re.findall(r"https?://[^\s)>\]]+", text)])
+    return _dedupe_preserve_order([u for u in urls if u])
 
 
 def _count_duplicate_paragraphs(text: str) -> int:
@@ -954,55 +1022,6 @@ def _section_overlap_count(
     return len((a_ex | a_ar) & (b_ex | b_ar))
 
 
-def _validate_main_body(
-    body: str,
-    payload: Dict[str, object],
-    selection_plan: Dict[str, Dict[str, List[str]]] | None = None,
-    fair_label: str = "",
-) -> List[str]:
-    issues: List[str] = []
-    if not body.strip():
-        issues.append("本文が空です。")
-        return issues
-    if not _has_required_structure(body):
-        issues.append("3見出し構成が不足しています。")
-    chars = _body_text_len(body)
-    if chars < ART_PULSE_TEXT_MIN_CHARS:
-        issues.append(f"本文文字数が不足しています（{chars}字）。1800字以上にしてください。")
-    soft_max = ART_PULSE_TEXT_MAX_CHARS + ART_PULSE_TEXT_SOFT_OVER_CHARS
-    if chars > soft_max:
-        issues.append(f"本文文字数が超過しています（{chars}字）。{soft_max}字以内にしてください。")
-    if _count_duplicate_paragraphs(body) > 0:
-        issues.append("同一段落の重複があります。重複を除去してください。")
-    if "（カナ未設定）" in body:
-        issues.append("Artistのカナ読みが未設定です。全Artist表記にカナ読みを入れてください。")
-    if ARTIST_DUP_EN_NAME_PATTERN.search(body):
-        issues.append("Artist表記で英名の重複括弧があります。重複を削除し、カナ読みのみを括弧で表示してください。")
-    artist_links = ARTIST_GOOGLE_LINK_PATTERN.findall(body)
-    artist_with_kana = ARTIST_WITH_KANA_PATTERN.findall(body)
-    if artist_links and len(artist_with_kana) < len(artist_links):
-        issues.append(
-            "Artist表記は全件「[Artist Name](Google画像検索URL)（カナ読み）」形式にしてください。"
-        )
-    if not _section3_has_required_mentions(body, payload):
-        issues.append("第3節に Exhibition と Artist の具体名が不足しています。")
-    issues.extend(_validate_links_against_payload(body, payload))
-
-    sections = _split_body_by_required_headings(body)
-    if sections:
-        section1_text = sections.get(REQUIRED_HEADINGS[0], "")
-        named_in_section1 = _count_named_mentions_in_section(section1_text, payload)
-        if named_in_section1 > 1:
-            issues.append("第1節（今年のトレンド）で固有名詞が多すぎます。展示名/作家名は合計1件以内にしてください。")
-
-    if selection_plan:
-        overlap = _section_overlap_count(selection_plan, "section2", "section3")
-        if overlap > 0:
-            issues.append("第2節と第3節で同一根拠URLが重複しています。役割分担のため重複を避けてください。")
-
-    return issues
-
-
 def _build_expansion_prompt(
     fair_label: str,
     reporter: Dict[str, object],
@@ -1020,13 +1039,19 @@ def _build_expansion_prompt(
     issue_text = "\n".join([f"- {issue}" for issue in issues]) if issues else "- なし"
     return (
         _build_prompt(fair_label, reporter, angle_label, angle_description, payload)
-        + "\n\n【後段リライト指示（文字数拡張）】\n"
+        + "\n\n【後段リライト指示（不足分だけ増補）】\n"
+        + "- これは2回目の増補です。1回目本文を骨格として維持し、不足分だけ追記する\n"
+        + "- 既存の内容・構成・文脈は極力残し、削除や要約で短くしない\n"
+        + "- 内部知識（あなたが持つ美術史、現代思想、トレンドの背景知識等）を1回目本文の文脈に応じて積極活用し、深掘り展開する\n"
+        + "- 内部知識に基づく文脈補完部分は、出典URLの記載は不要（無理にURLを紐付けない）。\n"
+        + "- 1回目を補完・背景説明する意味であれば、新規固有名詞や新事実は追加してよい\n"
+        + "- URLは1回目本文から一切変更しない（追加・削除・変更禁止）\n"
         + f"- 現在の可視文字数: {current_chars}字（不足: {shortage}字）\n"
         + f"- 可視文字数を {ART_PULSE_TEXT_MIN_CHARS}字以上に増やす（{ART_PULSE_TEXT_MAX_CHARS}字は目安、上限は{soft_max}字まで許容）\n"
         + "- 見出し構成と節の役割（第1節=総論、第2節=主流重要、第3節=非主流重要）を維持する\n"
         + f"- 各節の可視文字数下限: 第1節{ART_PULSE_SECTION1_MIN_CHARS}字以上 / 第2節{ART_PULSE_SECTION2_MIN_CHARS}字以上 / 第3節{ART_PULSE_SECTION3_MIN_CHARS}字以上\n"
-        + "- 事実追加は禁止。payload外のURL/展示名/作家名/ギャラリー名を新規追加しない\n"
-        + "- selected_evidence は本文で実際に使っているURLだけに揃える\n"
+        + "- 新しいURLは追加しない（リンクはpayload由来URLのみ）\n"
+        + "- selected_evidence は1回目で確定したものをそのまま維持する\n"
         + "\n【前回稿の問題点】\n"
         + issue_text
         + "\n\n【前回稿】\n"
@@ -1048,7 +1073,7 @@ def _build_generation_constraints() -> str:
         "\n\n[OUTPUT HARD CONSTRAINTS]\n"
         "- Return JSON only, with keys: title, body, selected_evidence.\n"
         f"- Target body length: around {ART_PULSE_TARGET_CHARS} chars (acceptable {target_min}-{target_max}).\n"
-        f"- Body must be at least {ART_PULSE_TEXT_MIN_CHARS} chars.\n"
+        f"- Body must be at least {ART_PULSE_EXPAND_MIN_CHARS} chars.\n"
         "- Use exactly 3 sections with required headings.\n"
         "- Section1 should be trend analysis (no excessive proper nouns).\n"
         "- Section2 should include concrete Exhibition/Artist names and reasoning.\n"
@@ -1056,6 +1081,17 @@ def _build_generation_constraints() -> str:
         f"- Minimum section lengths: section1 >= {ART_PULSE_SECTION1_MIN_CHARS}, section2 >= {ART_PULSE_SECTION2_MIN_CHARS}, section3 >= {ART_PULSE_SECTION3_MIN_CHARS} chars.\n"
         "- Keep all three sections substantial; avoid short summaries.\n"
         "- Recommended length balance: Section1 25-35%, Section2 30-40%, Section3 30-40%.\n"
+        "- Keep selected_evidence aligned with URLs actually cited in body.\n"
+    )
+
+
+def _build_generation_constraints_skeleton() -> str:
+    return (
+        "\n\n[OUTPUT CONSTRAINTS: PASS1_SKELETON]\n"
+        "- Return JSON only, with keys: title, body, selected_evidence.\n"
+        "- Build a coherent 3-section skeleton first.\n"
+        "- Pass1 target length: 500-1200 chars.\n"
+        "- Do not force long length in pass1; focus on factual grounding and structure.\n"
         "- Keep selected_evidence aligned with URLs actually cited in body.\n"
     )
 
@@ -1107,7 +1143,7 @@ def _create_art_pulse_response(client, model: str, prompt: str):
     )
 
 
-def _validate_main_body_hard_soft(
+def _validate_skeleton_body_hard_soft(
     body: str,
     payload: Dict[str, object],
     selection_plan: Dict[str, Dict[str, List[str]]] | None = None,
@@ -1121,11 +1157,43 @@ def _validate_main_body_hard_soft(
         return hard_issues, soft_issues
 
     if not _has_required_structure(text):
-        soft_issues.append("3見出し構成が不足しています。")
+        hard_issues.append("3見出し構成が不足しています。")
 
     chars = _body_text_len(text)
-    if chars < ART_PULSE_TEXT_MIN_CHARS:
-        soft_issues.append(f"本文文字数が不足しています（{chars}字）。{ART_PULSE_TEXT_MIN_CHARS}字以上にしてください。")
+    if chars < ART_PULSE_PASS1_MIN_CHARS:
+        hard_issues.append(f"本文文字数が不足しています（{chars}字）。{ART_PULSE_PASS1_MIN_CHARS}字以上にしてください。")
+
+    if _count_duplicate_paragraphs(text) > 0:
+        soft_issues.append("同一段落の重複があります。重複を除去してください。")
+
+    if not _section3_has_required_mentions(text, payload):
+        soft_issues.append("第3節に Exhibition と Artist の具体名が不足しています。")
+
+    soft_issues.extend(_validate_links_against_payload(text, payload))
+
+    return hard_issues, soft_issues
+
+
+def _validate_main_body_hard_soft(
+    body: str,
+    payload: Dict[str, object],
+    selection_plan: Dict[str, Dict[str, List[str]]] | None = None,
+    fair_label: str = "",
+    min_chars: int = ART_PULSE_TEXT_MIN_CHARS,
+) -> Tuple[List[str], List[str]]:
+    hard_issues: List[str] = []
+    soft_issues: List[str] = []
+    text = (body or "").strip()
+    if not text:
+        hard_issues.append("本文が空です。")
+        return hard_issues, soft_issues
+
+    if not _has_required_structure(text):
+        hard_issues.append("3見出し構成が不足しています。")
+
+    chars = _body_text_len(text)
+    if chars < min_chars:
+        hard_issues.append(f"本文文字数が不足しています（{chars}字）。{min_chars}字以上にしてください。")
 
     soft_max = ART_PULSE_TEXT_MAX_CHARS + ART_PULSE_TEXT_SOFT_OVER_CHARS
     if chars > soft_max:
@@ -1135,7 +1203,7 @@ def _validate_main_body_hard_soft(
         soft_issues.append("同一段落の重複があります。重複を除去してください。")
 
     if not _section3_has_required_mentions(text, payload):
-        soft_issues.append("第3節に Exhibition と Artist の具体名が不足しています。")
+        hard_issues.append("第3節に Exhibition と Artist の具体名が不足しています。")
 
     soft_issues.extend(_validate_links_against_payload(text, payload))
 
@@ -1213,7 +1281,7 @@ def generate_art_pulse_draft(
             from openai import OpenAI
 
             client = OpenAI(api_key=api_key)
-            prompt = _build_prompt(fair_label, reporter, angle_label, angle_description, payload) + _build_generation_constraints()
+            prompt = _build_prompt(fair_label, reporter, angle_label, angle_description, payload) + _build_generation_constraints_skeleton()
             last_title = ""
             last_body = ""
             last_selected_plan = _empty_selection_plan()
@@ -1221,7 +1289,7 @@ def generate_art_pulse_draft(
             best_title = ""
             best_body = ""
             best_selected_plan = _empty_selection_plan()
-            best_score = (10**9, 10**9, 10**9, 10**9, 10**9)
+            best_score = (10**9, 10**9, 10**9, 10**9, 10**9, 10**9)
             max_attempts = 1
             max_expand_attempts = 2
 
@@ -1263,14 +1331,7 @@ def generate_art_pulse_draft(
                         )
                         continue
 
-                if not cand_body:
-                    salvage_title, salvage_body = _coerce_non_json_output(raw)
-                    if salvage_body:
-                        cand_title = cand_title or salvage_title
-                        cand_body = salvage_body
-                        cand_from_non_json = True
-                        warnings.append(f"attempt_{attempt}: 非JSON救済を優先して本文を採用")
-
+                cand_body = _sanitize_generated_body_text(cand_body)
                 if not cand_body:
                     retry_metrics["empty_title_body"] += 1
                     warnings.append(f"attempt_{attempt}: title/body が空です")
@@ -1287,14 +1348,14 @@ def generate_art_pulse_draft(
                     )
                     continue
 
-                cand_selection = _infer_selected_evidence_from_body(cand_body, payload)
-                if _count_selection_urls(cand_selection) == 0:
-                    cand_selection = _build_image_seed_selection(payload, overview)
+                json_selection = _parse_selected_evidence_from_json(parsed, payload)
+                body_selection = _infer_selected_evidence_from_body(cand_body, payload)
+                cand_selection = _merge_selection_plan(json_selection, body_selection)
 
                 last_title, last_body = cand_title, cand_body
                 last_selected_plan = cand_selection
 
-                hard_issues, soft_issues = _validate_main_body_hard_soft(
+                hard_issues, soft_issues = _validate_skeleton_body_hard_soft(
                     cand_body,
                     payload,
                     selection_plan=cand_selection,
@@ -1308,14 +1369,21 @@ def generate_art_pulse_draft(
                     )
                 last_issues = list(issues + soft_issues)
                 cand_chars = _body_text_len(cand_body)
+                if cand_chars < ART_PULSE_PASS1_MIN_CHARS:
+                    soft_issues.append(
+                        f"本文文字数が不足しています（{cand_chars}字）。{ART_PULSE_PASS1_MIN_CHARS}字以上にしてください。"
+                    )
+                    last_issues = list(issues + soft_issues)
                 hard_count = len(issues)
                 heading_missing = len(REQUIRED_HEADINGS) - _count_required_headings_present(cand_body)
+                char_shortage = max(0, ART_PULSE_PASS1_MIN_CHARS - cand_chars)
                 candidate_score = (
-                    hard_count,
                     heading_missing,
-                    -cand_chars,
+                    char_shortage,
+                    hard_count,
                     1 if _count_selection_urls(cand_selection) == 0 else 0,
                     1 if cand_from_non_json else 0,
+                    -cand_chars,
                 )
                 if candidate_score < best_score:
                     best_title = cand_title
@@ -1334,18 +1402,33 @@ def generate_art_pulse_draft(
                     }
                 )
 
-                if not issues:
+                minimum_ok, minimum_selection = _minimum_acceptance_gate(cand_body, overview, payload, cand_selection)
+                if minimum_ok:
+                    cand_selection = minimum_selection
+
+                if (not issues and cand_chars >= ART_PULSE_EXPAND_MIN_CHARS) or minimum_ok:
                     title, main_body = cand_title, cand_body
                     selected_plan = cand_selection
-                    mode = "openai"
+                    mode = "openai" if not issues else "openai_minimum_pass"
                     if soft_issues:
                         warnings.append(f"attempt_{attempt}: " + " / ".join(soft_issues))
+                    if issues and minimum_ok:
+                        warnings.append(
+                            f"attempt_{attempt}: minimum acceptance gate applied "
+                            f"({ART_PULSE_ACCEPT_MIN_CHARS}字以上 / 3見出し / 画像1枚以上)。"
+                        )
                     retry_metrics["success_attempt"] = attempt
                     break
 
                 _emit_progress(90)
                 retry_metrics["validation_fail"] += 1
-                warnings.append(f"attempt_{attempt}: " + " / ".join(issues + soft_issues))
+                if issues or soft_issues:
+                    warnings.append(f"attempt_{attempt}: " + " / ".join(issues + soft_issues))
+                else:
+                    warnings.append(
+                        f"attempt_{attempt}: pass1 draft below expand threshold "
+                        f"({cand_chars} < {ART_PULSE_EXPAND_MIN_CHARS})."
+                    )
 
             if not main_body:
                 if (
@@ -1356,6 +1439,13 @@ def generate_art_pulse_draft(
                     )
                     and max_expand_attempts > 0
                 ):
+                    locked_selection_plan = last_selected_plan
+                    if _count_selection_urls(locked_selection_plan) == 0:
+                        locked_selection_plan = _merge_selection_plan(
+                            locked_selection_plan,
+                            _build_image_seed_selection(payload, overview),
+                        )
+                    locked_body_urls = set(_extract_urls_from_body_text(last_body))
                     expand_prompt = _build_expansion_prompt(
                         fair_label=fair_label,
                         reporter=reporter,
@@ -1364,7 +1454,7 @@ def generate_art_pulse_draft(
                         payload=payload,
                         previous_title=last_title,
                         previous_body=last_body,
-                        previous_selected_evidence=last_selected_plan,
+                        previous_selected_evidence=locked_selection_plan,
                         issues=last_issues,
                     )
                     expand_prompt += _build_generation_constraints()
@@ -1392,30 +1482,25 @@ def generate_art_pulse_draft(
                             else:
                                 continue
 
-                        if not cand_body:
-                            salvage_title, salvage_body = _coerce_non_json_output(raw)
-                            if salvage_body:
-                                cand_title = cand_title or salvage_title
-                                cand_body = salvage_body
-                                cand_from_non_json = True
-                                warnings.append(f"expand_attempt_{expand_attempt}: 非JSON救済を優先して本文を採用")
-
+                        cand_body = _sanitize_generated_body_text(cand_body)
                         if not cand_body:
                             retry_metrics["empty_title_body"] += 1
                             warnings.append(f"expand_attempt_{expand_attempt}: title/body が空です")
                             continue
 
-                        cand_selection = _infer_selected_evidence_from_body(cand_body, payload)
-                        if _count_selection_urls(cand_selection) == 0:
-                            cand_selection = _build_image_seed_selection(payload, overview)
-                        last_title, last_body = cand_title, cand_body
-                        last_selected_plan = cand_selection
+                        cand_selection = locked_selection_plan
+                        cand_body_urls = set(_extract_urls_from_body_text(cand_body))
+                        if locked_body_urls and cand_body_urls != locked_body_urls:
+                            warnings.append(
+                                f"expand_attempt_{expand_attempt}: URL変更を検知（selected_evidence固定のまま本文のみ採用判定を継続）。"
+                            )
 
                         hard_issues, soft_issues = _validate_main_body_hard_soft(
                             cand_body,
                             payload,
                             selection_plan=cand_selection,
                             fair_label=fair_label,
+                            min_chars=ART_PULSE_EXPAND_MIN_CHARS,
                         )
                         issues = list(hard_issues)
                         if _count_selection_urls(cand_selection) == 0:
@@ -1427,12 +1512,14 @@ def generate_art_pulse_draft(
                         cand_chars = _body_text_len(cand_body)
                         hard_count = len(issues)
                         heading_missing = len(REQUIRED_HEADINGS) - _count_required_headings_present(cand_body)
+                        char_shortage = max(0, ART_PULSE_EXPAND_MIN_CHARS - cand_chars)
                         candidate_score = (
-                            hard_count,
                             heading_missing,
-                            -cand_chars,
+                            char_shortage,
+                            hard_count,
                             1 if _count_selection_urls(cand_selection) == 0 else 0,
                             1 if cand_from_non_json else 0,
+                            -cand_chars,
                         )
                         if candidate_score < best_score:
                             best_title = cand_title
@@ -1440,12 +1527,21 @@ def generate_art_pulse_draft(
                             best_selected_plan = cand_selection
                             best_score = candidate_score
 
-                        if not issues:
+                        minimum_ok, minimum_selection = _minimum_acceptance_gate(cand_body, overview, payload, cand_selection)
+                        if minimum_ok:
+                            cand_selection = minimum_selection
+
+                        if not issues or minimum_ok:
                             title, main_body = cand_title, cand_body
-                            selected_plan = cand_selection
-                            mode = "openai_expand"
+                            selected_plan = locked_selection_plan
+                            mode = "openai_expand" if not issues else "openai_minimum_pass"
                             if soft_issues:
                                 warnings.append(f"expand_attempt_{expand_attempt}: " + " / ".join(soft_issues))
+                            if issues and minimum_ok:
+                                warnings.append(
+                                    f"expand_attempt_{expand_attempt}: minimum acceptance gate applied "
+                                    f"({ART_PULSE_ACCEPT_MIN_CHARS}字以上 / 3見出し / 画像1枚以上)。"
+                                )
                             retry_metrics["success_attempt"] = max_attempts + expand_attempt
                             break
 
@@ -1460,15 +1556,21 @@ def generate_art_pulse_draft(
                             payload=payload,
                             previous_title=cand_title,
                             previous_body=cand_body,
-                            previous_selected_evidence=cand_selection,
+                            previous_selected_evidence=locked_selection_plan,
                             issues=issues,
                         )
 
                 if not main_body:
                     title = last_title or f"{fair_label}のArt Pulse（{angle_label}）"
                     mode = "openai_validation_hold"
-                    fallback_body = (best_body or last_body or "").strip()
-                    if fallback_body:
+                    fallback_body = _sanitize_generated_body_text((best_body or last_body or "").strip())
+                    fallback_chars = _body_text_len(fallback_body)
+                    fallback_has_structure = _count_required_headings_present(fallback_body) == len(REQUIRED_HEADINGS)
+                    if (
+                        fallback_body
+                        and fallback_has_structure
+                        and fallback_chars >= ART_PULSE_VALIDATION_HOLD_MIN_CHARS
+                    ):
                         main_body = fallback_body
                         selected_plan = best_selected_plan if best_body else last_selected_plan
                         title = best_title or title
@@ -1476,6 +1578,12 @@ def generate_art_pulse_draft(
                     else:
                         selected_plan = last_selected_plan
                         main_body = ""
+                        if fallback_body and not fallback_has_structure:
+                            warnings.append("validation_hold: best available draft was rejected (missing required 3 headings).")
+                        elif fallback_body and fallback_chars < ART_PULSE_VALIDATION_HOLD_MIN_CHARS:
+                            warnings.append(
+                                f"validation_hold: best available draft was rejected (body chars {fallback_chars} < {ART_PULSE_VALIDATION_HOLD_MIN_CHARS})."
+                            )
                         warnings.append("本文を生成できませんでした。設定を確認して再実行してください。")
         except Exception as exc:
             mode = "openai_error"
@@ -1483,6 +1591,8 @@ def generate_art_pulse_draft(
 
     if not title:
         title = f"{fair_label}のArt Pulse（{angle_label}）"
+
+    rendered_image_count = 0
 
     if main_body and _count_selection_urls(selected_plan) == 0:
         seeded = _build_image_seed_selection(payload, overview)
@@ -1501,6 +1611,7 @@ def generate_art_pulse_draft(
                 buckets = _build_section_image_buckets(overview, selected_plan)
                 if sum(len(bucket) for bucket in buckets) > 0:
                     warnings.append("image fallback: merged image-capable urls into selected_evidence.")
+        rendered_image_count = sum(len(bucket) for bucket in buckets)
         main_body = _inject_images_into_sections(main_body, buckets)
     else:
         main_body = "本文を生成できませんでした。設定を確認して再実行してください。"
@@ -1563,6 +1674,7 @@ def generate_art_pulse_draft(
             "metrics": {
                 "first_pass_success": first_pass_success,
                 "body_chars": body_chars,
+                "has_images_rendered": rendered_image_count > 0,
                 "elapsed_ms_total": elapsed_ms_total,
                 "elapsed_ms_openai": openai_elapsed_ms,
                 "mode": mode,

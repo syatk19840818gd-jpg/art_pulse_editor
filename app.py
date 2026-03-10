@@ -988,19 +988,6 @@ def render_art_pulse() -> None:
     st.markdown(f"### {draft.get('title', 'Art Pulse')}")
     _render_markdown_with_galleries(draft.get("body", ""), local_lookup)
     st.caption(f"本文文字数（Source行を除く）: {int(draft.get('body_chars', 0))} / 2000")
-    debug_info = draft.get("debug", {})
-    if isinstance(debug_info, dict):
-        with st.expander("デバッグ（Art Pulse）", expanded=False):
-            st.write(
-                {
-                    "mode": draft.get("mode", ""),
-                    "retry_metrics": draft.get("retry_metrics", {}),
-                    "warnings": draft.get("warnings", []),
-                }
-            )
-            trace_rows = list(debug_info.get("attempt_trace", []) or [])
-            if trace_rows:
-                st.dataframe(trace_rows, use_container_width=True, hide_index=True, height=180)
     st.markdown("**記者への質問**")
     artpulse_seed_q = _sanitize_exhibition_followup_seed(
         st.session_state.get("artpulse_followup_question", "")
