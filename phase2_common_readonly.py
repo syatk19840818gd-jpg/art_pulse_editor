@@ -1,9 +1,17 @@
 from __future__ import annotations
 
 import json
+import os
 import re
+import tempfile
+from functools import lru_cache
 from pathlib import Path
 from typing import Dict, List, Tuple
+
+try:
+    import boto3
+except Exception:
+    boto3 = None
 
 REPO_ROOT = Path(__file__).resolve().parent
 
@@ -47,9 +55,96 @@ def resolve_fair_slugs(fair_label: str) -> List[str]:
     return ["frieze_london", "liste"]
 
 
+def _get_env_value(*keys: str) -> str:
+    for key in keys:
+        value = os.getenv(key, "").strip()
+        if value:
+            return value
+    return ""
+
+
+@lru_cache(maxsize=1)
+def _get_r2_runtime() -> tuple[object | None, str]:
+    if boto3 is None:
+        return None, ""
+    endpoint = _get_env_value("R2_ENDPOINT", "R2_ENDPOINT_URL", "R2_S3_ENDPOINT")
+    bucket = _get_env_value("R2_BUCKET")
+    access_key = _get_env_value("R2_ACCESS_KEY_ID")
+    secret_key = _get_env_value("R2_SECRET_ACCESS_KEY")
+    region = _get_env_value("R2_REGION") or "auto"
+    if not endpoint or not bucket or not access_key or not secret_key:
+        return None, ""
+    try:
+        client = boto3.client(
+            "s3",
+            endpoint_url=endpoint,
+            aws_access_key_id=access_key,
+            aws_secret_access_key=secret_key,
+            region_name=region,
+        )
+        return client, bucket
+    except Exception:
+        return None, ""
+
+
+def _local_path_to_r2_key(path: Path) -> str:
+    try:
+        rel = path.resolve().relative_to(REPO_ROOT).as_posix()
+    except Exception:
+        rel = path.as_posix()
+
+    if rel.startswith("data/phase1_seed10/raw/"):
+        return "phase1_seed10/source/" + rel[len("data/phase1_seed10/raw/") :]
+    if rel.startswith("data/phase1_seed10/derived/"):
+        return "phase1_seed10/derived/" + rel[len("data/phase1_seed10/derived/") :]
+    if rel.startswith("data/Tarutani_data/"):
+        return rel
+    if rel.startswith("data/gallery_lists/"):
+        return rel
+    if rel.startswith("docs/"):
+        return rel
+    return ""
+
+
+def _download_r2_object_to_local(path: Path, r2_key: str) -> bool:
+    client, bucket = _get_r2_runtime()
+    if client is None or not bucket or not r2_key:
+        return False
+    try:
+        head = client.head_object(Bucket=bucket, Key=r2_key)
+    except Exception:
+        return False
+
+    remote_size = int(head.get("ContentLength") or 0)
+    try:
+        if path.exists() and path.stat().st_size == remote_size:
+            return True
+    except OSError:
+        pass
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = ""
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, dir=str(path.parent), suffix=".tmp") as tmp:
+            tmp_path = tmp.name
+            client.download_fileobj(bucket, r2_key, tmp)
+        os.replace(tmp_path, path)
+        return True
+    except Exception:
+        if tmp_path:
+            try:
+                Path(tmp_path).unlink(missing_ok=True)
+            except Exception:
+                pass
+        return False
+
+
 def safe_load_jsonl(path: Path) -> Tuple[List[dict], List[str]]:
     rows: List[dict] = []
     warnings: List[str] = []
+    r2_key = _local_path_to_r2_key(path)
+    if r2_key:
+        _download_r2_object_to_local(path, r2_key)
     if not path.exists():
         warnings.append(f"missing: {path}")
         return rows, warnings
@@ -100,4 +195,3 @@ def derive_artist_name(source_url: str, fallback: str = "") -> str:
         return "(unknown artist)"
     last = url.split("/")[-1].replace("-", " ").strip()
     return last or "(unknown artist)"
-

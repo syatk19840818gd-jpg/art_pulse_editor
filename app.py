@@ -1,7 +1,15 @@
+﻿import os
 import re
+import mimetypes
+from base64 import b64encode
 from html import escape
+from pathlib import Path
 
 import streamlit as st
+try:
+    import boto3
+except Exception:
+    boto3 = None
 
 from phase2_art_pulse_config import PERSONAS
 from phase2_art_pulse_draft import generate_art_pulse_draft
@@ -210,19 +218,38 @@ def apply_global_font_styles() -> None:
           gap: 0.35rem;
         }
         .ap-gallery-thumb {
-          display: block;
+          display: flex;
+          align-items: center;
+          justify-content: center;
           width: 100%;
-          aspect-ratio: 4 / 3;
+          height: 260px;
           overflow: hidden;
           border-radius: 10px;
           border: 1px solid #d9dbe2;
           background: #f4f6fb;
         }
         .ap-gallery-thumb img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
+          width: auto;
+          height: auto;
+          max-width: 100%;
+          max-height: 100%;
+          object-fit: contain;
           display: block;
+        }
+        .ap-gallery-fallback {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          height: 260px;
+          border-radius: 10px;
+          border: 1px solid #d9dbe2;
+          background: #f4f6fb;
+          color: #5f6b7a;
+          font-size: 0.86rem;
+          line-height: 1.45;
+          text-align: center;
+          padding: 0.8rem;
         }
         .ap-gallery-source {
           font-size: 0.83rem;
@@ -235,8 +262,9 @@ def apply_global_font_styles() -> None:
             grid-template-columns: 1fr;
             gap: 0.75rem;
           }
-          .ap-gallery-thumb {
-            aspect-ratio: 16 / 10;
+          .ap-gallery-thumb,
+          .ap-gallery-fallback {
+            height: 220px;
           }
         }
         .exh-search-grid {
@@ -423,44 +451,211 @@ def _split_markdown_and_image_blocks(markdown_text: str):
     return blocks
 
 
-def _render_responsive_image_gallery(images: list[dict]) -> None:
+def _get_runtime_secret(*keys: str) -> str:
+    for key in keys:
+        value = os.getenv(key, "").strip()
+        if value:
+            return value
+    try:
+        secrets = st.secrets
+    except Exception:
+        secrets = None
+    if secrets is None:
+        return ""
+    for key in keys:
+        try:
+            value = str(secrets.get(key, "")).strip()
+        except Exception:
+            value = ""
+        if value:
+            return value
+    return ""
+
+
+def _get_r2_settings() -> dict[str, str]:
+    return {
+        "endpoint": _get_runtime_secret("R2_ENDPOINT", "R2_ENDPOINT_URL", "R2_S3_ENDPOINT"),
+        "bucket": _get_runtime_secret("R2_BUCKET"),
+        "access_key": _get_runtime_secret("R2_ACCESS_KEY_ID"),
+        "secret_key": _get_runtime_secret("R2_SECRET_ACCESS_KEY"),
+        "region": _get_runtime_secret("R2_REGION") or "auto",
+    }
+
+
+@st.cache_resource(show_spinner=False)
+def _get_r2_s3_client():
+    if boto3 is None:
+        return None
+    settings = _get_r2_settings()
+    if not settings["endpoint"] or not settings["access_key"] or not settings["secret_key"]:
+        return None
+    try:
+        return boto3.client(
+            "s3",
+            endpoint_url=settings["endpoint"],
+            aws_access_key_id=settings["access_key"],
+            aws_secret_access_key=settings["secret_key"],
+            region_name=settings["region"],
+        )
+    except Exception:
+        return None
+
+
+@st.cache_data(show_spinner=False, ttl=1800)
+def _resolve_existing_r2_key(r2_key: str) -> str:
+    key = str(r2_key or "").strip().lstrip("/")
+    if not key:
+        return ""
+    client = _get_r2_s3_client()
+    settings = _get_r2_settings()
+    bucket = settings.get("bucket", "")
+    if client is None or not bucket:
+        return ""
+    candidates = [key]
+    if key.startswith("data/phase1_seed10/"):
+        candidates.append(key[len("data/") :])
+    elif key.startswith("data/"):
+        candidates.append(key[len("data/") :])
+    for cand in candidates:
+        try:
+            client.head_object(Bucket=bucket, Key=cand)
+            return cand
+        except Exception:
+            continue
+    return ""
+
+
+@st.cache_data(show_spinner=False, ttl=1800)
+def _presign_r2_get_url(r2_key: str) -> str:
+    resolved_key = _resolve_existing_r2_key(r2_key)
+    if not resolved_key:
+        return ""
+    client = _get_r2_s3_client()
+    settings = _get_r2_settings()
+    bucket = settings.get("bucket", "")
+    if client is None or not bucket:
+        return ""
+    try:
+        return str(
+            client.generate_presigned_url(
+                ClientMethod="get_object",
+                Params={"Bucket": bucket, "Key": resolved_key},
+                ExpiresIn=1800,
+            )
+        )
+    except Exception:
+        return ""
+
+
+@st.cache_data(show_spinner=False, ttl=1800)
+def _local_image_path_to_data_uri(path_text: str) -> str:
+    path = Path(str(path_text or "").strip())
+    if not path.exists() or not path.is_file():
+        return ""
+    try:
+        mime = mimetypes.guess_type(str(path))[0] or "image/jpeg"
+        raw = path.read_bytes()
+        return f"data:{mime};base64,{b64encode(raw).decode('ascii')}"
+    except Exception:
+        return ""
+
+
+def _build_art_pulse_local_image_lookup(overview: dict) -> dict[str, dict[str, dict[str, str]]]:
+    by_source: dict[str, dict[str, str]] = {}
+    by_image_url: dict[str, dict[str, str]] = {}
+
+    def _upsert(target: dict[str, dict[str, str]], key: str, ref: dict[str, str]) -> None:
+        if not key:
+            return
+        current = dict(target.get(key, {}) or {})
+        if not current:
+            target[key] = ref
+            return
+        if not current.get("r2_key") and ref.get("r2_key"):
+            target[key] = ref
+            return
+        if not current.get("local_path") and ref.get("local_path"):
+            target[key] = ref
+
+    plan = dict(overview.get("image_reference_plan", {}) or {})
+    for key in ("exhibition_image_candidates", "artist_image_candidates"):
+        for row in list(plan.get(key, []) or []):
+            source_url = str(row.get("source_url") or "").strip()
+            image_url = str(row.get("image_url") or "").strip()
+            r2_key = str(row.get("r2_key") or "").strip()
+            local_path_raw = str(row.get("local_path") or "").strip()
+            local_path = ""
+            if local_path_raw:
+                local_file = Path(local_path_raw).expanduser()
+                if local_file.exists():
+                    local_path = str(local_file)
+            ref = {"r2_key": r2_key, "local_path": local_path}
+            _upsert(by_source, source_url, ref)
+            _upsert(by_image_url, image_url, ref)
+
+    return {"by_source": by_source, "by_image_url": by_image_url}
+
+
+def _resolve_art_pulse_image_ref(item: dict, local_lookup: dict[str, dict[str, dict[str, str]]]) -> dict[str, str]:
+    by_source = dict(local_lookup.get("by_source", {}) or {})
+    by_image_url = dict(local_lookup.get("by_image_url", {}) or {})
+    source_url = str(item.get("source_url") or "").strip()
+    image_url = str(item.get("image_url") or "").strip()
+    ref = dict(by_source.get(source_url) or by_image_url.get(image_url) or {})
+    r2_key = str(ref.get("r2_key") or "").strip()
+    local_path = str(ref.get("local_path") or "").strip()
+    if local_path and not Path(local_path).exists():
+        local_path = ""
+    return {"r2_key": r2_key, "local_path": local_path}
+
+
+def _render_responsive_image_gallery(images: list[dict], local_lookup: dict[str, dict[str, dict[str, str]]]) -> None:
     if not images:
         return
-    html_items = []
+    html_items: list[str] = []
     for item in images:
-        image_url = str(item.get("image_url") or "").strip()
         source_url = str(item.get("source_url") or "").strip()
-        alt = escape(str(item.get("alt") or "reference"))
-        if not image_url:
-            continue
-        safe_img = escape(image_url, quote=True)
+        image_ref = _resolve_art_pulse_image_ref(item, local_lookup)
+        r2_url = _presign_r2_get_url(str(image_ref.get("r2_key") or ""))
+        local_path = str(image_ref.get("local_path") or "").strip()
+        image_url = r2_url or _local_image_path_to_data_uri(local_path)
         safe_src = escape(source_url, quote=True)
+
+        if image_url:
+            safe_img = escape(image_url, quote=True)
+            image_html = (
+                f'<a class="ap-gallery-thumb" href="{safe_img}" target="_blank" rel="noopener noreferrer" '
+                'title="画像を拡大表示">'
+                f'<img src="{safe_img}" alt="reference image" loading="lazy" /></a>'
+            )
+        else:
+            image_html = '<div class="ap-gallery-fallback">参考画像は未取得です。<br>Sourceから確認できます。</div>'
+
         source_html = (
-            f'<div class="ap-gallery-source">Source: <a href="{safe_src}" target="_blank">{safe_src}</a></div>'
+            f'<div class="ap-gallery-source">Source: <a href="{safe_src}" target="_blank" rel="noopener noreferrer">{safe_src}</a></div>'
             if source_url
             else '<div class="ap-gallery-source">Source: (not available)</div>'
         )
+
         html_items.append(
             (
                 '<div class="ap-gallery-item">'
-                f'<a class="ap-gallery-thumb" href="{safe_img}" target="_blank" title="画像を拡大表示">'
-                f'<img src="{safe_img}" alt="{alt}" loading="lazy" />'
-                "</a>"
+                f"{image_html}"
                 f"{source_html}"
                 "</div>"
             )
         )
-    if not html_items:
-        return
-    st.markdown(f'<div class="ap-gallery">{"".join(html_items)}</div>', unsafe_allow_html=True)
+
+    if html_items:
+        st.markdown(f'<div class="ap-gallery">{"".join(html_items)}</div>', unsafe_allow_html=True)
 
 
-def _render_markdown_with_galleries(markdown_text: str) -> None:
+def _render_markdown_with_galleries(markdown_text: str, local_lookup: dict[str, dict[str, dict[str, str]]]) -> None:
     for kind, payload in _split_markdown_and_image_blocks(markdown_text):
         if kind == "markdown":
             st.markdown(payload)
         else:
-            _render_responsive_image_gallery(payload)
+            _render_responsive_image_gallery(payload, local_lookup)
 
 
 def _render_exhibition_result_cards(rows: list[dict]) -> None:
@@ -471,11 +666,16 @@ def _render_exhibition_result_cards(rows: list[dict]) -> None:
         safe_src = escape(source_url, quote=True)
         summary = escape(str(row.get("summary_display_ja") or "\u672a\u4ed8\u4e0e"))
 
-        image_url = str(row.get("image_preview") or "").strip()
+        image_url = _presign_r2_get_url(str(row.get("image_preview_r2_key") or ""))
+        if not image_url:
+            image_url = _local_image_path_to_data_uri(str(row.get("image_preview") or ""))
         if not image_url:
             reference_images = list(row.get("reference_images") or [])
             if reference_images:
-                image_url = str((reference_images[0] or {}).get("image_url") or "").strip()
+                ref0 = reference_images[0] or {}
+                image_url = _presign_r2_get_url(str(ref0.get("r2_key") or ""))
+                if not image_url:
+                    image_url = _local_image_path_to_data_uri(str(ref0.get("local_path") or ""))
 
         if image_url:
             safe_img = escape(image_url, quote=True)
@@ -532,6 +732,55 @@ def _build_exhibition_followup_context(rows: list[dict]) -> dict:
         "summary_ja": " ".join(summaries[:3]),
         "text": "\n".join(texts[:3]),
         "source_url": source_urls[0] if source_urls else "",
+    }
+
+
+def _build_art_pulse_followup_context(overview: dict, draft: dict) -> dict:
+    ex_rows = list(overview.get("exhibition_candidates", []) or [])
+    ar_rows = list(overview.get("artist_candidates", []) or [])
+
+    galleries = [
+        str(row.get("gallery") or "").strip()
+        for row in ex_rows + ar_rows
+        if str(row.get("gallery") or "").strip()
+    ]
+    artists = [
+        str(row.get("artist") or row.get("artist_name_en") or "").strip()
+        for row in ar_rows
+        if str(row.get("artist") or row.get("artist_name_en") or "").strip()
+    ]
+
+    evidence_urls = list(((draft.get("evidence_urls") or {}).get("all") or [])[:3])
+    source_url = ""
+    for url in evidence_urls:
+        value = str(url or "").strip()
+        if value:
+            source_url = value
+            break
+    if not source_url:
+        for row in ex_rows + ar_rows:
+            value = str(row.get("source_url") or "").strip()
+            if value:
+                source_url = value
+                break
+
+    title = str(draft.get("title") or "Art Pulse").strip() or "Art Pulse"
+    fair = str(draft.get("fair_label") or (overview.get("selection") or {}).get("fair_label") or "").strip()
+    body = str(draft.get("body") or "").strip()
+    body_no_images = re.sub(r"!\[[^\]]*\]\([^)]+\)", "", body)
+    body_no_sources = "\n".join(
+        line for line in body_no_images.splitlines() if not str(line).strip().startswith("Source:")
+    ).strip()
+    summary = body_no_sources[:500]
+
+    return {
+        "exhibition_title": title,
+        "gallery_name": " / ".join(galleries[:3]),
+        "fair_label": fair,
+        "artist_names": " / ".join(artists[:3]),
+        "summary_ja": summary,
+        "text": body_no_sources[:1600],
+        "source_url": source_url,
     }
 
 
@@ -642,7 +891,7 @@ def _render_reference_image_candidates(
 
 def render_art_pulse() -> None:
     _render_mode_heading("① Art Pulse")
-    _render_mode_explanation("アート編集記者が「現代アートの今（Now）」を取材した記事を書く")
+    _render_mode_explanation("アート編集記者が「現代アートの今（Now）」を取材し、記事を執筆する")
 
     col1, col2 = st.columns([1, 1])
     fair_mode = col1.selectbox(
@@ -702,7 +951,7 @@ def render_art_pulse() -> None:
         def _on_progress(pct: int) -> None:
             safe_pct = max(0, min(100, int(pct)))
             if safe_pct >= 100:
-                _render_progress_row("Done", active=False)
+                _render_progress_row("執筆完了", active=False)
                 waiting_line.empty()
                 return
             _render_progress_row(f"{safe_pct}%", active=True)
@@ -733,15 +982,51 @@ def render_art_pulse() -> None:
     if not result:
         return
 
+    overview = result.get("overview", {})
     draft = result.get("draft", {})
+    local_lookup = _build_art_pulse_local_image_lookup(overview if isinstance(overview, dict) else {})
     st.markdown(f"### {draft.get('title', 'Art Pulse')}")
-    _render_markdown_with_galleries(draft.get("body", ""))
-    st.caption(f"本文文字数（画像/Source行を除く）: {int(draft.get('body_chars', 0))} / 2000")
-    warnings = list(draft.get("warnings", []) or [])
-    if warnings:
-        with st.expander("警告/注記（Art Pulse）", expanded=False):
-            for warning in warnings:
-                st.write(f"- {warning}")
+    _render_markdown_with_galleries(draft.get("body", ""), local_lookup)
+    st.caption(f"本文文字数（Source行を除く）: {int(draft.get('body_chars', 0))} / 2000")
+    debug_info = draft.get("debug", {})
+    if isinstance(debug_info, dict):
+        with st.expander("デバッグ（Art Pulse）", expanded=False):
+            st.write(
+                {
+                    "mode": draft.get("mode", ""),
+                    "retry_metrics": draft.get("retry_metrics", {}),
+                    "warnings": draft.get("warnings", []),
+                }
+            )
+            trace_rows = list(debug_info.get("attempt_trace", []) or [])
+            if trace_rows:
+                st.dataframe(trace_rows, use_container_width=True, hide_index=True, height=180)
+    st.markdown("**記者への質問**")
+    artpulse_seed_q = _sanitize_exhibition_followup_seed(
+        st.session_state.get("artpulse_followup_question", "")
+    )
+    if artpulse_seed_q != st.session_state.get("artpulse_followup_question", ""):
+        st.session_state["artpulse_followup_question"] = artpulse_seed_q
+    artpulse_followup_q = st.text_area(
+        "",
+        value=artpulse_seed_q,
+        placeholder="例: このArt Pulse記事の見どころを、初心者向けに3点で教えてください。",
+        key="artpulse_followup_question",
+        height=90,
+        label_visibility="collapsed",
+    )
+    if st.button("質問する", key="artpulse_followup_run"):
+        artpulse_context = _build_art_pulse_followup_context(
+            overview if isinstance(overview, dict) else {},
+            draft if isinstance(draft, dict) else {},
+        )
+        artpulse_answer = answer_exhibition_followup(artpulse_followup_q, artpulse_context)
+        st.session_state["artpulse_followup_answer"] = artpulse_answer
+
+    artpulse_followup_answer = str(st.session_state.get("artpulse_followup_answer", "") or "").strip()
+    if artpulse_followup_answer:
+        st.markdown("**追加質問への回答**")
+        st.write(artpulse_followup_answer)
 
 
 def render_exhibition_search() -> None:
@@ -767,16 +1052,6 @@ def render_exhibition_search() -> None:
         placeholder="例: Adams and Ollman / Antonia Kuo / https://adamsandollman.com/Antonia-Kuo-Subcycle",
         key="exh_keyword",
     )
-    uploaded_image = st.file_uploader(
-        "画像添付（任意）",
-        type=["png", "jpg", "jpeg", "webp"],
-        key="exh_uploaded_image",
-    )
-    image_hint_text = ""
-    if uploaded_image is not None:
-        image_hint_text = str(getattr(uploaded_image, "name", "") or "").strip()
-        if image_hint_text:
-            st.caption(f"画像名: {image_hint_text}（ファイル名を検索補助に利用）")
     search_clicked = st.button("Search", key="exh_search_button")
 
     results_key = "exh_search_results"
@@ -784,14 +1059,12 @@ def render_exhibition_search() -> None:
     current_query = {
         "fair": fair_mode,
         "keyword": (keyword or "").strip(),
-        "image_hint": image_hint_text,
     }
     if search_clicked:
         st.session_state[results_key] = search_exhibitions(
             data.records,
             fair_mode,
             current_query["keyword"],
-            image_hint_text=image_hint_text,
         )
         st.session_state[query_key] = current_query
 
@@ -801,14 +1074,7 @@ def render_exhibition_search() -> None:
         st.caption("Searchを押すと、検索上位3件を表示します。")
         return
     if last_query != current_query:
-        st.caption("検索条件が変更されています。Searchを押して更新してください。")
-
-    st.caption(
-        f"件数: 読込={data.total_rows} / 表示={len(filtered)} / "
-        f"frieze={data.fair_rows.get('frieze_london', 0)} / liste={data.fair_rows.get('liste', 0)}"
-    )
-    st.caption(f"注記: {data.count_note}")
-
+        return
     if data.warnings:
         with st.expander("警告/注記（Exhibition Search）", expanded=False):
             for warning in data.warnings[:20]:

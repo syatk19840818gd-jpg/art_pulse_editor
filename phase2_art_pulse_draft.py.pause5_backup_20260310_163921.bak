@@ -4,7 +4,6 @@ import json
 import logging
 import os
 import re
-import time
 import unicodedata
 from typing import Callable, Dict, List, Tuple
 from urllib.parse import parse_qs, quote_plus, urlparse
@@ -23,11 +22,6 @@ ART_PULSE_TEXT_SOFT_OVER_CHARS = 200
 ART_PULSE_TARGET_CHARS = 1900
 ART_PULSE_TARGET_TOLERANCE = 100
 ART_PULSE_EXPAND_TRIGGER_CHARS = 1700
-ART_PULSE_PAYLOAD_CANDIDATE_CAP = 18
-ART_PULSE_PROMPT_EXHIBITION_ROWS = 12
-ART_PULSE_PROMPT_ARTIST_ROWS = 12
-ART_PULSE_PROMPT_SNIPPET_CHARS = 72
-ART_PULSE_MAX_OUTPUT_TOKENS = 3600
 logger = logging.getLogger(__name__)
 
 REQUIRED_HEADINGS = [
@@ -768,11 +762,11 @@ def _build_prompt(
     )
     ex_lines = [
         f"- fair={row.get('fair')} | gallery={row.get('gallery')} | title={row.get('title')} | source_url={row.get('source_url')}"
-        for row in list(payload.get("exhibition_rows", []))[:ART_PULSE_PROMPT_EXHIBITION_ROWS]
+        for row in list(payload.get("exhibition_rows", []))
     ]
     ar_lines = [
-        f"- fair={row.get('fair')} | gallery={row.get('gallery')} | artist={row.get('artist_name_en')} | source_url={row.get('source_url')} | text_snippet={str(row.get('text_snippet') or '')[:ART_PULSE_PROMPT_SNIPPET_CHARS]}"
-        for row in list(payload.get("artist_rows", []))[:ART_PULSE_PROMPT_ARTIST_ROWS]
+        f"- fair={row.get('fair')} | gallery={row.get('gallery')} | artist={row.get('artist_name_en')} | source_url={row.get('source_url')} | text_snippet={str(row.get('text_snippet') or '')[:120]}"
+        for row in list(payload.get("artist_rows", []))
     ]
     return f"""
 あなたは日本語の現代アート編集者です。以下のRAG根拠を主軸に Art Pulse 記事を作成してください。
@@ -1081,8 +1075,6 @@ def _build_generation_constraints() -> str:
         "- Section1 should be trend analysis (no excessive proper nouns).\n"
         "- Section2 should include concrete Exhibition/Artist names and reasoning.\n"
         "- Section3 should include at least one concrete Exhibition and one Artist.\n"
-        "- Keep all three sections substantial; avoid short summaries.\n"
-        "- Recommended length balance: Section1 25-35%, Section2 30-40%, Section3 30-40%.\n"
         "- Keep selected_evidence aligned with URLs actually cited in body.\n"
     )
 
@@ -1122,7 +1114,7 @@ def _create_art_pulse_response(client, model: str, prompt: str):
     return client.responses.create(
         model=model,
         input=prompt,
-        max_output_tokens=ART_PULSE_MAX_OUTPUT_TOKENS,
+        max_output_tokens=3200,
         text={
             "format": {
                 "type": "json_schema",
@@ -1201,9 +1193,6 @@ def generate_art_pulse_draft(
     angle_keys: List[str],
     progress_callback: Callable[[int], None] | None = None,
 ) -> Dict[str, object]:
-    started_at = time.perf_counter()
-    openai_elapsed_ms = 0
-
     def _emit_progress(pct: int) -> None:
         if progress_callback:
             try:
@@ -1216,7 +1205,7 @@ def generate_art_pulse_draft(
     reporter = find_persona(reporter_id)
     angle_key, angle_label, angle_description = _pick_angle(reporter, angle_keys)
     _emit_progress(30)
-    payload = _build_evidence_payload(overview, cap=ART_PULSE_PAYLOAD_CANDIDATE_CAP)
+    payload = _build_evidence_payload(overview)
 
     model = os.getenv("TEXT_MODEL", "gpt-5-mini")
     api_key = os.getenv("OPENAI_API_KEY", "").strip()
@@ -1249,11 +1238,6 @@ def generate_art_pulse_draft(
             last_body = ""
             last_selected_plan = _empty_selection_plan()
             last_issues: List[str] = []
-            best_title = ""
-            best_body = ""
-            best_selected_plan = _empty_selection_plan()
-            best_hard_issue_count = 10**9
-            best_body_chars = -1
             max_attempts = 1
             max_expand_attempts = 1
 
@@ -1262,9 +1246,7 @@ def generate_art_pulse_draft(
                 attempt_pct = 35 + int(((attempt - 1) / max_attempts) * 50)
                 _emit_progress(attempt_pct)
                 retry_metrics["attempts_total"] += 1
-                _openai_t0 = time.perf_counter()
                 response = _create_art_pulse_response(client, model, prompt)
-                openai_elapsed_ms += int((time.perf_counter() - _openai_t0) * 1000)
                 raw = (response.output_text or "").strip()
                 parsed: Dict[str, object] = {}
                 try:
@@ -1329,20 +1311,12 @@ def generate_art_pulse_draft(
                         "selected_evidence が本文に対応していません。本文で参照したURLを selected_evidence に必ず入れてください。"
                     )
                 last_issues = list(issues + soft_issues)
-                cand_chars = _body_text_len(cand_body)
-                hard_count = len(issues)
-                if hard_count < best_hard_issue_count or (hard_count == best_hard_issue_count and cand_chars > best_body_chars):
-                    best_title = cand_title
-                    best_body = cand_body
-                    best_selected_plan = cand_selection
-                    best_hard_issue_count = hard_count
-                    best_body_chars = cand_chars
                 debug_trace.append(
                     {
                         "stage": "attempt",
                         "attempt": attempt,
                         "status": "validated" if not issues else "validation_fail",
-                        "chars": cand_chars,
+                        "chars": _body_text_len(cand_body),
                         "issue_count": len(issues) + len(soft_issues),
                         "hard_issues": list(issues[:8]),
                         "soft_issues": list(soft_issues[:8]),
@@ -1380,9 +1354,7 @@ def generate_art_pulse_draft(
                         _emit_progress(88 + int((expand_attempt / max_expand_attempts) * 6))
                         retry_metrics["attempts_total"] += 1
                         retry_metrics["expand_attempts_total"] += 1
-                        _openai_t0 = time.perf_counter()
                         response = _create_art_pulse_response(client, model, expand_prompt)
-                        openai_elapsed_ms += int((time.perf_counter() - _openai_t0) * 1000)
                         raw = (response.output_text or "").strip()
                         parsed: Dict[str, object] = {}
                         try:
@@ -1422,14 +1394,6 @@ def generate_art_pulse_draft(
                                 "selected_evidence が本文に対応していません。本文で参照したURLを selected_evidence に必ず入れてください。"
                             )
                         last_issues = list(issues + soft_issues)
-                        cand_chars = _body_text_len(cand_body)
-                        hard_count = len(issues)
-                        if hard_count < best_hard_issue_count or (hard_count == best_hard_issue_count and cand_chars > best_body_chars):
-                            best_title = cand_title
-                            best_body = cand_body
-                            best_selected_plan = cand_selection
-                            best_hard_issue_count = hard_count
-                            best_body_chars = cand_chars
 
                         if not issues:
                             title, main_body = cand_title, cand_body
@@ -1457,16 +1421,10 @@ def generate_art_pulse_draft(
 
                 if not main_body:
                     title = last_title or f"{fair_label}のArt Pulse（{angle_label}）"
+                    main_body = (last_body or "").strip()
+                    selected_plan = last_selected_plan
                     mode = "openai_validation_hold"
-                    fallback_body = (best_body or last_body or "").strip()
-                    if fallback_body:
-                        main_body = fallback_body
-                        selected_plan = best_selected_plan if best_body else last_selected_plan
-                        title = best_title or title
-                        warnings.append("validation_hold: using best available draft although hard checks were not fully satisfied.")
-                    else:
-                        selected_plan = last_selected_plan
-                        main_body = ""
+                    if not main_body:
                         warnings.append("本文を生成できませんでした。設定を確認して再実行してください。")
         except Exception as exc:
             mode = "openai_error"
@@ -1474,19 +1432,6 @@ def generate_art_pulse_draft(
 
     if not title:
         title = f"{fair_label}のArt Pulse（{angle_label}）"
-
-    if main_body and _count_selection_urls(selected_plan) == 0:
-        ex_seed = list(payload.get("exhibition_urls", []) or [])
-        ar_seed = list(payload.get("artist_urls", []) or [])
-        if ex_seed or ar_seed:
-            seeded = _empty_selection_plan()
-            seeded["section1"]["exhibition_urls"] = ex_seed[:1]
-            seeded["section2"]["exhibition_urls"] = ex_seed[1:3] or ex_seed[:1]
-            seeded["section3"]["exhibition_urls"] = ex_seed[3:5] or ex_seed[:1]
-            seeded["section2"]["artist_urls"] = ar_seed[:2]
-            seeded["section3"]["artist_urls"] = ar_seed[2:4] or ar_seed[:2]
-            selected_plan = seeded
-            warnings.append("selected_evidence fallback: seeded from payload urls for continuity.")
 
     if main_body:
         _emit_progress(96)
@@ -1505,9 +1450,6 @@ def generate_art_pulse_draft(
 
     url_block = _compose_url_block(selected_all_urls)
     body = "\n\n".join([main_body, url_block]).strip()
-    body_chars = _body_text_len(main_body)
-    elapsed_ms_total = int((time.perf_counter() - started_at) * 1000)
-    first_pass_success = bool(mode == "openai" and retry_metrics.get("success_attempt", 0) == 1)
 
     logger.info(
         "art_pulse_retry_metrics mode=%s reporter=%s angle=%s fair=%s metrics=%s",
@@ -1523,7 +1465,7 @@ def generate_art_pulse_draft(
         "model": model,
         "title": title,
         "body": body,
-        "body_chars": body_chars,
+        "body_chars": _body_text_len(main_body),
         "persona_id": reporter.get("id"),
         "persona_label": reporter.get("label"),
         "angle_key": angle_key,
@@ -1551,13 +1493,6 @@ def generate_art_pulse_draft(
             "max_attempts": 1,
             "max_expand_attempts": 1,
             "attempt_trace": debug_trace,
-            "metrics": {
-                "first_pass_success": first_pass_success,
-                "body_chars": body_chars,
-                "elapsed_ms_total": elapsed_ms_total,
-                "elapsed_ms_openai": openai_elapsed_ms,
-                "mode": mode,
-            },
         },
         "note": (
             f"本文は{ART_PULSE_TEXT_MIN_CHARS}字以上を必須、{ART_PULSE_TEXT_MAX_CHARS}字を目安"
