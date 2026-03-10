@@ -47,7 +47,7 @@ except Exception:
 
 APP_TITLE = "Art Pulse Editor"
 FAIR_OPTIONS = ["Frieze London", "Liste Art Fair Basel", "Frieze London + Liste Art Fair Basel"]
-MODE_HEADING_FONT_SIZE_PX = 22
+MODE_HEADING_FONT_SIZE_PX = 30
 EXPLANATION_OF_MODES_FONT_SIZE_PX = 15
 IMAGE_MARKDOWN_RE = re.compile(r"!\[(?P<alt>[^\]]*)\]\((?P<url>[^)]+)\)")
 SOURCE_LINE_RE = re.compile(r"^Source:\s*<(?P<url>[^>]+)>\s*$")
@@ -78,6 +78,10 @@ def apply_global_font_styles() -> None:
             "Material Symbols Sharp", "Material Icons", "Material Icons Outlined" !important;
           font-style: normal !important;
         }
+        /* Hide heading anchor/link icons globally. */
+        .stApp [data-testid="stHeaderActionElements"] {
+          display: none !important;
+        }
         .stApp {
           --background-color: #f5f7fb !important;
           --secondary-background-color: #ffffff !important;
@@ -98,8 +102,17 @@ def apply_global_font_styles() -> None:
         .stApp .block-container {
           max-width: min(1680px, 96vw) !important;
           width: 100% !important;
+          padding-top: 0.8rem !important;
           padding-left: clamp(0.75rem, 2vw, 2.25rem) !important;
           padding-right: clamp(0.75rem, 2vw, 2.25rem) !important;
+        }
+        .stApp [data-testid="stHeadingWithActionElements"] h1 {
+          font-size: 50px !important;
+          width: 100%;
+          text-align: center !important;
+          margin-top: 0 !important;
+          margin-bottom: 1 rem !important;
+          line-height: 2.2 !important;
         }
         @media (max-width: 900px) {
           .stApp [data-testid="stMainBlockContainer"],
@@ -890,8 +903,11 @@ def _render_reference_image_candidates(
 
 
 def render_art_pulse() -> None:
-    _render_mode_heading("① Art Pulse")
+    _render_mode_heading("Art Pulse")
     _render_mode_explanation("アート編集記者が「現代アートの今（Now）」を取材し、記事を執筆する")
+    artpulse_followup_question_key = "artpulse_followup_question"
+    artpulse_followup_answer_key = "artpulse_followup_answer"
+    artpulse_followup_reset_requested_key = "artpulse_followup_reset_requested"
 
     col1, col2 = st.columns([1, 1])
     fair_mode = col1.selectbox(
@@ -928,8 +944,17 @@ def render_art_pulse() -> None:
 
     st.caption("上の条件を選んで「Art Pulse」を押すと 担当記者が記事を書きます。")
     run = st.button("Art Pulse", key="artpulse_generate")
+    reset_article = st.button("リセット", key="artpulse_reset_result")
+    if reset_article:
+        st.session_state.pop("artpulse_result", None)
+        st.session_state[artpulse_followup_question_key] = ""
+        st.session_state[artpulse_followup_answer_key] = ""
+        st.session_state.pop(artpulse_followup_reset_requested_key, None)
+        st.rerun()
 
     if run:
+        st.session_state[artpulse_followup_question_key] = ""
+        st.session_state[artpulse_followup_answer_key] = ""
         progress_line = st.empty()
         waiting_line = st.empty()
         waiting_line.caption("担当記者が執筆中...数分おまちください。")
@@ -989,16 +1014,19 @@ def render_art_pulse() -> None:
     _render_markdown_with_galleries(draft.get("body", ""), local_lookup)
     st.caption(f"本文文字数（Source行を除く）: {int(draft.get('body_chars', 0))} / 2000")
     st.markdown("**記者への質問**")
+    if st.session_state.pop(artpulse_followup_reset_requested_key, False):
+        st.session_state[artpulse_followup_question_key] = ""
+        st.session_state[artpulse_followup_answer_key] = ""
     artpulse_seed_q = _sanitize_exhibition_followup_seed(
-        st.session_state.get("artpulse_followup_question", "")
+        st.session_state.get(artpulse_followup_question_key, "")
     )
-    if artpulse_seed_q != st.session_state.get("artpulse_followup_question", ""):
-        st.session_state["artpulse_followup_question"] = artpulse_seed_q
+    if artpulse_seed_q != st.session_state.get(artpulse_followup_question_key, ""):
+        st.session_state[artpulse_followup_question_key] = artpulse_seed_q
     artpulse_followup_q = st.text_area(
         "",
         value=artpulse_seed_q,
         placeholder="例: このArt Pulse記事の見どころを、初心者向けに3点で教えてください。",
-        key="artpulse_followup_question",
+        key=artpulse_followup_question_key,
         height=90,
         label_visibility="collapsed",
     )
@@ -1008,9 +1036,12 @@ def render_art_pulse() -> None:
             draft if isinstance(draft, dict) else {},
         )
         artpulse_answer = answer_exhibition_followup(artpulse_followup_q, artpulse_context)
-        st.session_state["artpulse_followup_answer"] = artpulse_answer
+        st.session_state[artpulse_followup_answer_key] = artpulse_answer
+    if st.button("リセット", key="artpulse_followup_reset"):
+        st.session_state[artpulse_followup_reset_requested_key] = True
+        st.rerun()
 
-    artpulse_followup_answer = str(st.session_state.get("artpulse_followup_answer", "") or "").strip()
+    artpulse_followup_answer = str(st.session_state.get(artpulse_followup_answer_key, "") or "").strip()
     if artpulse_followup_answer:
         st.markdown("**追加質問への回答**")
         st.write(artpulse_followup_answer)
