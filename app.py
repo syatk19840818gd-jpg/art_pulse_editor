@@ -28,7 +28,14 @@ from phase2_exclusive_advisor_type2_execute import (
     run_exclusive_type2_gated_image_generation,
 )
 from phase2_gallery_list_readonly import apply_gallery_list_filters, load_gallery_list_records_readonly
-from phase2_artist_search_readonly import apply_artist_filters, load_artist_records_readonly
+from phase2_artist_search_readonly import (
+    ARTIST_SEARCH_RESULT_COUNT,
+    ARTIST_SEARCH_SUMMARY_MAX_CHARS,
+    ARTIST_SEARCH_THUMB_FROM_ARTIST,
+    apply_artist_filters,
+    build_artist_summary_ja,
+    load_artist_records_readonly,
+)
 from phase2_exhibition_search_readonly import (
     EXHIBITION_SEARCH_RESULT_COUNT,
     EXHIBITION_SEARCH_SUMMARY_MAX_CHARS,
@@ -1211,12 +1218,15 @@ def render_artist_search() -> None:
 
     effective_fair = fair_mode
     filtered = apply_artist_filters(data.records, effective_fair, keyword)
+    display_rows = filtered[:ARTIST_SEARCH_RESULT_COUNT]
 
     st.caption(
-        f"件数: 読込={data.total_rows} / 表示={len(filtered)} / "
+        f"件数: 読込={data.total_rows} / ヒット={len(filtered)} / 表示={len(display_rows)} / "
         f"frieze={data.fair_rows.get('frieze_london', 0)} / liste={data.fair_rows.get('liste', 0)}"
     )
     st.caption(f"注記: {data.count_note}")
+    if len(filtered) > len(display_rows):
+        st.caption(f"表示上限: {ARTIST_SEARCH_RESULT_COUNT}件（01固定値）")
 
     if data.warnings:
         with st.expander("警告/注記（Artist Search）", expanded=False):
@@ -1232,38 +1242,46 @@ def render_artist_search() -> None:
             "fair": row.get("fair_label"),
             "gallery": row.get("gallery_name"),
             "artist": row.get("artist_name"),
+            "artist_name_kana": row.get("artist_name_kana") or "",
             "year": row.get("year"),
+            "headline_ja": row.get("headline_ja") or "",
             "source_url": row.get("source_url"),
-            "summary": row.get("summary_ja") or "",
+            "summary": build_artist_summary_ja(row, max_chars=ARTIST_SEARCH_SUMMARY_MAX_CHARS),
             "works_image_count_hint": row.get("works_image_count_hint", 0),
         }
-        for row in filtered
+        for row in display_rows
     ]
     st.dataframe(view_rows, use_container_width=True, hide_index=True, height=320)
 
     selected_idx = st.selectbox(
         "詳細表示",
-        options=list(range(len(filtered))),
-        format_func=lambda i: _artist_row_label(filtered[i]),
+        options=list(range(len(display_rows))),
+        format_func=lambda i: _artist_row_label(display_rows[i]),
         key="artist_detail_select",
     )
-    selected = filtered[selected_idx]
+    selected = display_rows[selected_idx]
 
     st.markdown("**作家詳細（読み取り専用）**")
     left, right = st.columns([2, 1])
     left.write(f"フェア: {selected.get('fair_label')}")
     left.write(f"ギャラリー: {selected.get('gallery_name')}")
     left.write(f"作家名: {selected.get('artist_name')}")
+    artist_name_kana = str(selected.get("artist_name_kana") or "").strip()
+    if artist_name_kana:
+        left.write(f"作家名カナ: {artist_name_kana}")
+    headline_ja = str(selected.get("headline_ja") or "").strip()
+    if headline_ja:
+        left.write(f"見出し: {headline_ja}")
     left.write(f"年: {selected.get('year')}")
     if selected.get("source_url"):
         left.markdown(f"Source URL: {selected.get('source_url')}")
 
-    summary_ja = (selected.get("summary_ja") or "").strip()
+    summary_ja = build_artist_summary_ja(selected, max_chars=ARTIST_SEARCH_SUMMARY_MAX_CHARS).strip()
     if summary_ja:
-        left.write(f"要約: {summary_ja[:300]}")
+        left.write(f"要約: {summary_ja}")
 
     right.metric("作品画像ヒント", int(selected.get("works_image_count_hint") or 0))
-    right.caption("source_url の厳密一致ベース")
+    right.caption(f"source_url の厳密一致ベース（表示上限目安 {ARTIST_SEARCH_THUMB_FROM_ARTIST}）")
     _render_evidence_summary(
         {
             "根拠件数": 1 if selected.get("source_url") else 0,
@@ -1277,8 +1295,26 @@ def render_artist_search() -> None:
         artist_urls=[selected.get("source_url")] if selected.get("source_url") else [],
     )
     st.markdown("**参考画像候補**")
-    if int(selected.get("works_image_count_hint") or 0) > 0:
-        st.caption("参考画像候補の件数ヒントのみ表示しています（一覧はこの画面では未表示）。")
+    preview_candidates = list(selected.get("artist_image_preview_candidates") or [])[:ARTIST_SEARCH_THUMB_FROM_ARTIST]
+    preview_urls: list[str] = []
+    for candidate in preview_candidates:
+        candidate_r2 = str(candidate.get("r2_key") or "").strip()
+        candidate_local = str(candidate.get("local_path") or "").strip()
+        candidate_url = str(candidate.get("image_url") or "").strip()
+        resolved = _presign_r2_get_url(candidate_r2) if candidate_r2 else ""
+        if not resolved and candidate_local:
+            resolved = _local_image_path_to_data_uri(candidate_local)
+        if not resolved and candidate_url:
+            resolved = candidate_url
+        if resolved:
+            preview_urls.append(resolved)
+    if preview_urls:
+        cols = st.columns(len(preview_urls))
+        for col, url in zip(cols, preview_urls):
+            col.image(url, use_container_width=True)
+        st.caption(f"表示上限 {ARTIST_SEARCH_THUMB_FROM_ARTIST} 枚（01固定値）")
+    elif int(selected.get("works_image_count_hint") or 0) > 0:
+        st.caption("参考画像候補は存在しますが、この環境でプレビュー解決できませんでした。")
     else:
         st.info("参考画像候補はありません。")
 
