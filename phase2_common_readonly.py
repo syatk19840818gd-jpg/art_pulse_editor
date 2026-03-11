@@ -8,6 +8,8 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Dict, List, Tuple
 
+from phase2_art_pulse_config import TARGET_YEAR, get_enrichment_current_output_path
+
 try:
     import boto3
 except Exception:
@@ -45,6 +47,21 @@ GALLERY_LIST_PATHS = {
 
 TARUTANI_TEXT_PATH = REPO_ROOT / "data/Tarutani_data/tarutani_text.jsonl"
 IMAGES_CACHE_DIR = REPO_ROOT / "data/phase1_seed10/derived/images"
+
+
+def resolve_current_first_enrichment_output_path(
+    category: str, target_year: int = TARGET_YEAR
+) -> tuple[Path | None, str]:
+    current_path = REPO_ROOT / get_enrichment_current_output_path(category, target_year)
+    if current_path.exists():
+        return current_path, "current"
+
+    legacy_dir = REPO_ROOT / "data/phase1_seed10/derived"
+    pattern = f"{category}_enrichment_apply_output_{target_year}_*.jsonl"
+    legacy_candidates = sorted(legacy_dir.glob(pattern), key=lambda p: p.name, reverse=True)
+    if legacy_candidates:
+        return legacy_candidates[0], "legacy_latest"
+    return None, "missing"
 
 
 def resolve_fair_slugs(fair_label: str) -> List[str]:

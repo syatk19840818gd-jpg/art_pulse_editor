@@ -10,10 +10,48 @@
     "**/Thumbs.db"
   ],
   "scopes": {
-    "phase1_seed10_formal": {
-      "description": "Phase1 seed10 formal artifacts (raw + derived).",
+    "enrichment_current_primary": {
+      "description": "Primary sync lane for current enrichment canonical artifacts.",
       "enabled_by_default": true,
       "prune_allowed": true,
+      "targets": [
+        {
+          "local_root": "data/current/enrichment",
+          "r2_prefix": "data/current/enrichment",
+          "include_globs": [
+            "**/*"
+          ],
+          "exclude_globs": []
+        }
+      ]
+    },
+    "enrichment_history_audit": {
+      "description": "Secondary audit/backup lane for enrichment history artifacts.",
+      "enabled_by_default": true,
+      "prune_allowed": false,
+      "targets": [
+        {
+          "local_root": "data/history/enrichment/artists",
+          "r2_prefix": "data/history/enrichment/artists",
+          "include_globs": [
+            "**/*"
+          ],
+          "exclude_globs": []
+        },
+        {
+          "local_root": "data/history/enrichment/exhibitions",
+          "r2_prefix": "data/history/enrichment/exhibitions",
+          "include_globs": [
+            "**/*"
+          ],
+          "exclude_globs": []
+        }
+      ]
+    },
+    "phase1_seed10_formal": {
+      "description": "Legacy seed10 lane (fallback assets; not default primary target).",
+      "enabled_by_default": false,
+      "prune_allowed": false,
       "targets": [
         {
           "local_root": "data/phase1_seed10/raw",

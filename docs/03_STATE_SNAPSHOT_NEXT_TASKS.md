@@ -13,7 +13,7 @@ STREAMLIT_ENTRYPOINT（固定）
 - Local run: streamlit run app.py
 
 SOURCE_SSOT: 01_PROJECT_SPEC_CURRENT_FULL.docx
-LAST_UPDATED: 2026-03-07 22:40 JST
+LAST_UPDATED: 2026-03-11 16:32 JST
 
 
 ========================
@@ -78,40 +78,24 @@ LAST_UPDATED: 2026-03-07 22:40 JST
 STATE_SNAPSHOT（現在地）
 ========================
 ■いまの最優先フェーズ（Codexが随時更新する）
-- Phase 1：Exhibitions画像RAG（2025）10ギャラリー正式運用は、TASK215/216のhygiene remediation、TASK219/TASK220のAthr最終対応、TASK226 guard hardening、TASK227 final isolated verification rerun retry（`PASS_FOR_CLOSURE`）を経て、TASK228で **completion closure 完了**
-  - 正式採用済み:
-    - detail-grain 3ギャラリー: Adams and Ollman / Arcadia Missa / Anca Poterașu Gallery
-    - Guard-First Unit-F: Athr / The Approach
-    - Guard-First Unit-L: Addis Fine Art / Afriart Gallery
-    - Safe群: Gallery Baton / Amanita
-  - Keep-Current: A+ Works of Art
-  - contamination closure:
-    - Gallery Baton の既知汚染問題は remediation 済み（formal contamination closure）
-    - Athr 最終ブロッカー `athr__overview__400754ef__img_01.jpg` は TASK220 で safe removal 済み（formal参照0）
-    - hard bad route 残存 0 / `REEXTRACT_SCOPE_REQUIRED=0` に復帰
-  - anti-mixing 固定運用（短縮版）:
-    - `trial -> QA -> adoption`
-    - adoption は `_trash` 退避後の scoped replace のみ（append禁止）
-  - closure 補足:
-    - final isolated rerun retry では新規1件のみ（`SAFE_BUT_NOT_NEEDED=1`）を検出
-    - 当該1件は formal 採用不要として扱い、closure blocker ではない
-  - 次の到達目標:
-    - ⑤ Exhibitions Text の kickoff / spec start へ進む
-※この「直近の到達目標」は、達成したら必ず書き換える（意味がなくなるので残さない）
-- 固定して扱う主軸ロードマップ（01準拠）
-  - まず 5種類のRAGを、試作10ギャラリーで汎用抽出ロジックとして成立させる
-    - ① Tarutani_Text
-    - ② Artist Works Images
-    - ③ Artist Text
-    - ④ Exhibitions Image
-    - ⑤ Exhibitions Text
-  - 品質ラインは「汎用ロジックで70%以上」を目標とする
-  - 現在の最優先は ⑤ Exhibitions Text（④ Exhibitions Image は completion closure 完了）
-  - ④ Exhibitions Image は 10ギャラリー運用・現行 formal corpus・現行標準レーン・現行 rerun stability guard の範囲で completion closure 済み
-  - 次段は ⑤ Exhibitions Text へ進む
-  - ①〜⑤の5種類のRAGが揃ったら、10ギャラリーRAGだけでアプリ機能①〜⑥を実装し、実際に使って検証する
-  - その後、2025年分の初回抽出実績ベース（Frieze 95件 + Liste 52件 ≒ 約150ギャラリー）へ拡張する
-  - さらに年次更新で対象を増やし、長期的には約200ギャラリー超へ拡張する
+- Phase 2 app run-state (current baseline):
+  - Feature 1 Art Pulse: completed
+  - Feature 2 Exhibition Search: completed
+  - Feature 3 Artist Search: almost completed (current-first read-only smoke passed)
+  - Feature 4 Advisor: kickoff completed (type1 minimal grounded draft connected in app)
+  - type2 status: gate-only confirmation, not implementation-complete
+  - current/history rebaseline phase: completed (A2-A9)
+  - Immediate priority: A11_PHASE4_ADVISOR_TYPE1_QUALITY_TUNING_01
+- NOTE: keep this current-goal line updated whenever phase priority changes.
+- Fixed master roadmap alignment (from SSOT 01):
+  - 5 RAG categories (Tarutani_Text / Artist Works Images / Artist Text / Exhibitions Image / Exhibitions Text) are established at 10-gallery operational scope
+  - App features status: 1/2 completed, 3 almost completed, 4 kickoff completed (type1 minimal)
+  - Mandatory pre-Advisor phase (current/history canonical rebaseline) is completed and fixed in roadmap
+  - Role split: current=day-to-day canonical / history=audit archive / R2=primary persistent sync target for current / local=current fallback
+  - app/read-only must read current first
+  - After 4-6 are available, validate operations using 10-gallery RAG only
+  - Then expand to initial 2025 scale (~150 galleries)
+  - Then extend yearly toward long-term 200+ galleries
 
 ■いま出来ていること（事前準備・現状）
 - Git（PC側）＋GitHub接続：開発の土台 完了
@@ -266,16 +250,72 @@ NEXT_TASKS（次回やること）
     - 完了根拠：`PASS_FOR_CLOSURE` / `READY_FOR_COMPLETION_CLOSURE` / `CURRENT_FORMAL_STILL_VALID` / Baton再発0 / Athr再出現0 / duplicate 0 / `SUSPICIOUS_*=0` / `REJECT_FOR_COMPLETION=0`
     - 補足：final isolated rerun retry の新規1件は `SAFE_BUT_NOT_NEEDED` として formal 採用不要（closure blocker ではない）
 
-[ ] 229) Exhibitions Text kickoff / spec start（最優先）
-    - 目的：④ completion closure 後の次段として、⑤ Exhibitions Text の標準フローを再起動し、10ギャラリー汎用運用の設計/着手範囲を確定する
+[x] 229) Exhibitions Text kickoff / spec start（方針変更でクローズ）
+    - 備考：現行ロードマップでは、④ Advisor 前に current/history 正本再編を先行するため、本タスクは優先度を引き継がずクローズ
 
 [x] 189) 03/04 FINAL SYNC EXECUTION（完了）
     - 10ギャラリー正式状態を03/04へ最終同期（01/02更新なし）
-[x] 183-188) Safe群（Gallery Baton / Amanita）provenance-gated bootstrap->plumbing修正->trial/QA->正式採用（完了）
-[x] 182) 03/04 DOC SYNC EXECUTION（DESIGN REFLECT ONLY）（完了）
-[x] 155-156) 3ギャラリー（Adams / Arcadia / Anca）detail-grain trial->正式採用（完了）
-[x] 169-176) Unit-F（Athr / The Approach）trial/QA->adoption plumbing修正->正式採用（完了）
-[x] 177-180) Unit-L（Addis / Afriart）prep->trial/QA->正式採用（完了）
+[x] 286) Artists Text enrichment full apply (done)
+    - scope: approved fields headline_ja / summary_ja / artist_name_kana to 2025 formal raw
+    - result: full apply completed (see 04 log entry)
+
+[x] 287) Artists enrichment target hygiene guard (done)
+    - scope: replace target-row-miss with generic target hygiene guard
+    - result: SKIPPED_TARGET_GUARD_NON_ARTIST_UTILITY_URL=3 / TARGET_ROW_NOT_FOUND=0
+
+[x] 288) Artist Search re-baseline (done)
+    - scope: confirm current implementation and apply only minimal fix
+    - result: status = almost completed, read-only route usable
+
+[x] 289) docs 01-04 sync (done)
+    - scope: integrate pre-Advisor current/history roadmap into official docs
+
+[x] 290) PRE_ADVISOR_STORAGE_CONTRACT_01 (done)
+    - scope: fixed storage contract only (no code migration / no data move / no R2 sync execution)
+    - result: writer/readers, R2/local fallback, anti-mixing, migration policy fixed in 01/02
+    - note: root rebaseline was identified as an additional required fix after TASK290
+
+[x] 290B) STORAGE_ROOT_REBASELINE_01 (done)
+    - scope: changed canonical roots only (contract idea unchanged)
+    - result: current=`data/current/enrichment/`, history=`data/history/enrichment/{artists,exhibitions}/`
+    - role fix: `data/phase1_seed10/` is explicitly treated as seed10 working/validation lane
+
+[x] 291) A2_STORAGE_LAYOUT_SCAFFOLD_01 (done)
+    - scope: create current/history directory scaffold and manifest-ready placeholders only
+    - constraints: no payload move, no writer switch, no read-path switch, no R2 sync execution
+
+[x] 292) A3_WRITER_HISTORY_PROMOTION_01 (done)
+    - scope: artists/exhibitions apply writer switched to history timestamp save -> current fixed-name promotion
+
+[x] 293) A4_MIGRATION_PLAN_AND_DRYRUN_01 (done)
+    - scope: legacy enrichment artifacts inventory + migration dry-run manifest for current/history
+
+[x] 294) A5_MIGRATION_EXECUTE_COPY_01 (done)
+    - scope: non-destructive copy from legacy seed10 artifacts to new current/history lanes
+
+[x] 295) A6_READER_CURRENT_FIRST_SWITCH_01 (done)
+    - scope: app/read-only switched to current-first with migration-period legacy fallback only
+
+[x] 296) A7_R2_TARGETS_CURRENT_FIRST_UPDATE_01 (done)
+    - scope: r2 targets updated to current-primary / history-audit / legacy-lane-off-by-default
+
+[x] 297) A8_GUARDED_R2_SYNC_EXECUTION_01 (done)
+    - scope: guarded upload run for current+history lanes only (no prune/delete)
+
+[x] 298) A9_PHASE2_CURRENT_CANONICAL_SMOKE_01 (done)
+    - scope: feature 1/2/3 smoke on current canonical structure passed
+
+[x] 299) LEGACY_ENRICHMENT_ARTIFACT_CLEANUP_01 (done)
+    - scope: duplicate legacy enrichment apply outputs/summaries cleanup under seed10 lane
+
+[x] 300) A10_PHASE4_ADVISOR_KICKOFF_01 (done)
+    - scope: advisor type1 current-canonical grounded context connection + minimal UI smoke
+
+[x] 301) DOC_SYNC_POST_ADVISOR_KICKOFF_01 (this task)
+    - scope: docs 01/02/03/04 synchronized to post-kickoff baseline
+
+[ ] 302) A11_PHASE4_ADVISOR_TYPE1_QUALITY_TUNING_01 (highest priority)
+    - scope: advisor type1 answer quality/evidence quality tuning under current canonical constraints
 
 [x] 1) ギャラリーリストCSVを repo に配置してコミットする（完了）
     - 置き場所：data/gallery_lists/

@@ -12,6 +12,7 @@ from phase2_common_readonly import (
     FAIR_LABEL_TO_SLUG,
     FAIR_SLUG_TO_LABEL,
     normalize_url,
+    resolve_current_first_enrichment_output_path,
     safe_load_jsonl,
 )
 
@@ -53,16 +54,14 @@ def _derive_title(row: dict) -> str:
 
 
 def _load_latest_exhibition_enrichment_map() -> Tuple[Dict[str, Dict[str, str]], List[str]]:
-    derived_dir = Path(__file__).resolve().parent / "data/phase1_seed10/derived"
-    candidates = sorted(
-        derived_dir.glob("exhibitions_enrichment_apply_output_2025_*.jsonl"),
-        key=lambda p: p.name,
-        reverse=True,
-    )
-    if not candidates:
+    source_path, source_kind = resolve_current_first_enrichment_output_path("exhibitions")
+    if source_path is None:
         return {}, []
 
-    rows, warnings = safe_load_jsonl(candidates[0])
+    rows, warnings = safe_load_jsonl(source_path)
+    if source_kind == "legacy_latest":
+        warnings.append(f"fallback_to_legacy_enrichment_output: {source_path}")
+
     enrichment_by_source: Dict[str, Dict[str, str]] = {}
     for row in rows:
         source_url = normalize_url(str(row.get("source_url") or ""))
@@ -156,7 +155,10 @@ def load_exhibition_records_readonly() -> ExhibitionSearchData:
         fair_rows=fair_rows,
         count_note=(
             "Exhibition rows come from formal raw (exhibitions_*_2025.jsonl). "
-            "summary_ja/headline_ja fallback to latest exhibitions_enrichment_apply_output_2025_*.jsonl when raw is empty. "
+            "summary_ja/headline_ja uses current-first enrichment output "
+            "(data/current/enrichment/exhibitions_enrichment_apply_output_2025.jsonl), "
+            "with legacy latest fallback only when current is missing. "
+            "history is not used as a default query path. "
             "image_count_hint is read-only matched by source_url using formal derived image metadata."
         ),
     )

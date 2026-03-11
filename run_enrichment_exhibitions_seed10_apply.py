@@ -12,6 +12,13 @@ from typing import Any
 from dotenv import load_dotenv
 from openai import OpenAI
 
+from phase2_art_pulse_config import (
+    get_enrichment_current_output_path,
+    get_enrichment_current_summary_path,
+    get_enrichment_history_output_path,
+    get_enrichment_history_summary_path,
+    promote_history_file_to_current,
+)
 from run_enrichment_exhibitions_preview import (
     ENRICH_BATCH_COMPLETION_WINDOW,
     ENRICH_PROMPT_VERSION,
@@ -31,8 +38,7 @@ from run_enrichment_exhibitions_preview import (
     write_jsonl,
 )
 
-APPLY_OUTPUT_DIR = Path("data/phase1_seed10/derived")
-APPLY_SUMMARY_DIR = Path("data/phase1_seed10/logs")
+TARGET_YEAR = 2025
 
 
 def write_json(path: Path, obj: Any) -> None:
@@ -266,8 +272,12 @@ def main() -> int:
         headline_empty_total += sum(1 for r in rows if not str(r.get("headline_ja") or "").strip())
         summary_empty_total += sum(1 for r in rows if not str(r.get("summary_ja") or "").strip())
 
-    apply_output_path = APPLY_OUTPUT_DIR / f"exhibitions_enrichment_apply_output_2025_{stamp}.jsonl"
-    write_jsonl(apply_output_path, apply_rows)
+    history_output_path = get_enrichment_history_output_path("exhibitions", stamp, TARGET_YEAR)
+    history_summary_path = get_enrichment_history_summary_path("exhibitions", stamp, TARGET_YEAR)
+    current_output_path = get_enrichment_current_output_path("exhibitions", TARGET_YEAR)
+    current_summary_path = get_enrichment_current_summary_path("exhibitions", TARGET_YEAR)
+
+    write_jsonl(history_output_path, apply_rows)
 
     spot_checks: dict[str, Any] = {}
     for fair_slug in ("frieze_london", "liste"):
@@ -283,9 +293,12 @@ def main() -> int:
     summary = {
         "started_at": started_at,
         "completed_at": utc_now_iso(),
-        "target_year": 2025,
+        "target_year": TARGET_YEAR,
         "requests_path": str(REQUESTS_OUTPUT_PATH),
-        "apply_output_path": str(apply_output_path),
+        "apply_output_path": str(history_output_path),
+        "apply_summary_path": str(history_summary_path),
+        "current_output_path": str(current_output_path),
+        "current_summary_path": str(current_summary_path),
         "total_targeted": len(request_rows),
         "total_applied": counters["applied"],
         "skipped_already_filled": counters["skipped_already_filled"],
@@ -309,8 +322,9 @@ def main() -> int:
         "enrich_prompt_version": ENRICH_PROMPT_VERSION,
         "spot_checks": spot_checks,
     }
-    summary_path = APPLY_SUMMARY_DIR / f"exhibitions_enrichment_apply_summary_2025_{stamp}.json"
-    write_json(summary_path, summary)
+    write_json(history_summary_path, summary)
+    promote_history_file_to_current(history_output_path, current_output_path)
+    promote_history_file_to_current(history_summary_path, current_summary_path)
 
     print(f"[START] exhibitions enrichment apply: {started_at}")
     print(f"[DONE] total_targeted={summary['total_targeted']} total_applied={summary['total_applied']}")
@@ -319,8 +333,10 @@ def main() -> int:
         f"headline_empty_total={headline_empty_total} summary_empty_total={summary_empty_total} "
         f"headline_over_50={summary['headline_over_50_count']} summary_over_500={summary['summary_over_500_count']}"
     )
-    print(f"[DONE] apply_output={apply_output_path}")
-    print(f"[DONE] apply_summary={summary_path}")
+    print(f"[DONE] history_output={history_output_path}")
+    print(f"[DONE] history_summary={history_summary_path}")
+    print(f"[DONE] current_output={current_output_path}")
+    print(f"[DONE] current_summary={current_summary_path}")
     return 0
 
 

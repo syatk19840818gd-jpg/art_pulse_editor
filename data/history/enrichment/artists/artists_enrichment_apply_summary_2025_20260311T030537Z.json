@@ -1,0 +1,37 @@
+{
+  "started_at": "2026-03-11T03:05:37Z",
+  "completed_at": "2026-03-11T04:33:55Z",
+  "target_year": 2025,
+  "rag_category": "artists_text",
+  "requests_path": "data\\phase1_seed10\\derived\\artists_enrichment_requests_2025.jsonl",
+  "raw_input_paths": {
+    "frieze_london": "data\\phase1_seed10\\raw\\artists_frieze_london_2025.jsonl",
+    "liste": "data\\phase1_seed10\\raw\\artists_liste_2025.jsonl"
+  },
+  "apply_output_path": "data\\phase1_seed10\\derived\\artists_enrichment_apply_output_2025_20260311T030537Z.jsonl",
+  "apply_summary_path": "data\\phase1_seed10\\logs\\artists_enrichment_apply_summary_2025_20260311T030537Z.json",
+  "total_targeted": 285,
+  "total_applied": 282,
+  "total_not_updated": 3,
+  "warning_count": 0,
+  "warning_rows": 0,
+  "generated_openai": 282,
+  "generated_fallback": 0,
+  "headline_empty_total": 8,
+  "summary_empty_total": 8,
+  "artist_name_kana_empty_total": 8,
+  "headline_over_limit": 0,
+  "summary_over_limit": 0,
+  "artist_name_kana_over_limit": 0,
+  "raw_text_changed_count": 0,
+  "counters": {
+    "generated_openai": 282,
+    "applied": 282,
+    "skipped_target_row_not_found": 3
+  },
+  "enrich_model": "gpt-5-mini",
+  "enrich_use_openai_batch": "1",
+  "enrich_completion_window": "24h",
+  "enrich_prompt_version": "artists_preview_v1",
+  "openai_client_available": true
+}

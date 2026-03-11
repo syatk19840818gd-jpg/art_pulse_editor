@@ -4775,3 +4775,171 @@ _trash 運用方針:
 - 到達点要約: ①Art Pulse、②Exhibition Search、③Artist Search、④Advisor(type1/type2 tuned)、⑤Exclusive Advisor(type1/type2 tuned)、⑥Gallery list(read-only+tuning) を確認済み。
 - 判定: Phase2 polish closeout documented（copy freeze OKを記録）。
 - 次の最優先タスク: TASK293_NEXT_16 = PHASE2_CLOSEOUT_REVIEW_AND_GO_NO_GO_FOR_NEXT_PHASE
+
+## 2026-03-11 CURRENT_HISTORY_REBASELINE_SYNC
+
+- scope: docs sync only (01/02/03/04). no code/data move, no R2 sync run.
+- baseline state fixed:
+  - feature 1 Art Pulse = completed
+  - feature 2 Exhibition Search = completed
+  - feature 3 Artist Search = almost completed
+  - feature 4 Advisor = not started
+
+### A) Artists Text enrichment full apply (confirmed)
+- target fields: `headline_ja`, `summary_ja`, `artist_name_kana`
+- status: full apply completed for 2025 formal raw
+- artifact examples:
+  - `data/phase1_seed10/derived/artists_enrichment_apply_output_2025_*.jsonl`
+  - `data/phase1_seed10/logs/artists_enrichment_apply_summary_2025_*.json`
+
+### B) Artists target hygiene guard (confirmed)
+- issue type: not LLM generation failure; request/apply target lookup mismatch
+- fixed behavior: utility URL targets are handled by generic guard status
+  - `SKIPPED_TARGET_GUARD_NON_ARTIST_UTILITY_URL`
+- current confirmation:
+  - `SKIPPED_TARGET_ROW_NOT_FOUND = 0`
+  - utility URL guard rows = 3
+
+### C) Artist Search re-baseline (confirmed)
+- read-only route exists in `app.py` + `phase2_artist_search_readonly.py`
+- enrichment read path for `headline_ja` / `summary_ja` / `artist_name_kana` is confirmed
+- status: "almost completed" (not "unstarted")
+
+### D) Roadmap change before Advisor (new official)
+- before starting feature 4 Advisor, insert mandatory phase:
+  - enrichment current/history canonical rebaseline
+  - storage contract fix: `current` day-to-day canonical, `history` audit archive
+  - app/read-only current-first reads
+  - R2 as primary persistent sync target for current, aligned with local current fallback
+
+### Next
+- highest priority: `PRE_ADVISOR_STORAGE_CONTRACT_01`
+
+## 2026-03-11 TASK290 PRE_ADVISOR_STORAGE_CONTRACT_01
+
+- scope: contract freeze only before feature 4 Advisor.
+- no action in this task:
+  - no code migration
+  - no data move
+  - no directory migration execution
+  - no R2 sync execution
+
+### Contract decisions (frozen)
+- current root: `data/current/enrichment/`
+- history roots:
+  - `data/history/enrichment/artists/`
+  - `data/history/enrichment/exhibitions/`
+- current fixed filenames:
+  - `artists_enrichment_apply_output_2025.jsonl`
+  - `artists_enrichment_apply_summary_2025.json`
+  - `exhibitions_enrichment_apply_output_2025.jsonl`
+  - `exhibitions_enrichment_apply_summary_2025.json`
+- history policy: timestamped apply output/summary are immutable audit artifacts.
+- writer policy: history timestamp write first, then atomic promote to current fixed names.
+- reader policy: app/read-only/advisor are current-first; migration period only allows legacy derived latest-glob fallback.
+- R2 policy: primary persistent target is current; history is backup/audit lane.
+- anti-mixing policy: default readers never point to history.
+- migration policy: reorganize legacy timestamped artifacts into history (no delete-first), bootstrap current from latest successful pair per category/year.
+
+### A2-A8 execution order memo
+1. A2: scaffold current/history directories and placeholder contract checks (no payload move).
+2. A3: implement writer dual-lane (history write -> current promote), dry-run mode only first.
+3. A4: seed initial current artifacts from latest successful legacy timestamped pairs (controlled migration).
+4. A5: switch read-only loaders to current-first with legacy derived fallback guard.
+5. A6: align app/advisor shared readers to the same current-first contract.
+6. A7: update `config/r2_sync_targets.json` scopes to include current as primary and history as audit lane.
+7. A8: execute migration+sync validation runbook (first actual move/sync task, outside TASK290).
+
+
+## 2026-03-11 TASK290B STORAGE_ROOT_REBASELINE_01
+
+- scope: docs-only root-name correction (no code change, no data move, no R2 sync run).
+- contract idea unchanged from TASK290:
+  - current/history separation
+  - writer: history first -> current promote
+  - reader: current first
+  - R2: current primary target
+- root change only:
+  - current: `data/current/enrichment/`
+  - history: `data/history/enrichment/artists/`, `data/history/enrichment/exhibitions/`
+- role clarification:
+  - `data/phase1_seed10/` remains seed10 working/validation artifacts lane, not long-term canonical root.
+- Next highest priority: `291) A2_STORAGE_LAYOUT_SCAFFOLD_01`
+
+## 2026-03-11 TASK291 A2_STORAGE_LAYOUT_SCAFFOLD_01
+- scope: introduce storage scaffold only.
+- result:
+  - added canonical directories for enrichment current/history.
+  - centralized enrichment current/history path contract for follow-up writer/reader tasks.
+- not done: no payload move, no reader switch, no R2 sync execution.
+
+## 2026-03-11 TASK292 A3_WRITER_HISTORY_PROMOTION_01
+- scope: writer contract switch only (artists/exhibitions apply).
+- result:
+  - writers now persist timestamped artifacts into history first.
+  - current fixed-name artifacts are promoted after successful history write.
+- not done: no migration of legacy timestamp artifacts; no reader switch.
+
+## 2026-03-11 TASK293 A4_MIGRATION_PLAN_AND_DRYRUN_01
+- scope: migration planning and dry-run only.
+- result:
+  - inventoried legacy enrichment apply outputs/summaries under seed10 lanes.
+  - produced dry-run manifest with action classification (seed_current_copy/history_copy/skip).
+  - selected initial current candidate pair per category/year.
+- not done: no file move/copy execution in this task.
+
+## 2026-03-11 TASK294 A5_MIGRATION_EXECUTE_COPY_01
+- scope: execute migration by copy only (non-destructive).
+- result:
+  - copied selected legacy timestamp artifacts to new history lanes.
+  - seeded new current fixed-name artifacts for artists/exhibitions.
+  - kept legacy artifacts in place (no delete/move).
+
+## 2026-03-11 TASK295 A6_READER_CURRENT_FIRST_SWITCH_01
+- scope: switch readers only.
+- result:
+  - app/read-only loaders now read current enrichment first.
+  - migration-period fallback remains legacy seed10 latest only.
+  - history lane is not included in default app/read-only query path.
+
+## 2026-03-11 TASK296 A7_R2_TARGETS_CURRENT_FIRST_UPDATE_01
+- scope: R2 target contract update + plan/dry-run verification only.
+- result:
+  - r2 targets aligned to current-primary / history-audit.
+  - legacy seed10 target removed from default primary lane and treated as legacy lane.
+  - `run_r2_sync.py` plan path validated on updated target contract.
+
+## 2026-03-11 TASK297 A8_GUARDED_R2_SYNC_EXECUTION_01
+- scope: guarded upload execution only.
+- result:
+  - executed `plan -> apply-upload` for `enrichment_current_primary` and `enrichment_history_audit`.
+  - upload completed for both lanes; no prune/delete execution.
+
+## 2026-03-11 TASK298 A9_PHASE2_CURRENT_CANONICAL_SMOKE_01
+- scope: lightweight smoke for features 1/2/3 on current canonical baseline.
+- result:
+  - Art Pulse / Exhibition Search / Artist Search smoke passed under current-first baseline.
+  - confirmed no history default reference in app/read-only paths.
+  - current-present environment did not require legacy fallback warning.
+
+## 2026-03-11 TASK299 LEGACY_ENRICHMENT_ARTIFACT_CLEANUP_01
+- scope: cleanup legacy enrichment apply output/summary duplicates in seed10 lanes only.
+- result:
+  - removed redundant legacy enrichment apply artifacts already copied into current/history lanes.
+  - retained current/history canonical artifacts and migration/audit latest traces.
+  - no code change; no raw/formal/image cleanup.
+
+## 2026-03-11 TASK300 A10_PHASE4_ADVISOR_KICKOFF_01
+- scope: advisor kickoff only (type1 main, type2 gate check).
+- result:
+  - advisor type1 grounded draft path connected to current-canonical read-only context.
+  - minimal app UI path and lightweight smoke passed.
+  - type2 kept as gate-only path (not implementation-complete).
+
+## 2026-03-11 TASK301 DOC_SYNC_POST_ADVISOR_KICKOFF_01
+- scope: docs-only sync for post-kickoff baseline.
+- result:
+  - 01/02/03/04 aligned to: current/history rebaseline complete, advisor kickoff complete.
+  - next highest-priority task updated to `A11_PHASE4_ADVISOR_TYPE1_QUALITY_TUNING_01`.
+- not done: no code change, no R2 prune/delete, no seed10-decoupling body migration.
+

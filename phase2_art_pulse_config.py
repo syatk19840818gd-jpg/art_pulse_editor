@@ -1,11 +1,74 @@
 ﻿from __future__ import annotations
 
+import os
+import shutil
+from pathlib import Path
+
 TARGET_YEAR = 2025
 PERSONA_COUNT = 8
 ART_PULSE_TEXT_MIN_CHARS = 1800
 ART_PULSE_TEXT_MAX_CHARS = 2000
 ART_PULSE_THUMB_FROM_EXHIB = 4
 ART_PULSE_THUMB_FROM_ARTIST = 4
+
+DATA_ROOT = Path("data")
+ENRICHMENT_CURRENT_DIR = DATA_ROOT / "current" / "enrichment"
+ENRICHMENT_HISTORY_DIR = DATA_ROOT / "history" / "enrichment"
+ENRICHMENT_HISTORY_ARTISTS_DIR = ENRICHMENT_HISTORY_DIR / "artists"
+ENRICHMENT_HISTORY_EXHIBITIONS_DIR = ENRICHMENT_HISTORY_DIR / "exhibitions"
+
+
+def get_enrichment_current_output_path(category: str, target_year: int = TARGET_YEAR) -> Path:
+    _validate_enrichment_category(category)
+    return ENRICHMENT_CURRENT_DIR / f"{category}_enrichment_apply_output_{target_year}.jsonl"
+
+
+def get_enrichment_current_summary_path(category: str, target_year: int = TARGET_YEAR) -> Path:
+    _validate_enrichment_category(category)
+    return ENRICHMENT_CURRENT_DIR / f"{category}_enrichment_apply_summary_{target_year}.json"
+
+
+def get_enrichment_history_output_path(category: str, stamp: str, target_year: int = TARGET_YEAR) -> Path:
+    _validate_enrichment_category(category)
+    return get_enrichment_history_dir(category) / f"{category}_enrichment_apply_output_{target_year}_{stamp}.jsonl"
+
+
+def get_enrichment_history_summary_path(category: str, stamp: str, target_year: int = TARGET_YEAR) -> Path:
+    _validate_enrichment_category(category)
+    return get_enrichment_history_dir(category) / f"{category}_enrichment_apply_summary_{target_year}_{stamp}.json"
+
+
+def get_enrichment_history_dir(category: str) -> Path:
+    _validate_enrichment_category(category)
+    if category == "artists":
+        return ENRICHMENT_HISTORY_ARTISTS_DIR
+    return ENRICHMENT_HISTORY_EXHIBITIONS_DIR
+
+
+def get_enrichment_scaffold_dirs() -> tuple[Path, Path, Path]:
+    return (
+        ENRICHMENT_CURRENT_DIR,
+        ENRICHMENT_HISTORY_ARTISTS_DIR,
+        ENRICHMENT_HISTORY_EXHIBITIONS_DIR,
+    )
+
+
+def promote_history_file_to_current(history_path: Path, current_path: Path) -> None:
+    if not history_path.exists():
+        raise FileNotFoundError(f"Missing history artifact for promotion: {history_path}")
+    current_path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = current_path.with_name(f"{current_path.name}.tmp")
+    try:
+        shutil.copyfile(history_path, tmp_path)
+        os.replace(tmp_path, current_path)
+    finally:
+        if tmp_path.exists():
+            tmp_path.unlink(missing_ok=True)
+
+
+def _validate_enrichment_category(category: str) -> None:
+    if category not in {"artists", "exhibitions"}:
+        raise ValueError(f"Unsupported enrichment category: {category}")
 
 PERSONAS = [
     {

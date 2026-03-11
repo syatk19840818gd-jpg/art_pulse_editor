@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Dict, List, Tuple
 
 from phase2_common_readonly import (
@@ -11,6 +10,7 @@ from phase2_common_readonly import (
     FAIR_SLUG_TO_LABEL,
     derive_artist_name,
     normalize_url,
+    resolve_current_first_enrichment_output_path,
     safe_load_jsonl,
 )
 
@@ -29,41 +29,33 @@ def build_artist_summary_ja(row: dict, max_chars: int = ARTIST_SEARCH_SUMMARY_MA
 
 
 def _load_latest_artist_enrichment_map() -> Tuple[Dict[Tuple[str, str], Dict[str, str]], List[str]]:
-    derived_dir = Path(__file__).resolve().parent / "data/phase1_seed10/derived"
-    candidates = sorted(
-        derived_dir.glob("artists_enrichment_apply_output_2025_*.jsonl"),
-        key=lambda p: p.name,
-        reverse=True,
-    )
-    if not candidates:
+    source_path, source_kind = resolve_current_first_enrichment_output_path("artists")
+    if source_path is None:
         return {}, []
 
-    warnings: List[str] = []
-    best_map: Dict[Tuple[str, str], Dict[str, str]] = {}
-    for candidate in candidates:
-        rows, row_warnings = safe_load_jsonl(candidate)
-        warnings.extend(row_warnings)
-        enrichment_by_key: Dict[Tuple[str, str], Dict[str, str]] = {}
-        for row in rows:
-            if str(row.get("status") or "").strip() != "APPLIED":
-                continue
-            source_url = normalize_url(str(row.get("source_url") or ""))
-            text_hash = str(row.get("text_hash") or "").strip()
-            if not source_url and not text_hash:
-                continue
-            headline_ja = str(row.get("headline_ja") or "").strip()
-            summary_ja = str(row.get("summary_ja") or "").strip()
-            artist_name_kana = str(row.get("artist_name_kana") or "").strip()
-            if not headline_ja and not summary_ja and not artist_name_kana:
-                continue
-            enrichment_by_key[(source_url, text_hash)] = {
-                "headline_ja": headline_ja,
-                "summary_ja": summary_ja,
-                "artist_name_kana": artist_name_kana,
-            }
-        if len(enrichment_by_key) > len(best_map):
-            best_map = enrichment_by_key
-    return best_map, warnings
+    rows, warnings = safe_load_jsonl(source_path)
+    if source_kind == "legacy_latest":
+        warnings.append(f"fallback_to_legacy_enrichment_output: {source_path}")
+
+    enrichment_by_key: Dict[Tuple[str, str], Dict[str, str]] = {}
+    for row in rows:
+        if str(row.get("status") or "").strip() != "APPLIED":
+            continue
+        source_url = normalize_url(str(row.get("source_url") or ""))
+        text_hash = str(row.get("text_hash") or "").strip()
+        if not source_url and not text_hash:
+            continue
+        headline_ja = str(row.get("headline_ja") or "").strip()
+        summary_ja = str(row.get("summary_ja") or "").strip()
+        artist_name_kana = str(row.get("artist_name_kana") or "").strip()
+        if not headline_ja and not summary_ja and not artist_name_kana:
+            continue
+        enrichment_by_key[(source_url, text_hash)] = {
+            "headline_ja": headline_ja,
+            "summary_ja": summary_ja,
+            "artist_name_kana": artist_name_kana,
+        }
+    return enrichment_by_key, warnings
 
 
 @dataclass
@@ -165,9 +157,12 @@ def load_artist_records_readonly() -> ArtistSearchData:
         total_rows=len(records),
         fair_rows=fair_rows,
         count_note=(
-            "Artist行は formal raw（artists_*_2025.jsonl）由来。"
-            " headline_ja/summary_ja/artist_name_kana は raw空時に latest artists_enrichment_apply_output をfallback参照。"
-            " works_image_count_hint は formal artist works-imageメタとの source_url 厳密一致。"
+            "Artist rows use formal raw (artists_*_2025.jsonl). "
+            "headline_ja/summary_ja/artist_name_kana uses current-first enrichment output "
+            "(data/current/enrichment/artists_enrichment_apply_output_2025.jsonl), "
+            "with legacy latest fallback only when current is missing. "
+            "history is not used as a default query path. "
+            "works_image_count_hint is matched by source_url against formal artist works-image metadata."
         ),
     )
 

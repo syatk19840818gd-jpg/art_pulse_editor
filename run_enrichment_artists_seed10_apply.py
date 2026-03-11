@@ -14,6 +14,13 @@ from urllib.parse import urlparse
 from dotenv import load_dotenv
 from openai import OpenAI
 
+from phase2_art_pulse_config import (
+    get_enrichment_current_output_path,
+    get_enrichment_current_summary_path,
+    get_enrichment_history_output_path,
+    get_enrichment_history_summary_path,
+    promote_history_file_to_current,
+)
 from run_enrichment_artists_preview import (
     ARTIST_NAME_KANA_MAX_CHARS,
     ENRICH_BATCH_COMPLETION_WINDOW,
@@ -40,8 +47,6 @@ RAW_INPUT_PATHS = {
     "frieze_london": Path("data/phase1_seed10/raw/artists_frieze_london_2025.jsonl"),
     "liste": Path("data/phase1_seed10/raw/artists_liste_2025.jsonl"),
 }
-APPLY_OUTPUT_DIR = Path("data/phase1_seed10/derived")
-APPLY_SUMMARY_DIR = Path("data/phase1_seed10/logs")
 NON_ARTIST_UTILITY_TOKENS = {
     "privacy",
     "policy",
@@ -474,8 +479,12 @@ def main() -> int:
         summary_empty_total += sum(1 for r in rows if not str(r.get("summary_ja") or "").strip())
         artist_name_kana_empty_total += sum(1 for r in rows if not str(r.get("artist_name_kana") or "").strip())
 
-    apply_output_path = APPLY_OUTPUT_DIR / f"artists_enrichment_apply_output_{TARGET_YEAR}_{stamp}.jsonl"
-    write_jsonl(apply_output_path, apply_rows)
+    history_output_path = get_enrichment_history_output_path("artists", stamp, TARGET_YEAR)
+    history_summary_path = get_enrichment_history_summary_path("artists", stamp, TARGET_YEAR)
+    current_output_path = get_enrichment_current_output_path("artists", TARGET_YEAR)
+    current_summary_path = get_enrichment_current_summary_path("artists", TARGET_YEAR)
+
+    write_jsonl(history_output_path, apply_rows)
 
     summary = {
         "started_at": started_at,
@@ -484,8 +493,10 @@ def main() -> int:
         "rag_category": RAG_CATEGORY,
         "requests_path": str(REQUESTS_PATH),
         "raw_input_paths": {k: str(v) for k, v in RAW_INPUT_PATHS.items()},
-        "apply_output_path": str(apply_output_path),
-        "apply_summary_path": str(APPLY_SUMMARY_DIR / f"artists_enrichment_apply_summary_{TARGET_YEAR}_{stamp}.json"),
+        "apply_output_path": str(history_output_path),
+        "apply_summary_path": str(history_summary_path),
+        "current_output_path": str(current_output_path),
+        "current_summary_path": str(current_summary_path),
         "total_targeted": len(request_rows),
         "total_applied": counters["applied"],
         "total_not_updated": len(request_rows) - counters["applied"],
@@ -509,8 +520,9 @@ def main() -> int:
         "workers": workers,
     }
 
-    summary_path = APPLY_SUMMARY_DIR / f"artists_enrichment_apply_summary_{TARGET_YEAR}_{stamp}.json"
-    write_json(summary_path, summary)
+    write_json(history_summary_path, summary)
+    promote_history_file_to_current(history_output_path, current_output_path)
+    promote_history_file_to_current(history_summary_path, current_summary_path)
 
     safe_print(f"[DONE] total_targeted={summary['total_targeted']} total_applied={summary['total_applied']}")
     safe_print(
@@ -518,8 +530,10 @@ def main() -> int:
         f"not_updated={summary['total_not_updated']} warnings={summary['warning_count']} "
         f"fallback={summary['generated_fallback']}"
     )
-    safe_print(f"[DONE] apply_output={apply_output_path}")
-    safe_print(f"[DONE] apply_summary={summary_path}")
+    safe_print(f"[DONE] history_output={history_output_path}")
+    safe_print(f"[DONE] history_summary={history_summary_path}")
+    safe_print(f"[DONE] current_output={current_output_path}")
+    safe_print(f"[DONE] current_summary={current_summary_path}")
     return 0
 
 

@@ -86,15 +86,19 @@ SSOT_TAG: 01>「r2_key の命名規則（固定｜フォルダ分離の徹底）
 - そのため、ハッシュリネーム禁止。ローカル構造をR2 Keyにも採用（ミラー運用）。
 
 ============================================================
-CARD_ID: 05_MANIFEST_SYNC（ローカル↔R2の同期方式）
+CARD_ID: 05_MANIFEST_SYNC（current/history を含む同期方式）
 ============================================================
 SSOT参照（01）
-- 「5-8) 同期方式（R2正本 + local cache）」配下 → 「C) キャッシュ更新判定（固定）」
-SSOT_TAG: 01>5-8) 同期方式（R2正本 + local cache）>C) キャッシュ更新判定（固定）
+- 「5-8) Sync Model (R2 primary + current/history + local fallback | fixed minimal ops)」配下 → 「C) キャッシュ更新判定（固定）」
+SSOT_TAG: 01>5-8) Sync Model (R2 primary + current/history + local fallback | fixed minimal ops)>C) キャッシュ更新判定（固定）
 
 固定：同期は manifest が正本
 - ローカル保存 / R2保存の同期状態は “manifest” で管理。
 - 画像や本文の個別存在確認に依存しない（事故防止）。
+- current は機械・人間が日常参照する常用正本（アプリ運用の第一参照）。
+- history は監査/比較用の履歴置き場（通常の検索/表示パスには混在させない）。
+- R2 は current を永続同期する主対象。local current fallback と整合して運用する。
+- 旧表現「R2正本 + local cache」は、上記の役割分担（R2主対象 / current常用 / history監査）として読む。
 - 共通ストレージ方針（SSOT 5-7/5-8）：
   - 原本（source）は R2正本
   - 派生データ（jsonl / index / meta / manifest）は R2正本
@@ -359,6 +363,8 @@ SSOT_TAG: 01>「Streamlit」配下（デプロイ/入口）
 固定：入口は app.py（Streamlit Cloud main file path）
 - ローカル：streamlit run app.py
 - Cloud：Main file path = app.py
+- app/read-only は current を優先参照し、manifest差分時のみ R2 current から必要分を同期する。
+- history は監査用途のみで、通常の read-only 検索導線には載せない（anti-mixing）。
 
 ============================================================
 CARD_ID: 19_NO_FEATURE_REMOVAL（機能削除の禁止）
@@ -386,6 +392,63 @@ SSOT_TAG: 01>「開発フロー（Phase1→Phase2）」配下
 - 小Taskごとに03更新は必須ではない。
 - 変更ファイル / 実行コマンド / 生成物 / 次の最優先タスクを短く残し、03/04は数Taskごと・実行フェーズ完了時・長めの中断前・handoff前のいずれかでまとめて更新する。
 
+============================================================
+CARD_ID: 21_CURRENT_HISTORY_OPERATION（current/history運用索引）
+============================================================
+SSOT参照（01）
+- 「5-7) 共通：ストレージ」配下
+- 「5-8) Sync Model (R2 primary + current/history + local fallback | fixed minimal ops)」配下
+SSOT_TAG: 01>5-7) 共通：ストレージ
+SSOT_TAG: 01>5-8) Sync Model (R2 primary + current/history + local fallback | fixed minimal ops)
+
+固定：役割分担（索引）
+- current: 機械・人間の常用正本（アプリの普段の読み先）
+- history: 監査・比較の履歴置き場（非デフォルト経路）
+- R2: current 永続同期の主対象
+- local fallback: R2未達/差分時に current 運用を継続するための補助
+
+============================================================
+CARD_ID: 22_PRE_ADVISOR_STORAGE_CONTRACT_01（実装前契約固定）
+============================================================
+SSOT参照（01）
+- 5-8) Sync Model (R2 primary + current/history + local fallback | fixed minimal ops)
+- PRE_ADVISOR_STORAGE_CONTRACT_01 (frozen before Feature 4 Advisor)
+SSOT_TAG: 01>5-8) Sync Model (R2 primary + current/history + local fallback | fixed minimal ops)
+
+固定：path契約
+- current root: `data/current/enrichment/`
+- history roots:
+  - `data/history/enrichment/artists/`
+  - `data/history/enrichment/exhibitions/`
+
+固定：artifact契約
+- current fixed filenames (year scoped):
+  - `artists_enrichment_apply_output_2025.jsonl`
+  - `artists_enrichment_apply_summary_2025.json`
+  - `exhibitions_enrichment_apply_output_2025.jsonl`
+  - `exhibitions_enrichment_apply_summary_2025.json`
+- history keeps timestamped apply output / summary as immutable audit artifacts.
+- `data/phase1_seed10/` is a seed10 working/validation lane and is not the long-term canonical root for current/history.
+
+固定：writer/readers/sync責務
+- writer:
+  - write timestamped artifacts to history first
+  - promote to current fixed filenames only after successful write
+- readers (app/read-only/advisor):
+  - current-first
+  - migration period only: fallback to legacy `data/phase1_seed10/derived/*_enrichment_apply_output_2025_*.jsonl` latest glob
+- R2:
+  - primary persistent sync target = current
+  - history is backup/audit lane (non-default runtime lane)
+
+固定：anti-mixing / migration
+- do not mix current and history in default query paths.
+- app default readers must not point to history.
+- runtime guarantee: app/read-only must continue to function even if history lane is absent.
+- migration next step:
+  - reorganize existing timestamped artifacts into history (no deletion-first policy)
+  - bootstrap current from latest successful timestamped pair (apply_output + apply_summary) per category/year
+
 ## TASK285 Closeout Update (Exhibitions Text Controlled Operation)
 - status: COMPLETED
 - final_lane_state: READY=58 / ESCALATE=5 / HOLDING=6 / REJECT=0
@@ -404,3 +467,34 @@ SSOT_TAG: 01>「開発フロー（Phase1→Phase2）」配下
 - phase2_gate: start Phase 2 only after Phase 1.5 completion.
 - phase2_phase3_path: Phase 2 uses 10-gallery RAG for features 1-6; Phase 3 expands first to about 150 then to 200+.
 - operation_policy: do not increase routine weekly proof runs; use minimal normal-mode checks and incident-mode detailed runbook only when triggers fire.
+
+============================================================
+CARD_ID: 23_POST_ADVISOR_KICKOFF_CURRENT_CANONICAL_INDEX
+============================================================
+SSOT source:
+- 01 section 7 (current baseline)
+- 01 section 8 (Phase 2 milestones)
+- 01 section 5-8 (sync model: current/history/R2/local fallback)
+
+Index update (2026-03-11):
+- phase status:
+  - feature 1 Art Pulse: completed
+  - feature 2 Exhibition Search: completed
+  - feature 3 Artist Search: almost completed
+  - feature 4 Advisor kickoff: completed (type1 minimal grounded context path connected)
+  - advisor type2: gate-only confirmation, not implementation-complete
+- current/history rebaseline: completed (A2-A9)
+  - storage scaffold in `data/current/enrichment/` and `data/history/enrichment/{artists,exhibitions}/`
+  - writer contract: history timestamp write first, then current fixed-name promotion
+  - reader contract: current-first + migration-only legacy fallback (history is not default ref)
+  - R2 contract: current primary lane, history audit lane, guarded upload completed
+- advisor readonly/context index:
+  - advisor type1 context is grounded via existing current-first read-only routes
+    - art pulse overview
+    - exhibitions enrichment current output
+    - artists enrichment current output
+  - evidence refs/source refs are shown from read-only outputs
+
+Next (from STATE/NEXT):
+- A11_PHASE4_ADVISOR_TYPE1_QUALITY_TUNING_01
+
