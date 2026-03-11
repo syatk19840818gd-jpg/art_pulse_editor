@@ -216,7 +216,7 @@ def search_exhibitions(
     if not keyword_query:
         return fair_filtered[:safe_limit]
 
-    tokens = [t for t in re.findall(r"[a-z0-9]{2,}|[\u3040-\u30ff\u4e00-\u9fff]{1,}", keyword_query) if t]
+    tokens = [t for t in re.findall("[a-z0-9]{2,}|[\u3040-\u30ff\u4e00-\u9fff]{1,}", keyword_query) if t]
     if not tokens:
         return apply_exhibition_filters(records, fair_label, keyword_query)[:safe_limit]
 

@@ -32,9 +32,10 @@ from phase2_artist_search_readonly import (
     ARTIST_SEARCH_RESULT_COUNT,
     ARTIST_SEARCH_SUMMARY_MAX_CHARS,
     ARTIST_SEARCH_THUMB_FROM_ARTIST,
-    apply_artist_filters,
+    answer_artist_followup,
     build_artist_summary_ja,
     load_artist_records_readonly,
+    search_artists,
 )
 from phase2_exhibition_search_readonly import (
     EXHIBITION_SEARCH_RESULT_COUNT,
@@ -357,6 +358,29 @@ def apply_global_font_styles() -> None:
           color: #111111;
           margin: 0;
         }
+        .artist-search-thumb-row {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 0.45rem;
+        }
+        .artist-search-thumb {
+          display: block;
+          width: 100%;
+          min-height: 140px;
+          max-height: 140px;
+          border-radius: 8px;
+          border: 1px solid #d9dbe2;
+          background: #f6f8fb;
+          overflow: hidden;
+          position: relative;
+        }
+        .artist-search-thumb img {
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+          display: block;
+          background: #f6f8fb;
+        }
         .ap-progress-row {
           display: inline-flex;
           align-items: center;
@@ -388,6 +412,10 @@ def apply_global_font_styles() -> None:
           .exh-search-fallback {
             min-height: 210px;
             max-height: 210px;
+          }
+          .artist-search-thumb {
+            min-height: 110px;
+            max-height: 110px;
           }
         }
         </style>
@@ -756,6 +784,112 @@ def _build_exhibition_followup_context(rows: list[dict]) -> dict:
     }
 
 
+def _render_artist_result_cards(rows: list[dict]) -> None:
+    cards: list[str] = []
+    for idx, row in enumerate(rows, start=1):
+        artist_name = str(row.get("artist_name") or "(untitled)").strip()
+        artist_name_kana = str(row.get("artist_name_kana") or "").strip()
+        title = escape(
+            f"{artist_name}（{artist_name_kana}）" if artist_name_kana else artist_name
+        )
+        gallery = escape(str(row.get("gallery_name") or "").strip())
+        fair = escape(str(row.get("fair_label") or "").strip())
+        source_url = str(row.get("source_url") or "").strip()
+        safe_src = escape(source_url, quote=True)
+        summary = escape(
+            str(
+                row.get("summary_display_ja")
+                or build_artist_summary_ja(row, max_chars=ARTIST_SEARCH_SUMMARY_MAX_CHARS)
+            )
+        )
+
+        preview_urls: list[str] = []
+        preview_candidates = list(row.get("artist_image_preview_candidates") or [])[:ARTIST_SEARCH_THUMB_FROM_ARTIST]
+        for candidate in preview_candidates:
+            candidate_r2 = str(candidate.get("r2_key") or "").strip()
+            candidate_local = str(candidate.get("local_path") or "").strip()
+            candidate_url = str(candidate.get("image_url") or "").strip()
+            resolved = _presign_r2_get_url(candidate_r2) if candidate_r2 else ""
+            if not resolved and candidate_local:
+                resolved = _local_image_path_to_data_uri(candidate_local)
+            if not resolved and candidate_url:
+                resolved = candidate_url
+            if resolved:
+                preview_urls.append(resolved)
+
+        if preview_urls:
+            image_html = '<div class="artist-search-thumb-row">' + "".join(
+                (
+                    f'<a class="artist-search-thumb" href="{escape(url, quote=True)}" '
+                    f'target="_blank" rel="noopener noreferrer" title="画像を拡大表示">'
+                    f'<img src="{escape(url, quote=True)}" alt="{title}" loading="lazy" /></a>'
+                )
+                for url in preview_urls
+            ) + "</div>"
+        else:
+            image_html = (
+                '<div class="exh-search-fallback">'
+                "参考画像は未取得です。<br>"
+                "Sourceから確認できます。"
+                "</div>"
+            )
+
+        meta_html = ""
+        if gallery or fair:
+            meta_text = " / ".join([item for item in [gallery, fair] if item])
+            meta_html = f'<p class="exh-search-source">{meta_text}</p>'
+        source_html = (
+            f'<p class="exh-search-source">Source: <a href="{safe_src}" '
+            f'target="_blank" rel="noopener noreferrer">{safe_src}</a></p>'
+            if source_url
+            else '<p class="exh-search-source">Source: (not available)</p>'
+        )
+
+        cards.append(
+            (
+                '<div class="exh-search-card">'
+                f'<p class="exh-search-title">{idx}. {title}</p>'
+                f"{image_html}"
+                f"{meta_html}"
+                f"{source_html}"
+                f'<p class="exh-search-summary">{summary}</p>'
+                "</div>"
+            )
+        )
+
+    if cards:
+        st.markdown(f'<div class="exh-search-grid">{"".join(cards)}</div>', unsafe_allow_html=True)
+
+
+def _build_artist_followup_context(rows: list[dict]) -> dict:
+    if not rows:
+        return {}
+    artists = [str(r.get("artist_name") or "").strip() for r in rows if str(r.get("artist_name") or "").strip()]
+    artist_names_kana = [
+        str(r.get("artist_name_kana") or "").strip()
+        for r in rows
+        if str(r.get("artist_name_kana") or "").strip()
+    ]
+    galleries = [str(r.get("gallery_name") or "").strip() for r in rows if str(r.get("gallery_name") or "").strip()]
+    fairs = [str(r.get("fair_label") or "").strip() for r in rows if str(r.get("fair_label") or "").strip()]
+    summaries = [
+        str(r.get("summary_display_ja") or "").strip()
+        for r in rows
+        if str(r.get("summary_display_ja") or "").strip()
+    ]
+    texts = [str(r.get("text") or "").strip()[:1200] for r in rows if str(r.get("text") or "").strip()]
+    source_urls = [str(r.get("source_url") or "").strip() for r in rows if str(r.get("source_url") or "").strip()]
+    return {
+        "artist_name": " / ".join(artists[:3]) or "検索結果3件",
+        "artist_name_kana": " / ".join(artist_names_kana[:3]),
+        "gallery_name": " / ".join(galleries[:3]),
+        "fair_label": " / ".join(sorted(set([f for f in fairs if f]))),
+        "summary_ja": " ".join(summaries[:3]),
+        "text": "\n".join(texts[:3]),
+        "source_url": source_urls[0] if source_urls else "",
+    }
+
+
 def _build_art_pulse_followup_context(overview: dict, draft: dict) -> dict:
     ex_rows = list(overview.get("exhibition_candidates", []) or [])
     ar_rows = list(overview.get("artist_candidates", []) or [])
@@ -835,14 +969,6 @@ def _exhibition_row_label(row: dict) -> str:
     fair = row.get("fair_label") or "(フェア不明)"
     year = row.get("year") or "-"
     return f"[{fair}] {gallery} | {title} ({year})"
-
-
-def _artist_row_label(row: dict) -> str:
-    artist_name = row.get("artist_name") or "(作家名不明)"
-    gallery = row.get("gallery_name") or "(ギャラリー不明)"
-    fair = row.get("fair_label") or "(フェア不明)"
-    year = row.get("year") or "-"
-    return f"[{fair}] {gallery} | {artist_name} ({year})"
 
 
 def _render_evidence_summary(summary: dict) -> None:
@@ -1056,7 +1182,7 @@ def render_art_pulse() -> None:
 
 
 def render_exhibition_search() -> None:
-    _render_mode_heading("Exhibitions Search")
+    _render_mode_heading("Exhibition Search")
     _render_mode_explanation("トップギャラリーの展示検索（キーワード入力）")
     try:
         data = get_exhibition_search_data()
@@ -1092,7 +1218,7 @@ def render_exhibition_search() -> None:
     keyword = col2.text_input(
         "キーワード",
         value="",
-        placeholder="例 : ジャンル / アーティスト名 / 動物・光・水などの名詞",
+        placeholder="例 : テーマ / ジャンル / アーティスト名 など",
         key=keyword_key,
     )
     st.caption("キーワード入力 ＋ Search で「展示情報」を表示します。")
@@ -1123,7 +1249,7 @@ def render_exhibition_search() -> None:
     if last_query != current_query:
         return
     if data.warnings:
-        with st.expander("警告/注記（Exhibition Search）", expanded=False):
+        with st.expander("警告（Exhibition Search）", expanded=False):
             for warning in data.warnings[:20]:
                 st.write(f"- {warning}")
 
@@ -1194,7 +1320,7 @@ def render_exhibition_search() -> None:
 
 def render_artist_search() -> None:
     _render_mode_heading("Artist Search")
-    _render_mode_explanation("formal artists text の読み取り専用一覧です。")
+    _render_mode_explanation("トップギャラリーの作家検索（キーワード入力）")
 
     try:
         data = get_artist_search_data()
@@ -1202,34 +1328,72 @@ def render_artist_search() -> None:
         st.error(f"Artist 読み込みエラー: {type(exc).__name__}: {exc}")
         return
 
+    results_key = "artist_search_results"
+    query_key = "artist_search_query"
+    page_key = "artist_search_page"
+    keyword_key = "artist_keyword"
+    followup_question_key = "artist_followup_question_global"
+    followup_answer_key = "artist_followup_answer_global"
+    search_reset_requested_key = "artist_search_reset_requested"
+    followup_reset_requested_key = "artist_followup_reset_requested_global"
+
+    if st.session_state.pop(search_reset_requested_key, False):
+        st.session_state[keyword_key] = ""
+        st.session_state.pop(results_key, None)
+        st.session_state.pop(query_key, None)
+        st.session_state.pop(page_key, None)
+    if st.session_state.pop(followup_reset_requested_key, False):
+        st.session_state[followup_question_key] = ""
+        st.session_state[followup_answer_key] = ""
+
     col1, col2 = st.columns([1, 2])
     fair_mode = col1.selectbox(
-        "フェア絞り込み",
+        "フェア選択",
         FAIR_OPTIONS,
         index=2,
         key="artist_fair_filter",
     )
     keyword = col2.text_input(
-        "キーワード（artist / gallery / text / source_url）",
+        "キーワード",
         value="",
-        placeholder="例: Sarah Abu Abdallah / Athr / painting / https://athrart.com/artists/",
-        key="artist_keyword",
+        placeholder="例 : ジャンル / テーマ / アーティスト名 など",
+        key=keyword_key,
     )
+    st.caption("キーワード入力 ＋ Search で「作家情報」を表示します。")
+    search_clicked = st.button("Search", key="artist_search_button")
+    if st.button("リセット", key="artist_search_reset_button"):
+        st.session_state[search_reset_requested_key] = True
+        st.rerun()
+    current_query = {
+        "fair": fair_mode,
+        "keyword": (keyword or "").strip(),
+    }
+    if search_clicked:
+        st.session_state[followup_question_key] = ""
+        st.session_state[followup_answer_key] = ""
+        st.session_state[page_key] = 0
+        st.session_state[results_key] = search_artists(
+            data.records,
+            fair_mode,
+            current_query["keyword"],
+            limit=max(1, len(data.records)),
+        )
+        st.session_state[query_key] = current_query
 
-    effective_fair = fair_mode
-    filtered = apply_artist_filters(data.records, effective_fair, keyword)
-    display_rows = filtered[:ARTIST_SEARCH_RESULT_COUNT]
+    filtered = st.session_state.get(results_key)
+    last_query = st.session_state.get(query_key)
+    if filtered is None:
+        return
+    if last_query != current_query:
+        return
 
     st.caption(
-        f"件数: 読込={data.total_rows} / ヒット={len(filtered)} / 表示={len(display_rows)} / "
+        f"件数: 読込={data.total_rows} / ヒット={len(filtered)} / "
         f"frieze={data.fair_rows.get('frieze_london', 0)} / liste={data.fair_rows.get('liste', 0)}"
     )
-    st.caption(f"注記: {data.count_note}")
-    if len(filtered) > len(display_rows):
-        st.caption(f"表示上限: {ARTIST_SEARCH_RESULT_COUNT}件（01固定値）")
 
     if data.warnings:
-        with st.expander("警告/注記（Artist Search）", expanded=False):
+        with st.expander("警告（Artist Search）", expanded=False):
             for warning in data.warnings[:20]:
                 st.write(f"- {warning}")
 
@@ -1237,92 +1401,64 @@ def render_artist_search() -> None:
         st.warning("条件に一致する作家データはありません。")
         return
 
-    view_rows = [
-        {
-            "fair": row.get("fair_label"),
-            "gallery": row.get("gallery_name"),
-            "artist": row.get("artist_name"),
-            "artist_name_kana": row.get("artist_name_kana") or "",
-            "year": row.get("year"),
-            "headline_ja": row.get("headline_ja") or "",
-            "source_url": row.get("source_url"),
-            "summary": build_artist_summary_ja(row, max_chars=ARTIST_SEARCH_SUMMARY_MAX_CHARS),
-            "works_image_count_hint": row.get("works_image_count_hint", 0),
-        }
-        for row in display_rows
-    ]
-    st.dataframe(view_rows, use_container_width=True, hide_index=True, height=320)
+    all_rows = list(filtered)
+    total_hits = len(all_rows)
+    page_index = int(st.session_state.get(page_key, 0) or 0)
+    max_page = max((total_hits - 1) // ARTIST_SEARCH_RESULT_COUNT, 0)
+    if page_index < 0:
+        page_index = 0
+    if page_index > max_page:
+        page_index = max_page
+    st.session_state[page_key] = page_index
 
-    selected_idx = st.selectbox(
-        "詳細表示",
-        options=list(range(len(display_rows))),
-        format_func=lambda i: _artist_row_label(display_rows[i]),
-        key="artist_detail_select",
+    start_idx = page_index * ARTIST_SEARCH_RESULT_COUNT
+    end_idx = min(start_idx + ARTIST_SEARCH_RESULT_COUNT, total_hits)
+    display_rows_raw = all_rows[start_idx:end_idx]
+    display_rows: list[dict] = []
+    for row in display_rows_raw:
+        row_copy = dict(row)
+        row_copy["summary_display_ja"] = build_artist_summary_ja(
+            row_copy,
+            max_chars=ARTIST_SEARCH_SUMMARY_MAX_CHARS,
+        )
+        display_rows.append(row_copy)
+
+    st.caption(f"検索結果: {total_hits}件（表示 {start_idx + 1}-{end_idx} 件）")
+    _render_artist_result_cards(display_rows)
+    _, nav_col_prev, nav_col_next = st.columns([6, 1, 1])
+    if page_index > 0 and nav_col_prev.button("戻る", key="artist_page_prev"):
+        st.session_state[page_key] = page_index - 1
+        st.rerun()
+    if end_idx < total_hits and nav_col_next.button("次へ", key="artist_page_next"):
+        st.session_state[page_key] = page_index + 1
+        st.rerun()
+
+    st.markdown("**質問**")
+    seed_q = _sanitize_exhibition_followup_seed(
+        st.session_state.get(followup_question_key, "")
     )
-    selected = display_rows[selected_idx]
-
-    st.markdown("**作家詳細（読み取り専用）**")
-    left, right = st.columns([2, 1])
-    left.write(f"フェア: {selected.get('fair_label')}")
-    left.write(f"ギャラリー: {selected.get('gallery_name')}")
-    left.write(f"作家名: {selected.get('artist_name')}")
-    artist_name_kana = str(selected.get("artist_name_kana") or "").strip()
-    if artist_name_kana:
-        left.write(f"作家名カナ: {artist_name_kana}")
-    headline_ja = str(selected.get("headline_ja") or "").strip()
-    if headline_ja:
-        left.write(f"見出し: {headline_ja}")
-    left.write(f"年: {selected.get('year')}")
-    if selected.get("source_url"):
-        left.markdown(f"Source URL: {selected.get('source_url')}")
-
-    summary_ja = build_artist_summary_ja(selected, max_chars=ARTIST_SEARCH_SUMMARY_MAX_CHARS).strip()
-    if summary_ja:
-        left.write(f"要約: {summary_ja}")
-
-    right.metric("作品画像ヒント", int(selected.get("works_image_count_hint") or 0))
-    right.caption(f"source_url の厳密一致ベース（表示上限目安 {ARTIST_SEARCH_THUMB_FROM_ARTIST}）")
-    _render_evidence_summary(
-        {
-            "根拠件数": 1 if selected.get("source_url") else 0,
-            "URL件数": 1 if selected.get("source_url") else 0,
-            "参考画像候補件数(ヒント)": int(selected.get("works_image_count_hint") or 0),
-        }
+    if seed_q != st.session_state.get(followup_question_key, ""):
+        st.session_state[followup_question_key] = seed_q
+    followup_q = st.text_area(
+        "",
+        value=seed_q,
+        placeholder="例: この作家の表現傾向や代表的なモチーフを教えて。",
+        key=followup_question_key,
+        height=90,
+        label_visibility="collapsed",
     )
-    _render_evidence_urls(
-        title="根拠URL一覧",
-        exhibition_urls=[],
-        artist_urls=[selected.get("source_url")] if selected.get("source_url") else [],
-    )
-    st.markdown("**参考画像候補**")
-    preview_candidates = list(selected.get("artist_image_preview_candidates") or [])[:ARTIST_SEARCH_THUMB_FROM_ARTIST]
-    preview_urls: list[str] = []
-    for candidate in preview_candidates:
-        candidate_r2 = str(candidate.get("r2_key") or "").strip()
-        candidate_local = str(candidate.get("local_path") or "").strip()
-        candidate_url = str(candidate.get("image_url") or "").strip()
-        resolved = _presign_r2_get_url(candidate_r2) if candidate_r2 else ""
-        if not resolved and candidate_local:
-            resolved = _local_image_path_to_data_uri(candidate_local)
-        if not resolved and candidate_url:
-            resolved = candidate_url
-        if resolved:
-            preview_urls.append(resolved)
-    if preview_urls:
-        cols = st.columns(len(preview_urls))
-        for col, url in zip(cols, preview_urls):
-            col.image(url, use_container_width=True)
-        st.caption(f"表示上限 {ARTIST_SEARCH_THUMB_FROM_ARTIST} 枚（01固定値）")
-    elif int(selected.get("works_image_count_hint") or 0) > 0:
-        st.caption("参考画像候補は存在しますが、この環境でプレビュー解決できませんでした。")
-    else:
-        st.info("参考画像候補はありません。")
+    if st.button("質問する", key="artist_followup_run_global"):
+        context_row = _build_artist_followup_context(display_rows)
+        answer = answer_artist_followup(followup_q, context_row)
+        st.session_state[followup_answer_key] = answer
+    if st.button("リセット", key="artist_followup_reset_global"):
+        st.session_state[followup_reset_requested_key] = True
+        st.rerun()
 
-    body = (selected.get("text") or "").strip()
-    if body:
-        st.text_area("作家テキスト", value=body[:8000], height=260, disabled=True)
-    else:
-        st.warning("このレコードには本文テキストがありません。")
+    followup_answer = str(st.session_state.get(followup_answer_key, "") or "").strip()
+    if followup_answer:
+        st.markdown("**追加質問への回答**")
+        st.write(followup_answer)
 
 
 def render_advisor() -> None:
@@ -1455,8 +1591,6 @@ def render_advisor() -> None:
             + int(context["counts"]["reference_artist_images"]),
         }
     )
-    st.caption(f"注記: {context['count_note']}")
-
     ex_view = [
         {
             "fair": r.get("fair_label"),
@@ -1488,7 +1622,7 @@ def render_advisor() -> None:
     ref_images = context.get("reference_images", {})
     _render_reference_image_candidates("参考画像候補", ref_images, target_total=8)
     if context.get("warnings"):
-        with st.expander("警告/注記（Advisor）", expanded=False):
+        with st.expander("警告（Advisor）", expanded=False):
             for warning in context["warnings"][:20]:
                 st.write(f"- {warning}")
 
@@ -1626,7 +1760,7 @@ def render_advisor() -> None:
     _render_evidence_urls("根拠URL一覧", ex_urls, ar_urls)
     _render_reference_image_candidates("参考画像候補", context.get("reference_images", {}), target_total=8)
     if draft.get("warnings"):
-        with st.expander("警告/注記（Advisor）", expanded=False):
+        with st.expander("警告（Advisor）", expanded=False):
             for warning in draft["warnings"]:
                 st.write(f"- {warning}")
 
@@ -1760,9 +1894,6 @@ def render_exclusive_advisor() -> None:
             "参考画像候補件数": len((context["external"].get("reference_images", {}) or {}).get("all", [])),
         }
     )
-    st.caption(f"注記(外部): {context['external'].get('count_note', '')}")
-    st.caption(f"注記(Tarutani): {context['tarutani'].get('count_note', '')}")
-
     ex_view = [
         {
             "fair": r.get("fair_label"),
@@ -1794,7 +1925,7 @@ def render_exclusive_advisor() -> None:
     ref_images = context["external"].get("reference_images", {})
     _render_reference_image_candidates("参考画像候補", ref_images, target_total=8)
     if context.get("warnings"):
-        with st.expander("警告/注記（Exclusive Advisor）", expanded=False):
+        with st.expander("警告（Exclusive Advisor）", expanded=False):
             for warning in context["warnings"][:20]:
                 st.write(f"- {warning}")
 
@@ -1959,7 +2090,7 @@ def render_exclusive_advisor() -> None:
     )
 
     if draft.get("warnings"):
-        with st.expander("警告/注記（Exclusive Advisor）", expanded=False):
+        with st.expander("警告（Exclusive Advisor）", expanded=False):
             for warning in draft["warnings"]:
                 st.write(f"- {warning}")
 
@@ -2005,11 +2136,10 @@ def render_gallery_list() -> None:
             "警告サマリ": getattr(data, "warning_counts", {}),
         }
     )
-    st.caption(data.count_note)
     st.caption("列互換: 3列はそのまま / 2列は artists_url に exhibitions_url を使用（表示専用）。")
 
     if data.warnings:
-        with st.expander("警告/注記（Gallery list）", expanded=False):
+        with st.expander("警告（Gallery list）", expanded=False):
             for warning in data.warnings[:30]:
                 st.write(f"- {warning}")
 

@@ -53,6 +53,11 @@ def resolve_current_first_enrichment_output_path(
     category: str, target_year: int = TARGET_YEAR
 ) -> tuple[Path | None, str]:
     current_path = REPO_ROOT / get_enrichment_current_output_path(category, target_year)
+    # current-first contract: try to hydrate local current cache from R2 before legacy fallback.
+    if not current_path.exists():
+        r2_key = _local_path_to_r2_key(current_path)
+        if r2_key:
+            _download_r2_object_to_local(current_path, r2_key)
     if current_path.exists():
         return current_path, "current"
 
@@ -114,6 +119,12 @@ def _local_path_to_r2_key(path: Path) -> str:
         return "phase1_seed10/source/" + rel[len("data/phase1_seed10/raw/") :]
     if rel.startswith("data/phase1_seed10/derived/"):
         return "phase1_seed10/derived/" + rel[len("data/phase1_seed10/derived/") :]
+    if rel.startswith("data/current/enrichment/"):
+        return "data/current/enrichment/" + rel[len("data/current/enrichment/") :]
+    if rel.startswith("data/history/enrichment/artists/"):
+        return "data/history/enrichment/artists/" + rel[len("data/history/enrichment/artists/") :]
+    if rel.startswith("data/history/enrichment/exhibitions/"):
+        return "data/history/enrichment/exhibitions/" + rel[len("data/history/enrichment/exhibitions/") :]
     if rel.startswith("data/Tarutani_data/"):
         return rel
     if rel.startswith("data/gallery_lists/"):
