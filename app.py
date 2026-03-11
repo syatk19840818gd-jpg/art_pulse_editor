@@ -358,6 +358,20 @@ def apply_global_font_styles() -> None:
           color: #111111;
           margin: 0;
         }
+        .artist-search-scroll {
+          display: flex;
+          gap: 1rem;
+          overflow-x: auto;
+          overflow-y: hidden;
+          margin: 0.4rem 0 0.9rem 0;
+          padding-bottom: 0.35rem;
+          overscroll-behavior-x: contain;
+          -webkit-overflow-scrolling: touch;
+          scroll-behavior: smooth;
+        }
+        .artist-search-scroll .exh-search-card {
+          flex: 0 0 clamp(320px, 30vw, 520px);
+        }
         .artist-search-thumb-row {
           display: grid;
           grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -416,6 +430,9 @@ def apply_global_font_styles() -> None:
           .artist-search-thumb {
             min-height: 110px;
             max-height: 110px;
+          }
+          .artist-search-scroll .exh-search-card {
+            flex-basis: 88vw;
           }
         }
         </style>
@@ -858,7 +875,7 @@ def _render_artist_result_cards(rows: list[dict]) -> None:
         )
 
     if cards:
-        st.markdown(f'<div class="exh-search-grid">{"".join(cards)}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="artist-search-scroll">{"".join(cards)}</div>', unsafe_allow_html=True)
 
 
 def _build_artist_followup_context(rows: list[dict]) -> dict:
@@ -1330,7 +1347,6 @@ def render_artist_search() -> None:
 
     results_key = "artist_search_results"
     query_key = "artist_search_query"
-    page_key = "artist_search_page"
     keyword_key = "artist_keyword"
     followup_question_key = "artist_followup_question_global"
     followup_answer_key = "artist_followup_answer_global"
@@ -1341,7 +1357,6 @@ def render_artist_search() -> None:
         st.session_state[keyword_key] = ""
         st.session_state.pop(results_key, None)
         st.session_state.pop(query_key, None)
-        st.session_state.pop(page_key, None)
     if st.session_state.pop(followup_reset_requested_key, False):
         st.session_state[followup_question_key] = ""
         st.session_state[followup_answer_key] = ""
@@ -1371,7 +1386,6 @@ def render_artist_search() -> None:
     if search_clicked:
         st.session_state[followup_question_key] = ""
         st.session_state[followup_answer_key] = ""
-        st.session_state[page_key] = 0
         st.session_state[results_key] = search_artists(
             data.records,
             fair_mode,
@@ -1403,19 +1417,8 @@ def render_artist_search() -> None:
 
     all_rows = list(filtered)
     total_hits = len(all_rows)
-    page_index = int(st.session_state.get(page_key, 0) or 0)
-    max_page = max((total_hits - 1) // ARTIST_SEARCH_RESULT_COUNT, 0)
-    if page_index < 0:
-        page_index = 0
-    if page_index > max_page:
-        page_index = max_page
-    st.session_state[page_key] = page_index
-
-    start_idx = page_index * ARTIST_SEARCH_RESULT_COUNT
-    end_idx = min(start_idx + ARTIST_SEARCH_RESULT_COUNT, total_hits)
-    display_rows_raw = all_rows[start_idx:end_idx]
     display_rows: list[dict] = []
-    for row in display_rows_raw:
+    for row in all_rows:
         row_copy = dict(row)
         row_copy["summary_display_ja"] = build_artist_summary_ja(
             row_copy,
@@ -1423,15 +1426,8 @@ def render_artist_search() -> None:
         )
         display_rows.append(row_copy)
 
-    st.caption(f"検索結果: {total_hits}件（表示 {start_idx + 1}-{end_idx} 件）")
+    st.caption(f"検索結果: {total_hits}件（横スクロールで閲覧）")
     _render_artist_result_cards(display_rows)
-    _, nav_col_prev, nav_col_next = st.columns([6, 1, 1])
-    if page_index > 0 and nav_col_prev.button("戻る", key="artist_page_prev"):
-        st.session_state[page_key] = page_index - 1
-        st.rerun()
-    if end_idx < total_hits and nav_col_next.button("次へ", key="artist_page_next"):
-        st.session_state[page_key] = page_index + 1
-        st.rerun()
 
     st.markdown("**質問**")
     seed_q = _sanitize_exhibition_followup_seed(
