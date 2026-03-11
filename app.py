@@ -29,7 +29,6 @@ from phase2_exclusive_advisor_type2_execute import (
 )
 from phase2_gallery_list_readonly import apply_gallery_list_filters, load_gallery_list_records_readonly
 from phase2_artist_search_readonly import (
-    ARTIST_SEARCH_RESULT_COUNT,
     ARTIST_SEARCH_SUMMARY_MAX_CHARS,
     ARTIST_SEARCH_THUMB_FROM_ARTIST,
     answer_artist_followup,
@@ -38,7 +37,6 @@ from phase2_artist_search_readonly import (
     search_artists,
 )
 from phase2_exhibition_search_readonly import (
-    EXHIBITION_SEARCH_RESULT_COUNT,
     EXHIBITION_SEARCH_SUMMARY_MAX_CHARS,
     _derive_title,
     answer_exhibition_followup,
@@ -312,7 +310,9 @@ def apply_global_font_styles() -> None:
           margin: 0;
         }
         .exh-search-thumb {
-          display: block;
+          display: flex;
+          align-items: center;
+          justify-content: center;
           width: 100%;
           min-height: 240px;
           max-height: 240px;
@@ -323,9 +323,12 @@ def apply_global_font_styles() -> None:
           position: relative;
         }
         .exh-search-thumb img {
-          width: 100%;
-          height: 100%;
-          object-fit: contain;
+          width: 100% !important;
+          height: 100% !important;
+          max-width: 100% !important;
+          max-height: 100% !important;
+          object-fit: contain !important;
+          object-position: center center !important;
           display: block;
           background: #f6f8fb;
         }
@@ -358,19 +361,29 @@ def apply_global_font_styles() -> None:
           color: #111111;
           margin: 0;
         }
-        .artist-search-scroll {
+        .artist-search-scroll,
+        .exh-results-scroll {
           display: flex;
+          align-items: flex-start;
           gap: 1rem;
           overflow-x: auto;
           overflow-y: hidden;
-          margin: 0.4rem 0 0.9rem 0;
+          margin: 0.4rem 0 0.35rem 0;
           padding-bottom: 0.35rem;
           overscroll-behavior-x: contain;
           -webkit-overflow-scrolling: touch;
           scroll-behavior: smooth;
         }
-        .artist-search-scroll .exh-search-card {
-          flex: 0 0 clamp(320px, 30vw, 520px);
+        .artist-search-scroll .exh-search-card,
+        .exh-results-scroll .exh-search-card {
+          flex: 0 0 clamp(300px, 26vw, 460px);
+          height: 640px;
+          overflow: hidden;
+        }
+        .artist-search-scroll .exh-search-summary {
+          overflow: visible;
+          display: block;
+          max-height: none;
         }
         .artist-search-thumb-row {
           display: grid;
@@ -394,6 +407,10 @@ def apply_global_font_styles() -> None:
           object-fit: contain;
           display: block;
           background: #f6f8fb;
+        }
+        .artist-search-scroll .exh-search-fallback {
+          min-height: 140px;
+          max-height: 140px;
         }
         .ap-progress-row {
           display: inline-flex;
@@ -431,8 +448,31 @@ def apply_global_font_styles() -> None:
             min-height: 110px;
             max-height: 110px;
           }
+          .artist-search-scroll .exh-search-fallback {
+            min-height: 110px;
+            max-height: 110px;
+          }
+          .exh-results-scroll .exh-search-card {
+            flex-basis: 84vw;
+            height: auto;
+            min-height: 600px;
+            overflow: visible;
+          }
+          .exh-results-scroll .exh-search-summary {
+            display: block;
+            -webkit-line-clamp: unset;
+            max-height: none;
+          }
           .artist-search-scroll .exh-search-card {
-            flex-basis: 88vw;
+            flex-basis: 84vw;
+            height: auto;
+            min-height: 600px;
+            overflow: visible;
+          }
+          .artist-search-scroll .exh-search-summary {
+            display: block;
+            -webkit-line-clamp: unset;
+            max-height: none;
           }
         }
         </style>
@@ -463,6 +503,33 @@ def _render_mode_explanation(text: str) -> None:
         ),
         unsafe_allow_html=True,
     )
+
+
+def _run_search_with_spinner(search_fn, progress_line=None):
+    if progress_line is None:
+        progress_line = st.empty()
+
+    def _render_searching() -> None:
+        progress_line.markdown(
+            (
+                '<div class="ap-progress-row">'
+                '<span class="ap-progress-spinner"></span>'
+                f"<span>{escape('探しています...')}</span>"
+                "</div>"
+            ),
+            unsafe_allow_html=True,
+        )
+
+    def _complete() -> None:
+        progress_line.empty()
+
+    try:
+        _render_searching()
+        result = search_fn()
+        return result, _complete
+    except Exception:
+        _complete()
+        raise
 
 
 def _split_markdown_and_image_blocks(markdown_text: str):
@@ -747,8 +814,10 @@ def _render_exhibition_result_cards(rows: list[dict]) -> None:
             safe_img = escape(image_url, quote=True)
             image_html = (
                 f'<a class="exh-search-thumb" href="{safe_img}" target="_blank" rel="noopener noreferrer" '
-                'title="\u753b\u50cf\u3092\u62e1\u5927\u8868\u793a">'
-                f'<img src="{safe_img}" alt="{title}" loading="lazy" /></a>'
+                f'title="\u753b\u50cf\u3092\u62e1\u5927\u8868\u793a" '
+                f'style="background-image:url(\'{safe_img}\');'
+                'background-size:contain;background-position:center center;'
+                'background-repeat:no-repeat;"></a>'
             )
         else:
             image_html = (
@@ -777,7 +846,7 @@ def _render_exhibition_result_cards(rows: list[dict]) -> None:
         )
 
     if cards:
-        st.markdown(f'<div class="exh-search-grid">{"".join(cards)}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="exh-results-scroll">{"".join(cards)}</div>', unsafe_allow_html=True)
 
 
 def _build_exhibition_followup_context(rows: list[dict]) -> dict:
@@ -1093,7 +1162,7 @@ def render_art_pulse() -> None:
         st.warning("この記者に切り口が定義されていません。")
         angle_keys = []
 
-    st.caption("上の条件を選んで「Art Pulse」を押すと 担当記者が記事を書きます。")
+    st.caption("条件を選んで「Art Pulse」を押すと担当記者が記事を書きます。")
     run = st.button("Art Pulse", key="artpulse_generate")
     reset_article = st.button("リセット", key="artpulse_reset_result")
     if reset_article:
@@ -1209,18 +1278,17 @@ def render_exhibition_search() -> None:
 
     results_key = "exh_search_results"
     query_key = "exh_search_query"
-    page_key = "exh_search_page"
     keyword_key = "exh_keyword"
     followup_question_key = "exh_followup_question_global"
     followup_answer_key = "exh_followup_answer_global"
     search_reset_requested_key = "exh_search_reset_requested"
     followup_reset_requested_key = "exh_followup_reset_requested_global"
+    spinner_complete = None
 
     if st.session_state.pop(search_reset_requested_key, False):
         st.session_state[keyword_key] = ""
         st.session_state.pop(results_key, None)
         st.session_state.pop(query_key, None)
-        st.session_state.pop(page_key, None)
     if st.session_state.pop(followup_reset_requested_key, False):
         st.session_state[followup_question_key] = ""
         st.session_state[followup_answer_key] = ""
@@ -1243,6 +1311,7 @@ def render_exhibition_search() -> None:
     if st.button("リセット", key="exh_search_reset_button"):
         st.session_state[search_reset_requested_key] = True
         st.rerun()
+    status_slot = st.empty()
     current_query = {
         "fair": fair_mode,
         "keyword": (keyword or "").strip(),
@@ -1250,45 +1319,43 @@ def render_exhibition_search() -> None:
     if search_clicked:
         st.session_state[followup_question_key] = ""
         st.session_state[followup_answer_key] = ""
-        st.session_state[page_key] = 0
-        st.session_state[results_key] = search_exhibitions(
-            data.records,
-            fair_mode,
-            current_query["keyword"],
-            limit=max(1, len(data.records)),
-        )
+        try:
+            result_rows, spinner_complete = _run_search_with_spinner(
+                lambda: search_exhibitions(
+                    data.records,
+                    fair_mode,
+                    current_query["keyword"],
+                    limit=max(1, len(data.records)),
+                ),
+                progress_line=status_slot,
+            )
+            st.session_state[results_key] = result_rows
+        except Exception as exc:
+            st.error(f"Exhibition 検索エラー: {type(exc).__name__}: {exc}")
+            return
         st.session_state[query_key] = current_query
 
     filtered = st.session_state.get(results_key)
-    last_query = st.session_state.get(query_key)
     if filtered is None:
+        if spinner_complete:
+            spinner_complete()
         return
-    if last_query != current_query:
-        return
+
     if data.warnings:
         with st.expander("警告（Exhibition Search）", expanded=False):
             for warning in data.warnings[:20]:
                 st.write(f"- {warning}")
 
     if not filtered:
+        if spinner_complete:
+            spinner_complete()
         st.warning("条件に一致する展示データはありません。")
         return
 
     all_rows = list(filtered)
     total_hits = len(all_rows)
-    page_index = int(st.session_state.get(page_key, 0) or 0)
-    max_page = max((total_hits - 1) // EXHIBITION_SEARCH_RESULT_COUNT, 0)
-    if page_index < 0:
-        page_index = 0
-    if page_index > max_page:
-        page_index = max_page
-    st.session_state[page_key] = page_index
-
-    start_idx = page_index * EXHIBITION_SEARCH_RESULT_COUNT
-    end_idx = min(start_idx + EXHIBITION_SEARCH_RESULT_COUNT, total_hits)
-    display_rows_raw = all_rows[start_idx:end_idx]
     display_rows: list[dict] = []
-    for row in display_rows_raw:
+    for row in all_rows:
         row_copy = dict(row)
         row_copy["exhibition_title"] = _derive_title(row_copy)
         row_copy["summary_display_ja"] = build_exhibition_summary_ja(
@@ -1297,15 +1364,14 @@ def render_exhibition_search() -> None:
         )
         display_rows.append(row_copy)
 
-    st.caption(f"検索結果: {total_hits}件（表示 {start_idx + 1}-{end_idx} 件）")
     _render_exhibition_result_cards(display_rows)
-    _, nav_col_prev, nav_col_next = st.columns([6, 1, 1])
-    if page_index > 0 and nav_col_prev.button("戻る", key="exh_page_prev"):
-        st.session_state[page_key] = page_index - 1
-        st.rerun()
-    if end_idx < total_hits and nav_col_next.button("次へ", key="exh_page_next"):
-        st.session_state[page_key] = page_index + 1
-        st.rerun()
+    if spinner_complete:
+        spinner_complete()
+    status_slot.caption(
+        f"件数: 読込={data.total_rows} / ヒット={len(filtered)} / "
+        f"frieze={data.fair_rows.get('frieze_london', 0)} / liste={data.fair_rows.get('liste', 0)}  \n"
+        f"検索結果: {total_hits}件（横スクロールで閲覧）"
+    )
 
     st.markdown("**質問**")
     seed_q = _sanitize_exhibition_followup_seed(
@@ -1352,6 +1418,7 @@ def render_artist_search() -> None:
     followup_answer_key = "artist_followup_answer_global"
     search_reset_requested_key = "artist_search_reset_requested"
     followup_reset_requested_key = "artist_followup_reset_requested_global"
+    spinner_complete = None
 
     if st.session_state.pop(search_reset_requested_key, False):
         st.session_state[keyword_key] = ""
@@ -1379,6 +1446,7 @@ def render_artist_search() -> None:
     if st.button("リセット", key="artist_search_reset_button"):
         st.session_state[search_reset_requested_key] = True
         st.rerun()
+    status_slot = st.empty()
     current_query = {
         "fair": fair_mode,
         "keyword": (keyword or "").strip(),
@@ -1386,25 +1454,27 @@ def render_artist_search() -> None:
     if search_clicked:
         st.session_state[followup_question_key] = ""
         st.session_state[followup_answer_key] = ""
-        st.session_state[results_key] = search_artists(
-            data.records,
-            fair_mode,
-            current_query["keyword"],
-            limit=max(1, len(data.records)),
-        )
+        try:
+            result_rows, spinner_complete = _run_search_with_spinner(
+                lambda: search_artists(
+                    data.records,
+                    fair_mode,
+                    current_query["keyword"],
+                    limit=max(1, len(data.records)),
+                ),
+                progress_line=status_slot,
+            )
+            st.session_state[results_key] = result_rows
+        except Exception as exc:
+            st.error(f"Artist 検索エラー: {type(exc).__name__}: {exc}")
+            return
         st.session_state[query_key] = current_query
 
     filtered = st.session_state.get(results_key)
-    last_query = st.session_state.get(query_key)
     if filtered is None:
+        if spinner_complete:
+            spinner_complete()
         return
-    if last_query != current_query:
-        return
-
-    st.caption(
-        f"件数: 読込={data.total_rows} / ヒット={len(filtered)} / "
-        f"frieze={data.fair_rows.get('frieze_london', 0)} / liste={data.fair_rows.get('liste', 0)}"
-    )
 
     if data.warnings:
         with st.expander("警告（Artist Search）", expanded=False):
@@ -1412,6 +1482,8 @@ def render_artist_search() -> None:
                 st.write(f"- {warning}")
 
     if not filtered:
+        if spinner_complete:
+            spinner_complete()
         st.warning("条件に一致する作家データはありません。")
         return
 
@@ -1426,8 +1498,14 @@ def render_artist_search() -> None:
         )
         display_rows.append(row_copy)
 
-    st.caption(f"検索結果: {total_hits}件（横スクロールで閲覧）")
     _render_artist_result_cards(display_rows)
+    if spinner_complete:
+        spinner_complete()
+    status_slot.caption(
+        f"件数: 読込={data.total_rows} / ヒット={len(filtered)} / "
+        f"frieze={data.fair_rows.get('frieze_london', 0)} / liste={data.fair_rows.get('liste', 0)}  \n"
+        f"検索結果: {total_hits}件（横スクロールで閲覧）"
+    )
 
     st.markdown("**質問**")
     seed_q = _sanitize_exhibition_followup_seed(
