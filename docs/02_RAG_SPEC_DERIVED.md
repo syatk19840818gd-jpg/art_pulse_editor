@@ -140,6 +140,11 @@ SSOT_TAG: 01>「重複取得をしない（超重要）」配下
 - Artist系抽出（artists_text / artist works images）の artist 重複は「全フェア・全ギャラリー横断」で禁止。
   - `artist_master_global.json`（artist_identity_key / first_source_url）を参照し、既知artistは自動スキップする。
   - 例外: ExhibitionsRAG 側の artist 重複は許容し、この自動スキップは適用しない。
+  - canonical_source_key は dedup / join / repair dry-run 判定用の別キーとして扱う（`source_url` と混同しない）。
+  - `source_url` は provenance/live link の原本として保持し、canonical化のために書換しない。
+  - artist_name canonicalization（最小固定）：leading numeric id 除去 / trailing `-1,-2,...` 除去 / biography|works|about 等の非氏名segment無視 / numeric-only結果は invalid。
+  - same-name collision は自動 merge しない。review bucket へ送る。
+  - identity backfill 不能行は quarantine 扱いにする（通常joinへ混在させない）。
 
 ============================================================
 CARD_ID: 07_PDF_HANDLING（PDFリンクの扱い）
@@ -171,6 +176,9 @@ SSOT_TAG: 01>「Post-fetch/Enrichment」行（Fetch後の事後処理）配下
 推奨：バッチ入口
 - fetch（保存）→ jsonl/csv 生成 → enrichment_batch（後処理）
 - 失敗が出ても、Fetch全体が止まらない構造にする
+- canonical incident 対応フロー（固定最小）：repair dry-run（manifest/summary 生成）→ review bucket/quarantine 確認 → repair execute。
+- Artist Text / Artist Works Images / enrichment join は canonical_source_key + artist identity（artist_name_key / artist_identity_key）整合を前提に実行する。
+- multi-APPLIED source group は dry-run で検出し、execute 前に keep/drop 方針を確定する。
 
 ============================================================
 CARD_ID: 09_FAILURE_LOGGING（失敗をログ化して割り切る）

@@ -13,7 +13,7 @@ STREAMLIT_ENTRYPOINT（固定）
 - Local run: streamlit run app.py
 
 SOURCE_SSOT: 01_PROJECT_SPEC_CURRENT_FULL.docx
-LAST_UPDATED: 2026-03-11 16:32 JST
+LAST_UPDATED: 2026-03-11 19:07 JST
 
 
 ========================
@@ -81,7 +81,7 @@ STATE_SNAPSHOT（現在地）
 - Phase 2 app run-state (current baseline):
   - Feature 1 Art Pulse: completed
   - Feature 2 Exhibition Search: completed
-  - Feature 3 Artist Search: almost completed (current-first read-only smoke passed)
+  - Feature 3 Artist Search: Artist Text canonical incident closed (core+residual cleanup completed, residual=0), ready to resume normal roadmap
   - Feature 4 Advisor: kickoff completed (type1 minimal grounded draft connected in app)
   - type2 status: gate-only confirmation, not implementation-complete
   - current/history rebaseline phase: completed (A2-A9)
@@ -89,7 +89,7 @@ STATE_SNAPSHOT（現在地）
 - NOTE: keep this current-goal line updated whenever phase priority changes.
 - Fixed master roadmap alignment (from SSOT 01):
   - 5 RAG categories (Tarutani_Text / Artist Works Images / Artist Text / Exhibitions Image / Exhibitions Text) are established at 10-gallery operational scope
-  - App features status: 1/2 completed, 3 almost completed, 4 kickoff completed (type1 minimal)
+  - App features status: 1/2 completed, 3 incident-closed (residual=0), 4 kickoff completed (type1 minimal)
   - Mandatory pre-Advisor phase (current/history canonical rebaseline) is completed and fixed in roadmap
   - Role split: current=day-to-day canonical / history=audit archive / R2=primary persistent sync target for current / local=current fallback
   - app/read-only must read current first
@@ -314,8 +314,14 @@ NEXT_TASKS（次回やること）
 [x] 301) DOC_SYNC_POST_ADVISOR_KICKOFF_01 (this task)
     - scope: docs 01/02/03/04 synchronized to post-kickoff baseline
 
-[ ] 302) A11_PHASE4_ADVISOR_TYPE1_QUALITY_TUNING_01 (highest priority)
+[ ] 302) A11_PHASE4_ADVISOR_TYPE1_QUALITY_TUNING_01 (highest priority resumed)
     - scope: advisor type1 answer quality/evidence quality tuning under current canonical constraints
+
+[x] 303) ARTIST_TEXT_CANONICAL_INCIDENT_RESPONSE_01 (core execute GO completed)
+    - scope: canonical incident core repair for Artist Text RAG completed (raw repaired=223, current APPLIED=223, multi-APPLIED unresolved=0, Feature3 trailing-digit display=0, Feature1 artist candidate issue count=0)
+
+[x] 304) P0_ARTIST_TEXT_CANONICAL_REVIEW_BUCKET_RESOLUTION_01 (completed)
+    - scope: residual closeout completed (same-name collision review resolved, quarantine disposition fixed, Artist Works Images metadata trailing-digit cleanup 32->0), incident residual=0
 
 [x] 1) ギャラリーリストCSVを repo に配置してコミットする（完了）
     - 置き場所：data/gallery_lists/

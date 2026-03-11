@@ -21,10 +21,15 @@ import requests
 from tools import skip_policy
 from phase1_artist_link_utils import (
     ARTIST_LINK_KEYWORDS,
+    build_artist_name_en_from_source_url as shared_build_artist_name_en_from_source_url,
+    canonical_artist_source_key as shared_canonical_artist_source_key,
     canonicalize_artist_detail_url as shared_canonicalize_artist_detail_url,
+    get_artist_master_duplicate_reason as shared_get_artist_master_duplicate_reason,
+    is_invalid_artist_name as shared_is_invalid_artist_name,
     looks_like_artist_detail_url as shared_looks_like_artist_detail_url,
     looks_like_artist_listing_url as shared_looks_like_artist_listing_url,
     normalize_url_for_link_compare as shared_normalize_url_for_link_compare,
+    sanitize_artist_name_en as shared_sanitize_artist_name_en,
     score_artist_detail_url_quality as shared_score_artist_detail_url_quality,
 )
 from phase1_exhibitions_text_utils import (
@@ -143,24 +148,6 @@ EXHIBITION_LISTING_PATH_SEGMENTS = {
     "news",
     "category",
 }
-
-ARTIST_URL_NON_NAME_SEGMENTS = {
-    "artist",
-    "artists",
-    "works",
-    "work",
-    "biography",
-    "bio",
-    "profile",
-    "about",
-    "overview",
-    "detail",
-    "details",
-    "viewing-room",
-    "viewingroom",
-    "index",
-}
-
 
 class LinkHTMLParser(HTMLParser):
     def __init__(self) -> None:
@@ -464,6 +451,18 @@ def _normalize_url_for_link_compare(url: str) -> str:
 
 def _canonicalize_artist_detail_url(url: str) -> str:
     return shared_canonicalize_artist_detail_url(url)
+
+
+def _canonical_artist_source_key(url: str) -> str:
+    return shared_canonical_artist_source_key(url)
+
+
+def _sanitize_artist_name_en(name: str) -> str:
+    return shared_sanitize_artist_name_en(name)
+
+
+def _is_invalid_artist_name(name: str) -> bool:
+    return shared_is_invalid_artist_name(name)
 
 
 def _score_artist_detail_url_quality(url: str) -> int:
@@ -884,41 +883,24 @@ def compute_text_hash(text: str, source_url: str, rag_category: str = RAG_CATEGO
 
 
 def artist_slug_from_source_url(source_url: str) -> str:
-    parsed = urlparse(source_url)
-    path = (parsed.path or "").strip("/")
-    if not path:
+    artist_name_en = shared_build_artist_name_en_from_source_url(source_url)
+    if artist_name_en == "Unknown Artist":
         return "artist"
-    parts = [part for part in path.split("/") if part]
-    if not parts:
-        return "artist"
-    candidate = ""
-    for part in reversed(parts):
-        lowered = part.lower()
-        if lowered in ARTIST_URL_NON_NAME_SEGMENTS:
-            continue
-        if lowered.isdigit():
-            continue
-        candidate = part
-        break
-    if not candidate:
-        candidate = parts[-1]
-    match = re.match(r"^\d+[-_]+(.+)$", candidate.strip())
-    if match:
-        candidate = match.group(1)
-    candidate = re.sub(r"[^a-z0-9]+", "-", candidate.strip().lower()).strip("-")
-    return candidate or "artist"
+    slug = re.sub(r"[^a-z0-9]+", "-", artist_name_en.lower()).strip("-")
+    return slug or "artist"
 
 
 def build_artist_name_en_from_source_url(source_url: str) -> str:
-    slug = artist_slug_from_source_url(source_url)
-    if slug == "artist":
+    artist_name_en = shared_build_artist_name_en_from_source_url(source_url)
+    artist_name_en = _sanitize_artist_name_en(artist_name_en)
+    if _is_invalid_artist_name(artist_name_en):
         return "Unknown Artist"
-    return " ".join(part.capitalize() for part in slug.split("-") if part)
+    return artist_name_en
 
 
 def build_artist_name_key(artist_name_en: str, source_url: str) -> str:
     normalized_name = re.sub(r"\s+", " ", str(artist_name_en or "").strip().lower())
-    if normalized_name:
+    if normalized_name and normalized_name != "unknown artist" and not _is_invalid_artist_name(normalized_name):
         seed = f"artist_name_en:{normalized_name}"
     else:
         seed = f"source_url:{normalize_url_for_hash(source_url)}"
@@ -930,6 +912,19 @@ def build_artist_identity_key(artist_name_key: str, artist_name_en: str, source_
     if normalized_key:
         return normalized_key
     return build_artist_name_key(artist_name_en, source_url).lower()
+
+
+def _should_skip_artist_master_duplicate(
+    existing_artist: dict[str, Any] | None,
+    candidate_source_url: str,
+) -> tuple[bool, str]:
+    if existing_artist is None:
+        return False, ""
+    reason = shared_get_artist_master_duplicate_reason(
+        existing_first_source_url=str(existing_artist.get("first_source_url") or ""),
+        candidate_source_url=candidate_source_url,
+    )
+    return True, reason
 
 
 def _build_artist_master_entry(
@@ -1593,6 +1588,9 @@ def main() -> int:
     }
     artists_visited_pages_path = log_dir / f"visited_pages_artists_seed10_{TARGET_YEAR}.json"
     artists_failed_fetches_path = log_dir / f"failed_fetches_artists_seed10_{TARGET_YEAR}.json"
+    artists_visited_ledger_exists_at_start = artists_visited_pages_path.exists()
+    artists_failed_ledger_exists_at_start = artists_failed_fetches_path.exists()
+    artist_master_global_exists_at_start = artist_master_global_path.exists()
     artists_visited_pages_ledger = load_visited_pages_ledger(artists_visited_pages_path)
     artists_failed_fetches_ledger = load_failed_fetches_ledger(artists_failed_fetches_path)
     artists_existing_text_hashes_by_fair = {
@@ -1614,6 +1612,15 @@ def main() -> int:
     merge_artist_master_from_artists_raw(artist_master_global, target_year=TARGET_YEAR)
     artists_seen_identity_keys_in_run: set[str] = set()
     if include_artists_text:
+        bootstrap_notes: list[str] = []
+        if not artist_master_global_exists_at_start:
+            bootstrap_notes.append("artist_master_global_missing_at_start")
+        if not artists_visited_ledger_exists_at_start:
+            bootstrap_notes.append("artists_visited_ledger_missing_at_start")
+        if not artists_failed_ledger_exists_at_start:
+            bootstrap_notes.append("artists_failed_ledger_missing_at_start")
+        if bootstrap_notes:
+            print(f"[WARN] Artists bootstrap state: {', '.join(bootstrap_notes)}")
         print(
             f"[INFO] Artists ledgers: visited={len(artists_visited_pages_ledger)} "
             f"failed={len(artists_failed_fetches_ledger)} "
@@ -2067,13 +2074,12 @@ def main() -> int:
                     page_url,
                 )
                 existing_artist = artist_master_global.get(artist_identity_key_candidate)
-                existing_artist_source = (
-                    _canonicalize_artist_detail_url(str(existing_artist.get("first_source_url") or ""))
-                    if existing_artist is not None
-                    else ""
+                current_artist_source = _canonical_artist_source_key(page_url)
+                should_skip_existing_artist, existing_reason = _should_skip_artist_master_duplicate(
+                    existing_artist=existing_artist,
+                    candidate_source_url=page_url,
                 )
-                current_artist_source = _canonicalize_artist_detail_url(page_url)
-                if existing_artist is not None and existing_artist_source and existing_artist_source != current_artist_source:
+                if should_skip_existing_artist:
                     upsert_visited_page_with_canonical_alias(
                         artists_visited_pages_ledger,
                         url=page_url,
@@ -2081,11 +2087,11 @@ def main() -> int:
                         fair_slug=gallery.fair_slug,
                         gallery_name_en=gallery.gallery_name_en,
                         decision="skipped",
-                        reason_code="DUPLICATE_ARTIST_GLOBAL_EXISTING",
+                        reason_code=existing_reason,
                         parent_source_url=list_page_url,
                         category=RAG_CATEGORY_ARTISTS,
                     )
-                    artists_skip_reason_counter["DUPLICATE_ARTIST_GLOBAL_EXISTING"] += 1
+                    artists_skip_reason_counter[existing_reason] += 1
                     continue
                 if artist_identity_key_candidate in artists_seen_identity_keys_in_run:
                     upsert_visited_page_with_canonical_alias(
@@ -2452,6 +2458,14 @@ def main() -> int:
         "artists_output_files": artists_output_files,
         "artists_failed_fetches_path": str(artists_failed_fetches_path) if include_artists_text else "",
         "artists_visited_pages_path": str(artists_visited_pages_path) if include_artists_text else "",
+        "artist_master_global_exists_at_start": bool(artist_master_global_exists_at_start) if include_artists_text else False,
+        "artists_visited_ledger_exists_at_start": bool(artists_visited_ledger_exists_at_start)
+        if include_artists_text
+        else False,
+        "artists_failed_ledger_exists_at_start": bool(artists_failed_ledger_exists_at_start)
+        if include_artists_text
+        else False,
+        "artists_same_source_rerun_stopgap_enabled": True,
         "exhibitions_text_fair_breakdown": [],
         "exhibitions_text_gallery_breakdown": [],
         "exhibitions_text_seed_gallery_count": 0,

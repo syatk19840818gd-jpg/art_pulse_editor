@@ -4943,3 +4943,35 @@ _trash 運用方針:
   - next highest-priority task updated to `A11_PHASE4_ADVISOR_TYPE1_QUALITY_TUNING_01`.
 - not done: no code change, no R2 prune/delete, no seed10-decoupling body migration.
 
+## 2026-03-11 TASK302 DOC_SYNC_ARTIST_TEXT_INCIDENT_HOLD_01
+- scope: docs-only minimal sync (03/04 only).
+- result:
+  - A11_PHASE4_ADVISOR_TYPE1_QUALITY_TUNING_01 is set to hold.
+  - Feature 3 remains almost completed, but Artist Text canonical incident blocks completion/finalization for now.
+  - incident focus: duplicate raw/enrichment, artist_name trailing digits, identity key missing, raw/APPLIED partial mismatch.
+  - Next highest priority replaced: from TASK302(A11) to ARTIST_TEXT_CANONICAL_INCIDENT_RESPONSE_01.
+  - after incident response, re-evaluate whether 01/02 updates are required.
+- not done: no 01/02 edits, no code/data changes, no R2 sync, no feature 5/6 progression.
+
+## 2026-03-11 DOC_SYNC_ARTIST_TEXT_CANONICAL_EXECUTE_GO_04
+- scope: docs-only milestone sync after Artist Text canonical repair execute (03/04 only).
+- result:
+  - execute verdict: GO (`artist_text_canonical_execute_20260311T124118Z`).
+  - preflight passed (sha256/action totals/fair counts/backfill/review+quarantine/multi-APPLIED resolution checks all OK).
+  - staging+promote completed: repaired raw=223 (frieze=126, liste=97), drop=65, quarantine=2, backfill=39, current artists APPLIED=223.
+  - smoke passed: Feature3 trailing digit display=0, exact join=223/223, multi-APPLIED unresolved=0; Feature1 artist candidate issue count=0.
+  - rollback not executed.
+  - residuals: same-name collision review 1 group/2 rows (Germaine Kruip), quarantine manual disposition 2 rows, Artist Works Images metadata trailing digit 32 rows.
+  - Next highest priority fixed to `P0_ARTIST_TEXT_CANONICAL_REVIEW_BUCKET_RESOLUTION_01`; Works metadata cleanup is next after this.
+- not done: no 01/02 edits, no code/data/R2 changes in this docs sync, no Advisor progression, no feature 5/6 progression.
+
+## 2026-03-11 DOC_SYNC_ARTIST_TEXT_CANONICAL_RESIDUAL_CLOSEOUT_01
+- scope: docs-only closeout sync for Artist Text canonical incident (03/04 only).
+- result:
+  - review/quarantine resolution completed: Germaine Kruip review bucket resolved (`same_person_identity_unified`), quarantine 2 rows disposition fixed.
+  - Artist Works Images metadata trailing-digit cleanup completed: 32 rows (frieze=20, liste=12) -> 0.
+  - incident residual is now 0; incident close judged complete.
+  - smoke maintained: Feature3 total=223 (frieze=126, liste=97), trailing-digit display=0, exact join=223/223, multi-APPLIED unresolved=0; Feature1 issue count=0.
+  - invariant confirmed: Text raw/current apply/enrichment remained unchanged during metadata cleanup; current artists apply APPLIED=223.
+  - Next highest priority returned to `A11_PHASE4_ADVISOR_TYPE1_QUALITY_TUNING_01` (resume after incident close).
+- not done: no 01/02 edits, no code/data/R2 changes in this docs sync, no execute rerun, no feature 5/6 progression.

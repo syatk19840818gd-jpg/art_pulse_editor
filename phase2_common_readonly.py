@@ -9,6 +9,11 @@ from pathlib import Path
 from typing import Dict, List, Tuple
 
 from phase2_art_pulse_config import TARGET_YEAR, get_enrichment_current_output_path
+from phase1_artist_link_utils import (
+    build_artist_name_en_from_source_url,
+    is_invalid_artist_name,
+    sanitize_artist_name_en,
+)
 
 try:
     import boto3
@@ -216,10 +221,19 @@ def derive_exhibition_title(row: dict) -> str:
 
 
 def derive_artist_name(source_url: str, fallback: str = "") -> str:
-    if fallback.strip():
-        return fallback.strip()
+    fallback_name = sanitize_artist_name_en(fallback)
+    if fallback_name and not is_invalid_artist_name(fallback_name):
+        return fallback_name
+
+    source_name = sanitize_artist_name_en(build_artist_name_en_from_source_url(source_url))
+    if source_name and not is_invalid_artist_name(source_name):
+        return source_name
+
     url = (source_url or "").strip().rstrip("/")
     if not url:
         return "(unknown artist)"
-    last = url.split("/")[-1].replace("-", " ").strip()
-    return last or "(unknown artist)"
+
+    last = sanitize_artist_name_en(url.split("/")[-1].replace("-", " ").strip())
+    if last and not is_invalid_artist_name(last):
+        return last
+    return "(unknown artist)"

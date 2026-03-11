@@ -160,7 +160,10 @@ def load_artist_records_readonly() -> ArtistSearchData:
 
             year = row.get("target_year")
             year_value = year if isinstance(year, int) else None
-            artist_name = derive_artist_name(source_url, str(hint.get("artist_name_en") or ""))
+            artist_name = derive_artist_name(
+                source_url,
+                str(row.get("artist_name_en") or "") or str(hint.get("artist_name_en") or ""),
+            )
             artist_name_kana = str(row.get("artist_name_kana") or "").strip() or str(enrichment.get("artist_name_kana") or "").strip()
             headline_ja = str(row.get("headline_ja") or "").strip() or str(enrichment.get("headline_ja") or "").strip()
             summary_ja = str(row.get("summary_ja") or "").strip() or str(enrichment.get("summary_ja") or "").strip()
@@ -199,7 +202,10 @@ def load_artist_records_readonly() -> ArtistSearchData:
                 fair_slug = "frieze_london" if "/frieze" in source_url.lower() else "liste"
             norm_source = normalize_url(source_url)
             hint = image_hint_by_source.get(norm_source, {})
-            artist_name = derive_artist_name(source_url, str(hint.get("artist_name_en") or ""))
+            artist_name = derive_artist_name(
+                source_url,
+                str(row.get("artist_name_en") or "") or str(hint.get("artist_name_en") or ""),
+            )
             artist_name_kana = str(row.get("artist_name_kana") or "").strip()
             headline_ja = str(row.get("headline_ja") or "").strip()
             summary_ja = str(row.get("summary_ja") or "").strip()

@@ -374,6 +374,7 @@ def build_art_pulse_overview(fair_label: str, reporter_id: str, angle_keys: List
 
     for row in artist_rows:
         gallery = str(row.get("gallery_name_en") or "")
+        source_url = str(row.get("source_url") or "")
         if gallery:
             gallery_counter[gallery] += 1
         artist_name = derive_artist_name(source_url, str(row.get("artist_name_en") or ""))

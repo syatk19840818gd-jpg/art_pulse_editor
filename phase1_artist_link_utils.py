@@ -53,6 +53,23 @@ ARTIST_DETAIL_NON_NAME_SLUGS = {
     "past",
 }
 
+ARTIST_CANONICAL_NON_NAME_SEGMENTS = {
+    "artist",
+    "artists",
+    "works",
+    "work",
+    "biography",
+    "bio",
+    "profile",
+    "about",
+    "overview",
+    "detail",
+    "details",
+    "viewing-room",
+    "viewingroom",
+    "index",
+}
+
 
 def normalize_url_for_link_compare(url: str) -> str:
     parsed = urlparse(url)
@@ -60,6 +77,10 @@ def normalize_url_for_link_compare(url: str) -> str:
     if parsed.query:
         normalized = f"{normalized}?{parsed.query}"
     return normalized
+
+
+def canonical_artist_source_key(source_url: str) -> str:
+    return canonicalize_artist_detail_url(source_url)
 
 
 def canonicalize_artist_detail_url(url: str) -> str:
@@ -110,6 +131,83 @@ def score_artist_detail_url_quality(url: str) -> int:
     if path.endswith("/biography") or path.endswith("/bio"):
         score += 1
     return score
+
+
+def artist_slug_from_source_url(source_url: str) -> str:
+    parsed = urlparse(source_url)
+    path = (parsed.path or "").strip("/")
+    if not path:
+        return "artist"
+
+    parts = [part for part in path.split("/") if part]
+    if not parts:
+        return "artist"
+
+    candidate = ""
+    for part in reversed(parts):
+        lowered = part.lower()
+        if lowered in ARTIST_CANONICAL_NON_NAME_SEGMENTS:
+            continue
+        if lowered.isdigit():
+            continue
+        candidate = part
+        break
+    if not candidate:
+        candidate = parts[-1]
+
+    match = re.match(r"^\d+[-_]+(.+)$", candidate.strip())
+    if match:
+        candidate = match.group(1)
+
+    candidate = re.sub(r"[^a-z0-9]+", "-", candidate.strip().lower()).strip("-")
+    return candidate or "artist"
+
+
+def build_artist_name_en_from_source_url(source_url: str) -> str:
+    slug = artist_slug_from_source_url(source_url)
+    if slug == "artist":
+        return "Unknown Artist"
+    return " ".join(part.capitalize() for part in slug.split("-") if part)
+
+
+def sanitize_artist_name_en(name: str) -> str:
+    value = str(name or "").strip()
+    if not value:
+        return ""
+    value = re.sub(r"[_-]+", " ", value)
+    value = re.sub(r"\s+", " ", value).strip()
+    if not value:
+        return ""
+
+    parts = [part for part in value.split(" ") if part]
+    if len(parts) >= 2 and re.fullmatch(r"\d+", parts[-1]):
+        has_alpha_before = any(re.search(r"[a-zA-Z]", token) for token in parts[:-1])
+        if has_alpha_before:
+            parts = parts[:-1]
+    return " ".join(parts).strip()
+
+
+def is_invalid_artist_name(name: str) -> bool:
+    cleaned = sanitize_artist_name_en(name)
+    if not cleaned:
+        return True
+    if re.fullmatch(r"\d+", cleaned):
+        return True
+    if cleaned.lower() in ARTIST_DETAIL_NON_NAME_SLUGS:
+        return True
+    return False
+
+
+def get_artist_master_duplicate_reason(
+    *,
+    existing_first_source_url: str,
+    candidate_source_url: str,
+) -> str:
+    existing_source_key = canonical_artist_source_key(existing_first_source_url)
+    candidate_source_key = canonical_artist_source_key(candidate_source_url)
+    if existing_source_key and candidate_source_key and existing_source_key == candidate_source_key:
+        return "DUPLICATE_ARTIST_GLOBAL_EXISTING_SAME_SOURCE"
+    return "DUPLICATE_ARTIST_GLOBAL_EXISTING"
 
 
 def looks_like_artist_listing_url(url: str) -> bool:
