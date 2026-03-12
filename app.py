@@ -31,7 +31,6 @@ from phase2_gallery_list_readonly import apply_gallery_list_filters, load_galler
 from phase2_artist_search_readonly import (
     ARTIST_SEARCH_SUMMARY_MAX_CHARS,
     ARTIST_SEARCH_THUMB_FROM_ARTIST,
-    answer_artist_followup,
     build_artist_summary_ja,
     load_artist_records_readonly,
     search_artists,
@@ -39,7 +38,6 @@ from phase2_artist_search_readonly import (
 from phase2_exhibition_search_readonly import (
     EXHIBITION_SEARCH_SUMMARY_MAX_CHARS,
     _derive_title,
-    answer_exhibition_followup,
     build_exhibition_summary_ja,
     load_exhibition_records_readonly,
     search_exhibitions,
@@ -849,27 +847,6 @@ def _render_exhibition_result_cards(rows: list[dict]) -> None:
         st.markdown(f'<div class="exh-results-scroll">{"".join(cards)}</div>', unsafe_allow_html=True)
 
 
-def _build_exhibition_followup_context(rows: list[dict]) -> dict:
-    if not rows:
-        return {}
-    titles = [str(r.get("exhibition_title") or "").strip() for r in rows if str(r.get("exhibition_title") or "").strip()]
-    galleries = [str(r.get("gallery_name") or "").strip() for r in rows if str(r.get("gallery_name") or "").strip()]
-    fairs = [str(r.get("fair_label") or "").strip() for r in rows if str(r.get("fair_label") or "").strip()]
-    artist_names = [str(r.get("artist_names") or "").strip() for r in rows if str(r.get("artist_names") or "").strip()]
-    summaries = [str(r.get("summary_display_ja") or "").strip() for r in rows if str(r.get("summary_display_ja") or "").strip()]
-    texts = [str(r.get("text") or "").strip()[:1200] for r in rows if str(r.get("text") or "").strip()]
-    source_urls = [str(r.get("source_url") or "").strip() for r in rows if str(r.get("source_url") or "").strip()]
-    return {
-        "exhibition_title": " / ".join(titles[:3]) or "検索結果3件",
-        "gallery_name": " / ".join(galleries[:3]),
-        "fair_label": " / ".join(sorted(set([f for f in fairs if f]))),
-        "artist_names": " / ".join(artist_names[:3]),
-        "summary_ja": " ".join(summaries[:3]),
-        "text": "\n".join(texts[:3]),
-        "source_url": source_urls[0] if source_urls else "",
-    }
-
-
 def _render_artist_result_cards(rows: list[dict]) -> None:
     cards: list[str] = []
     for idx, row in enumerate(rows, start=1):
@@ -945,93 +922,6 @@ def _render_artist_result_cards(rows: list[dict]) -> None:
 
     if cards:
         st.markdown(f'<div class="artist-search-scroll">{"".join(cards)}</div>', unsafe_allow_html=True)
-
-
-def _build_artist_followup_context(rows: list[dict]) -> dict:
-    if not rows:
-        return {}
-    artists = [str(r.get("artist_name") or "").strip() for r in rows if str(r.get("artist_name") or "").strip()]
-    artist_names_kana = [
-        str(r.get("artist_name_kana") or "").strip()
-        for r in rows
-        if str(r.get("artist_name_kana") or "").strip()
-    ]
-    galleries = [str(r.get("gallery_name") or "").strip() for r in rows if str(r.get("gallery_name") or "").strip()]
-    fairs = [str(r.get("fair_label") or "").strip() for r in rows if str(r.get("fair_label") or "").strip()]
-    summaries = [
-        str(r.get("summary_display_ja") or "").strip()
-        for r in rows
-        if str(r.get("summary_display_ja") or "").strip()
-    ]
-    texts = [str(r.get("text") or "").strip()[:1200] for r in rows if str(r.get("text") or "").strip()]
-    source_urls = [str(r.get("source_url") or "").strip() for r in rows if str(r.get("source_url") or "").strip()]
-    return {
-        "artist_name": " / ".join(artists[:3]) or "検索結果3件",
-        "artist_name_kana": " / ".join(artist_names_kana[:3]),
-        "gallery_name": " / ".join(galleries[:3]),
-        "fair_label": " / ".join(sorted(set([f for f in fairs if f]))),
-        "summary_ja": " ".join(summaries[:3]),
-        "text": "\n".join(texts[:3]),
-        "source_url": source_urls[0] if source_urls else "",
-    }
-
-
-def _build_art_pulse_followup_context(overview: dict, draft: dict) -> dict:
-    ex_rows = list(overview.get("exhibition_candidates", []) or [])
-    ar_rows = list(overview.get("artist_candidates", []) or [])
-
-    galleries = [
-        str(row.get("gallery") or "").strip()
-        for row in ex_rows + ar_rows
-        if str(row.get("gallery") or "").strip()
-    ]
-    artists = [
-        str(row.get("artist") or row.get("artist_name_en") or "").strip()
-        for row in ar_rows
-        if str(row.get("artist") or row.get("artist_name_en") or "").strip()
-    ]
-
-    evidence_urls = list(((draft.get("evidence_urls") or {}).get("all") or [])[:3])
-    source_url = ""
-    for url in evidence_urls:
-        value = str(url or "").strip()
-        if value:
-            source_url = value
-            break
-    if not source_url:
-        for row in ex_rows + ar_rows:
-            value = str(row.get("source_url") or "").strip()
-            if value:
-                source_url = value
-                break
-
-    title = str(draft.get("title") or "Art Pulse").strip() or "Art Pulse"
-    fair = str(draft.get("fair_label") or (overview.get("selection") or {}).get("fair_label") or "").strip()
-    body = str(draft.get("body") or "").strip()
-    body_no_images = re.sub(r"!\[[^\]]*\]\([^)]+\)", "", body)
-    body_no_sources = "\n".join(
-        line for line in body_no_images.splitlines() if not str(line).strip().startswith("Source:")
-    ).strip()
-    summary = body_no_sources[:500]
-
-    return {
-        "exhibition_title": title,
-        "gallery_name": " / ".join(galleries[:3]),
-        "fair_label": fair,
-        "artist_names": " / ".join(artists[:3]),
-        "summary_ja": summary,
-        "text": body_no_sources[:1600],
-        "source_url": source_url,
-    }
-
-
-def _sanitize_exhibition_followup_seed(value: str) -> str:
-    text = str(value or "").strip()
-    if not text:
-        return ""
-    if "_arrow_right" in text or ":material/" in text:
-        return ""
-    return text
 
 
 @st.cache_data(show_spinner=False)
@@ -1125,9 +1015,6 @@ def _render_reference_image_candidates(
 def render_art_pulse() -> None:
     _render_mode_heading("Art Pulse")
     _render_mode_explanation("アート編集記者が「現代アートの今（Now）」を取材し、記事を執筆する")
-    artpulse_followup_question_key = "artpulse_followup_question"
-    artpulse_followup_answer_key = "artpulse_followup_answer"
-    artpulse_followup_reset_requested_key = "artpulse_followup_reset_requested"
 
     col1, col2 = st.columns([1, 1])
     fair_mode = col1.selectbox(
@@ -1167,14 +1054,9 @@ def render_art_pulse() -> None:
     reset_article = st.button("リセット", key="artpulse_reset_result")
     if reset_article:
         st.session_state.pop("artpulse_result", None)
-        st.session_state[artpulse_followup_question_key] = ""
-        st.session_state[artpulse_followup_answer_key] = ""
-        st.session_state.pop(artpulse_followup_reset_requested_key, None)
         st.rerun()
 
     if run:
-        st.session_state[artpulse_followup_question_key] = ""
-        st.session_state[artpulse_followup_answer_key] = ""
         progress_line = st.empty()
         waiting_line = st.empty()
         waiting_line.caption("担当記者が執筆中...数分おまちください。")
@@ -1233,38 +1115,6 @@ def render_art_pulse() -> None:
     st.markdown(f"### {draft.get('title', 'Art Pulse')}")
     _render_markdown_with_galleries(draft.get("body", ""), local_lookup)
     st.caption(f"本文文字数（Source行を除く）: {int(draft.get('body_chars', 0))} / 2000")
-    st.markdown("**記者への質問**")
-    if st.session_state.pop(artpulse_followup_reset_requested_key, False):
-        st.session_state[artpulse_followup_question_key] = ""
-        st.session_state[artpulse_followup_answer_key] = ""
-    artpulse_seed_q = _sanitize_exhibition_followup_seed(
-        st.session_state.get(artpulse_followup_question_key, "")
-    )
-    if artpulse_seed_q != st.session_state.get(artpulse_followup_question_key, ""):
-        st.session_state[artpulse_followup_question_key] = artpulse_seed_q
-    artpulse_followup_q = st.text_area(
-        "",
-        value=artpulse_seed_q,
-        placeholder="例: このArt Pulse記事の見どころを、初心者向けに3点で教えてください。",
-        key=artpulse_followup_question_key,
-        height=90,
-        label_visibility="collapsed",
-    )
-    if st.button("質問する", key="artpulse_followup_run"):
-        artpulse_context = _build_art_pulse_followup_context(
-            overview if isinstance(overview, dict) else {},
-            draft if isinstance(draft, dict) else {},
-        )
-        artpulse_answer = answer_exhibition_followup(artpulse_followup_q, artpulse_context)
-        st.session_state[artpulse_followup_answer_key] = artpulse_answer
-    if st.button("リセット", key="artpulse_followup_reset"):
-        st.session_state[artpulse_followup_reset_requested_key] = True
-        st.rerun()
-
-    artpulse_followup_answer = str(st.session_state.get(artpulse_followup_answer_key, "") or "").strip()
-    if artpulse_followup_answer:
-        st.markdown("**追加質問への回答**")
-        st.write(artpulse_followup_answer)
 
 
 def render_exhibition_search() -> None:
@@ -1279,19 +1129,13 @@ def render_exhibition_search() -> None:
     results_key = "exh_search_results"
     query_key = "exh_search_query"
     keyword_key = "exh_keyword"
-    followup_question_key = "exh_followup_question_global"
-    followup_answer_key = "exh_followup_answer_global"
     search_reset_requested_key = "exh_search_reset_requested"
-    followup_reset_requested_key = "exh_followup_reset_requested_global"
     spinner_complete = None
 
     if st.session_state.pop(search_reset_requested_key, False):
         st.session_state[keyword_key] = ""
         st.session_state.pop(results_key, None)
         st.session_state.pop(query_key, None)
-    if st.session_state.pop(followup_reset_requested_key, False):
-        st.session_state[followup_question_key] = ""
-        st.session_state[followup_answer_key] = ""
 
     col1, col2 = st.columns([1, 2])
     fair_mode = col1.selectbox(
@@ -1317,8 +1161,6 @@ def render_exhibition_search() -> None:
         "keyword": (keyword or "").strip(),
     }
     if search_clicked:
-        st.session_state[followup_question_key] = ""
-        st.session_state[followup_answer_key] = ""
         try:
             result_rows, spinner_complete = _run_search_with_spinner(
                 lambda: search_exhibitions(
@@ -1373,33 +1215,6 @@ def render_exhibition_search() -> None:
         f"検索結果: {total_hits}件（横スクロールで閲覧）"
     )
 
-    st.markdown("**質問**")
-    seed_q = _sanitize_exhibition_followup_seed(
-        st.session_state.get(followup_question_key, "")
-    )
-    if seed_q != st.session_state.get(followup_question_key, ""):
-        st.session_state[followup_question_key] = seed_q
-    followup_q = st.text_area(
-        "",
-        value=seed_q,
-        placeholder="例: 展示作家のゲルハルト・リヒターについて詳しく教えて。",
-        key=followup_question_key,
-        height=90,
-        label_visibility="collapsed",
-    )
-    if st.button("質問する", key="exh_followup_run_global"):
-        context_row = _build_exhibition_followup_context(display_rows)
-        answer = answer_exhibition_followup(followup_q, context_row)
-        st.session_state[followup_answer_key] = answer
-    if st.button("リセット", key="exh_followup_reset_global"):
-        st.session_state[followup_reset_requested_key] = True
-        st.rerun()
-
-    followup_answer = str(st.session_state.get(followup_answer_key, "") or "").strip()
-    if followup_answer:
-        st.markdown("**追加質問への回答**")
-        st.write(followup_answer)
-
 
 def render_artist_search() -> None:
     _render_mode_heading("Artist Search")
@@ -1414,19 +1229,13 @@ def render_artist_search() -> None:
     results_key = "artist_search_results"
     query_key = "artist_search_query"
     keyword_key = "artist_keyword"
-    followup_question_key = "artist_followup_question_global"
-    followup_answer_key = "artist_followup_answer_global"
     search_reset_requested_key = "artist_search_reset_requested"
-    followup_reset_requested_key = "artist_followup_reset_requested_global"
     spinner_complete = None
 
     if st.session_state.pop(search_reset_requested_key, False):
         st.session_state[keyword_key] = ""
         st.session_state.pop(results_key, None)
         st.session_state.pop(query_key, None)
-    if st.session_state.pop(followup_reset_requested_key, False):
-        st.session_state[followup_question_key] = ""
-        st.session_state[followup_answer_key] = ""
 
     col1, col2 = st.columns([1, 2])
     fair_mode = col1.selectbox(
@@ -1452,8 +1261,6 @@ def render_artist_search() -> None:
         "keyword": (keyword or "").strip(),
     }
     if search_clicked:
-        st.session_state[followup_question_key] = ""
-        st.session_state[followup_answer_key] = ""
         try:
             result_rows, spinner_complete = _run_search_with_spinner(
                 lambda: search_artists(
@@ -1506,33 +1313,6 @@ def render_artist_search() -> None:
         f"frieze={data.fair_rows.get('frieze_london', 0)} / liste={data.fair_rows.get('liste', 0)}  \n"
         f"検索結果: {total_hits}件（横スクロールで閲覧）"
     )
-
-    st.markdown("**質問**")
-    seed_q = _sanitize_exhibition_followup_seed(
-        st.session_state.get(followup_question_key, "")
-    )
-    if seed_q != st.session_state.get(followup_question_key, ""):
-        st.session_state[followup_question_key] = seed_q
-    followup_q = st.text_area(
-        "",
-        value=seed_q,
-        placeholder="例: この作家の表現傾向や代表的なモチーフを教えて。",
-        key=followup_question_key,
-        height=90,
-        label_visibility="collapsed",
-    )
-    if st.button("質問する", key="artist_followup_run_global"):
-        context_row = _build_artist_followup_context(display_rows)
-        answer = answer_artist_followup(followup_q, context_row)
-        st.session_state[followup_answer_key] = answer
-    if st.button("リセット", key="artist_followup_reset_global"):
-        st.session_state[followup_reset_requested_key] = True
-        st.rerun()
-
-    followup_answer = str(st.session_state.get(followup_answer_key, "") or "").strip()
-    if followup_answer:
-        st.markdown("**追加質問への回答**")
-        st.write(followup_answer)
 
 
 def render_advisor() -> None:
