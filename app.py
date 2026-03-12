@@ -1212,7 +1212,7 @@ def render_exhibition_search() -> None:
     status_slot.caption(
         f"件数: 読込={data.total_rows} / ヒット={len(filtered)} / "
         f"frieze={data.fair_rows.get('frieze_london', 0)} / liste={data.fair_rows.get('liste', 0)}  \n"
-        f"検索結果: {total_hits}件（横スクロールで閲覧）"
+        f"検索結果: {total_hits}件（横スクロールで閲覧 / タップで画像拡大）"
     )
 
 
@@ -1311,7 +1311,7 @@ def render_artist_search() -> None:
     status_slot.caption(
         f"件数: 読込={data.total_rows} / ヒット={len(filtered)} / "
         f"frieze={data.fair_rows.get('frieze_london', 0)} / liste={data.fair_rows.get('liste', 0)}  \n"
-        f"検索結果: {total_hits}件（横スクロールで閲覧）"
+        f"検索結果: {total_hits}件（横スクロールで閲覧 / タップで画像拡大）"
     )
 
 
