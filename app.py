@@ -1137,7 +1137,7 @@ def render_exhibition_search() -> None:
         st.session_state.pop(results_key, None)
         st.session_state.pop(query_key, None)
 
-    col1, col2 = st.columns([1, 2])
+    col1, col2 = st.columns([1, 1])
     fair_mode = col1.selectbox(
         "フェア選択",
         FAIR_OPTIONS,
@@ -1237,7 +1237,7 @@ def render_artist_search() -> None:
         st.session_state.pop(results_key, None)
         st.session_state.pop(query_key, None)
 
-    col1, col2 = st.columns([1, 2])
+    col1, col2 = st.columns([1, 1])
     fair_mode = col1.selectbox(
         "フェア選択",
         FAIR_OPTIONS,
@@ -1316,10 +1316,9 @@ def render_artist_search() -> None:
 
 
 def render_advisor() -> None:
-    _render_mode_heading("④ Advisor（相談）")
+    _render_mode_heading("Advisor")
     _render_mode_explanation(
-        "question type 1（テキスト回答）と type 2（テキスト＋画像生成）を実装。"
-        "type 2 は gate 条件を満たした場合のみ実行。"
+        "フェア文脈アドバイザー（テキスト or テキスト＋画像で質問）"
     )
 
     col1, col2 = st.columns([1, 1])
