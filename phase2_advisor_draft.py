@@ -10,7 +10,6 @@ from phase2_response_style import PLAIN_JAPANESE_RULE
 
 ADVISOR_TEXT_MAX_CHARS = 550
 ADVISOR_REF_IMAGE_TOTAL = 8
-ADVISOR_BROAD_MIN_CHARS = 380
 ADVISOR_MARKDOWN_LINK_PATTERN = re.compile(r"\[[^\]]+\]\(https?://[^)]+\)")
 
 
@@ -825,46 +824,7 @@ def _expand_broad_answer_if_short(
     question_text: str,
     context: Dict[str, object],
 ) -> str:
-    if not _is_broad_query_mode(context):
-        return answer
-    body = (answer or "").strip()
-    if len(body) >= ADVISOR_BROAD_MIN_CHARS:
-        return body
-
-    plan = _build_broad_diversity_plan(question_text, context)
-    anchor_a = _anchor_label(plan.get("fair_a_anchor", {}))
-    anchor_b = _anchor_label(plan.get("fair_b_anchor", {}))
-    bridge_anchor = _anchor_label(plan.get("bridge_anchor", {}))
-    family_a = str(plan.get("frieze_family", {}).get("label") or "")
-    family_b = str(plan.get("liste_family", {}).get("label") or "")
-    family_bridge = str(plan.get("bridge_family", {}).get("label") or "")
-    query_kind = str(plan.get("query_kind") or "general")
-
-    chunks: List[str] = []
-    chunks.append(
-        f"最初は「{family_a}」を主軸に見るのが扱いやすく、対比が欲しいなら「{family_b}」を足す、"
-        f"さらに質感をずらしたいときだけ「{family_bridge}」まで広げれば十分です。"
-    )
-    if query_kind == "color":
-        chunks.append(
-            "色の検討では、明度差を先に決めてから彩度を動かすと、似た配色に寄りすぎず印象差を作りやすくなります。"
-        )
-    else:
-        chunks.append(
-            f"たとえば {anchor_a} のような軽さ、{anchor_b} のような密度、{bridge_anchor} のようなつなぎ方を見比べると、"
-            "手触りの差が掴みやすくなります。"
-        )
-    if query_kind == "color":
-        chunks.append(
-            f"{anchor_a} の澄んだ抜け方、{anchor_b} の濁りを含んだ厚み、{bridge_anchor} の中間調のつなぎ方を意識すると、"
-            "色の幅を広げても散らかりにくいです。"
-        )
-
-    for chunk in chunks:
-        if len(body) >= ADVISOR_BROAD_MIN_CHARS:
-            break
-        body = f"{body}\n\n{chunk}".strip()
-    return body
+    return (answer or "").strip()
 
 
 def _visible_answer_chars(answer: str) -> int:
@@ -873,41 +833,32 @@ def _visible_answer_chars(answer: str) -> int:
     return len(body.strip())
 
 
+def _fallback_evidence_block(row: dict) -> str:
+    label = str(row.get("artist_name") or row.get("title") or "").strip()
+    note = str(row.get("summary_ja") or row.get("headline_ja") or row.get("text") or "").strip()
+    note = re.sub(r"\s+", " ", note)
+    if note:
+        note = _snippet(note, limit=170)
+    if label and note:
+        return f"{label} {note}" if label not in note else note
+    return label or note
+
+
 def _fallback_answer(question_text: str, context: Dict[str, object]) -> str:
-    cross_fair_mode, fair_labels = _detect_cross_fair_mode(context)
-    broad_query_mode = _is_broad_query_mode(context)
-    broad_plan = _build_broad_diversity_plan(question_text, context)
-    include_action_steps = _should_include_action_steps(question_text)
+    _, fair_labels = _detect_cross_fair_mode(context)
+    rows = list(context.get("artist_evidence", []))[:3] + list(context.get("exhibition_evidence", []))[:3]
+    blocks: List[str] = []
+    seen = set()
+    for row in rows:
+        block = _fallback_evidence_block(row)
+        if not block or block in seen:
+            continue
+        seen.add(block)
+        blocks.append(block)
 
-    if cross_fair_mode and broad_query_mode:
-        fair_a_family = broad_plan["frieze_family"]
-        fair_b_family = broad_plan["liste_family"]
-        bridge_family = broad_plan["bridge_family"]
-
-        answer = (
-            f"まずは「{fair_a_family['label']}」を主軸に考えるのが扱いやすいです。"
-            f"その方向だけで十分なら一案で止めてよく、対比を効かせたいときだけ「{fair_b_family['label']}」を足す、"
-            f"さらに質感をずらしたい場合に限って「{bridge_family['label']}」まで広げるくらいが自然です。"
-        )
-        if include_action_steps:
-            action_text = (
-                f"進めるなら、まず{fair_a_family['items'][0]}系と{fair_b_family['items'][0]}系を小さく試し、"
-                f"最後に{bridge_family['items'][0]}系を重ねて比較すると判断しやすいです。"
-            )
-            answer = f"{answer}\n\n{action_text}"
-        answer = _strip_fair_labels(answer, fair_labels)
-        return _truncate_text(answer, ADVISOR_TEXT_MAX_CHARS)
-
-    answer = (
-        "主題を先に絞ってから素材や見せ方を決めると、提案の軸がぶれにくくなります。"
-        "最初から三案に広げる必要はなく、強い方向が一つ見えたらそこから始めるので十分です。"
-        "対比が必要になった段階で二案目や三案目を足すほうが、判断軸を保ちやすくなります。"
-    )
-    if include_action_steps:
-        answer += (
-            "進めるなら、最小サイズの試作を1点だけ作って比較し、"
-            "次の修正点を1つに絞って更新する流れが扱いやすいです。"
-        )
+    answer = "\n\n".join(blocks[:4]).strip()
+    if not answer:
+        answer = "参照可能な根拠が不足しています。"
     answer = _strip_fair_labels(answer, fair_labels)
     return _truncate_text(answer, ADVISOR_TEXT_MAX_CHARS)
 
@@ -934,58 +885,58 @@ def _build_prompt(question_text: str, context: Dict[str, object]) -> str:
     cross_fair_rule = ""
     if cross_fair_mode:
         cross_fair_rule = (
-            "- In cross-fair mode, do not close the answer with one-side evidence only.\n"
-            "- Avoid fair names in the body unless absolutely required.\n"
-            "- For broad queries, show 1-3 distinct directions without a rigid fixed pattern.\n"
+            "- フェア横断時は、片側フェアの根拠だけで回答を閉じないこと。\n"
+            "- 本文では、どうしても必要な場合を除いてフェア名を出さないこと。\n"
+            "- 広い質問では、固定的な型にせず 1〜3 個の異なる方向を自然に示すこと。\n"
         )
 
     broad_query_rule = ""
     if broad_query_mode:
         broad_query_rule = (
-            f"- Broad-query rotation index={rotation_index}.\n"
-            "- Avoid reusing the same gallery/artist emphasis repeatedly.\n"
-            f"- Direction hints: A={broad_plan['frieze_family']['label']}, B={broad_plan['liste_family']['label']}, bridge={broad_plan['bridge_family']['label']}.\n"
+            f"- 広い質問の rotation index={rotation_index}。\n"
+            "- 同じギャラリー / 作家の強調を繰り返しすぎないこと。\n"
+            f"- 方向のヒント: A={broad_plan['frieze_family']['label']}, B={broad_plan['liste_family']['label']}, bridge={broad_plan['bridge_family']['label']}。\n"
         )
 
     gallery_rule = (
-        "- Mention gallery names only when the user explicitly asks about galleries.\n"
+        "- ギャラリー名は、ユーザーがギャラリーについて明示的に尋ねたときだけ本文に出してよい。\n"
         if _should_allow_gallery_mentions(question_text)
-        else "- Do not mention gallery names in the body unless the user explicitly asks about galleries.\n"
+        else "- ギャラリー名は、ユーザーがギャラリーについて明示的に尋ねていない限り本文に出さないこと。\n"
     )
 
     action_rule = (
-        "- Include one short practical step only when the user explicitly asks for method/procedure.\n"
+        "- 実践的な手順は、ユーザーが方法や手順を明示的に求めたときだけ短く入れてよい。\n"
         if include_action_steps
-        else "- Do not add action steps when not explicitly requested.\n"
+        else "- ユーザーから求められていない限り、手順や次アクションを足さないこと。\n"
     )
 
     return f"""
-Answer in Japanese using only the given evidence.
-Constraints:
-- 220-550 chars in natural 1-2 paragraphs.
+与えられた根拠だけを使って、日本語で回答してください。
+制約:
+- 220〜550字、自然な 1〜2 段落で書くこと。
 - {PLAIN_JAPANESE_RULE}
-- No fixed section headers like ??/??/??????.
-- Do not use rigid inline labels like 結論:, 理由:, 具体例:, A:, B:, C:.
-- Keep tone concise and conversational without filler.
-- Use exhibition/artist cues naturally when needed, but do not add meta grounding phrases like "今回の根拠では" or "参照したのは".
-- Do not introduce artist or exhibition proper names that are not present in the supplied evidence lists.
-- If supplemental explanation is needed, keep it generic instead of adding extra proper names.
-{action_rule}{gallery_rule}{cross_fair_rule}{broad_query_rule}- Output JSON only: {{"answer":"..."}}
+- 「結論/根拠/次アクション」のような固定見出しは使わないこと。
+- 結論:, 理由:, 具体例:, A:, B:, C: のような硬いラベルを使わないこと。
+- 無駄な相槌や前置きを入れず、簡潔で口語的な文体にすること。
+- 展示 / 作家への言及は必要なときだけ自然に使い、「今回の根拠では」「参照したのは」などのメタ説明は書かないこと。
+- 与えた根拠リストに存在しない作家 / 展示の固有名は出さないこと。
+- 補足説明が必要でも、新しい固有名を足さず、一般化した言い方で補うこと。
+{action_rule}{gallery_rule}{cross_fair_rule}{broad_query_rule}- 出力は JSON のみ: {{"answer":"..."}}
 
-Question:
+質問:
 {question_text}
 
-Evidence digest (priority):
-{evidence_digest if evidence_digest else "- none"}
+根拠要約（優先参照）:
+{evidence_digest if evidence_digest else "- なし"}
 
-Cross-fair digest:
-{cross_fair_digest if cross_fair_digest else "- single fair mode"}
+フェア横断要約:
+{cross_fair_digest if cross_fair_digest else "- 単独フェア"}
 
-Exhibitions evidence:
-{chr(10).join(ex_lines) if ex_lines else "- none"}
+展示根拠:
+{chr(10).join(ex_lines) if ex_lines else "- なし"}
 
-Artists evidence:
-{chr(10).join(ar_lines) if ar_lines else "- none"}
+作家根拠:
+{chr(10).join(ar_lines) if ar_lines else "- なし"}
 """.strip()
 
 
