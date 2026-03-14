@@ -31,6 +31,8 @@ ENRICHMENT_CURRENT_DIR = DATA_ROOT / "current" / "enrichment"
 ENRICHMENT_HISTORY_DIR = DATA_ROOT / "history" / "enrichment"
 ENRICHMENT_HISTORY_ARTISTS_DIR = ENRICHMENT_HISTORY_DIR / "artists"
 ENRICHMENT_HISTORY_EXHIBITIONS_DIR = ENRICHMENT_HISTORY_DIR / "exhibitions"
+ENRICHMENT_RUNTIME_REQUESTS_DIR = DATA_ROOT / "runtime" / "enrichment_requests"
+ENRICHMENT_RUNTIME_REQUESTS_REPORTS_DIR = ENRICHMENT_RUNTIME_REQUESTS_DIR / "_reports"
 
 
 def get_enrichment_current_output_path(category: str, target_year: int = TARGET_YEAR) -> Path:
@@ -60,11 +62,38 @@ def get_enrichment_history_dir(category: str) -> Path:
     return ENRICHMENT_HISTORY_EXHIBITIONS_DIR
 
 
-def get_enrichment_scaffold_dirs() -> tuple[Path, Path, Path]:
+def get_enrichment_runtime_requests_dir(category: str) -> Path:
+    _validate_enrichment_category(category)
+    return ENRICHMENT_RUNTIME_REQUESTS_DIR / category
+
+
+def get_enrichment_runtime_requests_path(category: str, target_year: int = TARGET_YEAR) -> Path:
+    _validate_enrichment_category(category)
+    return get_enrichment_runtime_requests_dir(category) / f"{category}_enrichment_requests_{target_year}.jsonl"
+
+
+def get_enrichment_runtime_requests_completed_dir(category: str) -> Path:
+    _validate_enrichment_category(category)
+    return get_enrichment_runtime_requests_dir(category) / "_completed"
+
+
+def get_enrichment_runtime_requests_reports_dir() -> Path:
+    return ENRICHMENT_RUNTIME_REQUESTS_REPORTS_DIR
+
+
+def get_enrichment_seed10_legacy_requests_path(category: str, target_year: int = TARGET_YEAR) -> Path:
+    _validate_enrichment_category(category)
+    return DATA_ROOT / "phase1_seed10" / "derived" / f"{category}_enrichment_requests_{target_year}.jsonl"
+
+
+def get_enrichment_scaffold_dirs() -> tuple[Path, ...]:
     return (
         ENRICHMENT_CURRENT_DIR,
         ENRICHMENT_HISTORY_ARTISTS_DIR,
         ENRICHMENT_HISTORY_EXHIBITIONS_DIR,
+        get_enrichment_runtime_requests_dir("artists"),
+        get_enrichment_runtime_requests_dir("exhibitions"),
+        ENRICHMENT_RUNTIME_REQUESTS_REPORTS_DIR,
     )
 
 

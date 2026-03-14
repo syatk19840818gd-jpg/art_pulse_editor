@@ -7,6 +7,8 @@ from typing import Dict
 from phase2_advisor_draft import ADVISOR_TEXT_MAX_CHARS
 from phase2_advisor_type2_design import evaluate_type2_gate
 
+TYPE2_FAILSOFT_MESSAGE = "今回は画像補助を表示できなかったため、本文と根拠のみ表示しています。"
+
 
 def _truncate_text(text: str, limit: int) -> str:
     value = (text or "").strip()
@@ -26,6 +28,16 @@ def _user_friendly_error(exc: Exception) -> str:
         return "画像生成APIでエラーが発生しました。"
     short = msg.splitlines()[0]
     return f"画像生成APIエラー: {short[:180]}"
+
+
+def _build_image_rationale(grounded_answer: str) -> str:
+    text = (grounded_answer or "").strip().replace("\n", " ")
+    if not text:
+        return "回答の方向性を補助的に可視化したコンセプトイメージです。"
+    lead = text.split("。", 1)[0].strip()[:70]
+    if not lead:
+        lead = text[:70]
+    return f"回答の要点「{lead}」を補助的に可視化したコンセプトイメージです。"
 
 
 def _build_type2_image_prompt(
@@ -51,6 +63,7 @@ def _build_type2_image_prompt(
         "- Generate exactly one image.\n"
         "- Do not copy a specific existing artwork, logo, or signature composition.\n"
         "- Use abstract direction: composition, color mood, material feel, density, installation atmosphere.\n"
+        "- Treat this as a concept/mood/editorial support image, not artwork reproduction.\n"
         "- No text overlays.\n\n"
         f"Fair context: {fair_label}\n"
         f"User question: {question_text[:1200]}\n"
@@ -99,8 +112,9 @@ def run_type2_gated_image_generation(
         "model": os.getenv("IMAGE_MODEL", "gpt-image-1"),
         "error": "",
         "debug_error": "",
-        "status": "gate_hold" if not bool(gate.get("gate_ok")) else "ready_for_api",
+        "status": "precheck_failed" if not bool(gate.get("gate_ok")) else "ready_for_api",
         "user_message": "",
+        "image_rationale": "",
         "evidence_urls": evidence_urls,
         "reference_images": context.get("reference_images", {}),
         "attachment_note": (
@@ -111,14 +125,14 @@ def run_type2_gated_image_generation(
     }
 
     if not result["gate_ok"]:
-        result["user_message"] = "type2 の実行条件を満たしていないため、画像生成APIは未実行です。本文と根拠のみ表示します。"
+        result["user_message"] = TYPE2_FAILSOFT_MESSAGE
         return result
 
     openai_key = os.getenv("OPENAI_API_KEY", "").strip()
     if not openai_key:
         result["error"] = "OPENAI_API_KEY が未設定のため、画像生成を実行できません。"
-        result["status"] = "gate_hold"
-        result["user_message"] = "OpenAI APIキー未設定のため、画像生成は実行しません。"
+        result["status"] = "precheck_failed"
+        result["user_message"] = TYPE2_FAILSOFT_MESSAGE
         return result
 
     prompt = _build_type2_image_prompt(
@@ -154,7 +168,7 @@ def run_type2_gated_image_generation(
         if not data:
             result["error"] = "画像生成の応答が空でした。本文と根拠のみ表示します。"
             result["status"] = "image_failed"
-            result["user_message"] = "画像生成の応答が空のため、本文と根拠のみ表示します。"
+            result["user_message"] = TYPE2_FAILSOFT_MESSAGE
             return result
 
         first = data[0]
@@ -169,14 +183,15 @@ def run_type2_gated_image_generation(
             result["generated_image_count"] = 1
             result["status"] = "success"
             result["user_message"] = "type2 画像生成に成功しました（1枚）。"
+            result["image_rationale"] = _build_image_rationale(result["text_answer"])
         else:
             result["error"] = "画像データが取得できませんでした。本文と根拠のみ表示します。"
             result["status"] = "image_failed"
-            result["user_message"] = "画像データ未取得のため、本文と根拠のみ表示します。"
+            result["user_message"] = TYPE2_FAILSOFT_MESSAGE
     except Exception as exc:
         result["error"] = _user_friendly_error(exc)
         result["debug_error"] = f"{type(exc).__name__}: {exc}"
         result["status"] = "image_failed"
-        result["user_message"] = "画像生成でエラーが発生したため、本文と根拠のみ表示します。"
+        result["user_message"] = TYPE2_FAILSOFT_MESSAGE
 
     return result

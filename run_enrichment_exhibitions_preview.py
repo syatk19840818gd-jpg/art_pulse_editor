@@ -12,6 +12,9 @@ from typing import Any
 from dotenv import load_dotenv
 from openai import OpenAI
 
+from enrichment_batch_common import extract_response_text_from_body
+from phase2_art_pulse_config import get_enrichment_runtime_requests_path
+
 TARGET_YEAR = 2025
 RAG_CATEGORY = "exhibitions_text"
 
@@ -20,7 +23,7 @@ RAW_INPUT_PATHS = {
     "liste": Path("data/phase1_seed10/raw/exhibitions_liste_2025.jsonl"),
 }
 
-REQUESTS_OUTPUT_PATH = Path("data/phase1_seed10/derived/exhibitions_enrichment_requests_2025.jsonl")
+REQUESTS_OUTPUT_PATH = get_enrichment_runtime_requests_path("exhibitions", TARGET_YEAR)
 PREVIEW_OUTPUT_DIR = Path("data/phase1_seed10/derived")
 
 ENRICH_TEXT_MODEL = os.getenv("ENRICH_TEXT_MODEL", "gpt-5-mini")
@@ -254,11 +257,11 @@ def extract_json_object(text: str) -> dict[str, Any] | None:
     return obj if isinstance(obj, dict) else None
 
 
-def generate_preview_with_openai(client: OpenAI, model: str, row: dict[str, Any]) -> tuple[str, str]:
+def build_openai_request_body(model: str, row: dict[str, Any]) -> dict[str, Any]:
     prompt_text = str(row.get("text") or "")[:MAX_TEXT_CHARS_FOR_PROMPT]
-    response = client.responses.create(
-        model=model,
-        input=[
+    return {
+        "model": model,
+        "input": [
             {
                 "role": "system",
                 "content": [
@@ -293,9 +296,11 @@ def generate_preview_with_openai(client: OpenAI, model: str, row: dict[str, Any]
                 ],
             },
         ],
-    )
+    }
 
-    obj = extract_json_object(getattr(response, "output_text", "") or "")
+
+def parse_openai_response_body(body: dict[str, Any]) -> tuple[str, str]:
+    obj = extract_json_object(extract_response_text_from_body(body))
     if obj is None:
         raise RuntimeError("openai_output_not_json")
 
@@ -306,6 +311,15 @@ def generate_preview_with_openai(client: OpenAI, model: str, row: dict[str, Any]
     if not summary:
         raise RuntimeError("empty_summary")
     return headline, summary
+
+
+def generate_preview_with_openai(client: OpenAI, model: str, row: dict[str, Any]) -> tuple[str, str]:
+    response = client.responses.create(**build_openai_request_body(model, row))
+    if hasattr(response, "model_dump"):
+        body = response.model_dump(mode="json")
+    else:
+        body = {"output_text": getattr(response, "output_text", "")}
+    return parse_openai_response_body(body)
 
 
 def generate_fallback_preview(row: dict[str, Any]) -> tuple[str, str]:
@@ -414,6 +428,10 @@ def make_preview_rows(sample_rows: list[dict[str, Any]]) -> tuple[list[dict[str,
                 "enrich_status": "preview_generated",
                 "enrich_model": model,
                 "enrich_mode": "sample_preview",
+                "api_mode": method,
+                "execution_mode": "sample_preview",
+                "batch_required": False,
+                "batch_used": False,
                 "enrich_use_openai_batch": use_batch,
                 "enrich_completion_window": completion_window,
                 "enrich_prompt_version": ENRICH_PROMPT_VERSION,

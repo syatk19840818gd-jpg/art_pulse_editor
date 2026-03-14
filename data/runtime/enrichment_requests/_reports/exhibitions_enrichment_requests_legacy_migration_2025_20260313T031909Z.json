@@ -1,0 +1,10 @@
+{
+  "category": "exhibitions",
+  "target_year": 2025,
+  "action": "legacy_migration_to_runtime_active",
+  "migrated_at": "2026-03-13T03:19:09Z",
+  "legacy_requests_path": "data\\phase1_seed10\\derived\\exhibitions_enrichment_requests_2025.jsonl",
+  "runtime_requests_path": "data\\runtime\\enrichment_requests\\exhibitions\\exhibitions_enrichment_requests_2025.jsonl",
+  "legacy_sha256": "b32269c01c071b23b6800b59ac290a67edb429b6b0ba1355864ef5c9388df382",
+  "legacy_size_bytes": 492247
+}

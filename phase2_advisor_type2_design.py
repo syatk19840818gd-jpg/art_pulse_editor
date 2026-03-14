@@ -43,7 +43,7 @@ def get_type2_design_spec() -> Dict[str, object]:
             "mix_trial_or_logs_with_formal",
         ],
         "note": (
-            "Type2 uses gated execution. "
+            "Type2 uses lightweight precheck execution. "
             "No extraction/R2/formal writes. "
             "IMAGE_TARGET_SIZE_KB does not apply to generated image in type2."
         ),
@@ -105,7 +105,7 @@ def evaluate_type2_gate(
         {
             "id": "env_openai_api_key",
             "ok": openai_key_set,
-            "detail": "type2画像生成には OPENAI_API_KEY が必要です。",
+            "detail": "画像生成には OPENAI_API_KEY が必要です。",
         },
         {
             "id": "grounded_type1_success",
@@ -113,28 +113,9 @@ def evaluate_type2_gate(
             "detail": "type1 grounded draft（500字以内・根拠1件以上）が必要です。",
         },
         {
-            "id": "input_fair_valid",
-            "ok": fair_label in {
-                "Frieze London",
-                "Liste Art Fair Basel",
-                "Frieze London + Liste Art Fair Basel",
-            },
-            "detail": "フェア選択は固定オプションから選ぶ必要があります。",
-        },
-        {
             "id": "input_question_text_present",
             "ok": bool(_safe_str(question_text)),
             "detail": "相談内容（テキスト入力）が必要です。",
-        },
-        {
-            "id": "evidence_scope_formal_readonly",
-            "ok": int(context.get("counts", {}).get("all_unique_url_count") or 0) > 0,
-            "detail": "formal read-only の根拠URLが1件以上必要です。",
-        },
-        {
-            "id": "persistence_forbidden",
-            "ok": True,
-            "detail": "保存/R2/formal書き込みは設計上禁止です。",
         },
     ]
 
@@ -145,24 +126,15 @@ def evaluate_type2_gate(
         context=context,
         has_uploaded_image=has_uploaded_image,
     )
+    prompt_composable = bool(_safe_str(prompt_preview))
+    checks.append(
+        {
+            "id": "prompt_preview_composable",
+            "ok": prompt_composable,
+            "detail": "画像生成用promptを組み立てられることが必要です。",
+        }
+    )
     gate_ok = all(bool(c["ok"]) for c in checks)
-    if "http" not in prompt_preview.lower():
-        gate_ok = False
-        checks.append(
-            {
-                "id": "prompt_has_root_evidence_urls",
-                "ok": False,
-                "detail": "prompt preview に根拠URLを最低1件含める必要があります。",
-            }
-        )
-    else:
-        checks.append(
-            {
-                "id": "prompt_has_root_evidence_urls",
-                "ok": True,
-                "detail": "prompt preview に根拠URLを含んでいます。",
-            }
-        )
 
     return {
         "gate_ok": gate_ok,
@@ -175,7 +147,7 @@ def evaluate_type2_gate(
         },
         "design_spec": get_type2_design_spec(),
         "prompt_preview": prompt_preview,
-        "note": "Type2はgate制御です。全条件を満たした場合のみAPIを呼びます。",
+        "note": "Type2は軽量precheck制御です。最低条件を満たした場合のみAPIを呼びます。",
     }
 
 

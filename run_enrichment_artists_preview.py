@@ -12,6 +12,10 @@ from urllib.parse import urlparse
 from dotenv import load_dotenv
 from openai import OpenAI
 
+from enrichment_batch_common import extract_response_text_from_body, resolve_runtime_requests_path
+from enrichment_requests_runtime import build_artists_enrichment_requests
+from phase2_art_pulse_config import get_enrichment_runtime_requests_path
+
 from run_enrichment_exhibitions_preview import (
     ENRICH_BATCH_COMPLETION_WINDOW,
     ENRICH_TEXT_MODEL,
@@ -29,7 +33,11 @@ from run_enrichment_exhibitions_preview import (
 TARGET_YEAR = 2025
 RAG_CATEGORY = "artists_text"
 
-REQUESTS_OUTPUT_PATH = Path("data/phase1_seed10/derived/artists_enrichment_requests_2025.jsonl")
+RAW_INPUT_PATHS = {
+    "frieze_london": Path("data/phase1_seed10/raw/artists_frieze_london_2025.jsonl"),
+    "liste": Path("data/phase1_seed10/raw/artists_liste_2025.jsonl"),
+}
+REQUESTS_OUTPUT_PATH = get_enrichment_runtime_requests_path("artists", TARGET_YEAR)
 PREVIEW_OUTPUT_DIR = Path("data/phase1_seed10/derived")
 
 ENRICH_PROMPT_VERSION = "artists_preview_v1"
@@ -178,7 +186,7 @@ def generate_fallback_preview(row: dict[str, Any]) -> tuple[str, str, str]:
     return headline, summary, artist_name_kana
 
 
-def generate_preview_with_openai(client: OpenAI, model: str, row: dict[str, Any]) -> tuple[str, str, str]:
+def build_openai_request_body(model: str, row: dict[str, Any]) -> dict[str, Any]:
     artist_name_en = infer_artist_name_en(row)
     source_urls = row.get("source_urls")
     source_url = ""
@@ -186,10 +194,9 @@ def generate_preview_with_openai(client: OpenAI, model: str, row: dict[str, Any]
         source_url = str(source_urls[0] or "").strip()
     source_url = source_url or str(row.get("source_url") or "").strip()
     prompt_text = str(row.get("text") or "")[:MAX_TEXT_CHARS_FOR_PROMPT]
-
-    response = client.responses.create(
-        model=model,
-        input=[
+    return {
+        "model": model,
+        "input": [
             {
                 "role": "system",
                 "content": [
@@ -225,9 +232,11 @@ def generate_preview_with_openai(client: OpenAI, model: str, row: dict[str, Any]
                 ],
             },
         ],
-    )
+    }
 
-    obj = extract_json_object(getattr(response, "output_text", "") or "")
+
+def parse_openai_response_body(body: dict[str, Any]) -> tuple[str, str, str]:
+    obj = extract_json_object(extract_response_text_from_body(body))
     if obj is None:
         raise RuntimeError("openai_output_not_json")
 
@@ -241,6 +250,15 @@ def generate_preview_with_openai(client: OpenAI, model: str, row: dict[str, Any]
         raise RuntimeError("empty_summary")
 
     return headline, summary, artist_name_kana
+
+
+def generate_preview_with_openai(client: OpenAI, model: str, row: dict[str, Any]) -> tuple[str, str, str]:
+    response = client.responses.create(**build_openai_request_body(model, row))
+    if hasattr(response, "model_dump"):
+        body = response.model_dump(mode="json")
+    else:
+        body = {"output_text": getattr(response, "output_text", "")}
+    return parse_openai_response_body(body)
 
 
 def build_warnings(*, summary_ja: str, artist_name_en: str, artist_name_kana: str) -> list[str]:
@@ -324,6 +342,10 @@ def make_preview_rows(sample_rows: list[dict[str, Any]]) -> tuple[list[dict[str,
                 "enrich_status": "preview_generated",
                 "enrich_model": model,
                 "enrich_mode": "sample_preview",
+                "api_mode": method,
+                "execution_mode": "sample_preview",
+                "batch_required": False,
+                "batch_used": False,
                 "enrich_use_openai_batch": use_batch,
                 "enrich_completion_window": completion_window,
                 "enrich_prompt_version": ENRICH_PROMPT_VERSION,
@@ -338,11 +360,22 @@ def make_preview_rows(sample_rows: list[dict[str, Any]]) -> tuple[list[dict[str,
     return preview_rows, stats
 
 
-def load_request_rows() -> list[dict[str, Any]]:
-    if not REQUESTS_OUTPUT_PATH.exists():
-        raise FileNotFoundError(f"Missing requests jsonl: {REQUESTS_OUTPUT_PATH}")
+def ensure_requests_output_path() -> Path:
+    requests_path = resolve_runtime_requests_path("artists", target_year=TARGET_YEAR)
+    if requests_path.exists():
+        return requests_path
+    build_artists_enrichment_requests(
+        raw_input_paths=RAW_INPUT_PATHS,
+        output_path=requests_path,
+        target_year=TARGET_YEAR,
+        rag_category=RAG_CATEGORY,
+    )
+    return requests_path
 
-    rows = read_jsonl(REQUESTS_OUTPUT_PATH)
+
+def load_request_rows() -> list[dict[str, Any]]:
+    requests_path = ensure_requests_output_path()
+    rows = read_jsonl(requests_path)
     out: list[dict[str, Any]] = []
     for row in rows:
         text_hash = str(row.get("text_hash") or "").strip()

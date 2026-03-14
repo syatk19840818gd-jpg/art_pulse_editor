@@ -13,7 +13,7 @@ STREAMLIT_ENTRYPOINT（固定）
 - Local run: streamlit run app.py
 
 SOURCE_SSOT: 01_PROJECT_SPEC_CURRENT_FULL.docx
-LAST_UPDATED: 2026-03-11 19:07 JST
+LAST_UPDATED: 2026-03-13 13:20 JST
 
 
 ========================
@@ -82,14 +82,16 @@ STATE_SNAPSHOT（現在地）
   - Feature 1 Art Pulse: completed
   - Feature 2 Exhibition Search: completed
   - Feature 3 Artist Search: Artist Text canonical incident closed (core+residual cleanup completed, residual=0), ready to resume normal roadmap
-  - Feature 4 Advisor: kickoff completed (type1 minimal grounded draft connected in app)
-  - type2 status: gate-only confirmation, not implementation-complete
+  - Feature 4 Advisor: A11 completed (type1 quality tuning / checkbox UI / latest available year only / `参照年` display) and A12 implemented (type2 officially enabled with type1-primary UI; lightweight precheck + fail-soft unified short message)
+  - type2 status: implementation-complete in code, but success-path real-image smoke is still pending due `billing_hard_limit_reached`; Feature 4 progress is preserved while priority is lowered behind enrichment batch-safety work
   - current/history rebaseline phase: completed (A2-A9)
   - Immediate priority: A11_PHASE4_ADVISOR_TYPE1_QUALITY_TUNING_01
+  - current state note: `VERIFY_TEXT_RAG_AND_ENRICHMENT_STILL_PRESENT_01` confirmed raw/current enrichment/summary/read-only references are intact (`STILL_PRESENT`), so `EMERGENCY_BULK_RUN_ENRICHMENT_BATCH_APPLY_01` is deferred (not executed, mechanism kept for future need) and roadmap focus returns to Feature 4 Advisor quality tuning
+  - enrichment requests policy note: runtime-path switch is applied and verify verdict is GO (`data/runtime/enrichment_requests/...` active, `_completed` archive lane, `_reports` audit lane); keep/delete remains evidence-gated
 - NOTE: keep this current-goal line updated whenever phase priority changes.
 - Fixed master roadmap alignment (from SSOT 01):
   - 5 RAG categories (Tarutani_Text / Artist Works Images / Artist Text / Exhibitions Image / Exhibitions Text) are established at 10-gallery operational scope
-  - App features status: 1/2 completed, 3 incident-closed (residual=0), 4 kickoff completed (type1 minimal)
+  - App features status: 1/2 completed, 3 incident-closed (residual=0), 4 A11 completed + A12 implemented in code (success-path smoke pending only)
   - Mandatory pre-Advisor phase (current/history canonical rebaseline) is completed and fixed in roadmap
   - Role split: current=day-to-day canonical / history=audit archive / R2=primary persistent sync target for current / local=current fallback
   - app/read-only must read current first
@@ -314,14 +316,41 @@ NEXT_TASKS（次回やること）
 [x] 301) DOC_SYNC_POST_ADVISOR_KICKOFF_01 (this task)
     - scope: docs 01/02/03/04 synchronized to post-kickoff baseline
 
-[ ] 302) A11_PHASE4_ADVISOR_TYPE1_QUALITY_TUNING_01 (highest priority resumed)
-    - scope: advisor type1 answer quality/evidence quality tuning under current canonical constraints
+[x] 302) A11_PHASE4_ADVISOR_TYPE1_QUALITY_TUNING_01 (implemented)
+    - scope: advisor type1 answer/evidence/UI tuning under current canonical constraints (latest available year only + type1-centered checkbox UI, type2 gate-only)
 
 [x] 303) ARTIST_TEXT_CANONICAL_INCIDENT_RESPONSE_01 (core execute GO completed)
     - scope: canonical incident core repair for Artist Text RAG completed (raw repaired=223, current APPLIED=223, multi-APPLIED unresolved=0, Feature3 trailing-digit display=0, Feature1 artist candidate issue count=0)
 
 [x] 304) P0_ARTIST_TEXT_CANONICAL_REVIEW_BUCKET_RESOLUTION_01 (completed)
     - scope: residual closeout completed (same-name collision review resolved, quarantine disposition fixed, Artist Works Images metadata trailing-digit cleanup 32->0), incident residual=0
+
+[x] 305) A11_PHASE4_ADVISOR_BROWSER_UI_FINAL_SMOKE_03 (done)
+    - scope: real-browser final smoke for Advisor checkbox UX (OFF=type1 / ON=gate_hold) and wording confirmation
+
+[x] 308) DOC_EMERGENCY_SYNC_ENRICHMENT_BATCH_POLICY_01 (done)
+    - scope: fixed docs contract after enrichment cost/batch incident without rolling back Feature 4 Advisor milestones
+
+[x] 309) EMERGENCY_FIX_ENRICHMENT_BATCH_ENFORCEMENT_AND_REPEAT_APPLY_HARD_GUARD_01 (done)
+    - scope: enforce Batch API for Artists / Exhibitions bulk apply, restrict direct OpenAI to preview/sample only, add repeat-apply hard guard and promote gate by batch/guard evidence
+
+[x] 310) EMERGENCY_VERIFY_ENRICHMENT_BATCH_SAFETY_01 (done)
+    - scope: verify batch evidence, rerun guard behavior, promote gate, and no-direct-bulk path for both Artists / Exhibitions
+
+[x] 311) EMERGENCY_LOCALIZED_ENRICHMENT_REPAIR_IF_NEEDED_01 (done)
+    - scope: only if row-level defects are confirmed, perform localized repair/reapply without full dataset re-take
+
+[x] 312) ENRICHMENT_REQUESTS_RUNTIME_PATH_AND_RETENTION_POLICY_APPLY_01 (done)
+    - scope: move enrichment requests out of seed10 canonical-looking paths into runtime/staging lane and apply keep/delete retention cleanup policy without changing current/history canonical artifacts
+
+[x] 313) VERIFY_ENRICHMENT_REQUESTS_RUNTIME_PATH_AND_RETENTION_POLICY_01 (GO)
+    - scope: verified runtime-path consistency (generate/read/apply), legacy path detach, migration-report/file integrity, and retention helper safety (synthetic keep/allow checks)
+
+[ ] 306) A12_PHASE4_ADVISOR_TYPE2_SUCCESS_PATH_SMOKE_WHEN_ENV_READY_01 (after 309-311 when environment allows)
+    - scope: run Advisor checkbox ON success-path smoke when API/billing environment allows (confirm generated image + image_rationale, keep type1-primary + fail-soft)
+
+[ ] 307) A12_PHASE5_EXCLUSIVE_ADVISOR_KICKOFF_01 (after 306)
+    - scope: kickoff for feature 5 Exclusive Advisor after enrichment emergency work and A12 success-path confirmation
 
 [x] 1) ギャラリーリストCSVを repo に配置してコミットする（完了）
     - 置き場所：data/gallery_lists/
@@ -7644,3 +7673,4 @@ TASK A-3A-CLOSE-1 実施結果（2026-02-27 / Adams and Ollman）
 - ⑥ Gallery list: read-only baseline + tuning（CSV 2列/3列互換、fallback/警告表示）。
 - 重要注記: ⑥はGallery listが正。今回は03/04へのcloseout syncであり、01仕様変更ではない（01/02は未変更）。
 - 次の最優先タスク: TASK293_NEXT_16 = PHASE2_CLOSEOUT_REVIEW_AND_GO_NO_GO_FOR_NEXT_PHASE
+

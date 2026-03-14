@@ -16,7 +16,6 @@ from phase2_art_pulse_draft import generate_art_pulse_draft
 from phase2_art_pulse_readonly import build_art_pulse_overview
 from phase2_advisor_draft import ADVISOR_TEXT_MAX_CHARS, generate_advisor_grounded_draft
 from phase2_advisor_readonly import build_advisor_grounded_context
-from phase2_advisor_type2_design import collect_failed_checks
 from phase2_advisor_type2_execute import run_type2_gated_image_generation
 from phase2_exclusive_advisor_draft import (
     EXCLUSIVE_ADVISOR_TEXT_MAX_CHARS,
@@ -372,11 +371,33 @@ def apply_global_font_styles() -> None:
           -webkit-overflow-scrolling: touch;
           scroll-behavior: smooth;
         }
+        .advisor-ref-scroll {
+          display: flex;
+          align-items: flex-start;
+          gap: 1rem;
+          overflow-x: auto;
+          overflow-y: hidden;
+          margin: 0.4rem 0 0.35rem 0;
+          padding-bottom: 0.35rem;
+          overscroll-behavior-x: contain;
+          -webkit-overflow-scrolling: touch;
+          scroll-behavior: smooth;
+        }
         .artist-search-scroll .exh-search-card,
         .exh-results-scroll .exh-search-card {
           flex: 0 0 clamp(300px, 26vw, 460px);
           height: 640px;
           overflow: hidden;
+        }
+        .advisor-ref-scroll .exh-search-card {
+          flex: 0 0 clamp(300px, 26vw, 460px);
+          height: auto;
+          overflow: visible;
+        }
+        .advisor-ref-scroll .exh-search-thumb,
+        .advisor-ref-scroll .exh-search-fallback {
+          min-height: 280px;
+          max-height: 280px;
         }
         .artist-search-scroll .exh-search-summary {
           overflow: visible;
@@ -471,6 +492,17 @@ def apply_global_font_styles() -> None:
             display: block;
             -webkit-line-clamp: unset;
             max-height: none;
+          }
+          .advisor-ref-scroll .exh-search-card {
+            flex-basis: 84vw;
+            height: auto;
+            min-height: 0;
+            overflow: visible;
+          }
+          .advisor-ref-scroll .exh-search-thumb,
+          .advisor-ref-scroll .exh-search-fallback {
+            min-height: 240px;
+            max-height: 240px;
           }
         }
         </style>
@@ -733,11 +765,11 @@ def _resolve_art_pulse_image_ref(item: dict, local_lookup: dict[str, dict[str, d
     source_url = str(item.get("source_url") or "").strip()
     image_url = str(item.get("image_url") or "").strip()
     ref = dict(by_source.get(source_url) or by_image_url.get(image_url) or {})
-    r2_key = str(ref.get("r2_key") or "").strip()
-    local_path = str(ref.get("local_path") or "").strip()
+    r2_key = str(ref.get("r2_key") or item.get("r2_key") or "").strip()
+    local_path = str(ref.get("local_path") or item.get("local_path") or "").strip()
     if local_path and not Path(local_path).exists():
         local_path = ""
-    return {"r2_key": r2_key, "local_path": local_path}
+    return {"r2_key": r2_key, "local_path": local_path, "image_url": image_url}
 
 
 def _render_responsive_image_gallery(images: list[dict], local_lookup: dict[str, dict[str, dict[str, str]]]) -> None:
@@ -749,7 +781,8 @@ def _render_responsive_image_gallery(images: list[dict], local_lookup: dict[str,
         image_ref = _resolve_art_pulse_image_ref(item, local_lookup)
         r2_url = _presign_r2_get_url(str(image_ref.get("r2_key") or ""))
         local_path = str(image_ref.get("local_path") or "").strip()
-        image_url = r2_url or _local_image_path_to_data_uri(local_path)
+        direct_image_url = str(image_ref.get("image_url") or "").strip()
+        image_url = r2_url or _local_image_path_to_data_uri(local_path) or direct_image_url
         safe_src = escape(source_url, quote=True)
 
         if image_url:
@@ -968,19 +1001,21 @@ def _render_evidence_urls(
     if total == 0:
         st.info(empty_message)
         return
+
+    ex_table = [{"ref": f"EX-{idx:02d}", "url": url} for idx, url in enumerate(ex_urls[:30], start=1)]
+    ar_table = [{"ref": f"AR-{idx:02d}", "url": url} for idx, url in enumerate(ar_urls[:30], start=1)]
+
     c1, c2 = st.columns(2)
     with c1:
         st.write(f"Exhibition URL数: {len(ex_urls)}")
-        if ex_urls:
-            for url in ex_urls[:30]:
-                st.write(f"- {url}")
+        if ex_table:
+            st.dataframe(ex_table, use_container_width=True, hide_index=True, height=220)
         else:
             st.caption("表示できるExhibition根拠URLはありません。")
     with c2:
         st.write(f"Artist URL数: {len(ar_urls)}")
-        if ar_urls:
-            for url in ar_urls[:30]:
-                st.write(f"- {url}")
+        if ar_table:
+            st.dataframe(ar_table, use_container_width=True, hide_index=True, height=220)
         else:
             st.caption("表示できるArtist根拠URLはありません。")
 
@@ -990,7 +1025,63 @@ def _render_reference_image_candidates(
     reference_images: dict,
     target_total: int = 8,
     empty_message: str = "参考画像候補はありません。",
+    compact_advisor_cards: bool = False,
 ) -> None:
+    def _render_reference_image_cards(items: list[dict]) -> None:
+        cards: list[str] = []
+        for idx, item in enumerate(items, start=1):
+            source_url = str(item.get("source_url") or "").strip()
+            gallery = escape(str(item.get("gallery") or "").strip())
+            kind = "Artist" if str(item.get("kind") or "").strip() == "artist" else "Exhibition"
+            entity_label = escape(str(item.get("label") or "").strip())
+            title_text = " / ".join([part for part in [kind, entity_label or gallery] if part]) or kind
+
+            image_ref = _resolve_art_pulse_image_ref(item, {"by_source": {}, "by_image_url": {}})
+            r2_url = _presign_r2_get_url(str(image_ref.get("r2_key") or ""))
+            local_path = str(image_ref.get("local_path") or "").strip()
+            direct_image_url = str(image_ref.get("image_url") or "").strip()
+            image_url = r2_url or _local_image_path_to_data_uri(local_path) or direct_image_url
+
+            if image_url:
+                safe_img = escape(image_url, quote=True)
+                image_html = (
+                    f'<a class="exh-search-thumb" href="{safe_img}" target="_blank" rel="noopener noreferrer" '
+                    f'title="画像を拡大表示" '
+                    f'style="background-image:url(\'{safe_img}\');'
+                    'background-size:contain;background-position:center center;'
+                    'background-repeat:no-repeat;"></a>'
+                )
+            else:
+                image_html = (
+                    '<div class="exh-search-fallback">'
+                    "参考画像は未取得です。<br>"
+                    "Sourceから確認できます。"
+                    "</div>"
+                )
+
+            meta_text = " / ".join([part for part in [gallery, escape(str(item.get("fair_label") or "").strip())] if part])
+            meta_html = f'<p class="exh-search-source">{meta_text}</p>' if meta_text else ""
+            source_html = (
+                f'<p class="exh-search-source">Source: <a href="{escape(source_url, quote=True)}" '
+                f'target="_blank" rel="noopener noreferrer">{escape(source_url)}</a></p>'
+                if source_url
+                else '<p class="exh-search-source">Source: (not available)</p>'
+            )
+            extra_html = source_html if compact_advisor_cards else f"{meta_html}{source_html}"
+
+            cards.append(
+                (
+                    '<div class="exh-search-card">'
+                    f'<p class="exh-search-title">{idx}. {escape(title_text)}</p>'
+                    f"{image_html}"
+                    f"{extra_html}"
+                    "</div>"
+                )
+            )
+        if cards:
+            container_class = "advisor-ref-scroll" if compact_advisor_cards else "exh-results-scroll"
+            st.markdown(f'<div class="{container_class}">{"".join(cards)}</div>', unsafe_allow_html=True)
+
     rows = []
     if isinstance(reference_images, dict):
         rows = list(reference_images.get("all", []) or [])
@@ -1006,8 +1097,7 @@ def _render_reference_image_candidates(
             summary["目安(Artist)"] = reference_images.get("target_artist_images")
     st.write(summary)
     if rows:
-        st.dataframe(rows[:8], use_container_width=True, hide_index=True, height=220)
-        st.caption("参考画像候補は、安全な一致で取得できた範囲のみ表示しています。")
+        _render_reference_image_cards(rows[:8])
     else:
         st.info(empty_message)
 
@@ -1318,7 +1408,7 @@ def render_artist_search() -> None:
 def render_advisor() -> None:
     _render_mode_heading("Advisor")
     _render_mode_explanation(
-        "フェア文脈アドバイザー（テキスト or テキスト＋画像で質問）"
+        "フェア文脈アドバイザー（type 1中心 / 必要時のみ画像生成）"
     )
 
     col1, col2 = st.columns([1, 1])
@@ -1328,14 +1418,10 @@ def render_advisor() -> None:
         index=2,
         key="advisor_fair_filter",
     )
-    question_type_label = col2.selectbox(
-        "質問タイプ",
-        [
-            "type 1 = テキスト回答のみ（今回実装）",
-            "type 2 = テキスト＋画像生成（gate付き）",
-        ],
-        index=0,
-        key="advisor_question_type",
+    wants_image_generation = col2.checkbox(
+        "画像生成を希望する（利用条件あり）",
+        value=False,
+        key="advisor_wants_image_generation",
     )
 
     question_text = st.text_area(
@@ -1367,8 +1453,8 @@ def render_advisor() -> None:
             upload_note = "添付画像の読み込みに失敗したため、画像なしとして処理します。"
 
     st.caption(upload_note)
-    if question_type_label.startswith("type 2"):
-        st.info("type 2 は gate 条件を満たした場合のみ画像生成APIを実行します。条件不足時は本文と根拠のみ表示します。")
+    if wants_image_generation:
+        st.info("画像補助は type 1（本文＋根拠）を基に実行します。利用できない場合は本文と根拠のみ表示します。")
 
     run = st.button("Advisor を実行", key="advisor_run")
     if run:
@@ -1377,16 +1463,26 @@ def render_advisor() -> None:
             return
 
         effective_fair = fair_mode
+        rotation_key = f"{effective_fair}::{question_text.strip().casefold()}"
+        rotation_map = dict(st.session_state.get("advisor_broad_query_rotation", {}) or {})
+        rotation_index = int(rotation_map.get(rotation_key, 0) or 0)
+        rotation_map[rotation_key] = rotation_index + 1
+        st.session_state["advisor_broad_query_rotation"] = rotation_map
+        broad_history = list(st.session_state.get("advisor_broad_query_history", []) or [])
+        recent_broad_history = [item for item in broad_history if str(item.get("fair_mode") or "") == effective_fair][-8:]
         try:
             context = build_advisor_grounded_context(
                 fair_label=effective_fair,
                 question_text=question_text,
+                rotation_index=rotation_index,
+                recent_broad_history=recent_broad_history,
             )
             st.session_state["advisor_context"] = context
             st.session_state["advisor_selection"] = {
                 "fair": effective_fair,
                 "question_text": question_text,
-                "question_type_label": question_type_label,
+                "wants_image_generation": wants_image_generation,
+                "rotation_index": rotation_index,
             }
 
             # type2でも、まずgrounded type1を作る（text回答の基盤）
@@ -1398,18 +1494,25 @@ def render_advisor() -> None:
                 uploaded_image_name=(uploaded_image.name if uploaded_image is not None else ""),
             )
             st.session_state["advisor_draft"] = draft_type1
+            broad_meta = dict(draft_type1.get("broad_diversity_meta") or {})
+            if broad_meta:
+                broad_meta["fair_mode"] = effective_fair
+                broad_meta["question_text"] = question_text.strip()
+                broad_history.append(broad_meta)
+                st.session_state["advisor_broad_query_history"] = broad_history[-12:]
 
-            if question_type_label.startswith("type 1"):
-                st.session_state["advisor_type2_preview"] = None
-            else:
-                type2_preview = run_type2_gated_image_generation(
-                    fair_label=effective_fair,
-                    question_text=question_text,
-                    type1_draft=draft_type1,
-                    context=context,
-                    has_uploaded_image=upload_valid,
-                )
+            if wants_image_generation:
+                with st.spinner("画像補助を生成しています..."):
+                    type2_preview = run_type2_gated_image_generation(
+                        fair_label=effective_fair,
+                        question_text=question_text,
+                        type1_draft=draft_type1,
+                        context=context,
+                        has_uploaded_image=upload_valid,
+                    )
                 st.session_state["advisor_type2_preview"] = type2_preview
+            else:
+                st.session_state["advisor_type2_preview"] = None
         except Exception as exc:
             st.error("Advisor 実行中にエラーが発生しました。入力条件を見直して再実行してください。")
             with st.expander("詳細（開発確認用）", expanded=False):
@@ -1420,202 +1523,149 @@ def render_advisor() -> None:
     selection = st.session_state.get("advisor_selection", {})
     draft = st.session_state.get("advisor_draft")
     type2_preview = st.session_state.get("advisor_type2_preview")
-    selected_qtype = str(selection.get("question_type_label") or "type 1 = テキスト回答のみ（今回実装）")
+    wants_image_generation = bool(selection.get("wants_image_generation"))
 
     if not context:
-        st.caption("相談内容を入力して「Advisor を実行」を押すと、根拠束と回答下書きを表示します。")
-        return
-
-    st.markdown("**Advisor grounding overview（読み取り専用）**")
-    st.write(
-        {
-            "fair": context["selection"]["fair_label"],
-            "year": context["selection"]["year"],
-            "question_type": selected_qtype,
-            "token_count": len(context["selection"].get("tokens", [])),
-        }
-    )
-    _render_evidence_summary(
-        {
-            "Exhibitions根拠件数": context["counts"]["exhibitions_text_evidence_count"],
-            "Artists根拠件数": context["counts"]["artist_text_evidence_count"],
-            "URL件数": context["counts"]["all_unique_url_count"],
-            "参考画像候補件数": int(context["counts"]["reference_exhibition_images"])
-            + int(context["counts"]["reference_artist_images"]),
-        }
-    )
-    ex_view = [
-        {
-            "fair": r.get("fair_label"),
-            "gallery": r.get("gallery"),
-            "title": r.get("title"),
-            "year": r.get("year"),
-            "source_url": r.get("source_url"),
-        }
-        for r in context.get("exhibition_evidence", [])[:12]
-    ]
-    ar_view = [
-        {
-            "fair": r.get("fair_label"),
-            "gallery": r.get("gallery"),
-            "artist": r.get("artist_name"),
-            "year": r.get("year"),
-            "source_url": r.get("source_url"),
-        }
-        for r in context.get("artist_evidence", [])[:12]
-    ]
-    c1, c2 = st.columns(2)
-    with c1:
-        st.markdown("**根拠ブロック（Exhibitions）**")
-        st.dataframe(ex_view, use_container_width=True, hide_index=True, height=220)
-    with c2:
-        st.markdown("**根拠ブロック（Artists）**")
-        st.dataframe(ar_view, use_container_width=True, hide_index=True, height=220)
-
-    ref_images = context.get("reference_images", {})
-    _render_reference_image_candidates("参考画像候補", ref_images, target_total=8)
-    if context.get("warnings"):
-        with st.expander("警告（Advisor）", expanded=False):
-            for warning in context["warnings"][:20]:
-                st.write(f"- {warning}")
-
-    if selected_qtype.startswith("type 2"):
-        st.markdown("**Advisor type 2（gate付き実行）**")
-        if not type2_preview:
-            st.caption("type 2 を選んで Advisor を実行すると、gate判定後に本文と画像生成結果を表示します。")
-            return
-
-        gate_ok = bool(type2_preview.get("gate_ok"))
-        status = str(type2_preview.get("status") or ("success" if gate_ok else "gate_hold"))
-        user_message = str(type2_preview.get("user_message") or "")
-        if status == "success":
-            st.success("type 2 状態: 実行成功")
-        elif status == "image_failed":
-            st.warning("type 2 状態: 画像生成失敗（本文と根拠は表示）")
-        elif status == "gate_hold":
-            st.error("type 2 状態: gate未通過（条件不足で実行不可）")
-        elif status == "ready_for_api":
-            st.info("type 2 状態: 利用可能")
-        else:
-            st.info("type 2 状態: 条件確認中")
-        if user_message:
-            st.caption(user_message)
-
-        if status == "gate_hold":
-            failed = collect_failed_checks(type2_preview)
-            if failed:
-                st.markdown("**未通過条件（要点）**")
-                for reason in failed[:8]:
-                    st.write(f"- {reason}")
-
-        evidence_urls = type2_preview.get("evidence_urls", {}) or {}
-        ex_urls = evidence_urls.get("exhibition") or []
-        ar_urls = evidence_urls.get("artist") or []
-        ref_images = type2_preview.get("reference_images", {}) or {}
-        ref_rows = ref_images.get("all") or []
-
-        st.markdown("**Advisor回答（日本語、type 2）**")
-        _render_evidence_summary(
-            {
-                "本文文字数": type2_preview.get("text_chars"),
-                "本文上限": ADVISOR_TEXT_MAX_CHARS,
-                "URL件数": len(ex_urls) + len(ar_urls),
-                "参考画像候補件数": len(ref_rows),
-            }
-        )
-        st.text_area(
-            "Advisor回答（日本語）",
-            value=str(type2_preview.get("text_answer") or ""),
-            height=180,
-            disabled=True,
-        )
-        st.caption(str(type2_preview.get("attachment_note") or ""))
-        st.caption("添付画像/生成画像は保存しません（セッション内表示のみ）。")
-
-        image_bytes = type2_preview.get("generated_image_bytes")
-        image_url = str(type2_preview.get("generated_image_url") or "")
-        if image_bytes:
-            st.image(image_bytes, caption="AI generated", use_container_width=True)
-            st.caption("Source: AI generated")
-        elif image_url:
-            st.image(image_url, caption="AI generated", use_container_width=True)
-            st.caption("Source: AI generated")
-        else:
-            st.info("生成画像はありません（gate未通過または画像生成失敗）。")
-
-        _render_evidence_urls("根拠URL一覧", ex_urls, ar_urls)
-
-        if isinstance(ref_images, dict):
-            _render_reference_image_candidates("参考画像候補", ref_images, target_total=8)
-
-        with st.expander("type2 gate 詳細 / prompt preview（開発確認用）", expanded=False):
-            check_rows = [
-                {
-                    "check_id": c.get("id"),
-                    "ok": bool(c.get("ok")),
-                    "detail": c.get("detail"),
-                }
-                for c in type2_preview.get("checks", [])
-            ]
-            st.dataframe(check_rows, use_container_width=True, hide_index=True, height=260)
-            st.write(
-                {
-                    "status": status,
-                    "required_env_keys": type2_preview.get("required_env_keys", []),
-                    "optional_env_keys": type2_preview.get("optional_env_keys", []),
-                    "resolved_env": type2_preview.get("resolved_env", {}),
-                    "api_called": bool(type2_preview.get("api_called", False)),
-                }
-            )
-            st.text_area(
-                "type 2 prompt プレビュー",
-                value=str(type2_preview.get("prompt_preview") or ""),
-                height=260,
-                disabled=True,
-            )
-            if type2_preview.get("error"):
-                st.warning(f"画像生成結果: {type2_preview.get('error')}")
-                debug_err = str(type2_preview.get("debug_error") or "")
-                if debug_err:
-                    st.code(debug_err)
-
-        if draft:
-            st.markdown("**type 2 実行前の grounded baseline（type 1）**")
-            st.write(
-                {
-                    "answer_chars": draft.get("answer_chars"),
-                    "max_chars": ADVISOR_TEXT_MAX_CHARS,
-                    "evidence_count": draft.get("evidence_counts", {}).get("all_unique_urls", 0),
-                }
-            )
-            st.text_area("grounded ベースライン（type 1）", value=draft.get("answer", ""), height=180, disabled=True)
+        st.caption("相談内容を入力して「Advisor を実行」を押すと、type 1回答と根拠を表示します。")
         return
 
     if not draft:
         return
 
-    st.markdown("**Advisor grounded draft（type 1）**")
+    advisor_reference_images = dict(draft.get("reference_images") or {})
+    advisor_reference_rows = list(advisor_reference_images.get("all", []) or [])
+
+    reference_year_display = (
+        context.get("selection", {}).get("reference_year_display")
+        or context.get("selection", {}).get("year")
+        or "-"
+    )
+    st.markdown("**Advisor回答（日本語 / type 1）**")
+    st.caption(f"参照年: {reference_year_display}")
     _render_evidence_summary(
         {
-            "質問タイプ": draft.get("question_type"),
+            "質問タイプ": "type 2 希望（画像補助）" if wants_image_generation else "type 1",
+            "参照年": reference_year_display,
             "モード": draft.get("mode"),
             "本文文字数": draft.get("answer_chars"),
             "本文上限": ADVISOR_TEXT_MAX_CHARS,
             "URL件数": draft.get("evidence_counts", {}).get("all_unique_urls", 0),
         }
     )
-    st.text_area("Advisor回答（日本語）", value=draft.get("answer", ""), height=200, disabled=True)
-    st.caption(draft.get("attachment_note", ""))
+    _render_markdown_with_galleries(
+        str(draft.get("answer", "")),
+        {"by_source": {}, "by_image_url": {}},
+    )
+    reference_examples = list(draft.get("reference_examples", []) or [])
+    if reference_examples:
+        st.markdown("**参照例**")
+        st.markdown("\n".join(reference_examples))
+
+    if wants_image_generation:
+        st.markdown("**画像補助（type 2）**")
+        if not type2_preview:
+            st.caption("画像生成を希望して Advisor を実行すると、画像補助結果を表示します。")
+        else:
+            status = str(type2_preview.get("status") or "")
+            user_message = str(type2_preview.get("user_message") or "")
+            if status == "success":
+                st.success("画像生成を実行しました。")
+            else:
+                st.info(user_message or "今回は画像補助を表示できなかったため、本文と根拠のみ表示しています。")
+
+            image_bytes = type2_preview.get("generated_image_bytes")
+            image_url = str(type2_preview.get("generated_image_url") or "")
+            if image_bytes:
+                st.image(image_bytes, caption="AI generated", use_container_width=True)
+                st.caption("Source: AI generated")
+                rationale = str(type2_preview.get("image_rationale") or "")
+                if rationale:
+                    st.caption(rationale)
+            elif image_url:
+                st.image(image_url, caption="AI generated", use_container_width=True)
+                st.caption("Source: AI generated")
+                rationale = str(type2_preview.get("image_rationale") or "")
+                if rationale:
+                    st.caption(rationale)
+            else:
+                st.caption("生成画像はありません。")
+
+            with st.expander("type2 詳細 / prompt preview（開発確認用）", expanded=False):
+                check_rows = [
+                    {
+                        "check_id": c.get("id"),
+                        "ok": bool(c.get("ok")),
+                        "detail": c.get("detail"),
+                    }
+                    for c in type2_preview.get("checks", [])
+                ]
+                st.dataframe(check_rows, use_container_width=True, hide_index=True, height=240)
+                st.write(
+                    {
+                        "status": status,
+                        "required_env_keys": type2_preview.get("required_env_keys", []),
+                        "optional_env_keys": type2_preview.get("optional_env_keys", []),
+                        "resolved_env": type2_preview.get("resolved_env", {}),
+                        "api_called": bool(type2_preview.get("api_called", False)),
+                    }
+                )
+                st.text_area(
+                    "type 2 prompt プレビュー",
+                    value=str(type2_preview.get("prompt_preview") or ""),
+                    height=240,
+                    disabled=True,
+                )
+                if type2_preview.get("error"):
+                    st.warning(f"画像生成結果: {type2_preview.get('error')}")
+                    debug_err = str(type2_preview.get("debug_error") or "")
+                    if debug_err:
+                        st.code(debug_err)
 
     urls = draft.get("evidence_urls", {})
     ex_urls = urls.get("exhibition", [])
     ar_urls = urls.get("artist", [])
-    _render_evidence_urls("根拠URL一覧", ex_urls, ar_urls)
-    _render_reference_image_candidates("参考画像候補", context.get("reference_images", {}), target_total=8)
-    if draft.get("warnings"):
-        with st.expander("警告（Advisor）", expanded=False):
-            for warning in draft["warnings"]:
-                st.write(f"- {warning}")
+
+    with st.expander("根拠と参照データ（source refs / URL）", expanded=True):
+        st.markdown("**Advisor grounding overview（読み取り専用）**")
+        st.write(
+            {
+                "fair": context["selection"]["fair_label"],
+                "year": reference_year_display,
+                "question_type": "type 2 希望（画像補助）" if wants_image_generation else "type 1",
+                "token_count": len(context["selection"].get("tokens", [])),
+            }
+        )
+        _render_evidence_summary(
+            {
+                "Exhibitions根拠件数": context["counts"]["exhibitions_text_evidence_count"],
+                "Artists根拠件数": context["counts"]["artist_text_evidence_count"],
+                "URL件数": context["counts"]["all_unique_url_count"],
+                "参考画像候補件数": len(advisor_reference_rows),
+            }
+        )
+        st.markdown("**根拠一覧（source refs + snippet）**")
+        evidence_rows = list(context.get("evidence_rows", []) or [])
+        if evidence_rows:
+            st.dataframe(evidence_rows[:16], use_container_width=True, hide_index=True, height=260)
+        else:
+            st.info("表示可能な根拠行はありません。")
+
+        _render_evidence_urls("根拠URL一覧", ex_urls, ar_urls)
+        _render_reference_image_candidates(
+            "参考画像候補",
+            advisor_reference_images,
+            target_total=8,
+            compact_advisor_cards=True,
+        )
+
+        if context.get("warnings"):
+            with st.expander("警告（Advisor）", expanded=False):
+                for warning in context["warnings"][:20]:
+                    st.write(f"- {warning}")
+        if draft.get("warnings"):
+            with st.expander("警告（Advisor draft）", expanded=False):
+                for warning in draft["warnings"]:
+                    st.write(f"- {warning}")
 
 
 def render_exclusive_advisor() -> None:

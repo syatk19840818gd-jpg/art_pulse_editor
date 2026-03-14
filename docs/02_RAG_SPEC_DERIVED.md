@@ -173,9 +173,13 @@ SSOT_TAG: 01>「Post-fetch/Enrichment」行（Fetch後の事後処理）配下
 - headline_ja / artist_name_kana 等の生成は “事後バッチ” で行う
 - Fetchは “保存できる素材を集める” ことに集中
 
-推奨：バッチ入口
+固定：バッチ入口
 - fetch（保存）→ jsonl/csv 生成 → enrichment_batch（後処理）
 - 失敗が出ても、Fetch全体が止まらない構造にする
+- Artists / Exhibitions の enrichment bulk apply は Batch API required and enforced
+- direct OpenAI は preview/sample only（bulk apply では禁止）
+- bulk apply summary / manifest には `api_mode` / `batch_used` / `batch_job_id` / `input_bundle_hash` / `target_rows` / `updated_rows` / `rerun_guard_verdict` / `process_lock_id` を必須保存する
+- repeat apply hard guard を必須とし、同一入力束の再applyは明示ガードで止める
 - canonical incident 対応フロー（固定最小）：repair dry-run（manifest/summary 生成）→ review bucket/quarantine 確認 → repair execute。
 - Artist Text / Artist Works Images / enrichment join は canonical_source_key + artist identity（artist_name_key / artist_identity_key）整合を前提に実行する。
 - multi-APPLIED source group は dry-run で検出し、execute 前に keep/drop 方針を確定する。
@@ -437,11 +441,24 @@ SSOT_TAG: 01>5-8) Sync Model (R2 primary + current/history + local fallback | fi
   - `exhibitions_enrichment_apply_summary_2025.json`
 - history keeps timestamped apply output / summary as immutable audit artifacts.
 - `data/phase1_seed10/` is a seed10 working/validation lane and is not the long-term canonical root for current/history.
+- `*_enrichment_requests_{year}.jsonl` is a runtime input artifact generated from raw; it is non-canonical and not a default app/read-only reference source.
+- active runtime requests paths (2025):
+  - `data/runtime/enrichment_requests/artists/artists_enrichment_requests_2025.jsonl`
+  - `data/runtime/enrichment_requests/exhibitions/exhibitions_enrichment_requests_2025.jsonl`
+- runtime subdirs:
+  - `_completed/` is archive lane for terminal-complete requests artifacts
+  - `_reports/` is migration/retention audit report lane
+- requests runtime retention policy:
+  - keep while batch is `in_progress` / `validating` / `finalizing`, or while resume path is open (`rerun_guard_verdict=resume_existing_batch` with active guard/lock).
+  - deletable after batch reaches terminal state and history output/summary/manifest plus current promote verdict are fixed with batch/guard evidence fields.
+  - long-term retention is not required because requests can be regenerated from raw when needed.
+- verify status: runtime-path switch and retention safety verify are GO (preflight path checks + migration-report/file consistency + synthetic retention checks passed).
 
 固定：writer/readers/sync責務
 - writer:
   - write timestamped artifacts to history first
   - promote to current fixed filenames only after successful write
+  - bulk apply promote requires batch evidence + rerun-guard evidence; evidence-missing runs must not promote to current
 - readers (app/read-only/advisor):
   - current-first
   - migration period only: fallback to legacy `data/phase1_seed10/derived/*_enrichment_apply_output_2025_*.jsonl` latest glob
@@ -484,18 +501,21 @@ SSOT source:
 - 01 section 8 (Phase 2 milestones)
 - 01 section 5-8 (sync model: current/history/R2/local fallback)
 
-Index update (2026-03-11):
+Index update (2026-03-12):
 - phase status:
   - feature 1 Art Pulse: completed
   - feature 2 Exhibition Search: completed
-  - feature 3 Artist Search: almost completed
-  - feature 4 Advisor kickoff: completed (type1 minimal grounded context path connected)
-  - advisor type2: gate-only confirmation, not implementation-complete
+  - feature 3 Artist Search: incident-closed and stable
+  - feature 4 Advisor: A11 completed (type1 quality tuning / checkbox UI / latest available year only / `参照年` display)
+  - advisor type2: implementation-complete in code with lightweight precheck + fail-soft unified short message; success-path smoke is still pending due `billing_hard_limit_reached`
 - current/history rebaseline: completed (A2-A9)
   - storage scaffold in `data/current/enrichment/` and `data/history/enrichment/{artists,exhibitions}/`
-  - writer contract: history timestamp write first, then current fixed-name promotion
+  - writer contract: history timestamp write first, then current fixed-name promotion only when batch evidence + rerun-guard evidence are present for bulk apply
   - reader contract: current-first + migration-only legacy fallback (history is not default ref)
   - R2 contract: current primary lane, history audit lane, guarded upload completed
+- enrichment emergency override:
+  - Artists / Exhibitions bulk apply must move to Batch API enforced mode before the next production-style apply
+  - direct OpenAI remains allowed only for preview/sample lanes
 - advisor readonly/context index:
   - advisor type1 context is grounded via existing current-first read-only routes
     - art pulse overview
@@ -504,5 +524,5 @@ Index update (2026-03-11):
   - evidence refs/source refs are shown from read-only outputs
 
 Next (from STATE/NEXT):
-- A11_PHASE4_ADVISOR_TYPE1_QUALITY_TUNING_01
+- EMERGENCY_FIX_ENRICHMENT_BATCH_ENFORCEMENT_AND_REPEAT_APPLY_HARD_GUARD_01
 

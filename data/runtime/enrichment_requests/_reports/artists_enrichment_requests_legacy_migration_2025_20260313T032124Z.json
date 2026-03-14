@@ -1,0 +1,10 @@
+{
+  "category": "artists",
+  "target_year": 2025,
+  "action": "legacy_migration_to_runtime_active",
+  "migrated_at": "2026-03-13T03:21:24Z",
+  "legacy_requests_path": "data\\phase1_seed10\\derived\\artists_enrichment_requests_2025.jsonl",
+  "runtime_requests_path": "data\\runtime\\enrichment_requests\\artists\\artists_enrichment_requests_2025.jsonl",
+  "legacy_sha256": "198903911c923f004ecedd1993d1a349196c6864adadd62d157f146f481f4b11",
+  "legacy_size_bytes": 1661922
+}
