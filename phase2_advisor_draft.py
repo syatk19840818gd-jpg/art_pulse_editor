@@ -1,15 +1,19 @@
 from __future__ import annotations
 
+import ast
 import json
 import os
 import re
 from typing import Dict, List, Tuple
 
+from phase1_artist_link_utils import is_invalid_artist_name
 from phase2_art_pulse_draft import _google_image_search_url
 from phase2_response_style import PLAIN_JAPANESE_RULE
 
 ADVISOR_TEXT_MAX_CHARS = 550
 ADVISOR_REF_IMAGE_TOTAL = 8
+ADVISOR_TEXT_SOFT_OVER_CHARS = 40
+ADVISOR_TEXT_EMERGENCY_OVER_CHARS = 80
 ADVISOR_MARKDOWN_LINK_PATTERN = re.compile(r"\[[^\]]+\]\(https?://[^)]+\)")
 
 
@@ -22,6 +26,32 @@ def _truncate_text(text: str, limit: int) -> str:
     if cut >= int(limit * 0.7):
         return head[: cut + 1].rstrip()
     return head.rstrip() + "…"
+
+
+def _soft_limit_answer_text(
+    answer: str,
+    limit: int = ADVISOR_TEXT_MAX_CHARS,
+    soft_over_chars: int = ADVISOR_TEXT_SOFT_OVER_CHARS,
+    emergency_over_chars: int = ADVISOR_TEXT_EMERGENCY_OVER_CHARS,
+) -> str:
+    body = (answer or "").strip()
+    if not body:
+        return ""
+
+    soft_limit = max(limit, limit + max(0, int(soft_over_chars)))
+    visible_chars = _visible_answer_chars(body)
+    if visible_chars <= soft_limit:
+        return body
+
+    emergency_limit = max(soft_limit + 20, limit + max(0, int(emergency_over_chars)))
+    if visible_chars <= emergency_limit:
+        return body
+
+    head = body[:emergency_limit]
+    cut = max(head.rfind("\n\n"), head.rfind("。"), head.rfind("！"), head.rfind("？"))
+    if cut >= int(emergency_limit * 0.75):
+        return head[: cut + 1].rstrip()
+    return _truncate_text(body, emergency_limit)
 
 
 def _dedup_urls(urls: List[str]) -> List[str]:
@@ -62,7 +92,9 @@ def _build_evidence_digest(context: Dict[str, object], per_kind: int = 3) -> str
     for row in list(context.get("artist_evidence", []))[:per_kind]:
         fair = str(row.get("fair_label") or "").strip() or "フェア不明"
         gallery = str(row.get("gallery") or "").strip() or "ギャラリー不明"
-        artist = str(row.get("artist_name") or "").strip() or "作家名不明"
+        artist = str(row.get("artist_name") or "").strip()
+        if is_invalid_artist_name(artist):
+            continue
         note = _snippet(row.get("summary_ja") or row.get("headline_ja") or row.get("text") or "", limit=58)
         url = str(row.get("source_url") or "").strip()
         body = f"[作家] [{fair}] {gallery} / {artist}"
@@ -93,7 +125,12 @@ def _build_cross_fair_digest(context: Dict[str, object], fair_labels: List[str],
     ar_rows = list(context.get("artist_evidence", []))
     for fair in fair_labels:
         ex_items = [str(r.get("title") or "").strip() for r in ex_rows if str(r.get("fair_label") or "").strip() == fair]
-        ar_items = [str(r.get("artist_name") or "").strip() for r in ar_rows if str(r.get("fair_label") or "").strip() == fair]
+        ar_items = [
+            str(r.get("artist_name") or "").strip()
+            for r in ar_rows
+            if str(r.get("fair_label") or "").strip() == fair
+            and not is_invalid_artist_name(str(r.get("artist_name") or "").strip())
+        ]
         ex_text = " / ".join([x for x in ex_items[:per_fair_kind] if x]) or "(展示根拠なし)"
         ar_text = " / ".join([x for x in ar_items[:per_fair_kind] if x]) or "(作家根拠なし)"
         lines.append(f"- [{fair}] 展示: {ex_text} | 作家: {ar_text}")
@@ -126,6 +163,100 @@ def _classify_broad_query(question_text: str) -> str:
     if any(token in q for token in ["素材", "材", "マテリアル"]):
         return "material"
     return "general"
+
+
+QUESTION_FOCUS_ORDER = (
+    "video",
+    "sound",
+    "sculpture",
+    "photography",
+    "painting",
+    "spatial",
+    "performance",
+    "concept",
+    "material",
+    "color",
+    "artist",
+)
+
+QUESTION_FOCUS_HINTS = {
+    "video": ["映像", "動画", "ビデオ", "video", "film", "projection", "moving image", "上映", "映写", "アニメーション", "animation"],
+    "sound": ["音", "sound", "audio", "acoustic", "sonic", "listening", "noise", "voice", "vibration", "録音"],
+    "sculpture": ["彫刻", "sculpture", "立体", "object", "ceramic", "ceramics", "clay", "陶", "陶器", "オブジェ", "物体"],
+    "photography": ["写真", "photography", "photo", "photographic", "staged", "fiction", "fictional", "虚構", "演出写真", "イメージ"],
+    "painting": ["絵画", "painting", "paint", "canvas", "油彩", "油絵", "acrylic", "アクリル", "絵具"],
+    "spatial": ["インスタレーション", "installation", "展示空間", "spatial", "site-specific", "site specific", "導線", "動線", "歩かせ", "歩く", "空間", "room", "architecture"],
+    "performance": ["パフォーマンス", "performance", "lecture-performance", "lecture performance", "身体", "body", "gesture", "choreography", "行為", "朗読"],
+    "concept": ["コンセプト", "concept", "テーマ", "主題", "着想", "発想", "思想", "問い", "問題意識", "考え方", "意味"],
+    "material": ["素材", "材", "マテリアル", "material", "質感", "手触り", "布", "紙", "木", "金属", "樹脂", "フィルム", "層"],
+    "color": ["色", "カラー", "色彩", "配色", "色調", "トーン", "明度", "彩度", "グレー", "青", "赤", "黄", "緑", "黒", "白"],
+    "artist": ["artist", "アーティスト", "作家", "誰", "who"],
+}
+
+
+def _detect_question_focus(question_text: str) -> str:
+    q = (question_text or "").strip().lower()
+    if not q:
+        return "general"
+
+    best_focus = ""
+    best_score = 0
+    for focus in QUESTION_FOCUS_ORDER:
+        score = _focus_signal_score(q, focus)
+        if score > best_score:
+            best_focus = focus
+            best_score = score
+    if best_score > 0:
+        return best_focus
+
+    query_kind = _classify_broad_query(question_text)
+    if query_kind == "color":
+        return "color"
+    if query_kind == "material":
+        return "material"
+    return "general"
+
+
+def _focus_signal_score(text: str, question_focus: str) -> int:
+    low = (text or "").lower()
+    return sum(1 for hint in QUESTION_FOCUS_HINTS.get(question_focus, []) if hint and hint in low)
+
+
+def _allows_multiple_directions(question_text: str) -> bool:
+    q = (question_text or "").strip().lower()
+    if not q:
+        return False
+    hints = [
+        "複数",
+        "いくつか",
+        "何案",
+        "何通り",
+        "何パターン",
+        "選択肢",
+        "候補を",
+        "比較",
+        "比べ",
+        "並べて",
+    ]
+    return any(token in q for token in hints)
+
+
+def _candidate_row_mode(question_text: str, question_focus: str) -> str:
+    q = (question_text or "").strip().lower()
+    asks_artist = any(token in q for token in ["作家", "artist", "アーティスト", "誰", "who"])
+    asks_exhibition = any(
+        token in q
+        for token in ["展示", "インスタレーション", "installation", "展示空間", "空間", "導線", "動線", "spatial"]
+    )
+    if asks_artist and not asks_exhibition:
+        return "artist"
+    if asks_exhibition and not asks_artist:
+        return "exhibition"
+    if question_focus in {"video", "sound", "sculpture", "photography", "painting", "performance"} and not asks_exhibition:
+        return "artist"
+    if question_focus == "spatial" and not asks_artist:
+        return "exhibition"
+    return "mixed"
 
 
 def _family_catalog(query_kind: str) -> List[dict]:
@@ -243,55 +374,6 @@ def _build_broad_diversity_plan(question_text: str, context: Dict[str, object]) 
     }
 
 
-def _anchor_label(row: dict) -> str:
-    if not row:
-        return "根拠候補"
-    artist = str(row.get("artist_name") or "").strip()
-    title = str(row.get("title") or "").strip()
-    gallery = str(row.get("gallery") or "").strip()
-    return artist or title or gallery or "根拠候補"
-
-
-def _material_axis_suggestions(question_text: str, rotation_index: int) -> List[str]:
-    q = (question_text or "").strip()
-    is_color_query = any(token in q for token in ["色", "カラー", "色彩", "配色"])
-    if is_color_query:
-        palette = [
-            ["低彩度グレー + 深い緑", "青灰 + 乳白", "焦げ茶 + 鈍い金属色"],
-            ["温白 + 鉄紺", "土色 + 黒", "薄い桃灰 + 炭色"],
-            ["青緑 + 生成り", "赤茶 + 鉛色", "黄土 + 墨色"],
-        ]
-    else:
-        palette = [
-            ["布/和紙", "木質パネル", "顔料のにじみ層"],
-            ["金属メッシュ", "透明樹脂", "半透明フィルム層"],
-            ["土系マチエール", "石粉塗料", "粗密の異なる繊維材"],
-        ]
-    return palette[rotation_index % len(palette)]
-
-
-def _cross_fair_material_action(question_text: str, fair_a: str, fair_b: str, rotation_index: int) -> str:
-    suggestions = _material_axis_suggestions(question_text, rotation_index)
-    common_axes = [
-        "主題を先に固定してから素材を決める",
-        "視線導線を先に設計して素材を重ねる",
-        "密度のピーク位置を先に決めてから仕上げる",
-    ]
-    diff_axes = [
-        f"{fair_a}寄りは密度高め・近接視での情報量を強める",
-        f"{fair_a}寄りは硬質な層を増やし、{fair_b}寄りは余白を広く取る",
-        f"{fair_a}寄りはコントラストを上げ、{fair_b}寄りは中間調で連結する",
-    ]
-    common = common_axes[rotation_index % len(common_axes)]
-    diff = diff_axes[rotation_index % len(diff_axes)]
-    suggestion_text = " / ".join(suggestions[:3])
-    return (
-        f"共通点: {common}。\n"
-        f"差分: {diff}。\n"
-        f"素材案: {suggestion_text} の中から強い方向を1つ選び、必要なら2つ目まで広げて比べる。"
-    )
-
-
 def _extract_answer(raw_output: str) -> str:
     raw = (raw_output or "").strip()
     if not raw:
@@ -303,14 +385,59 @@ def _extract_answer(raw_output: str) -> str:
         candidates.insert(0, matched.group(0))
 
     for candidate in candidates:
-        try:
-            parsed = json.loads(candidate)
-        except Exception:
+        parsed = None
+        for parser in (json.loads, ast.literal_eval):
+            try:
+                parsed = parser(candidate)
+                break
+            except Exception:
+                continue
+        if parsed is None:
             continue
-        answer = str(parsed.get("answer") or "").strip()
-        if answer:
-            return answer
+
+        if isinstance(parsed, str):
+            text = parsed.strip()
+            if text:
+                return text
+            continue
+
+        if isinstance(parsed, dict):
+            for key in ("answer", "text", "content", "output_text", "message"):
+                value = parsed.get(key)
+                if isinstance(value, str) and value.strip():
+                    return value.strip()
+            continue
+
+        if isinstance(parsed, list):
+            for item in parsed:
+                if isinstance(item, dict):
+                    for key in ("answer", "text", "content"):
+                        value = item.get(key)
+                        if isinstance(value, str) and value.strip():
+                            return value.strip()
+                elif isinstance(item, str) and item.strip():
+                    return item.strip()
+
+    if raw.startswith("{") and raw.endswith("}") and ("answer" in raw or "text" in raw):
+        return ""
     return raw
+
+
+def _ensure_plain_answer_text(answer: str) -> str:
+    body = str(answer or "").strip()
+    if not body:
+        return ""
+    body = re.sub(r"^```(?:json)?\s*|\s*```$", "", body, flags=re.IGNORECASE).strip()
+    unwrapped = _extract_answer(body)
+    if unwrapped and unwrapped != body:
+        body = unwrapped.strip()
+    if re.match(r"^\s*(\{[\s\S]*\}|\[[\s\S]*\])\s*$", body):
+        second = _extract_answer(body).strip()
+        if second and second != body:
+            body = second
+        else:
+            return ""
+    return body
 
 
 def _normalize_answer_text(answer: str) -> str:
@@ -332,6 +459,72 @@ def _normalize_answer_text(answer: str) -> str:
     body = "\n".join(dedup_lines)
     body = re.sub(r"\n{3,}", "\n\n", body)
     return body.strip()
+
+
+def _ensure_natural_ending(answer: str) -> str:
+    body = str(answer or "").strip()
+    if not body:
+        return ""
+
+    bracket_pairs = [("（", "）"), ("(", ")"), ("「", "」"), ("『", "』"), ("【", "】")]
+    for left, right in bracket_pairs:
+        while body.count(left) > body.count(right):
+            cut = body.rfind(left)
+            if cut < 0:
+                break
+            body = body[:cut].rstrip()
+
+    bad_tail_tokens = [
+        "…",
+        "、",
+        ",",
+        "で",
+        "と",
+        "が",
+        "を",
+        "に",
+        "へ",
+        "や",
+        "から",
+        "ので",
+        "けど",
+        "また",
+        "そして",
+        "しかし",
+    ]
+    end_ok = ("。", "！", "？", "!", "?", "」", "』", "】", "）", ")")
+    tail_bad = any(body.endswith(token) for token in bad_tail_tokens)
+    if tail_bad or not body.endswith(end_ok):
+        cut = max(body.rfind("。"), body.rfind("！"), body.rfind("？"), body.rfind("!"), body.rfind("?"))
+        if cut >= int(len(body) * 0.45):
+            body = body[: cut + 1].rstrip()
+        elif not body.endswith(end_ok):
+            body = body.rstrip("、,") + "。"
+    return body.strip()
+
+
+def _looks_like_biography_dump(answer: str) -> bool:
+    text = _plain_answer_text(answer)
+    if not text:
+        return False
+    year_hits = len(re.findall(r"(?:19|20)\d{2}年?", text))
+    bio_markers = sum(text.count(token) for token in ["在住", "生まれ", "出身", "活動", "発表", "制作", "受賞"])
+    paragraphs = [line.strip() for line in text.splitlines() if line.strip()]
+    long_para_count = sum(1 for line in paragraphs if len(line) >= 60)
+    return (year_hits >= 2 and bio_markers >= 3) or (long_para_count >= 3 and bio_markers >= 4)
+
+
+def _looks_like_intent_mismatch(answer: str, question_text: str) -> bool:
+    question_focus = _detect_question_focus(question_text)
+    if question_focus in {"general", "artist"}:
+        return False
+    text = _plain_answer_text(answer).lower()
+    if not text:
+        return True
+    if _focus_signal_score(text, question_focus) > 0:
+        return False
+    other_focuses = [focus for focus in QUESTION_FOCUS_ORDER if focus not in {"artist", question_focus}]
+    return max((_focus_signal_score(text, key) for key in other_focuses), default=0) >= 2
 
 
 def _should_include_action_steps(question_text: str) -> bool:
@@ -421,6 +614,10 @@ def _build_art_pulse_style_reference_lines(selected_entities: List[dict]) -> Lis
     seen = set()
 
     for entity in selected_entities:
+        if str(entity.get("kind") or "").strip() == "artist" and is_invalid_artist_name(
+            str(entity.get("display_label") or entity.get("label") or "").strip()
+        ):
+            continue
         label = _safe_link_label(str(entity.get("display_label") or entity.get("label") or "").strip(), limit=None)
         link_url = str(entity.get("link_url") or "").strip()
         if not (label and link_url):
@@ -434,6 +631,39 @@ def _build_art_pulse_style_reference_lines(selected_entities: List[dict]) -> Lis
             lines.append(item)
 
     return lines
+
+
+def _select_reference_entities_for_output(
+    context: Dict[str, object],
+    selected_entities: List[dict],
+) -> List[dict]:
+    # 本文リンク(selected_entities)と分離し、参照例/参照画像は evidence 起点で組む。
+    candidates: List[dict] = list(selected_entities) + _build_selected_entity_candidates(context)
+    selected: List[dict] = []
+    seen = set()
+    for candidate in candidates:
+        kind = str(candidate.get("kind") or "").strip()
+        label = str(candidate.get("display_label") or candidate.get("label") or "").strip()
+        if kind == "artist" and is_invalid_artist_name(label):
+            continue
+        link_url = str(candidate.get("link_url") or "").strip()
+        source_url = str(candidate.get("source_url") or "").strip()
+        local_path = str(candidate.get("local_path") or "").strip()
+        r2_key = str(candidate.get("r2_key") or "").strip()
+        image_url = str(candidate.get("image_url") or "").strip()
+        has_image = bool(local_path or r2_key or image_url)
+        if not (kind and label and link_url and has_image):
+            continue
+        dedup_key = (kind, label, link_url, source_url)
+        if dedup_key in seen:
+            continue
+        seen.add(dedup_key)
+        item = dict(candidate)
+        item["display_label"] = label
+        selected.append(item)
+        if len(selected) >= ADVISOR_REF_IMAGE_TOTAL:
+            break
+    return selected
 
 
 def _plain_answer_text(answer: str) -> str:
@@ -467,7 +697,7 @@ def _build_selected_entity_candidates(context: Dict[str, object]) -> List[dict]:
 
     for row in list(context.get("artist_evidence", [])):
         artist = str(row.get("artist_name") or "").strip()
-        if not artist:
+        if not artist or is_invalid_artist_name(artist):
             continue
         google_url = _google_image_search_url(artist)
         if not google_url:
@@ -491,7 +721,7 @@ def _build_selected_entity_candidates(context: Dict[str, object]) -> List[dict]:
         )
 
     for artist, source_url in _collect_exhibition_artist_links(context):
-        if not artist or artist in known_artist_labels or not source_url:
+        if not artist or is_invalid_artist_name(artist) or artist in known_artist_labels or not source_url:
             continue
         candidates.append(
             {
@@ -629,7 +859,7 @@ def _strip_entity_suffixes(answer: str, context: Dict[str, object]) -> str:
     body = str(answer or "")
     for row in list(context.get("artist_evidence", [])):
         artist = str(row.get("artist_name") or "").strip()
-        if not artist:
+        if not artist or is_invalid_artist_name(artist):
             continue
         pattern = re.escape(artist) + r"(?:\s*（[^）]{1,80}）|\s*\([^)]{1,80}\))"
         body = re.sub(pattern, artist, body)
@@ -674,14 +904,14 @@ def _collect_exhibition_artist_links(context: Dict[str, object]) -> List[Tuple[s
         if ":" in title:
             title_head = re.split(r"\s+-\s+", title, maxsplit=1)[0].strip()
             title_head = title_head.split(":", 1)[0].strip()
-            if _looks_like_artist_label(title_head):
+            if _looks_like_artist_label(title_head) and not is_invalid_artist_name(title_head):
                 candidates.append(title_head)
 
         match = re.search(r"Participating Artists:\s*([^\n]+)", text, flags=re.IGNORECASE)
         if match:
             raw_names = [part.strip() for part in match.group(1).split(",")]
             for raw_name in raw_names:
-                if _looks_like_artist_label(raw_name):
+                if _looks_like_artist_label(raw_name) and not is_invalid_artist_name(raw_name):
                     candidates.append(raw_name)
 
         for candidate in candidates:
@@ -746,7 +976,7 @@ def _allowed_current_entity_labels(context: Dict[str, object]) -> List[str]:
         artist = str(row.get("artist_name") or "").strip()
         gallery = str(row.get("gallery") or "").strip()
         fair = str(row.get("fair_label") or "").strip()
-        if artist:
+        if artist and not is_invalid_artist_name(artist):
             labels.add(artist)
         if gallery:
             labels.add(gallery)
@@ -754,7 +984,7 @@ def _allowed_current_entity_labels(context: Dict[str, object]) -> List[str]:
             labels.add(fair)
 
     for artist, _source_url in _collect_exhibition_artist_links(context):
-        if artist:
+        if artist and not is_invalid_artist_name(artist):
             labels.add(artist)
 
     return sorted([label for label in labels if label], key=len, reverse=True)
@@ -824,7 +1054,47 @@ def _expand_broad_answer_if_short(
     question_text: str,
     context: Dict[str, object],
 ) -> str:
-    return (answer or "").strip()
+    body = (answer or "").strip()
+    if not body:
+        return ""
+    if not _is_broad_query_mode(context):
+        return body
+
+    visible_chars = _visible_answer_chars(body)
+    question_focus = _detect_question_focus(question_text)
+    single_axis_concept = question_focus == "concept" and not _allows_multiple_directions(question_text)
+    target_min_chars = 260 if question_focus in {"general", "material", "color", "concept", "spatial"} else 220
+    if visible_chars >= target_min_chars:
+        return body
+
+    plain_body = _plain_answer_text(body)
+    evidence_rows = list(context.get("exhibition_evidence", [])) + list(context.get("artist_evidence", []))
+    if single_axis_concept:
+        evidence_rows = evidence_rows[:1]
+    expanded = body
+    joiner = "\n\n" if "\n" not in body else "\n"
+    seen_notes = {plain_body}
+    for row in evidence_rows:
+        label = str(row.get("artist_name") or row.get("title") or "").strip()
+        if str(row.get("kind") or "").strip() == "artist" and is_invalid_artist_name(label):
+            continue
+        addition = _fallback_reason_snippet(row, question_focus=question_focus)
+        if not addition:
+            continue
+        if addition in plain_body:
+            continue
+        if addition in seen_notes:
+            continue
+        if label and label not in plain_body and label in addition:
+            continue
+        blocked_names = _find_unsupported_proper_names(addition, context)
+        for blocked in blocked_names:
+            addition = addition.replace(blocked, "参照作家")
+        addition = addition.rstrip("。！？!?") + "。"
+        expanded = (expanded + joiner + addition).strip()
+        break
+
+    return _ensure_natural_ending(_soft_limit_answer_text(expanded, ADVISOR_TEXT_MAX_CHARS))
 
 
 def _visible_answer_chars(answer: str) -> int:
@@ -833,41 +1103,153 @@ def _visible_answer_chars(answer: str) -> int:
     return len(body.strip())
 
 
-def _fallback_evidence_block(row: dict) -> str:
-    label = str(row.get("artist_name") or row.get("title") or "").strip()
+def _fallback_reason_snippet(row: dict, question_focus: str = "general", max_segments: int = 1) -> str:
     note = str(row.get("summary_ja") or row.get("headline_ja") or row.get("text") or "").strip()
+    note = re.sub(r"https?://\S+", "", note)
     note = re.sub(r"\s+", " ", note)
-    if note:
-        note = _snippet(note, limit=170)
+    note = re.sub(r"(?:19|20)\d{2}年?", "", note)
+    note = re.sub(r"[–—-]{2,}", " ", note)
+    if not note:
+        return ""
+
+    sentences = [part.strip(" 、") for part in re.split(r"[。！？!?]\s*", note) if part.strip(" 、")]
+    candidates = sentences[:4] if sentences else [note]
+    filtered: List[str] = []
+    for candidate in candidates:
+        candidate = re.sub(r"^[–—\-/:;・\s]+", "", candidate).strip()
+        candidate = re.sub(r"^に(?=\d)", "", candidate)
+        if not candidate:
+            continue
+        if sum(candidate.count(token) for token in ["在住", "生まれ", "出身", "受賞", "活動"]) >= 2:
+            continue
+        filtered.append(candidate)
+    if question_focus != "general":
+        focused = [candidate for candidate in filtered if _focus_signal_score(candidate, question_focus) > 0]
+        if focused:
+            filtered = focused
+
+    def _trim_candidate(text: str, limit: int = 140) -> str:
+        value = str(text or "").strip()
+        if len(value) <= limit:
+            return value
+        head = value[:limit]
+        cut = max(head.rfind("、"), head.rfind(","), head.rfind(" "), head.rfind("）"), head.rfind(")"))
+        if cut >= int(limit * 0.6):
+            head = head[:cut]
+        return head.rstrip("、, ")
+
+    selected: List[str] = []
+    segment_limit = max(1, int(max_segments or 1))
+    for candidate in filtered:
+        text = _trim_candidate(candidate)
+        if len(text) >= 16:
+            selected.append(text)
+        if len(selected) >= segment_limit:
+            break
+    if selected:
+        return "。".join(selected)
+    return _trim_candidate(filtered[0]) if filtered else ""
+
+
+def _fallback_evidence_block(row: dict, question_focus: str = "general") -> str:
+    label = str(row.get("artist_name") or row.get("title") or "").strip()
+    if str(row.get("kind") or "").strip() == "artist" and is_invalid_artist_name(label):
+        label = ""
+    note = _fallback_reason_snippet(
+        row,
+        question_focus=question_focus,
+        max_segments=2 if question_focus == "concept" else 1,
+    )
+    if note and question_focus in {"concept", "material", "color", "general"}:
+        return note
     if label and note:
-        return f"{label} {note}" if label not in note else note
-    return label or note
+        return f"{label}は{note}" if label not in note else note
+    return note or label
 
 
 def _fallback_answer(question_text: str, context: Dict[str, object]) -> str:
     _, fair_labels = _detect_cross_fair_mode(context)
-    rows = list(context.get("artist_evidence", []))[:3] + list(context.get("exhibition_evidence", []))[:3]
+    question_focus = _detect_question_focus(question_text)
+    q = (question_text or "").strip().lower()
+    tokens = [token for token in re.split(r"[\s,、。|;:()\[\]{}]+", q) if len(token.strip()) >= 2][:12]
+    candidate_mode = _candidate_row_mode(question_text, question_focus)
+    single_axis_concept = question_focus == "concept" and not _allows_multiple_directions(question_text)
+    pick_limit = 2
+
+    def _relevance(row: dict) -> tuple[int, int, int]:
+        label = str(row.get("artist_name") or row.get("title") or "").strip()
+        if str(row.get("kind") or "").strip() == "artist" and is_invalid_artist_name(label):
+            return (-999, 0, 0)
+        hay = " ".join(
+            [
+                label,
+                str(row.get("summary_ja") or "").strip(),
+                str(row.get("headline_ja") or "").strip(),
+                str(row.get("text") or "").strip()[:1200],
+            ]
+        ).lower()
+        token_score = sum(1 for token in tokens if token in hay)
+        focus_score = _focus_signal_score(hay, question_focus)
+        row_kind = "artist" if str(row.get("artist_name") or "").strip() else "exhibition"
+        kind_bonus = 1 if candidate_mode == row_kind else 0
+        return token_score + (focus_score * 3) + kind_bonus, focus_score, token_score
+
+    artist_rows = [
+        row
+        for row in list(context.get("artist_evidence", []))
+        if not is_invalid_artist_name(str(row.get("artist_name") or "").strip())
+    ]
+    exhibition_rows = list(context.get("exhibition_evidence", []))
+    if candidate_mode == "artist":
+        candidate_rows = artist_rows or exhibition_rows
+    elif candidate_mode == "exhibition":
+        candidate_rows = exhibition_rows or artist_rows
+    else:
+        candidate_rows = exhibition_rows + artist_rows
+    if not candidate_rows:
+        candidate_rows = exhibition_rows or artist_rows
+
+    ranked_rows = sorted(candidate_rows, key=_relevance, reverse=True)
+    picked = [row for row in ranked_rows[:pick_limit] if _relevance(row)[0] >= 0]
+    if len(picked) == 2:
+        top_score = _relevance(picked[0])[0]
+        second_score = _relevance(picked[1])[0]
+        if single_axis_concept:
+            if second_score <= 0 or top_score >= second_score + 4:
+                picked = picked[:1]
+        elif second_score <= 0 or top_score >= second_score + 3:
+            picked = picked[:1]
+
     blocks: List[str] = []
     seen = set()
-    for row in rows:
-        block = _fallback_evidence_block(row)
+    for row in picked:
+        block = _fallback_evidence_block(row, question_focus=question_focus)
+        for blocked in _find_unsupported_proper_names(block, context):
+            block = block.replace(blocked, "その要素")
         if not block or block in seen:
             continue
         seen.add(block)
-        blocks.append(block)
+        blocks.append(block.rstrip("。！？!?"))
 
-    answer = "\n\n".join(blocks[:4]).strip()
-    if not answer:
-        answer = "参照可能な根拠が不足しています。"
+    if not blocks:
+        if question_focus in {"video", "sound", "sculpture", "photography", "painting", "spatial", "performance"}:
+            answer = "今の根拠だけでは、この媒体や実践に強く寄せて勧めきれる対象までは絞りきれません。"
+        elif question_focus == "concept":
+            answer = "今の根拠だけでは、コンセプトの方向を強く言い切れるところまでは絞りきれません。"
+        else:
+            answer = "今の根拠だけでは、質問に対して強く言い切れる方向までは絞りきれません。"
+    else:
+        answer = " ".join(f"{block}。" for block in blocks).strip()
+
     answer = _strip_fair_labels(answer, fair_labels)
-    return _truncate_text(answer, ADVISOR_TEXT_MAX_CHARS)
+    answer = _ensure_natural_ending(answer)
+    return _soft_limit_answer_text(answer, ADVISOR_TEXT_MAX_CHARS)
 
 
 def _build_prompt(question_text: str, context: Dict[str, object]) -> str:
     cross_fair_mode, fair_labels = _detect_cross_fair_mode(context)
     broad_query_mode = _is_broad_query_mode(context)
-    rotation_index = _get_rotation_index(context)
-    broad_plan = _build_broad_diversity_plan(question_text, context)
+    question_focus = _detect_question_focus(question_text)
     ex_lines = []
     for row in list(context.get("exhibition_evidence", []))[:10]:
         ex_lines.append(
@@ -875,8 +1257,11 @@ def _build_prompt(question_text: str, context: Dict[str, object]) -> str:
         )
     ar_lines = []
     for row in list(context.get("artist_evidence", []))[:10]:
+        artist_name = str(row.get("artist_name") or "").strip()
+        if is_invalid_artist_name(artist_name):
+            continue
         ar_lines.append(
-            f"- [{row.get('fair_label')}] {row.get('gallery')} | {row.get('artist_name')} | {row.get('source_url')}"
+            f"- [{row.get('fair_label')}] {row.get('gallery')} | {artist_name} | {row.get('source_url')}"
         )
     evidence_digest = _build_evidence_digest(context, per_kind=3)
     cross_fair_digest = _build_cross_fair_digest(context, fair_labels) if cross_fair_mode else ""
@@ -885,17 +1270,15 @@ def _build_prompt(question_text: str, context: Dict[str, object]) -> str:
     cross_fair_rule = ""
     if cross_fair_mode:
         cross_fair_rule = (
-            "- フェア横断時は、片側フェアの根拠だけで回答を閉じないこと。\n"
+            "- フェア横断時でも、比較の枠組みを先に決め打ちせず、質問に効く根拠だけを使うこと。\n"
             "- 本文では、どうしても必要な場合を除いてフェア名を出さないこと。\n"
-            "- 広い質問では、固定的な型にせず 1〜3 個の異なる方向を自然に示すこと。\n"
         )
 
     broad_query_rule = ""
     if broad_query_mode:
         broad_query_rule = (
-            f"- 広い質問の rotation index={rotation_index}。\n"
-            "- 同じギャラリー / 作家の強調を繰り返しすぎないこと。\n"
-            f"- 方向のヒント: A={broad_plan['frieze_family']['label']}, B={broad_plan['liste_family']['label']}, bridge={broad_plan['bridge_family']['label']}。\n"
+            "- broad query では話題を増やしすぎず、最初に選んだ方向の理由を少し深くすること。\n"
+            "- 比較の型や複数軸を先に作らず、質問への返答として自然な流れを優先すること。\n"
         )
 
     gallery_rule = (
@@ -909,16 +1292,37 @@ def _build_prompt(question_text: str, context: Dict[str, object]) -> str:
         if include_action_steps
         else "- ユーザーから求められていない限り、手順や次アクションを足さないこと。\n"
     )
+    focus_rule = ""
+    if question_focus in {"video", "sound", "sculpture", "photography", "painting", "spatial", "performance"}:
+        focus_rule = (
+            "- 質問で中心にある媒体や実践に沿って答え、別の媒体へ広げすぎないこと。\n"
+            "- 強い候補が1件しかない場合は1件だけ提示してよい。\n"
+        )
+    elif question_focus == "concept":
+        focus_rule = (
+            "- 質問がコンセプト寄りなら、主文は発想やテーマに合わせ、素材の話だけで終えないこと。\n"
+            + (
+                "- 複数案を明示的に求められていない限り、主軸を一つに絞って深めること。\n"
+                if not _allows_multiple_directions(question_text)
+                else "- 方向を増やしすぎず、必要でも二案目までにとどめること。\n"
+            )
+        )
+    elif question_focus == "material":
+        focus_rule = "- 質問が素材寄りなら、主文は素材感や手触りの話に合わせ、抽象論へ逃がしすぎないこと。\n"
+    elif question_focus == "color":
+        focus_rule = "- 質問が色寄りなら、主文は色調や明暗の話に合わせ、別の軸を主役にしないこと。\n"
 
     return f"""
 与えられた根拠だけを使って、日本語で回答してください。
 制約:
-- 必ず参照したRAGの Artist名 or Exhibition名 を回答本文内に「2つ以上～5つ以内」で入れる事。
-- 400〜550字、自然な 1〜2 段落で書くこと。
+- 質問に自然に必要な範囲で Artist名 or Exhibition名 を使うこと。無理に固有名を増やさないこと。
+- 強く推せる根拠がない場合は、無理に人数合わせせず「今の根拠では強く推せない」と明示してよい。
+- broad query でも短すぎる一言で終わらせず、必要な範囲で少し具体化すること。無理に話題を増やして埋めないこと。
 - {PLAIN_JAPANESE_RULE}
 - 無駄な相槌や前置きを入れず、簡潔で口語的な文体にすること。
--「今回の根拠では」「参照したのは」などのメタ説明は書かないこと。
-{action_rule}{gallery_rule}{cross_fair_rule}{broad_query_rule}- 出力は JSON のみ: {{"answer":"..."}}
+- 固定見出し・固定比較・A/B/橋渡しのような骨組みを作らないこと。
+- 「今回の根拠では」「参照したのは」などのメタ説明は書かないこと。
+{action_rule}{gallery_rule}{cross_fair_rule}{broad_query_rule}{focus_rule}- 出力は JSON のみ: {{"answer":"..."}}
 
 質問:
 {question_text}
@@ -935,6 +1339,22 @@ def _build_prompt(question_text: str, context: Dict[str, object]) -> str:
 作家根拠:
 {chr(10).join(ar_lines) if ar_lines else "- なし"}
 """.strip()
+
+
+def _clean_answer_text_for_display(
+    answer: str,
+    question_text: str,
+    context: Dict[str, object],
+    fair_labels: List[str],
+) -> str:
+    body = _ensure_plain_answer_text(answer)
+    body = _normalize_answer_text(body)
+    body = _strip_fixed_headings(body)
+    body = _strip_rigid_template_markers(body)
+    body = _strip_fair_labels(body, fair_labels)
+    if not _should_allow_gallery_mentions(question_text):
+        body = _strip_gallery_labels(body, context)
+    return _ensure_natural_ending(body)
 
 
 def generate_advisor_grounded_draft(
@@ -985,7 +1405,7 @@ def generate_advisor_grounded_draft(
             client = OpenAI(api_key=api_key)
             prompt = _build_prompt(question_text, context)
             res = client.responses.create(model=model, input=prompt)
-            answer = _extract_answer(str(res.output_text or ""))
+            answer = _ensure_plain_answer_text(str(res.output_text or ""))
             mode = "openai"
         except Exception as exc:
             warnings.append(f"{type(exc).__name__}: {exc}")
@@ -993,32 +1413,39 @@ def generate_advisor_grounded_draft(
     if not answer:
         answer = _fallback_answer(question_text, context)
 
-    answer = _normalize_answer_text(answer)
-    answer = _strip_fixed_headings(answer)
-    answer = _strip_rigid_template_markers(answer)
-    answer = _strip_fair_labels(answer, fair_labels)
-    if not _should_allow_gallery_mentions(question_text):
-        answer = _strip_gallery_labels(answer, context)
+    answer = _clean_answer_text_for_display(answer, question_text, context, fair_labels)
+    if not answer:
+        warnings.append("empty_after_plain_unwrap: fallback_used")
+        answer = _clean_answer_text_for_display(_fallback_answer(question_text, context), question_text, context, fair_labels)
+    if _looks_like_biography_dump(answer):
+        warnings.append("biography_dump_like_output_detected: fallback_used")
+        answer = _clean_answer_text_for_display(_fallback_answer(question_text, context), question_text, context, fair_labels)
+    if _looks_like_intent_mismatch(answer, question_text):
+        warnings.append("intent_mismatch_detected: fallback_used")
+        answer = _clean_answer_text_for_display(_fallback_answer(question_text, context), question_text, context, fair_labels)
+
     unsupported_names = _find_unsupported_proper_names(answer, context)
     if unsupported_names:
         warnings.append(
             "unsupported_current_names_detected: " + ", ".join(unsupported_names[:5])
         )
-        answer = _fallback_answer(question_text, context)
-        answer = _normalize_answer_text(answer)
-        answer = _strip_fixed_headings(answer)
-        answer = _strip_rigid_template_markers(answer)
-        answer = _strip_fair_labels(answer, fair_labels)
-        if not _should_allow_gallery_mentions(question_text):
-            answer = _strip_gallery_labels(answer, context)
+        answer = _clean_answer_text_for_display(_fallback_answer(question_text, context), question_text, context, fair_labels)
     answer = _expand_broad_answer_if_short(answer, question_text, context)
-    answer = _truncate_text(answer, ADVISOR_TEXT_MAX_CHARS)
+    answer = _soft_limit_answer_text(answer, ADVISOR_TEXT_MAX_CHARS)
+    answer = _ensure_natural_ending(answer)
     selected_entities = _select_entities_for_answer(answer, context)
-    reference_images = _build_reference_images(selected_entities)
+    reference_entities = _select_reference_entities_for_output(context, selected_entities)
+    reference_images = _build_reference_images(reference_entities)
     answer = _inject_art_pulse_style_inline_links(answer, context, selected_entities)
+    answer = _ensure_plain_answer_text(answer)
     answer = _strip_fair_labels(answer, fair_labels)
+    answer = _soft_limit_answer_text(answer, ADVISOR_TEXT_MAX_CHARS)
+    answer = _ensure_natural_ending(answer)
+    if not answer:
+        warnings.append("answer_empty_final: fallback_used")
+        answer = _clean_answer_text_for_display(_fallback_answer(question_text, context), question_text, context, fair_labels)
     answer_chars = _visible_answer_chars(answer)
-    reference_examples = _build_art_pulse_style_reference_lines(selected_entities)
+    reference_examples = _build_art_pulse_style_reference_lines(reference_entities)
     broad_diversity_meta = {}
     if _is_broad_query_mode(context):
         plan = _build_broad_diversity_plan(question_text, context)

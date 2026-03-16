@@ -191,9 +191,12 @@ def is_invalid_artist_name(name: str) -> bool:
     cleaned = sanitize_artist_name_en(name)
     if not cleaned:
         return True
+    lowered = cleaned.lower()
+    if lowered in {"unknown artist", "unknown"} or cleaned == "作家名不明":
+        return True
     if re.fullmatch(r"\d+", cleaned):
         return True
-    if cleaned.lower() in ARTIST_DETAIL_NON_NAME_SLUGS:
+    if lowered in ARTIST_DETAIL_NON_NAME_SLUGS:
         return True
     return False
 

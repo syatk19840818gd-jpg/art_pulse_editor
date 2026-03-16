@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from typing import Dict, List
 
+from phase1_artist_link_utils import is_invalid_artist_name
 from phase2_art_pulse_readonly import build_art_pulse_overview
 from phase2_artist_search_readonly import load_artist_records_readonly
 from phase2_common_readonly import normalize_url, resolve_current_first_enrichment_output_path, resolve_fair_slugs
@@ -45,6 +46,215 @@ def _score_text(haystack: str, tokens: List[str]) -> int:
         return 0
     low = (haystack or "").lower()
     return sum(1 for t in tokens if t in low)
+
+
+INTENT_FOCUS_ORDER = (
+    "video",
+    "sound",
+    "sculpture",
+    "photography",
+    "painting",
+    "spatial",
+    "performance",
+    "concept",
+    "material",
+    "color",
+    "artist",
+)
+
+INTENT_FOCUS_HINTS = {
+    "video": [
+        "映像",
+        "動画",
+        "ビデオ",
+        "video",
+        "film",
+        "projection",
+        "moving image",
+        "アニメーション",
+        "animation",
+        "screen",
+        "上映",
+        "映写",
+    ],
+    "sound": [
+        "音",
+        "sound",
+        "audio",
+        "acoustic",
+        "sonic",
+        "listening",
+        "noise",
+        "voice",
+        "vibration",
+        "録音",
+    ],
+    "sculpture": [
+        "彫刻",
+        "sculpture",
+        "立体",
+        "object",
+        "ceramic",
+        "ceramics",
+        "clay",
+        "陶",
+        "陶器",
+        "オブジェ",
+        "物体",
+    ],
+    "photography": [
+        "写真",
+        "photography",
+        "photo",
+        "photographic",
+        "staged",
+        "fiction",
+        "fictional",
+        "虚構",
+        "演出写真",
+        "イメージ",
+    ],
+    "painting": [
+        "絵画",
+        "painting",
+        "paint",
+        "canvas",
+        "油彩",
+        "油絵",
+        "acrylic",
+        "アクリル",
+        "絵具",
+    ],
+    "spatial": [
+        "インスタレーション",
+        "installation",
+        "展示空間",
+        "spatial",
+        "site-specific",
+        "site specific",
+        "導線",
+        "動線",
+        "歩かせ",
+        "歩く",
+        "空間",
+        "room",
+        "architecture",
+    ],
+    "performance": [
+        "パフォーマンス",
+        "performance",
+        "lecture-performance",
+        "lecture performance",
+        "身体",
+        "body",
+        "gesture",
+        "choreography",
+        "行為",
+        "朗読",
+    ],
+    "concept": [
+        "コンセプト",
+        "concept",
+        "テーマ",
+        "主題",
+        "着想",
+        "発想",
+        "思想",
+        "問い",
+        "問題意識",
+    ],
+    "material": [
+        "素材",
+        "マテリアル",
+        "material",
+        "質感",
+        "手触り",
+        "布",
+        "木",
+        "紙",
+        "金属",
+    ],
+    "color": [
+        "色",
+        "カラー",
+        "色彩",
+        "配色",
+        "トーン",
+        "彩度",
+        "明度",
+        "グレー",
+        "鮮やか",
+    ],
+    "artist": [
+        "artist",
+        "アーティスト",
+        "作家",
+        "誰",
+        "who",
+    ],
+}
+
+STRICT_INTENT_FOCI = {"video", "sound", "sculpture", "photography", "painting", "spatial", "performance"}
+
+
+def _intent_signal_score(text: str, focus: str) -> int:
+    low = (text or "").lower()
+    return sum(1 for hint in INTENT_FOCUS_HINTS.get(focus, []) if hint and hint in low)
+
+
+def _detect_intent_focus(question_text: str, tokens: List[str]) -> str:
+    q = (question_text or "").strip().lower()
+    if not q:
+        return ""
+    best_focus = ""
+    best_score = 0
+    token_set = {str(token or "").strip().lower() for token in tokens[:12] if len(str(token or "").strip()) >= 3}
+    for focus in INTENT_FOCUS_ORDER:
+        score = _intent_signal_score(q, focus)
+        if token_set:
+            score += sum(1 for hint in INTENT_FOCUS_HINTS.get(focus, []) if hint in token_set)
+        if score > best_score:
+            best_focus = focus
+            best_score = score
+    return best_focus if best_score > 0 else ""
+
+
+def _trim_rows_by_intent(
+    rows: List[dict],
+    intent_focus: str,
+    limit: int,
+    warnings: List[str],
+    warning_tag: str,
+) -> tuple[List[dict], int]:
+    if intent_focus not in STRICT_INTENT_FOCI or not rows:
+        return rows, limit
+
+    ordered = sorted(
+        rows,
+        key=lambda r: (
+            -int(r.get("_intent_score", 0)),
+            -int(r.get("_score", 0)),
+            str(r.get("artist_name") or r.get("title") or ""),
+            str(r.get("source_url") or ""),
+        ),
+    )
+    strong = [row for row in ordered if int(row.get("_intent_score", 0)) >= 2]
+    weak = [row for row in ordered if int(row.get("_intent_score", 0)) == 1]
+    keep_cap = max(1, min(limit, 3))
+
+    if strong:
+        kept = strong[:keep_cap]
+        if len(kept) < keep_cap:
+            kept.extend(weak[: keep_cap - len(kept)])
+        return kept, max(1, min(limit, len(kept)))
+
+    if weak:
+        kept = weak[:keep_cap]
+        warnings.append(f"{warning_tag}_intent_medium_confidence: weak_{intent_focus}_signals_only")
+        return kept, max(1, min(limit, len(kept)))
+
+    warnings.append(f"{warning_tag}_intent_low_confidence: no_{intent_focus}_signal")
+    return ordered[:1], 1
 
 
 def _pick_top_by_score(
@@ -440,6 +650,7 @@ def build_advisor_grounded_context(
     cross_fair_mode = len(fair_slugs) > 1
     tokens = _tokenize_query(question_text)
     broad_query_mode = _is_broad_query(question_text, tokens)
+    intent_focus = _detect_intent_focus(question_text, tokens)
     safe_rotation_index = max(0, int(rotation_index or 0))
     warnings: List[str] = []
 
@@ -493,11 +704,16 @@ def build_advisor_grounded_context(
                 candidate["text"][:1200],
             ]
         )
-        candidate["_score"] = _score_text(hay, tokens)
+        intent_score = _intent_signal_score(hay, intent_focus) if intent_focus else 0
+        candidate["_intent_score"] = intent_score
+        candidate["_score"] = _score_text(hay, tokens) + (intent_score * 3)
         exhibition_rows.append(candidate)
 
     artist_rows: List[dict] = []
     for row in artists:
+        artist_name = str(row.get("artist_name") or "").strip()
+        if is_invalid_artist_name(artist_name):
+            continue
         row_year = _coerce_year(row.get("year"))
         if row_year is None:
             row_year = artists_latest_year if artists_latest_year is not None else reference_year
@@ -506,7 +722,7 @@ def build_advisor_grounded_context(
             "fair_slug": str(row.get("fair_slug") or ""),
             "fair_label": str(row.get("fair_label") or ""),
             "gallery": str(row.get("gallery_name") or ""),
-            "artist_name": str(row.get("artist_name") or ""),
+            "artist_name": artist_name,
             "artist_name_kana": str(row.get("artist_name_kana") or "").strip(),
             "headline_ja": str(row.get("headline_ja") or "").strip(),
             "summary_ja": str(row.get("summary_ja") or "").strip(),
@@ -525,7 +741,9 @@ def build_advisor_grounded_context(
                 candidate["text"][:1200],
             ]
         )
-        candidate["_score"] = _score_text(hay, tokens)
+        intent_score = _intent_signal_score(hay, intent_focus) if intent_focus else 0
+        candidate["_intent_score"] = intent_score
+        candidate["_score"] = _score_text(hay, tokens) + (intent_score * 3)
         artist_rows.append(candidate)
 
     if tokens:
@@ -535,9 +753,26 @@ def build_advisor_grounded_context(
         ex_scored = exhibition_rows
         ar_scored = artist_rows
 
+    exhibition_limit_per_kind = text_limit_per_kind
+    artist_limit_per_kind = text_limit_per_kind
+    ex_scored, exhibition_limit_per_kind = _trim_rows_by_intent(
+        ex_scored,
+        intent_focus,
+        exhibition_limit_per_kind,
+        warnings,
+        "advisor_exhibition",
+    )
+    ar_scored, artist_limit_per_kind = _trim_rows_by_intent(
+        ar_scored,
+        intent_focus,
+        artist_limit_per_kind,
+        warnings,
+        "advisor_artist",
+    )
+
     exhibition_evidence = _select_evidence_with_rotation(
         ex_scored,
-        text_limit_per_kind,
+        exhibition_limit_per_kind,
         cross_fair_mode=cross_fair_mode,
         broad_query_mode=broad_query_mode,
         rotation_index=safe_rotation_index,
@@ -546,7 +781,7 @@ def build_advisor_grounded_context(
     )
     artist_evidence = _select_evidence_with_rotation(
         ar_scored,
-        text_limit_per_kind,
+        artist_limit_per_kind,
         cross_fair_mode=cross_fair_mode,
         broad_query_mode=broad_query_mode,
         rotation_index=safe_rotation_index,
@@ -556,8 +791,10 @@ def build_advisor_grounded_context(
 
     for row in exhibition_evidence:
         row.pop("_score", None)
+        row.pop("_intent_score", None)
     for row in artist_evidence:
         row.pop("_score", None)
+        row.pop("_intent_score", None)
 
     selected_ex_urls = {normalize_url(str(r.get("source_url") or "")) for r in exhibition_evidence}
     selected_ar_urls = {normalize_url(str(r.get("source_url") or "")) for r in artist_evidence}
@@ -580,6 +817,8 @@ def build_advisor_grounded_context(
             "tokens": tokens,
             "cross_fair_mode": cross_fair_mode,
             "broad_query_mode": broad_query_mode,
+            "intent_focus": intent_focus,
+            "artist_intent_focus": intent_focus,
             "rotation_index": safe_rotation_index,
             "recent_broad_history": list(recent_broad_history or [])[-8:],
         },
