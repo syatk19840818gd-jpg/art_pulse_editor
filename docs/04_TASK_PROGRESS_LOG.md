@@ -5063,3 +5063,15 @@ _trash 運用方針:
   - read-only current-first assumption remains valid (`phase2_common_readonly.py` + artist/exhibition readonly loaders).
   - `EMERGENCY_BULK_RUN_ENRICHMENT_BATCH_APPLY_01` stays available but is deferred now (no execute), and immediate priority is returned to `A11_PHASE4_ADVISOR_TYPE1_QUALITY_TUNING_01`.
 - not done: no bulk apply execution, no API submit/call, no code/data/R2 change, no docs 01/02 update.
+
+## 2026-03-17 TASK312 DOCS_SYNC_ADVISOR_TEXT_ONLY_COMPLETE_AND_NEXT_IMAGE_TEXT_TUNING_16
+- scope: docs-only sync for Feature 4 Advisor lane status (01/02/03/04).
+- result:
+  - Feature 4 Advisor type1 text-only question lane is recorded as completed/locked (lane scope), with explicit note that Feature 4 overall is not closed.
+  - text-only achieved set is fixed in docs: selected/reference split, fixed prose helper ban, generic intent focus, same-focus ranking tuning, caption/page-description suppression, fragment guard, grounded enrichment, OpenAI-path suppression for `anchor > 0` snippet-only outputs.
+  - operational judgment is fixed: text-only lane is now tiny-fix-only on regression recurrence (no broad redesign by default).
+  - next immediate task is switched to `ADVISOR_TYPE1_IMAGE_ATTACHED_TEXT_QUESTION_TUNING_01`.
+  - image-attached text-question precision tuning is explicitly tracked as the next Feature 4 work item.
+- not done:
+  - no code/data/app behavior changes.
+  - no statement that “Feature 4 Advisor fully complete”.

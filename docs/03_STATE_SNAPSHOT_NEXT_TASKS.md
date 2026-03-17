@@ -13,7 +13,7 @@ STREAMLIT_ENTRYPOINT（固定）
 - Local run: streamlit run app.py
 
 SOURCE_SSOT: 01_PROJECT_SPEC_CURRENT_FULL.docx
-LAST_UPDATED: 2026-03-13 13:20 JST
+LAST_UPDATED: 2026-03-17 21:30 JST
 
 
 ========================
@@ -82,16 +82,17 @@ STATE_SNAPSHOT（現在地）
   - Feature 1 Art Pulse: completed
   - Feature 2 Exhibition Search: completed
   - Feature 3 Artist Search: Artist Text canonical incident closed (core+residual cleanup completed, residual=0), ready to resume normal roadmap
-  - Feature 4 Advisor: A11 completed (type1 quality tuning / checkbox UI / latest available year only / `参照年` display) and A12 implemented (type2 officially enabled with type1-primary UI; lightweight precheck + fail-soft unified short message)
-  - type2 status: implementation-complete in code, but success-path real-image smoke is still pending due `billing_hard_limit_reached`; Feature 4 progress is preserved while priority is lowered behind enrichment batch-safety work
+  - Feature 4 Advisor: type1 text-only question lane is completed/locked (lane scope only; Feature 4 as a whole is still open)
+  - type1 text-only lane achieved set: selected/reference split, fixed prose helper ban, generic intent focus, same-focus ranking tuning, caption/page-description suppression, fragment guard, grounded enrichment, and OpenAI-path suppression for `anchor > 0` snippet-only outputs
+  - type2 status: implementation-complete in code, but success-path real-image smoke is still pending due `billing_hard_limit_reached`
   - current/history rebaseline phase: completed (A2-A9)
-  - Immediate priority: A11_PHASE4_ADVISOR_TYPE1_QUALITY_TUNING_01
-  - current state note: `VERIFY_TEXT_RAG_AND_ENRICHMENT_STILL_PRESENT_01` confirmed raw/current enrichment/summary/read-only references are intact (`STILL_PRESENT`), so `EMERGENCY_BULK_RUN_ENRICHMENT_BATCH_APPLY_01` is deferred (not executed, mechanism kept for future need) and roadmap focus returns to Feature 4 Advisor quality tuning
+  - Immediate priority: ADVISOR_TYPE1_IMAGE_ATTACHED_TEXT_QUESTION_TUNING_01
+  - current state note: type1 text-only lane is now tiny-fix-only on regression recurrence; major retuning focus moves to image-attached text-question precision
   - enrichment requests policy note: runtime-path switch is applied and verify verdict is GO (`data/runtime/enrichment_requests/...` active, `_completed` archive lane, `_reports` audit lane); keep/delete remains evidence-gated
 - NOTE: keep this current-goal line updated whenever phase priority changes.
 - Fixed master roadmap alignment (from SSOT 01):
   - 5 RAG categories (Tarutani_Text / Artist Works Images / Artist Text / Exhibitions Image / Exhibitions Text) are established at 10-gallery operational scope
-  - App features status: 1/2 completed, 3 incident-closed (residual=0), 4 A11 completed + A12 implemented in code (success-path smoke pending only)
+  - App features status: 1/2 completed, 3 incident-closed (residual=0), 4 type1 text-only lane completed/locked + A12 implemented in code (success-path smoke pending only; image-attached text tuning remains)
   - Mandatory pre-Advisor phase (current/history canonical rebaseline) is completed and fixed in roadmap
   - Role split: current=day-to-day canonical / history=audit archive / R2=primary persistent sync target for current / local=current fallback
   - app/read-only must read current first
@@ -246,6 +247,12 @@ NEXT_TASKS（次回やること）
     - 前提：現在の10ギャラリー正式状態を壊さない。コード変更・rerunは設計確定まで行わない
     - 成立条件：分類条件（Keep-Current / Safe-But-Provenance-Gated / Guard-First）と、各レーンの入出力・QA・adoption条件を1本化する
     - 次段条件：④ Exhibitions Image が 10ギャラリーで汎用的に70%以上を安定達成したら、次に ⑤ Exhibitions Text へ進む
+
+[ ] 312) ADVISOR_TYPE1_IMAGE_ATTACHED_TEXT_QUESTION_TUNING_01（最優先）
+    - 目的：④ Advisor の image-attached text question lane を、text-only lane 完成状態を崩さずに精度調整する
+    - 前提：type1 text-only lane は completed/locked（再発時 tiny-fix のみ）
+    - 成立条件：画像添付付きテキスト質問で relevance/grounding/提案統合の精度を引き上げ、text-only lane の現行品質を維持する
+    - 非目標：text-only lane の全面再設計・固定テンプレ復活・type2 success-path 作業
 
 [x] 228) Exhibitions Image completion closure memo（完了）
     - 目的：TASK215〜227の remediation / guard hardening / final isolated rerun retry を確定履歴として closure し、④ Exhibitions Image を completion として正式記録する

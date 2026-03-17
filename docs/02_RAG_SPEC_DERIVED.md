@@ -501,12 +501,13 @@ SSOT source:
 - 01 section 8 (Phase 2 milestones)
 - 01 section 5-8 (sync model: current/history/R2/local fallback)
 
-Index update (2026-03-12):
+Index update (2026-03-17):
 - phase status:
   - feature 1 Art Pulse: completed
   - feature 2 Exhibition Search: completed
   - feature 3 Artist Search: incident-closed and stable
-  - feature 4 Advisor: A11 completed (type1 quality tuning / checkbox UI / latest available year only / `参照年` display)
+  - feature 4 Advisor: type1 text-only question lane is completed/locked (provisional complete for lane scope; not a full Feature 4 close)
+  - type1 text-only implemented set (derived index): selected/reference entity split, fixed prose helper ban, generic intent focus, same-focus ranking tuning, caption/page-description suppression, fragment guard, grounded enrichment, and OpenAI-path snippet-only suppression when anchor > 0
   - advisor type2: implementation-complete in code with lightweight precheck + fail-soft unified short message; success-path smoke is still pending due `billing_hard_limit_reached`
 - current/history rebaseline: completed (A2-A9)
   - storage scaffold in `data/current/enrichment/` and `data/history/enrichment/{artists,exhibitions}/`
@@ -522,7 +523,8 @@ Index update (2026-03-12):
     - exhibitions enrichment current output
     - artists enrichment current output
   - evidence refs/source refs are shown from read-only outputs
+  - lane operation note: text-only lane is now tiny-fix-only on regression recurrence; no broad redesign planned
 
 Next (from STATE/NEXT):
-- EMERGENCY_FIX_ENRICHMENT_BATCH_ENFORCEMENT_AND_REPEAT_APPLY_HARD_GUARD_01
+- ADVISOR_TYPE1_IMAGE_ATTACHED_TEXT_QUESTION_TUNING_01
 
