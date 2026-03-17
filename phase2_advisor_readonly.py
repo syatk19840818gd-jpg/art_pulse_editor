@@ -12,10 +12,20 @@ from phase2_exhibition_search_readonly import load_exhibition_records_readonly
 
 def _tokenize_query(query_text: str) -> List[str]:
     tokens: List[str] = []
-    for token in re.split(r"[\s,、。|;:()\[\]{}]+", (query_text or "").strip()):
-        token = token.strip().lower()
-        if len(token) >= 2:
-            tokens.append(token)
+    seen = set()
+
+    def _push(token: str) -> None:
+        low = str(token or "").strip().lower()
+        if len(low) < 2 or len(low) > 24 or low in seen:
+            return
+        seen.add(low)
+        tokens.append(low)
+
+    q = (query_text or "").strip()
+    for token in re.split(r"[\s,、。|;:()\[\]{}]+", q):
+        _push(token)
+    for token in re.findall(r"[一-龯]{2,4}|[ァ-ンー]{2,12}|[a-z]{3,12}", q.lower()):
+        _push(token)
     return tokens[:20]
 
 
@@ -23,29 +33,89 @@ def _is_broad_query(question_text: str, tokens: List[str]) -> bool:
     q = (question_text or "").strip().lower()
     if not q:
         return False
-    starter_hints = ["どんな", "何を", "なにを"]
-    if not any(hint in q for hint in starter_hints):
-        return False
-    specific_scope_hints = [
-        "展示",
-        "作家",
-        "ギャラリー",
-        "導線",
-        "スケール",
-        "インスタレーション",
-        "ステートメント",
-        "会場",
+    starter_hints = ["どんな", "何を", "なにを", "どう", "どうやって"]
+    ideation_hints = [
+        "考え方",
+        "発想",
+        "問い",
+        "設計",
+        "立てる",
+        "見せたい",
+        "強くしたい",
+        "感じさせたい",
+        "意味を変えたい",
+        "したくない",
     ]
-    if any(hint in q for hint in specific_scope_hints):
+    if not any(hint in q for hint in starter_hints) and not any(hint in q for hint in ideation_hints):
         return False
-    return len(tokens) <= 8 and len(q) <= 40
+    narrow_hints = [
+        "この作家",
+        "この展示",
+        "この作品",
+        "誰を見る",
+        "作家を教えて",
+        "artist to watch",
+        "which artist",
+    ]
+    if any(hint in q for hint in narrow_hints):
+        return False
+    return len(tokens) <= 18 and len(q) <= 90
 
 
 def _score_text(haystack: str, tokens: List[str]) -> int:
     if not tokens:
         return 0
     low = (haystack or "").lower()
-    return sum(1 for t in tokens if t in low)
+    return sum(2 if len(t) >= 3 else 1 for t in tokens if t in low)
+
+
+def _is_ideation_query(question_text: str) -> bool:
+    q = (question_text or "").strip().lower()
+    if not q:
+        return False
+    hints = [
+        "考え方",
+        "発想",
+        "問い",
+        "設計",
+        "導線",
+        "動線",
+        "順番",
+        "距離",
+        "どうするといい",
+        "どう考える",
+        "どう発想",
+        "どう問い",
+        "見せたい",
+        "強くしたい",
+        "感じさせたい",
+        "意味を変えたい",
+    ]
+    return any(hint in q for hint in hints)
+
+
+def _page_description_score(text: str) -> int:
+    low = (text or "").lower()
+    if not low:
+        return 0
+    markers = [
+        "installation view",
+        "gallery view",
+        "view of the exhibition",
+        "会場の様子",
+        "展示風景",
+        "インスタレーションビュー",
+        "掲載され",
+        "掲載ページ",
+        "複数写真",
+        "ウェブページ",
+        "overview page",
+        "プレスリリース",
+        "press release",
+        "photo documentation",
+        "documentation",
+    ]
+    return sum(1 for marker in markers if marker in low)
 
 
 INTENT_FOCUS_ORDER = (
@@ -460,20 +530,34 @@ def _apply_broad_history_penalty(
     rows: List[dict],
     history: List[dict],
     kind: str,
+    intent_focus: str = "",
 ) -> List[dict]:
-    fair_counts = _count_history_values(history, "anchor_fairs")
-    gallery_counts = _count_history_values(history, "anchor_galleries")
-    artist_counts = _count_history_values(history, "anchor_artists")
+    focus_history = [
+        item for item in history if not intent_focus or str(item.get("intent_focus") or "").strip() == intent_focus
+    ]
+    history_pool = focus_history or history
+    fair_counts = _count_history_values(history_pool, "anchor_fairs")
+    gallery_counts = _count_history_values(history_pool, "anchor_galleries")
+    artist_counts = _count_history_values(history_pool, "anchor_artists")
+    selected_gallery_counts = _count_history_values(history_pool, "selected_galleries")
+    selected_artist_counts = _count_history_values(history_pool, "selected_artists")
+    selected_title_counts = _count_history_values(history_pool, "selected_titles")
+    focus_multiplier = 2 if focus_history and intent_focus else 1
     penalized: List[dict] = []
     for row in rows:
         fair = str(row.get("fair_label") or row.get("fair_slug") or "").strip()
         gallery = str(row.get("gallery") or "").strip()
         artist = str(row.get("artist_name") or "").strip() if kind == "artist" else ""
+        title = str(row.get("title") or "").strip() if kind == "exhibition" else ""
         penalty = 0
-        penalty += fair_counts.get(fair, 0) * 1
-        penalty += gallery_counts.get(gallery, 0) * 2
+        penalty += fair_counts.get(fair, 0) * focus_multiplier
+        penalty += gallery_counts.get(gallery, 0) * (2 * focus_multiplier)
+        penalty += selected_gallery_counts.get(gallery, 0) * (4 * focus_multiplier)
+        if title:
+            penalty += selected_title_counts.get(title, 0) * (6 * focus_multiplier)
         if artist:
-            penalty += artist_counts.get(artist, 0) * 2
+            penalty += artist_counts.get(artist, 0) * (2 * focus_multiplier)
+            penalty += selected_artist_counts.get(artist, 0) * (6 * focus_multiplier)
 
         updated = dict(row)
         updated["_reuse_penalty"] = penalty
@@ -490,6 +574,7 @@ def _select_evidence_with_rotation(
     rotation_index: int,
     recent_broad_history: List[dict] | None = None,
     kind: str = "",
+    intent_focus: str = "",
 ) -> List[dict]:
     if not rows or limit <= 0:
         return []
@@ -502,7 +587,7 @@ def _select_evidence_with_rotation(
         if cross_fair_mode:
             per_fair_gallery_cap = 1
         if recent_broad_history:
-            working_rows = _apply_broad_history_penalty(rows, recent_broad_history, kind=kind)
+            working_rows = _apply_broad_history_penalty(rows, recent_broad_history, kind=kind, intent_focus=intent_focus)
 
     selected = _pick_top_by_score(
         working_rows,
@@ -650,6 +735,7 @@ def build_advisor_grounded_context(
     cross_fair_mode = len(fair_slugs) > 1
     tokens = _tokenize_query(question_text)
     broad_query_mode = _is_broad_query(question_text, tokens)
+    ideation_query = _is_ideation_query(question_text)
     intent_focus = _detect_intent_focus(question_text, tokens)
     safe_rotation_index = max(0, int(rotation_index or 0))
     warnings: List[str] = []
@@ -705,8 +791,10 @@ def build_advisor_grounded_context(
             ]
         )
         intent_score = _intent_signal_score(hay, intent_focus) if intent_focus else 0
+        page_score = _page_description_score(hay)
         candidate["_intent_score"] = intent_score
-        candidate["_score"] = _score_text(hay, tokens) + (intent_score * 3)
+        candidate["_page_description_score"] = page_score
+        candidate["_score"] = _score_text(hay, tokens) + (intent_score * 3) - (page_score * 2 if ideation_query else 0)
         exhibition_rows.append(candidate)
 
     artist_rows: List[dict] = []
@@ -742,10 +830,14 @@ def build_advisor_grounded_context(
             ]
         )
         intent_score = _intent_signal_score(hay, intent_focus) if intent_focus else 0
+        page_score = _page_description_score(hay)
         candidate["_intent_score"] = intent_score
-        candidate["_score"] = _score_text(hay, tokens) + (intent_score * 3)
+        candidate["_page_description_score"] = page_score
+        candidate["_score"] = _score_text(hay, tokens) + (intent_score * 3) - (page_score * 2 if ideation_query else 0)
         artist_rows.append(candidate)
 
+    matched_exhibition_count = len([r for r in exhibition_rows if int(r.get("_score", 0)) > 0])
+    matched_artist_count = len([r for r in artist_rows if int(r.get("_score", 0)) > 0])
     if tokens:
         ex_scored = [r for r in exhibition_rows if int(r.get("_score", 0)) > 0] or exhibition_rows
         ar_scored = [r for r in artist_rows if int(r.get("_score", 0)) > 0] or artist_rows
@@ -778,6 +870,7 @@ def build_advisor_grounded_context(
         rotation_index=safe_rotation_index,
         recent_broad_history=recent_broad_history,
         kind="exhibition",
+        intent_focus=intent_focus,
     )
     artist_evidence = _select_evidence_with_rotation(
         ar_scored,
@@ -787,6 +880,7 @@ def build_advisor_grounded_context(
         rotation_index=safe_rotation_index,
         recent_broad_history=recent_broad_history,
         kind="artist",
+        intent_focus=intent_focus,
     )
 
     for row in exhibition_evidence:
@@ -817,10 +911,12 @@ def build_advisor_grounded_context(
             "tokens": tokens,
             "cross_fair_mode": cross_fair_mode,
             "broad_query_mode": broad_query_mode,
+            "ideation_query": ideation_query,
             "intent_focus": intent_focus,
             "artist_intent_focus": intent_focus,
             "rotation_index": safe_rotation_index,
             "recent_broad_history": list(recent_broad_history or [])[-8:],
+            "grounded_anchor_count": matched_exhibition_count + matched_artist_count,
         },
         "counts": {
             "exhibitions_text_evidence_count": len(exhibition_evidence),
