@@ -5075,3 +5075,17 @@ _trash 運用方針:
 - not done:
   - no code/data/app behavior changes.
   - no statement that “Feature 4 Advisor fully complete”.
+
+## 2026-03-17 TASK313 DOCS_SYNC_AFTER_ADVISOR_IMAGE_ATTACHED_COMPLETION
+- scope: docs-only sync for Feature 4 Advisor final type1 lane status after image-attached tuning/eval/rollback stabilization (01/02/03/04).
+- result:
+  - Feature 4 Advisor type1 text-only question lane remains completed/locked and tiny-fix-only on regression recurrence.
+  - Feature 4 Advisor type1 image-attached text-question lane is now recorded as completed/locked after real-image human eval.
+  - accepted stable behavior is fixed in docs for image-attached lane: transient in-memory visual observation only, no persist/vectorize/RAG-mix, observation first, asked-mode alignment, grounded reference only as secondary support when needed, and non-reference answers should not let proper nouns become the main subject.
+  - tuning history is fixed in log only: `TUNING_01` introduced visual observation, `TUNING_02` established baseline mode control / display fix / proper noun suppression, `TUNING_03` over-tightened purity and regressed on real-image eval, and `TUNING_03_ROLLBACK` restored the accepted stable state on top of the TUNING_02 baseline.
+  - text-only lane was rechecked during image-attached tuning and no major regression was accepted.
+  - roadmap priority is moved forward to `A12_PHASE5_EXCLUSIVE_ADVISOR_KICKOFF_01`, while Feature 4 type1 stays tiny-fix-only and type2 remains connected/secondary rather than newly declared complete.
+- not done:
+  - no code/data/app behavior changes.
+  - no statement that Feature 4 Advisor as a whole or type2 is fully complete.
+

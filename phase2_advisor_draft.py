@@ -1,9 +1,10 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import ast
 import json
 import os
 import re
+from base64 import b64encode
 from typing import Dict, List, Tuple
 
 from phase1_artist_link_utils import is_invalid_artist_name
@@ -73,6 +74,203 @@ def _snippet(value: object, limit: int = 64) -> str:
     if len(text) <= limit:
         return text
     return text[:limit].rstrip() + "…"
+
+
+def _uploaded_image_data_uri(uploaded_image_payload: object) -> str:
+    if not isinstance(uploaded_image_payload, dict):
+        return ""
+    raw = uploaded_image_payload.get("bytes")
+    if not isinstance(raw, (bytes, bytearray)) or not raw:
+        return ""
+    mime_type = str(uploaded_image_payload.get("mime_type") or "").strip() or "image/png"
+    if not mime_type.startswith("image/"):
+        return ""
+    return f"data:{mime_type};base64,{b64encode(bytes(raw)).decode('ascii')}"
+
+
+def _parse_visual_observation(raw_output: str) -> Dict[str, object]:
+    raw = str(raw_output or "").strip()
+    if not raw:
+        return {}
+    parsed = None
+    candidates = [raw]
+    matched = re.search(r"\{[\s\S]*\}", raw)
+    if matched:
+        candidates.insert(0, matched.group(0))
+    for candidate in candidates:
+        for parser in (json.loads, ast.literal_eval):
+            try:
+                parsed = parser(candidate)
+                break
+            except Exception:
+                continue
+        if isinstance(parsed, dict):
+            break
+    if not isinstance(parsed, dict):
+        return {}
+
+    def _clean_text(value: object, limit: int = 96) -> str:
+        text = re.sub(r"\s+", " ", str(value or "")).strip()
+        if not text:
+            return ""
+        return text[:limit].rstrip(" ,;") if len(text) > limit else text
+
+    def _clean_list(value: object, limit_items: int = 4, item_limit: int = 48) -> List[str]:
+        items = value if isinstance(value, list) else [value]
+        cleaned: List[str] = []
+        seen = set()
+        for item in items:
+            text = _clean_text(item, limit=item_limit)
+            low = text.lower()
+            if not text or low in seen:
+                continue
+            seen.add(low)
+            cleaned.append(text)
+            if len(cleaned) >= limit_items:
+                break
+        return cleaned
+
+    observation: Dict[str, object] = {}
+    for key in ("summary", "tone", "composition", "depth", "surface", "uncertainty"):
+        cleaned = _clean_text(parsed.get(key))
+        if cleaned:
+            observation[key] = cleaned
+    palette = _clean_list(parsed.get("palette"), limit_items=4, item_limit=32)
+    if palette:
+        observation["palette"] = palette
+    focal_areas = _clean_list(parsed.get("focal_areas"), limit_items=4, item_limit=40)
+    if focal_areas:
+        observation["focal_areas"] = focal_areas
+    figuration = _clean_list(parsed.get("figuration"), limit_items=4, item_limit=40)
+    if figuration:
+        observation["figuration"] = figuration
+    return observation
+
+
+def _observe_uploaded_image(
+    client: object,
+    model: str,
+    question_text: str,
+    uploaded_image_payload: object,
+) -> Dict[str, object]:
+    data_uri = _uploaded_image_data_uri(uploaded_image_payload)
+    if not data_uri:
+        return {}
+    observation_prompt = (
+        "Look at the attached artwork image and return compact JSON only. "
+        "Describe visible features only. Do not identify artist, movement, style label, era, symbolism, or story. "
+        "Keep values short and concrete. "
+        "Use exactly these keys: summary, palette, tone, composition, depth, surface, focal_areas, figuration, uncertainty. "
+        "Use empty strings or empty arrays when unclear."
+    )
+    response = client.responses.create(
+        model=model,
+        input=[
+            {
+                "role": "user",
+                "content": [
+                    {"type": "input_text", "text": observation_prompt + "\nQuestion: " + (question_text or "").strip()},
+                    {"type": "input_image", "image_url": data_uri},
+                ],
+            }
+        ],
+    )
+    return _parse_visual_observation(str(getattr(response, "output_text", "") or ""))
+
+
+def _build_visual_observation_digest(observation: object) -> str:
+    if not isinstance(observation, dict):
+        return ""
+    lines: List[str] = []
+
+    def _push(label: str, value: object) -> None:
+        if isinstance(value, list):
+            text = ", ".join(str(item or "").strip() for item in value if str(item or "").strip())
+        else:
+            text = str(value or "").strip()
+        if text:
+            lines.append(f"- {label}: {text}")
+
+    _push("summary", observation.get("summary"))
+    _push("palette", observation.get("palette"))
+    _push("tone", observation.get("tone"))
+    _push("composition", observation.get("composition"))
+    _push("depth", observation.get("depth"))
+    _push("surface", observation.get("surface"))
+    _push("focal_areas", observation.get("focal_areas"))
+    _push("figuration", observation.get("figuration"))
+    _push("uncertainty", observation.get("uncertainty"))
+    return "\n".join(lines[:8]).strip()
+
+
+def _question_requests_named_references(question_text: str) -> bool:
+    q = (question_text or "").strip().lower()
+    if not q:
+        return False
+    hints = [
+        "似た作家",
+        "参考作家",
+        "誰を見る",
+        "どの作家",
+        "どんな作家",
+        "作家を教えて",
+        "artist",
+        "artists",
+        "reference artist",
+        "similar artist",
+        "which artist",
+        "who should i look at",
+    ]
+    return any(token in q for token in hints)
+
+
+def _question_targets_uploaded_image(question_text: str, has_uploaded_image: bool) -> bool:
+    if not has_uploaded_image:
+        return False
+    q = (question_text or "").strip().lower()
+    if not q:
+        return False
+    direct_hints = [
+        "この作品",
+        "この画像",
+        "この画面",
+        "この写真",
+        "この絵",
+        "この制作",
+        "今の作品",
+        "添付画像",
+        "attached image",
+        "this image",
+        "this work",
+        "this piece",
+        "this painting",
+        "this photo",
+    ]
+    evaluation_hints = [
+        "良い所",
+        "良さ",
+        "弱い",
+        "強い",
+        "改善",
+        "良くする",
+        "直す",
+        "足りない",
+        "構図",
+        "色",
+        "画面",
+        "見せたい",
+        "どう見える",
+        "どう読む",
+        "improve",
+        "stronger",
+        "weak",
+        "what works",
+        "composition",
+        "palette",
+    ]
+    if any(token in q for token in direct_hints):
+        return True
+    return not _question_requests_named_references(question_text) and any(token in q for token in evaluation_hints)
 
 
 def _build_evidence_digest(context: Dict[str, object], per_kind: int = 3) -> str:
@@ -1567,6 +1765,200 @@ def _looks_like_snippet_only_answer(
     return False
 
 
+def _is_image_evaluation_request(question_text: str, context: Dict[str, object]) -> bool:
+    if not _question_targets_uploaded_image(
+        question_text,
+        bool(_build_visual_observation_digest(context.get("visual_observation", {}))),
+    ):
+        return False
+    return _image_request_kind(question_text) in {
+        "strengths",
+        "improve",
+        "describe",
+        "display",
+        "critique",
+        "reference",
+    }
+
+
+def _image_request_kind(question_text: str) -> str:
+    q = (question_text or "").strip().lower()
+    if _question_requests_named_references(question_text):
+        return "reference"
+    display_hints = [
+        "展示",
+        "空間",
+        "照明",
+        "見せ方",
+        "壁面",
+        "余白",
+        "鑑賞距離",
+        "単独展示",
+        "連作展示",
+        "staging",
+        "display",
+        "lighting",
+        "spatial",
+        "wall",
+        "distance",
+    ]
+    improve_hints = ["改善", "良くする", "調整", "直す", "強くする", "improve", "adjust", "stronger"]
+    critique_hints = ["弱い", "批評", "気になる", "足りない", "弱点", "critique", "weakness", "what feels off"]
+    strength_hints = ["良い所", "良さ", "強み", "魅力", "what works", "strength"]
+    describe_hints = [
+        "何が起きている",
+        "どう見える",
+        "何に見える",
+        "見えている",
+        "説明して",
+        "describe",
+        "what is happening",
+        "what is seen",
+        "explain what is seen",
+    ]
+    if any(token in q for token in display_hints):
+        return "display"
+    if any(token in q for token in improve_hints):
+        return "improve"
+    if any(token in q for token in critique_hints):
+        return "critique"
+    if any(token in q for token in strength_hints):
+        return "strengths"
+    if any(token in q for token in describe_hints):
+        return "describe"
+    return "general"
+
+
+def _answer_leads_with_reference_entity(answer: str, context: Dict[str, object]) -> bool:
+    body = _plain_answer_text(answer)
+    if not body:
+        return False
+    first_sentence = re.split(r"[。！？!?]\s*", body, maxsplit=1)[0].strip()
+    if not first_sentence:
+        return False
+    for row in list(context.get("artist_evidence", []))[:6] + list(context.get("exhibition_evidence", []))[:6]:
+        label = str(row.get("artist_name") or row.get("title") or "").strip()
+        if not label:
+            continue
+        if str(row.get("artist_name") or "").strip() and is_invalid_artist_name(label):
+            continue
+        plain_label = _plain_answer_text(label)
+        if plain_label and first_sentence.startswith(plain_label):
+            return True
+    return False
+
+
+def _looks_like_image_observation_only_answer(
+    answer: str,
+    question_text: str,
+    context: Dict[str, object],
+) -> bool:
+    if not _is_image_evaluation_request(question_text, context):
+        return False
+    body = _plain_answer_text(answer)
+    if not body:
+        return True
+    low = body.lower()
+    request_kind = _image_request_kind(question_text)
+    if request_kind in {"strengths", "improve", "describe", "display", "critique"} and _answer_leads_with_reference_entity(answer, context):
+        return True
+    if request_kind == "improve":
+        response_hints = [
+            "改善",
+            "調整",
+            "削る",
+            "足す",
+            "引く",
+            "絞る",
+            "整える",
+            "強める",
+            "弱める",
+            "ずらす",
+            "抑える",
+            "広げる",
+            "narrow",
+            "adjust",
+            "reduce",
+            "add",
+            "shift",
+        ]
+    elif request_kind == "strengths":
+        response_hints = ["良さ", "強み", "魅力", "効いて", "効く", "支えて", "生きている", "strength", "works"]
+    elif request_kind == "display":
+        response_hints = [
+            "展示",
+            "空間",
+            "照明",
+            "距離",
+            "余白",
+            "壁",
+            "導線",
+            "単独",
+            "連作",
+            "lighting",
+            "space",
+            "wall",
+            "distance",
+        ]
+    elif request_kind == "critique":
+        response_hints = ["弱い", "弱点", "気になる", "散る", "詰まる", "足りない", "off", "weakness", "issue"]
+    elif request_kind == "describe":
+        if any(
+            token in low
+            for token in [
+                "改善",
+                "調整",
+                "展示するなら",
+                "照明",
+                "参考作家",
+                "誰を見る",
+                "するといい",
+                "should",
+                "could",
+                "lighting",
+                "reference",
+            ]
+        ):
+            return True
+        return False
+    elif request_kind == "reference":
+        response_hints = ["作家", "展示", "参考", "artist", "reference", "look at"]
+    else:
+        response_hints = [
+            "良い",
+            "強み",
+            "魅力",
+            "改善",
+            "調整",
+            "should",
+            "could",
+            "better",
+        ]
+    if any(token in low for token in response_hints):
+        return False
+    if any(token in low for token in ["今の根拠では", "絞りきれません", "情報不足", "判断できません", "強く推せません"]):
+        return True
+    observation_hints = [
+        "背景",
+        "色",
+        "配色",
+        "構図",
+        "形",
+        "重なり",
+        "奥行き",
+        "表面",
+        "抽象",
+        "円",
+        "長方形",
+        "ストライプ",
+        "palette",
+        "composition",
+        "surface",
+        "depth",
+    ]
+    return sum(1 for token in observation_hints if token in low) >= 3
+
+
 def _compact_compare_text(text: str) -> str:
     return re.sub(r"[\s\u3000。、，,・:：;；/／「」『』（）()\[\]{}!?！？…―—-]+", "", _plain_answer_text(text).lower())
 
@@ -1626,6 +2018,49 @@ def _salvage_openai_snippet_only_answer(
     return _ensure_natural_ending(merged)
 
 
+def _salvage_openai_image_subject_answer(
+    client: object,
+    model: str,
+    answer: str,
+    question_text: str,
+    context: Dict[str, object],
+    fair_labels: List[str],
+) -> str:
+    if not _looks_like_image_observation_only_answer(answer, question_text, context):
+        return _clean_answer_text_for_display(answer, question_text, context, fair_labels)
+    observation_digest = _build_visual_observation_digest(context.get("visual_observation", {}))
+    request_kind = _image_request_kind(question_text)
+    mode_instruction = "Answer the user's actual ask directly."
+    if request_kind == "describe":
+        mode_instruction = "Keep the answer focused on what is visible or what seems to be happening in the image. Do not add unsolicited improvement, display advice, or references."
+    elif request_kind == "display":
+        mode_instruction = "Answer as staging/display guidance tied to the visible traits in the image: space, lighting, distance, wall relation, sequencing, or room scale."
+    elif request_kind == "improve":
+        mode_instruction = "Answer as concrete changes or adjustments for the current work, tied to visible traits."
+    elif request_kind == "strengths":
+        mode_instruction = "Answer as strengths or praise of the current work, tied to visible traits."
+    elif request_kind == "critique":
+        mode_instruction = "Answer as weaknesses or critique of the current work, tied to visible traits."
+    elif request_kind == "reference":
+        mode_instruction = "Answer with minimal grounded references that fit the visible traits; keep names useful but not bloated."
+    prompt = (
+        "Rewrite the draft so it answers the user's question directly about the attached/current work. "
+        "Keep the visible observation at the center. "
+        + mode_instruction
+        + " "
+        "Do not invent artist/style attribution or unsupported facts. Keep proper names secondary unless explicitly asked. "
+        "Return JSON only as {\"answer\":\"...\"}.\n\n"
+        f"Question:\n{question_text}\n\n"
+        f"Current draft:\n{answer}\n\n"
+        f"Attached image observation:\n{observation_digest or '- none'}\n\n"
+        f"Grounded evidence digest:\n{_build_evidence_digest(context, per_kind=2) or '- none'}"
+    )
+    response = client.responses.create(model=model, input=prompt)
+    body = _ensure_plain_answer_text(str(getattr(response, "output_text", "") or ""))
+    body = _clean_answer_text_for_display(body, question_text, context, fair_labels)
+    return _ensure_natural_ending(body)
+
+
 def _build_prompt(question_text: str, context: Dict[str, object]) -> str:
     cross_fair_mode, fair_labels = _detect_cross_fair_mode(context)
     broad_query_mode = _is_broad_query_mode(context)
@@ -1634,6 +2069,10 @@ def _build_prompt(question_text: str, context: Dict[str, object]) -> str:
     selection = context.get("selection", {}) if isinstance(context, dict) else {}
     grounded_anchor_count = max(0, int(selection.get("grounded_anchor_count") or 0))
     needs_grounded_synthesis = _needs_grounded_synthesis(question_text, context, question_focus)
+    visual_observation_digest = _build_visual_observation_digest(context.get("visual_observation", {}))
+    image_subject_mode = _question_targets_uploaded_image(question_text, bool(visual_observation_digest))
+    asks_named_references = _question_requests_named_references(question_text)
+    image_request_kind = _image_request_kind(question_text)
     ex_lines = []
     for row in list(context.get("exhibition_evidence", []))[:10]:
         ex_lines.append(
@@ -1650,6 +2089,38 @@ def _build_prompt(question_text: str, context: Dict[str, object]) -> str:
     evidence_digest = _build_evidence_digest(context, per_kind=3)
     cross_fair_digest = _build_cross_fair_digest(context, fair_labels) if cross_fair_mode else ""
     include_action_steps = _should_include_action_steps(question_text)
+    visual_prompt_rule = ""
+    visual_observation_section = ""
+    if visual_observation_digest:
+        visual_prompt_rule = (
+            "- If attached-image observation is available, treat it as visible evidence only and never as artist/style attribution.\n"
+        )
+        if image_subject_mode:
+            visual_prompt_rule += (
+                "- For this question, respond from the visible traits in the attached/current work first, then answer the user's ask, and use grounded references only as support.\n"
+            )
+            if image_request_kind == "describe":
+                visual_prompt_rule += "- Keep the answer in describe/explain mode only. Do not add unsolicited improvement, display advice, or references.\n"
+            elif image_request_kind == "display":
+                visual_prompt_rule += "- Answer as staging/display guidance tied to the visible traits: space, lighting, wall distance, scale, sequencing, or viewing distance. Do not fall back to source snippets or page fragments.\n"
+            elif image_request_kind == "improve":
+                visual_prompt_rule += "- Answer as concrete change ideas tied to visible traits. Do not stop at neutral description.\n"
+            elif image_request_kind == "strengths":
+                visual_prompt_rule += "- Answer as strengths or praise tied to visible traits, not as neutral description or improvement advice.\n"
+            elif image_request_kind == "critique":
+                visual_prompt_rule += "- Answer as weaknesses or critique tied to visible traits, not as praise or display advice.\n"
+            elif image_request_kind == "reference":
+                visual_prompt_rule += "- Because the user asked for references, minimal grounded names are allowed after the observation-based setup.\n"
+            else:
+                visual_prompt_rule += "- Match the user's ask directly and do not stop at neutral description.\n"
+        else:
+            visual_prompt_rule += "- Use the attached-image observation only when it helps answer the user's question.\n"
+        if not asks_named_references:
+            visual_prompt_rule += "- Unless the user explicitly asked for similar artists or references, do not let proper names lead the answer.\n"
+        visual_observation_section = (
+            "Attached image observation (visible traits only):\n"
+            f"{visual_observation_digest}\n\n"
+        )
 
     cross_fair_rule = ""
     if cross_fair_mode:
@@ -1680,12 +2151,17 @@ def _build_prompt(question_text: str, context: Dict[str, object]) -> str:
             "- 1件の根拠を挙げる場合も、その根拠から何を借りるかまで書くこと。\n"
             "- 最終回答が単一の retrieved row の言い換えに近いと感じたら、そのまま出さず質問への提案になるまで統合すること。\n"
         )
-    grounding_rule = (
-        "- 関連する根拠が1件以上ある場合は、その根拠を主軸に保ちながら、一般的な美術知識・比較・制作や展示の原理を補助的に使って、回答を提案として統合すること。\n"
-        "- 新しい固有名や具体事実を足すときは作り話や矛盾を避け、危うい事実は断定しないこと。\n"
-        if grounded_anchor_count > 0
-        else "- 関連する根拠が弱い場合は、無理に補完せず情報不足を率直に示してよい。\n"
-    )
+    if grounded_anchor_count > 0:
+        grounding_rule = (
+            "- 関連する根拠が1件以上ある場合は、その根拠を主軸に保ちながら、一般的な美術知識・比較・制作や展示の原理を補助的に使って、回答を提案として統合すること。\n"
+            "- 新しい固有名や具体事実を足すときは作り話や矛盾を避け、危うい事実は断定しないこと。\n"
+        )
+    elif visual_observation_digest:
+        grounding_rule = (
+            "- grounded reference が弱くても、添付画像から見える特徴に基づく回答は普通にしてよい。ただし画像だけでは断定できない作家名・様式名・背景事情は言い切らないこと。\n"
+        )
+    else:
+        grounding_rule = "- 関連する根拠が弱い場合は、無理に補完せず情報不足を率直に示してよい。\n"
 
     gallery_rule = (
         "- ギャラリー名は、ユーザーがギャラリーについて明示的に尋ねたときだけ本文に出してよい。\n"
@@ -1718,11 +2194,18 @@ def _build_prompt(question_text: str, context: Dict[str, object]) -> str:
     elif question_focus == "color":
         focus_rule = "- 質問が色寄りなら、主文は色調や明暗の話に合わせ、別の軸を主役にしないこと。\n"
 
-    answer_basis = (
-        "与えられた根拠を主軸にしつつ、必要なら一般的な美術知識や制作・展示の原理で補助しながら、日本語で回答してください。"
-        if grounded_anchor_count > 0
-        else "与えられた根拠だけを使って、日本語で回答してください。"
-    )
+    if visual_observation_digest and grounded_anchor_count > 0:
+        answer_basis = (
+            "添付画像の観察を起点にしつつ、与えられた根拠を主軸の補強として保ちながら、日本語で回答してください。"
+        )
+    elif visual_observation_digest:
+        answer_basis = "添付画像の観察を一次根拠として、日本語で回答してください。"
+    elif grounded_anchor_count > 0:
+        answer_basis = (
+            "与えられた根拠を主軸にしつつ、必要なら一般的な美術知識や制作・展示の原理で補助しながら、日本語で回答してください。"
+        )
+    else:
+        answer_basis = "与えられた根拠だけを使って、日本語で回答してください。"
 
     return f"""
 {answer_basis}
@@ -1735,12 +2218,12 @@ def _build_prompt(question_text: str, context: Dict[str, object]) -> str:
 - 固定見出し・固定比較・A/B/橋渡しのような骨組みを作らないこと。
 - 「今回の根拠では」「参照したのは」などのメタ説明は書かないこと。
 - 根拠がある質問では、1件の展示説明・作家説明・作品断片の言い換えだけを最終回答にしないこと。
-{action_rule}{gallery_rule}{cross_fair_rule}{broad_query_rule}{prose_rule}{synthesis_rule}{grounding_rule}{focus_rule}- 出力は JSON のみ: {{"answer":"..."}}
+{action_rule}{gallery_rule}{cross_fair_rule}{broad_query_rule}{prose_rule}{synthesis_rule}{visual_prompt_rule}{grounding_rule}{focus_rule}- 出力は JSON のみ: {{"answer":"..."}}
 
 質問:
 {question_text}
 
-根拠要約（優先参照）:
+{visual_observation_section}根拠要約（優先参照）:
 {evidence_digest if evidence_digest else "- なし"}
 
 フェア横断要約:
@@ -1781,7 +2264,12 @@ def generate_advisor_grounded_draft(
     question_type: str = "type1_text_only",
     has_uploaded_image: bool = False,
     uploaded_image_name: str = "",
+    uploaded_image_payload: object = None,
 ) -> Dict[str, object]:
+    working_context = dict(context or {})
+    working_selection = dict(working_context.get("selection", {}) or {})
+    working_context["selection"] = working_selection
+    context = working_context
     _, fair_labels = _detect_cross_fair_mode(context)
     evidence_urls = context.get("evidence_urls", {}) if isinstance(context, dict) else {}
     ex_urls = _dedup_urls(list(evidence_urls.get("exhibition", [])))
@@ -1815,12 +2303,30 @@ def generate_advisor_grounded_draft(
     mode = "fallback"
     answer = ""
     warnings: List[str] = []
+    client = None
+    visual_observation_used = False
 
     if api_key.strip():
         try:
             from openai import OpenAI
 
             client = OpenAI(api_key=api_key)
+            if has_uploaded_image and uploaded_image_payload:
+                try:
+                    visual_observation = _observe_uploaded_image(
+                        client=client,
+                        model=os.getenv("VISION_MODEL", model),
+                        question_text=question_text,
+                        uploaded_image_payload=uploaded_image_payload,
+                    )
+                    if visual_observation:
+                        context["visual_observation"] = visual_observation
+                        working_selection["visual_observation_available"] = True
+                        visual_observation_used = True
+                    else:
+                        warnings.append("visual_observation_unavailable")
+                except Exception as exc:
+                    warnings.append(f"visual_observation_failed:{type(exc).__name__}")
             prompt = _build_prompt(question_text, context)
             res = client.responses.create(model=model, input=prompt)
             answer = _ensure_plain_answer_text(str(res.output_text or ""))
@@ -1841,6 +2347,22 @@ def generate_advisor_grounded_draft(
     if _looks_like_intent_mismatch(answer, question_text):
         warnings.append("intent_mismatch_detected: fallback_used")
         answer = _clean_answer_text_for_display(_fallback_answer(question_text, context), question_text, context, fair_labels)
+    if mode == "openai" and client is not None and _looks_like_image_observation_only_answer(answer, question_text, context):
+        warnings.append("image_observation_only_output_detected")
+        try:
+            rescued_answer = _salvage_openai_image_subject_answer(
+                client=client,
+                model=model,
+                answer=answer,
+                question_text=question_text,
+                context=context,
+                fair_labels=fair_labels,
+            )
+            if rescued_answer and not _looks_like_image_observation_only_answer(rescued_answer, question_text, context):
+                warnings.append("image_observation_only_output_detected: openai_salvaged")
+                answer = rescued_answer
+        except Exception as exc:
+            warnings.append(f"image_observation_salvage_failed:{type(exc).__name__}")
 
     unsupported_names = _find_unsupported_proper_names(answer, context)
     if unsupported_names:
@@ -1920,7 +2442,11 @@ def generate_advisor_grounded_draft(
             "rotation_index": plan.get("rotation_index"),
         }
     attachment_note = (
-        f"添付画像（{uploaded_image_name or 'unnamed'}）は保存・ベクトル化せず、今回のtype 1では補助参照扱いです。"
+        (
+            f"添付画像（{uploaded_image_name or 'unnamed'}）は保存・ベクトル化せず、session内の visual observation としてのみ使いました。"
+            if visual_observation_used
+            else f"添付画像（{uploaded_image_name or 'unnamed'}）は保存・ベクトル化せず、今回のtype 1では補助参照扱いです。"
+        )
         if has_uploaded_image
         else "添付画像なし。"
     )
@@ -1946,5 +2472,6 @@ def generate_advisor_grounded_draft(
         "attachment_note": attachment_note,
         "reference_examples": reference_examples,
         "broad_diversity_meta": broad_diversity_meta,
+        "visual_observation_used": visual_observation_used,
     }
 

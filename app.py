@@ -1437,6 +1437,7 @@ def render_advisor() -> None:
         key="advisor_uploaded_image",
     )
     upload_valid = False
+    uploaded_image_payload = None
     upload_note = "添付画像なし。"
     if uploaded_image is not None:
         try:
@@ -1448,6 +1449,11 @@ def render_advisor() -> None:
                 upload_note = "添付ファイルが画像形式ではないため、画像なしとして処理します。"
             else:
                 upload_valid = True
+                uploaded_image_payload = {
+                    "bytes": raw,
+                    "mime_type": mime or mimetypes.guess_type(str(uploaded_image.name or ""))[0] or "image/png",
+                    "name": str(uploaded_image.name or ""),
+                }
                 upload_note = f"添付画像: {uploaded_image.name}（保存しない / ベクトル化しない / RAG混入なし）"
         except Exception:
             upload_note = "添付画像の読み込みに失敗したため、画像なしとして処理します。"
@@ -1492,6 +1498,7 @@ def render_advisor() -> None:
                 question_type="type1_text_only",
                 has_uploaded_image=upload_valid,
                 uploaded_image_name=(uploaded_image.name if uploaded_image is not None else ""),
+                uploaded_image_payload=uploaded_image_payload,
             )
             st.session_state["advisor_draft"] = draft_type1
             broad_meta = dict(draft_type1.get("broad_diversity_meta") or {})

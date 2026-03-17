@@ -13,7 +13,7 @@ STREAMLIT_ENTRYPOINT（固定）
 - Local run: streamlit run app.py
 
 SOURCE_SSOT: 01_PROJECT_SPEC_CURRENT_FULL.docx
-LAST_UPDATED: 2026-03-17 21:30 JST
+LAST_UPDATED: 2026-03-17 18:04 JST
 
 
 ========================
@@ -82,17 +82,21 @@ STATE_SNAPSHOT（現在地）
   - Feature 1 Art Pulse: completed
   - Feature 2 Exhibition Search: completed
   - Feature 3 Artist Search: Artist Text canonical incident closed (core+residual cleanup completed, residual=0), ready to resume normal roadmap
-  - Feature 4 Advisor: type1 text-only question lane is completed/locked (lane scope only; Feature 4 as a whole is still open)
-  - type1 text-only lane achieved set: selected/reference split, fixed prose helper ban, generic intent focus, same-focus ranking tuning, caption/page-description suppression, fragment guard, grounded enrichment, and OpenAI-path suppression for `anchor > 0` snippet-only outputs
-  - type2 status: implementation-complete in code, but success-path real-image smoke is still pending due `billing_hard_limit_reached`
+  - Feature 4 Advisor:
+    - type1 text-only question lane is completed/locked
+    - type1 image-attached text question lane is completed/locked
+    - type1 text-only lane achieved set: selected/reference split, fixed prose helper ban, generic intent focus, same-focus ranking tuning, caption/page-description suppression, fragment guard, grounded enrichment, and OpenAI-path suppression for `anchor > 0` snippet-only outputs
+    - type1 image-attached lane achieved set: transient visual observation via in-memory image payload only, no persist/vectorize/RAG-mix, observation-first answer weighting, asked-mode alignment, display/describe/reference recovery, and grounded reference only as secondary support when needed
+    - operational note: both type1 lanes are tiny-fix-only on regression recurrence
+  - type2 status: connected / secondary / non-blocking for current priority, and not marked complete in this sync
   - current/history rebaseline phase: completed (A2-A9)
-  - Immediate priority: ADVISOR_TYPE1_IMAGE_ATTACHED_TEXT_QUESTION_TUNING_01
-  - current state note: type1 text-only lane is now tiny-fix-only on regression recurrence; major retuning focus moves to image-attached text-question precision
+  - Immediate priority: A12_PHASE5_EXCLUSIVE_ADVISOR_KICKOFF_01
+  - current state note: Feature 4 type1 is now locked for normal roadmap progress; next forward work moves to Feature 5 Exclusive Advisor while Feature 4 remains tiny-fix-only on recurrence
   - enrichment requests policy note: runtime-path switch is applied and verify verdict is GO (`data/runtime/enrichment_requests/...` active, `_completed` archive lane, `_reports` audit lane); keep/delete remains evidence-gated
 - NOTE: keep this current-goal line updated whenever phase priority changes.
 - Fixed master roadmap alignment (from SSOT 01):
   - 5 RAG categories (Tarutani_Text / Artist Works Images / Artist Text / Exhibitions Image / Exhibitions Text) are established at 10-gallery operational scope
-  - App features status: 1/2 completed, 3 incident-closed (residual=0), 4 type1 text-only lane completed/locked + A12 implemented in code (success-path smoke pending only; image-attached text tuning remains)
+  - App features status: 1/2 completed, 3 incident-closed (residual=0), 4 type1 text-only lane completed/locked + type1 image-attached text-question lane completed/locked; type2 remains connected/secondary and is not the current completion target
   - Mandatory pre-Advisor phase (current/history canonical rebaseline) is completed and fixed in roadmap
   - Role split: current=day-to-day canonical / history=audit archive / R2=primary persistent sync target for current / local=current fallback
   - app/read-only must read current first
@@ -248,11 +252,15 @@ NEXT_TASKS（次回やること）
     - 成立条件：分類条件（Keep-Current / Safe-But-Provenance-Gated / Guard-First）と、各レーンの入出力・QA・adoption条件を1本化する
     - 次段条件：④ Exhibitions Image が 10ギャラリーで汎用的に70%以上を安定達成したら、次に ⑤ Exhibitions Text へ進む
 
-[ ] 312) ADVISOR_TYPE1_IMAGE_ATTACHED_TEXT_QUESTION_TUNING_01（最優先）
-    - 目的：④ Advisor の image-attached text question lane を、text-only lane 完成状態を崩さずに精度調整する
-    - 前提：type1 text-only lane は completed/locked（再発時 tiny-fix のみ）
-    - 成立条件：画像添付付きテキスト質問で relevance/grounding/提案統合の精度を引き上げ、text-only lane の現行品質を維持する
-    - 非目標：text-only lane の全面再設計・固定テンプレ復活・type2 success-path 作業
+[x] 312) ADVISOR_TYPE1_IMAGE_ATTACHED_TEXT_QUESTION_TUNING_01 (done)
+    - scope: tune Feature 4 Advisor image-attached text-question lane without regressing the completed text-only lane
+    - completion evidence: in-memory visual observation, observation-first weighting, asked-mode alignment, and real-image human eval for describe/display/reference are accepted
+    - note: no persist, no vectorize, no RAG-mix; future handling is tiny-fix-only on regression recurrence
+
+[ ] 307) A12_PHASE5_EXCLUSIVE_ADVISOR_KICKOFF_01 (top priority)
+    - scope: kickoff for Feature 5 Exclusive Advisor after Feature 4 Advisor type1 lane stabilization
+    - current assumption: Feature 4 type1 text-only / image-attached lanes are completed/locked, and type2 remains secondary / non-blocking
+    - goal: move roadmap focus from Feature 4 tiny-fix-only maintenance to Feature 5 design/execution start
 
 [x] 228) Exhibitions Image completion closure memo（完了）
     - 目的：TASK215〜227の remediation / guard hardening / final isolated rerun retry を確定履歴として closure し、④ Exhibitions Image を completion として正式記録する
@@ -356,8 +364,6 @@ NEXT_TASKS（次回やること）
 [ ] 306) A12_PHASE4_ADVISOR_TYPE2_SUCCESS_PATH_SMOKE_WHEN_ENV_READY_01 (after 309-311 when environment allows)
     - scope: run Advisor checkbox ON success-path smoke when API/billing environment allows (confirm generated image + image_rationale, keep type1-primary + fail-soft)
 
-[ ] 307) A12_PHASE5_EXCLUSIVE_ADVISOR_KICKOFF_01 (after 306)
-    - scope: kickoff for feature 5 Exclusive Advisor after enrichment emergency work and A12 success-path confirmation
 
 [x] 1) ギャラリーリストCSVを repo に配置してコミットする（完了）
     - 置き場所：data/gallery_lists/

@@ -506,9 +506,12 @@ Index update (2026-03-17):
   - feature 1 Art Pulse: completed
   - feature 2 Exhibition Search: completed
   - feature 3 Artist Search: incident-closed and stable
-  - feature 4 Advisor: type1 text-only question lane is completed/locked (provisional complete for lane scope; not a full Feature 4 close)
-  - type1 text-only implemented set (derived index): selected/reference entity split, fixed prose helper ban, generic intent focus, same-focus ranking tuning, caption/page-description suppression, fragment guard, grounded enrichment, and OpenAI-path snippet-only suppression when anchor > 0
-  - advisor type2: implementation-complete in code with lightweight precheck + fail-soft unified short message; success-path smoke is still pending due `billing_hard_limit_reached`
+  - feature 4 Advisor:
+    - type1 text-only question lane is completed/locked
+    - type1 image-attached text-question lane is completed/locked
+    - type1 text-only implemented set (derived index): selected/reference entity split, fixed prose helper ban, generic intent focus, same-focus ranking tuning, caption/page-description suppression, fragment guard, grounded enrichment, and OpenAI-path snippet-only suppression when anchor > 0
+    - type1 image-attached implemented set (derived index): transient visual observation via in-memory image payload only, no persist/vectorize/RAG-mix, observation-first answer weighting, asked-mode alignment, display/describe/reference mode salvage, non-reference proper-noun suppression, and grounded reference only as secondary support when needed
+  - advisor type2: connected in app flow and secondary/non-priority for current roadmap; not marked complete in this sync
 - current/history rebaseline: completed (A2-A9)
   - storage scaffold in `data/current/enrichment/` and `data/history/enrichment/{artists,exhibitions}/`
   - writer contract: history timestamp write first, then current fixed-name promotion only when batch evidence + rerun-guard evidence are present for bulk apply
@@ -523,8 +526,8 @@ Index update (2026-03-17):
     - exhibitions enrichment current output
     - artists enrichment current output
   - evidence refs/source refs are shown from read-only outputs
-  - lane operation note: text-only lane is now tiny-fix-only on regression recurrence; no broad redesign planned
+  - lane operation note: type1 text-only and image-attached lanes are now tiny-fix-only on regression recurrence; no broad redesign planned
 
 Next (from STATE/NEXT):
-- ADVISOR_TYPE1_IMAGE_ATTACHED_TEXT_QUESTION_TUNING_01
+- A12_PHASE5_EXCLUSIVE_ADVISOR_KICKOFF_01
 
