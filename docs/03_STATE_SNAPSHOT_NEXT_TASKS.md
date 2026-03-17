@@ -88,15 +88,15 @@ STATE_SNAPSHOT（現在地）
     - type1 text-only lane achieved set: selected/reference split, fixed prose helper ban, generic intent focus, same-focus ranking tuning, caption/page-description suppression, fragment guard, grounded enrichment, and OpenAI-path suppression for `anchor > 0` snippet-only outputs
     - type1 image-attached lane achieved set: transient visual observation via in-memory image payload only, no persist/vectorize/RAG-mix, observation-first answer weighting, asked-mode alignment, display/describe/reference recovery, and grounded reference only as secondary support when needed
     - operational note: both type1 lanes are tiny-fix-only on regression recurrence
-  - type2 status: connected / secondary / non-blocking for current priority, and not marked complete in this sync
+  - type2 status: connected, not yet validated/accepted, and is the next validation/tuning target inside Feature 4
   - current/history rebaseline phase: completed (A2-A9)
-  - Immediate priority: A12_PHASE5_EXCLUSIVE_ADVISOR_KICKOFF_01
-  - current state note: Feature 4 type1 is now locked for normal roadmap progress; next forward work moves to Feature 5 Exclusive Advisor while Feature 4 remains tiny-fix-only on recurrence
+  - Immediate priority: A12_PHASE4_ADVISOR_TYPE2_SUCCESS_PATH_SMOKE_WHEN_ENV_READY_01
+  - current state note: Feature 4 type1 is now locked for normal roadmap progress, but Feature 4 overall remains open until type2 image-generation validation/tuning is accepted; Feature 5 follows after that
   - enrichment requests policy note: runtime-path switch is applied and verify verdict is GO (`data/runtime/enrichment_requests/...` active, `_completed` archive lane, `_reports` audit lane); keep/delete remains evidence-gated
 - NOTE: keep this current-goal line updated whenever phase priority changes.
 - Fixed master roadmap alignment (from SSOT 01):
   - 5 RAG categories (Tarutani_Text / Artist Works Images / Artist Text / Exhibitions Image / Exhibitions Text) are established at 10-gallery operational scope
-  - App features status: 1/2 completed, 3 incident-closed (residual=0), 4 type1 text-only lane completed/locked + type1 image-attached text-question lane completed/locked; type2 remains connected/secondary and is not the current completion target
+  - App features status: 1/2 completed, 3 incident-closed (residual=0), 4 type1 text-only lane completed/locked + type1 image-attached text-question lane completed/locked; type2 remains connected and pending validation/tuning inside Feature 4
   - Mandatory pre-Advisor phase (current/history canonical rebaseline) is completed and fixed in roadmap
   - Role split: current=day-to-day canonical / history=audit archive / R2=primary persistent sync target for current / local=current fallback
   - app/read-only must read current first
@@ -257,7 +257,7 @@ NEXT_TASKS（次回やること）
     - completion evidence: in-memory visual observation, observation-first weighting, asked-mode alignment, and real-image human eval for describe/display/reference are accepted
     - note: no persist, no vectorize, no RAG-mix; future handling is tiny-fix-only on regression recurrence
 
-[ ] 307) A12_PHASE5_EXCLUSIVE_ADVISOR_KICKOFF_01 (top priority)
+[ ] 307) A12_PHASE5_EXCLUSIVE_ADVISOR_KICKOFF_01 (after 306)
     - scope: kickoff for Feature 5 Exclusive Advisor after Feature 4 Advisor type1 lane stabilization
     - current assumption: Feature 4 type1 text-only / image-attached lanes are completed/locked, and type2 remains secondary / non-blocking
     - goal: move roadmap focus from Feature 4 tiny-fix-only maintenance to Feature 5 design/execution start
@@ -361,7 +361,7 @@ NEXT_TASKS（次回やること）
 [x] 313) VERIFY_ENRICHMENT_REQUESTS_RUNTIME_PATH_AND_RETENTION_POLICY_01 (GO)
     - scope: verified runtime-path consistency (generate/read/apply), legacy path detach, migration-report/file integrity, and retention helper safety (synthetic keep/allow checks)
 
-[ ] 306) A12_PHASE4_ADVISOR_TYPE2_SUCCESS_PATH_SMOKE_WHEN_ENV_READY_01 (after 309-311 when environment allows)
+[ ] 306) A12_PHASE4_ADVISOR_TYPE2_SUCCESS_PATH_SMOKE_WHEN_ENV_READY_01 (top priority)
     - scope: run Advisor checkbox ON success-path smoke when API/billing environment allows (confirm generated image + image_rationale, keep type1-primary + fail-soft)
 
 

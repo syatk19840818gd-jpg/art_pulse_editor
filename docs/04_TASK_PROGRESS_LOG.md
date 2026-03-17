@@ -4701,30 +4701,54 @@ _trash 運用方針:
   - derived:
     - dry-run `phase1_seed10_r2_sync_derived_20260301T164852Z.json`
     - apply   `phase1_seed10_r2_sync_derived_20260301T165145Z.json`
- 
- # #   1 6 6 .   T A S K   T - 1 1 6 - E X H I B I T I O N S - I M A G E - M A X 7  
- -   p r e f l i g h t :  
-     -   p y t h o n   r u n _ p h a s e 1 _ n e t w o r k _ p r e f l i g h t . p y   x 2   P A S S  
-     -   p h a s e 1 _ n e t w o r k _ p r e f l i g h t _ s u m m a r y _ 2 0 2 6 0 3 0 2 T 0 1 5 8 4 6 Z . j s o n  
-     -   p h a s e 1 _ n e t w o r k _ p r e f l i g h t _ s u m m a r y _ 2 0 2 6 0 3 0 2 T 0 1 5 9 0 4 Z . j s o n  
- -   0 1 �!0 2 �!0 3   �f�e�:  
-     1 .   d o c s / 0 2 _ R A G _ S P E C _ D E R I V E D . m d   g0  C A R D _ I D = 1 0 / 1 1 / 1 4 / 1 6 / 0 5   L0�N�Vn0;u�P�b�Qh0teTY0�0S0h0�0�x�� 
-     2 .   d o c s / 0 1 _ P R O J E C T _ S P E C _ C U R R E N T _ F U L L . d o c x   g0  4 - 0 / 4 - 1 / 5 - 2 / 5 - 8 / 6 - 2 / 6 - 3 / 1 0   n0�0�0�0�0�Q�x�� 
-     3 .   d o c s / 0 3 _ S T A T E _ S N A P S H O T _ N E X T _ T A S K S . m d   k0  M A X 7   �[L��0E x h i b i t i o n s �0�0�0�0�OYu�0�	� 
- -   6�c�_�{�:  
-     -   d a t a / g a l l e r y _ l i s t s / r e e x t r a c t _ t a r g e t s _ e x h i b i t i o n s _ i m a g e _ t a s k _ t 1 1 6 . c s v  
-     -    
- u n _ p h a s e 1 _ s e e d 1 0 _ e x h i b i t i o n _ i m a g e _ c o l l e c t . p y �	 a r g e t _ y e a r = 2 0 2 5   +   1 U\1 ;u�P  /   m a x 7 _ t a r g e t _ u p d a t e 	� 
- -   6�c�W�:  
-     -   d a t a / p h a s e 1 _ s e e d 1 0 / l o g s / p h a s e 1 _ s e e d 1 0 _ e x h i b i t i o n _ i m a g e _ c o l l e c t _ s u m m a r y _ t a s k _ t 1 1 6 _ m a x 7 . j s o n  
- -   r e p o r t :  
-     -   d a t a / p h a s e 1 _ s e e d 1 0 / l o g s / p h a s e 1 _ s e e d 1 0 _ e x h i b i t i o n _ i m a g e _ c o l l e c t _ s u m m a r y _ t a s k _ t 1 1 6 _ m a x 7 _ r e p o r t . j s o n  
- -   g u a r d :  
-     -   p y t h o n   r u n _ c o m p a r e _ p h a s e 1 _ g u a r d . p y   - - t a r g e t - y e a r   2 0 2 5   - >   g u a r d _ p a s s e d = t r u e  
- -   R 2 :  
-     -   d r y - r u n :   p h a s e 1 _ s e e d 1 0 _ r 2 _ s y n c _ d e r i v e d _ 2 0 2 6 0 3 0 2 T 0 2 0 6 2 0 Z . j s o n  
-     -   a p p l y / p r u n e :   p h a s e 1 _ s e e d 1 0 _ r 2 _ s y n c _ d e r i v e d _ 2 0 2 6 0 3 0 2 T 0 2 1 2 4 7 Z . j s o n �u p l o a d e d = 0 	� 
- -   �l�:   E x h i b i t i o n s �0�0�0�0\Omio0�s(W\Pbk-N0;u�P�SƖk0Ɩ-N 
+
+ 
+ # #   1 6 6 .   T A S K   T - 1 1 6 - E X H I B I T I O N S - I M A G E - M A X 7 
+ 
+ -   p r e f l i g h t : 
+ 
+     -   p y t h o n   r u n _ p h a s e 1 _ n e t w o r k _ p r e f l i g h t . p y   x 2   P A S S 
+ 
+     -   p h a s e 1 _ n e t w o r k _ p r e f l i g h t _ s u m m a r y _ 2 0 2 6 0 3 0 2 T 0 1 5 8 4 6 Z . j s o n 
+ 
+     -   p h a s e 1 _ n e t w o r k _ p r e f l i g h t _ s u m m a r y _ 2 0 2 6 0 3 0 2 T 0 1 5 9 0 4 Z . j s o n 
+ 
+ -   0 1 �!0 2 �!0 3   �f�e�: 
+ 
+     1 .   d o c s / 0 2 _ R A G _ S P E C _ D E R I V E D . m d   g0  C A R D _ I D = 1 0 / 1 1 / 1 4 / 1 6 / 0 5   L0�N�Vn0;u�P�b�Qh0teTY0�0S0h0�0�x��
+ 
+     2 .   d o c s / 0 1 _ P R O J E C T _ S P E C _ C U R R E N T _ F U L L . d o c x   g0  4 - 0 / 4 - 1 / 5 - 2 / 5 - 8 / 6 - 2 / 6 - 3 / 1 0   n0�0�0�0�0�Q�x��
+ 
+     3 .   d o c s / 0 3 _ S T A T E _ S N A P S H O T _ N E X T _ T A S K S . m d   k0  M A X 7   �[L��0E x h i b i t i o n s �0�0�0�0�OYu�0�	�
+ 
+ -   6�c�_�{�: 
+ 
+     -   d a t a / g a l l e r y _ l i s t s / r e e x t r a c t _ t a r g e t s _ e x h i b i t i o n s _ i m a g e _ t a s k _ t 1 1 6 . c s v 
+ 
+     -   
+ 
+ u n _ p h a s e 1 _ s e e d 1 0 _ e x h i b i t i o n _ i m a g e _ c o l l e c t . p y �	 a r g e t _ y e a r = 2 0 2 5   +   1 U\1 ;u�P  /   m a x 7 _ t a r g e t _ u p d a t e 	�
+ 
+ -   6�c�W�: 
+ 
+     -   d a t a / p h a s e 1 _ s e e d 1 0 / l o g s / p h a s e 1 _ s e e d 1 0 _ e x h i b i t i o n _ i m a g e _ c o l l e c t _ s u m m a r y _ t a s k _ t 1 1 6 _ m a x 7 . j s o n 
+ 
+ -   r e p o r t : 
+ 
+     -   d a t a / p h a s e 1 _ s e e d 1 0 / l o g s / p h a s e 1 _ s e e d 1 0 _ e x h i b i t i o n _ i m a g e _ c o l l e c t _ s u m m a r y _ t a s k _ t 1 1 6 _ m a x 7 _ r e p o r t . j s o n 
+ 
+ -   g u a r d : 
+ 
+     -   p y t h o n   r u n _ c o m p a r e _ p h a s e 1 _ g u a r d . p y   - - t a r g e t - y e a r   2 0 2 5   - >   g u a r d _ p a s s e d = t r u e 
+ 
+ -   R 2 : 
+ 
+     -   d r y - r u n :   p h a s e 1 _ s e e d 1 0 _ r 2 _ s y n c _ d e r i v e d _ 2 0 2 6 0 3 0 2 T 0 2 0 6 2 0 Z . j s o n 
+ 
+     -   a p p l y / p r u n e :   p h a s e 1 _ s e e d 1 0 _ r 2 _ s y n c _ d e r i v e d _ 2 0 2 6 0 3 0 2 T 0 2 1 2 4 7 Z . j s o n �u p l o a d e d = 0 	�
+ 
+ -   �l�:   E x h i b i t i o n s �0�0�0�0\Omio0�s(W\Pbk-N0;u�P�SƖk0Ɩ-N
+ 
  
 ## 167. TASK_R2_SYNC_UNIFY_01 (run_r2_sync.py 一本化)
 - `run_r2_sync.py` + `config/r2_sync_targets.json` を導入し、同期入口を統一。
@@ -5087,5 +5111,16 @@ _trash 運用方針:
   - roadmap priority is moved forward to `A12_PHASE5_EXCLUSIVE_ADVISOR_KICKOFF_01`, while Feature 4 type1 stays tiny-fix-only and type2 remains connected/secondary rather than newly declared complete.
 - not done:
   - no code/data/app behavior changes.
-  - no statement that Feature 4 Advisor as a whole or type2 is fully complete.
+  - no statement that Feature 4 Advisor as a whole or type2 is fully complete.
+
 
+## 2026-03-17 TASK314 DOCS_CORRECTION_AFTER_ADVISOR_TYPE1_COMPLETION
+- scope: docs-only correction after Feature 4 Advisor type1 completion sync (01/02/03/04).
+- result:
+  - type1 text-only and image-attached text-question lanes remain completed/locked in docs.
+  - docs are corrected so Feature 4 overall is still open: type2 image-generation lane is connected, but not yet validated/accepted.
+  - immediate priority is moved back inside Feature 4 to `A12_PHASE4_ADVISOR_TYPE2_SUCCESS_PATH_SMOKE_WHEN_ENV_READY_01`.
+  - Feature 5 Exclusive Advisor is returned to the post-Feature-4 position rather than the current top priority.
+- not done:
+  - no code/data/app behavior changes.
+  - no rollback of the accepted type1 lane completion state.
