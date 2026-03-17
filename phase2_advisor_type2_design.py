@@ -6,11 +6,28 @@ from typing import Dict, List
 ADVISOR_TYPE2_IMAGE_COUNT = 1
 ADVISOR_TEXT_MAX_CHARS = 500
 ADVISOR_REF_IMAGE_TOTAL = 8
+ADVISOR_TYPE2_IMAGE_MODEL = "gpt-image-1"
+ADVISOR_TYPE2_IMAGE_QUALITY = "low"
+ADVISOR_TYPE2_IMAGE_SIZE = "1024x1024"
 IMAGE_TARGET_SIZE_KB_NOT_APPLIED = True
 
 
 def _safe_str(value: object) -> str:
     return str(value or "").strip()
+
+
+def truncate_type2_grounded_text(text: str, limit: int = ADVISOR_TEXT_MAX_CHARS) -> str:
+    value = (text or "").strip()
+    if limit <= 0:
+        return ""
+    if len(value) <= limit:
+        return value
+    head = value[:limit]
+    cut = max(head.rfind("。"), head.rfind("、"), head.rfind("."), head.rfind(","))
+    if cut >= int(limit * 0.7):
+        return head[: cut + 1].rstrip()
+    fallback = value[: max(limit - 1, 0)].rstrip()
+    return fallback + "…" if fallback else ""
 
 
 def get_type2_design_spec() -> Dict[str, object]:
@@ -29,6 +46,9 @@ def get_type2_design_spec() -> Dict[str, object]:
         "output": {
             "text_answer": f"Japanese <= {ADVISOR_TEXT_MAX_CHARS} chars",
             "generated_image_count": ADVISOR_TYPE2_IMAGE_COUNT,
+            "generated_image_model": ADVISOR_TYPE2_IMAGE_MODEL,
+            "generated_image_quality": ADVISOR_TYPE2_IMAGE_QUALITY,
+            "generated_image_size": ADVISOR_TYPE2_IMAGE_SIZE,
             "evidence_urls": "required",
             "reference_images": f"up to {ADVISOR_REF_IMAGE_TOTAL}",
             "image_source_label": "AI generated",
@@ -94,11 +114,10 @@ def evaluate_type2_gate(
     has_uploaded_image: bool,
 ) -> Dict[str, object]:
     openai_key_set = bool(_safe_str(os.getenv("OPENAI_API_KEY")))
-    image_model = _safe_str(os.getenv("IMAGE_MODEL") or "gpt-image-1")
     vision_model = _safe_str(os.getenv("VISION_MODEL"))
 
-    type1_answer = _safe_str(type1_draft.get("answer"))
-    type1_chars = int(type1_draft.get("answer_chars") or 0)
+    type1_answer = truncate_type2_grounded_text(_safe_str(type1_draft.get("answer")))
+    type1_chars = len(type1_answer)
     evidence_count = int(type1_draft.get("evidence_counts", {}).get("all_unique_urls") or 0)
 
     checks = [
@@ -140,9 +159,9 @@ def evaluate_type2_gate(
         "gate_ok": gate_ok,
         "checks": checks,
         "required_env_keys": ["OPENAI_API_KEY"],
-        "optional_env_keys": ["IMAGE_MODEL", "VISION_MODEL"],
+        "optional_env_keys": ["VISION_MODEL"],
         "resolved_env": {
-            "IMAGE_MODEL": image_model or "(unset)",
+            "IMAGE_MODEL": ADVISOR_TYPE2_IMAGE_MODEL,
             "VISION_MODEL": vision_model or "(unset)",
         },
         "design_spec": get_type2_design_spec(),
