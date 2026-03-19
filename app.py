@@ -19,12 +19,18 @@ from phase2_art_pulse_readonly import build_art_pulse_overview
 from phase2_advisor_draft import (
     ADVISOR_TEXT_MAX_CHARS,
     _build_visual_observation_digest,
+    _build_art_pulse_style_reference_lines,
+    _build_reference_images,
     _ensure_natural_ending,
     _ensure_plain_answer_text,
     _normalize_answer_text,
+    _select_reference_entities_for_output,
     generate_advisor_grounded_draft,
 )
-from phase2_advisor_readonly import build_advisor_grounded_context
+from phase2_advisor_readonly import (
+    build_advisor_followup_reference_patch,
+    build_advisor_grounded_context,
+)
 from phase2_advisor_type2_execute import run_type2_gated_image_generation
 from phase2_exclusive_advisor_draft import (
     EXCLUSIVE_ADVISOR_TEXT_MAX_CHARS,
@@ -868,10 +874,17 @@ def _render_responsive_image_gallery(images: list[dict], local_lookup: dict[str,
         st.markdown(f'<div class="ap-gallery">{"".join(html_items)}</div>', unsafe_allow_html=True)
 
 
-def _render_markdown_with_galleries(markdown_text: str, local_lookup: dict[str, dict[str, dict[str, str]]]) -> None:
+def _render_markdown_with_galleries(
+    markdown_text: str,
+    local_lookup: dict[str, dict[str, dict[str, str]]],
+    preserve_linebreaks: bool = False,
+) -> None:
     for kind, payload in _split_markdown_and_image_blocks(markdown_text):
         if kind == "markdown":
-            st.markdown(payload)
+            text = str(payload or "")
+            if preserve_linebreaks:
+                text = re.sub(r"(?<!\n)\n(?!\n)", "  \n", text)
+            st.markdown(text)
         else:
             _render_responsive_image_gallery(payload, local_lookup)
 
@@ -1704,6 +1717,64 @@ def _sentence_compact_summary(text: object, max_chars: int = 260, max_sentences:
     return total or _clip_compact_text(cleaned, max_chars=max_chars)
 
 
+def _build_advisor_followup_reference_core_context(context: dict) -> dict:
+    selection = dict((context or {}).get("selection", {}) or {})
+    return {
+        "selection": selection,
+        "exhibition_evidence": [dict(row) for row in list((context or {}).get("exhibition_evidence", []))[:2]],
+        "artist_evidence": [dict(row) for row in list((context or {}).get("artist_evidence", []))[:2]],
+    }
+
+
+def _empty_advisor_followup_reference_context(selection: dict | None = None) -> dict:
+    return {
+        "selection": dict(selection or {}),
+        "exhibition_evidence": [],
+        "artist_evidence": [],
+    }
+
+
+def _merge_advisor_followup_reference_contexts(core_context: dict, dynamic_context: dict) -> dict:
+    base_selection = dict((core_context or {}).get("selection", {}) or {})
+    dynamic_selection = dict((dynamic_context or {}).get("selection", {}) or {})
+    merged_selection = dict(base_selection)
+    for key, value in dynamic_selection.items():
+        if value not in ("", [], {}, None):
+            merged_selection[key] = value
+    return {
+        "selection": merged_selection,
+        "exhibition_evidence": (
+            [dict(row) for row in list((core_context or {}).get("exhibition_evidence", []))]
+            + [dict(row) for row in list((dynamic_context or {}).get("exhibition_evidence", []))]
+        )[:4],
+        "artist_evidence": (
+            [dict(row) for row in list((core_context or {}).get("artist_evidence", []))]
+            + [dict(row) for row in list((dynamic_context or {}).get("artist_evidence", []))]
+        )[:4],
+    }
+
+
+def _derive_advisor_followup_reference_outputs(reference_context: dict) -> dict:
+    reference_entities = _select_reference_entities_for_output(reference_context, [])
+    reference_examples = _build_art_pulse_style_reference_lines(reference_entities)
+    reference_images = _build_reference_images(reference_entities)
+    urls: list[str] = []
+    seen = set()
+    for row in list(reference_context.get("exhibition_evidence", [])) + list(reference_context.get("artist_evidence", [])):
+        url = str(row.get("source_url") or "").strip()
+        if not url or url in seen:
+            continue
+        seen.add(url)
+        urls.append(url)
+        if len(urls) >= 8:
+            break
+    return {
+        "reference_examples": reference_examples,
+        "reference_images": reference_images,
+        "reference_urls": urls,
+    }
+
+
 def _build_advisor_followup_base_payload(question_text: str, context: dict, draft: dict) -> dict:
     reference_examples = [
         _clip_compact_text(line, 120)
@@ -1736,6 +1807,8 @@ def _build_advisor_followup_base_payload(question_text: str, context: dict, draf
 
 def _ensure_advisor_followup_base_state(question_text: str, context: dict, draft: dict) -> None:
     payload = _build_advisor_followup_base_payload(question_text, context, draft)
+    reference_core_context = _build_advisor_followup_reference_core_context(context)
+    reference_dynamic_context = _empty_advisor_followup_reference_context(reference_core_context.get("selection"))
     st.session_state["advisor_followup_base_question"] = payload["base_question"]
     st.session_state["advisor_followup_base_answer"] = payload["base_answer"]
     st.session_state["advisor_followup_base_summary"] = payload["base_summary"]
@@ -1746,6 +1819,10 @@ def _ensure_advisor_followup_base_state(question_text: str, context: dict, draft
     st.session_state["advisor_followup_turns"] = []
     st.session_state["advisor_followup_last_question"] = ""
     st.session_state["advisor_followup_last_answer"] = ""
+    st.session_state["advisor_followup_reference_core_context"] = reference_core_context
+    st.session_state["advisor_followup_reference_dynamic_context"] = reference_dynamic_context
+    st.session_state["advisor_followup_reference_examples"] = list(draft.get("reference_examples", []) or [])
+    st.session_state["advisor_followup_reference_images"] = dict(draft.get("reference_images") or {})
 
 
 def _build_advisor_followup_prompt(base_payload: dict, memory_summary: str, turns: list[dict], new_question: str) -> str:
@@ -1764,6 +1841,16 @@ def _build_advisor_followup_prompt(base_payload: dict, memory_summary: str, turn
     visual_summary = str(base_payload.get("base_visual_summary") or "").strip()
     base_answer = str(base_payload.get("base_answer") or "").strip()
     base_summary = str(base_payload.get("base_summary") or "").strip()
+    current_reference_examples = [
+        _clip_compact_text(item, 120)
+        for item in list(base_payload.get("current_reference_examples", []) or [])
+        if str(item or "").strip()
+    ]
+    current_reference_urls = [
+        str(item or "").strip()
+        for item in list(base_payload.get("current_reference_urls", []) or [])
+        if str(item or "").strip()
+    ]
     previous_q = str(previous_turn.get("question") or "").strip()
     previous_a = str(previous_turn.get("answer") or "").strip()
     sections = [
@@ -1792,6 +1879,10 @@ def _build_advisor_followup_prompt(base_payload: dict, memory_summary: str, turn
         sections.append(f"- Main URLs: {' | '.join(base_urls)}")
     if visual_summary:
         sections.append(f"- Initial image observation summary: {visual_summary}")
+    if current_reference_examples:
+        sections.append(f"- Current refreshed references: {' / '.join(current_reference_examples[:6])}")
+    if current_reference_urls:
+        sections.append(f"- Current refreshed URLs: {' | '.join(current_reference_urls[:6])}")
     sections.extend([
         "",
         "Compressed memory:",
@@ -1861,12 +1952,15 @@ def _run_advisor_followup_turn(base_payload: dict, memory_summary: str, turns: l
 def render_advisor() -> None:
     _render_mode_heading("Advisor")
     _render_mode_explanation(
-        "フェア文脈アドバイザー（type 1中心 / 必要時のみ画像生成）"
+        "ギャラリーを知り尽くすアート編集長によるアドバイス"
     )
     reset_requested_key = "advisor_reset_requested"
+    question_clear_input_key = "advisor_question_clear_input_requested"
     followup_clear_input_key = "advisor_followup_clear_input_requested"
+    if st.session_state.pop(question_clear_input_key, False):
+        st.session_state["advisor_question_text"] = ""
     if st.session_state.pop(followup_clear_input_key, False):
-        st.session_state.pop("advisor_followup_input", None)
+        st.session_state["advisor_followup_input"] = ""
     if st.session_state.pop(reset_requested_key, False):
         st.session_state.pop("advisor_fair_filter", None)
         st.session_state.pop("advisor_wants_image_generation", None)
@@ -1886,6 +1980,10 @@ def render_advisor() -> None:
         st.session_state.pop("advisor_followup_turns", None)
         st.session_state.pop("advisor_followup_last_question", None)
         st.session_state.pop("advisor_followup_last_answer", None)
+        st.session_state.pop("advisor_followup_reference_core_context", None)
+        st.session_state.pop("advisor_followup_reference_dynamic_context", None)
+        st.session_state.pop("advisor_followup_reference_examples", None)
+        st.session_state.pop("advisor_followup_reference_images", None)
         st.session_state.pop("advisor_followup_input", None)
         st.session_state.pop(followup_clear_input_key, None)
 
@@ -1899,20 +1997,20 @@ def render_advisor() -> None:
     with col2:
         st.markdown('<div class="advisor-toggle-spacer"></div>', unsafe_allow_html=True)
         wants_image_generation = st.checkbox(
-            "画像生成を希望する（利用条件あり）",
+            "画像生成（✓でON）",
             value=False,
             key="advisor_wants_image_generation",
         )
 
     question_text = st.text_area(
-        "相談内容（制作したい作品の概要や悩み）",
-        value="",
+        "相談内容",
         height=140,
         key="advisor_question_text",
-        placeholder="例: 2025年のフェア文脈で、素材とスケールの選び方を相談したい。",
+        placeholder="例: 素材の選び方を教えて。",
     )
+    effective_fair = str(fair_mode or FAIR_OPTIONS[0])
     uploaded_image = st.file_uploader(
-        "質問画像（任意）",
+        "画像添付（テキスト+画像添付で質問可）",
         type=["png", "jpg", "jpeg", "webp"],
         key="advisor_uploaded_image",
     )
@@ -1936,8 +2034,7 @@ def render_advisor() -> None:
         except Exception:
             uploaded_image_payload = None
 
-    st.caption("相談内容を入力して「Advisor を実行」を押すと、type 1回答と根拠を表示します。")
-    run = st.button("Advisor を実行", key="advisor_run")
+    run = st.button("相談する", key="advisor_run")
     if st.button("リセット", key="advisor_reset_button"):
         st.session_state[reset_requested_key] = True
         st.rerun()
@@ -1948,12 +2045,11 @@ def render_advisor() -> None:
             return
 
         def _render_advisor_progress(pct: int) -> None:
-            safe_pct = max(0, min(99, int(pct)))
             status_slot.markdown(
                 (
                     '<div class="ap-progress-row">'
                     '<span class="ap-progress-spinner"></span>'
-                    f"<span>{escape(f'{safe_pct}%')}</span>"
+                    f"<span>{escape('少々お待ちください...（特に画像生成は数分かかります）')}</span>"
                     "</div>"
                 ),
                 unsafe_allow_html=True,
@@ -2015,7 +2111,8 @@ def render_advisor() -> None:
                 st.session_state["advisor_type2_preview"] = type2_preview
             else:
                 st.session_state["advisor_type2_preview"] = None
-            status_slot.empty()
+            st.session_state[question_clear_input_key] = True
+            st.rerun()
         except Exception as exc:
             status_slot.empty()
             st.error("Advisor 実行中にエラーが発生しました。入力条件を見直して再実行してください。")
@@ -2042,7 +2139,33 @@ def render_advisor() -> None:
             draft,
         )
 
-    advisor_reference_images = dict(draft.get("reference_images") or {})
+    reference_core_context = dict(
+        st.session_state.get("advisor_followup_reference_core_context")
+        or _build_advisor_followup_reference_core_context(context)
+    )
+    reference_dynamic_context = dict(
+        st.session_state.get("advisor_followup_reference_dynamic_context")
+        or _empty_advisor_followup_reference_context((context or {}).get("selection", {}))
+    )
+    advisor_reference_context = _merge_advisor_followup_reference_contexts(
+        reference_core_context,
+        reference_dynamic_context,
+    )
+    has_dynamic_reference_rows = bool(
+        list(reference_dynamic_context.get("exhibition_evidence", []) or [])
+        or list(reference_dynamic_context.get("artist_evidence", []) or [])
+    )
+    advisor_reference_display_context = advisor_reference_context if has_dynamic_reference_rows else context
+    advisor_reference_images = dict(
+        st.session_state.get("advisor_followup_reference_images")
+        or draft.get("reference_images")
+        or {}
+    )
+    advisor_reference_examples = list(
+        st.session_state.get("advisor_followup_reference_examples")
+        or draft.get("reference_examples")
+        or []
+    )
     advisor_reference_rows = list(advisor_reference_images.get("all", []) or [])
 
     reference_year_display = (
@@ -2050,7 +2173,7 @@ def render_advisor() -> None:
         or context.get("selection", {}).get("year")
         or "-"
     )
-    st.markdown("**Advisor回答（日本語 / type 1）**")
+    st.markdown("**回答**")
     st.caption(f"参照年: {reference_year_display}")
     if ADVISOR_UI_SHOW_DEBUG:
         _render_evidence_summary(
@@ -2063,9 +2186,18 @@ def render_advisor() -> None:
                 "URL件数": draft.get("evidence_counts", {}).get("all_unique_urls", 0),
             }
         )
+    initial_question_label = _clip_compact_text(
+        st.session_state.get("advisor_followup_base_question")
+        or selection.get("question_text")
+        or question_text,
+        max_chars=220,
+    )
+    if initial_question_label:
+        st.caption(f"Q1: {initial_question_label}")
     _render_markdown_with_galleries(
         str(draft.get("answer", "")),
         {"by_source": {}, "by_image_url": {}},
+        preserve_linebreaks=True,
     )
     followup_turns = list(st.session_state.get("advisor_followup_turns", []) or [])
     followup_memory_summary = str(st.session_state.get("advisor_followup_memory_summary") or "")
@@ -2076,25 +2208,27 @@ def render_advisor() -> None:
         "base_entities": list(st.session_state.get("advisor_followup_base_entities", []) or []),
         "base_urls": list(st.session_state.get("advisor_followup_base_urls", []) or []),
         "base_visual_summary": str(st.session_state.get("advisor_followup_base_visual_summary") or ""),
+        "current_reference_examples": list(st.session_state.get("advisor_followup_reference_examples", []) or []),
+        "current_reference_urls": _derive_advisor_followup_reference_outputs(advisor_reference_context).get("reference_urls", []),
     }
     if followup_turns:
-        for idx, turn in enumerate(followup_turns, start=1):
+        for idx, turn in enumerate(followup_turns, start=2):
             question_label = _clip_compact_text(turn.get("question"), max_chars=220)
             if question_label:
                 st.caption(f"Q{idx}: {question_label}")
             _render_markdown_with_galleries(
                 str(turn.get("answer") or ""),
                 {"by_source": {}, "by_image_url": {}},
+                preserve_linebreaks=True,
             )
-    st.markdown("**追加質問**")
+    st.markdown("**さらに質問**")
     followup_question = st.text_input(
         "追加質問",
-        value="",
         key="advisor_followup_input",
         label_visibility="collapsed",
         placeholder="例: さっきの方向で、もう少し素材の選び方だけ絞って教えてください。",
     )
-    followup_run = st.button("深掘りする", key="advisor_followup_run")
+    followup_run = st.button("質問する", key="advisor_followup_run")
     followup_status_slot = st.empty()
     if followup_run:
         if not followup_question.strip():
@@ -2110,12 +2244,47 @@ def render_advisor() -> None:
                 unsafe_allow_html=True,
             )
             try:
+                followup_stage = "reference_patch"
+                reference_patch = build_advisor_followup_reference_patch(
+                    fair_label=effective_fair,
+                    question_text=followup_question,
+                    base_context=context,
+                    existing_urls=list(base_payload.get("current_reference_urls", []) or []),
+                    limit_total=5,
+                )
+                if bool(reference_patch.get("refreshed")):
+                    followup_stage = "reference_refresh"
+                    reference_dynamic_context = {
+                        "selection": dict(reference_patch.get("selection", {}) or {}),
+                        "exhibition_evidence": list(reference_patch.get("exhibition_evidence", []) or []),
+                        "artist_evidence": list(reference_patch.get("artist_evidence", []) or []),
+                    }
+                    advisor_reference_context = _merge_advisor_followup_reference_contexts(
+                        reference_core_context,
+                        reference_dynamic_context,
+                    )
+                    refreshed_reference_state = _derive_advisor_followup_reference_outputs(advisor_reference_context)
+                    st.session_state["advisor_followup_reference_dynamic_context"] = reference_dynamic_context
+                    st.session_state["advisor_followup_reference_examples"] = list(
+                        refreshed_reference_state.get("reference_examples", []) or []
+                    )
+                    st.session_state["advisor_followup_reference_images"] = dict(
+                        refreshed_reference_state.get("reference_images") or {}
+                    )
+                    base_payload["current_reference_examples"] = list(
+                        refreshed_reference_state.get("reference_examples", []) or []
+                    )
+                    base_payload["current_reference_urls"] = list(
+                        refreshed_reference_state.get("reference_urls", []) or []
+                    )
+                followup_stage = "openai_followup"
                 followup_result = _run_advisor_followup_turn(
                     base_payload=base_payload,
                     memory_summary=followup_memory_summary,
                     turns=followup_turns,
                     new_question=followup_question,
                 )
+                followup_stage = "answer_finalize"
                 followup_answer = str(followup_result.get("answer") or "").strip()
                 if not followup_answer:
                     raise ValueError("empty_followup_answer")
@@ -2135,34 +2304,15 @@ def render_advisor() -> None:
                 followup_status_slot.empty()
                 st.error("追加質問の生成中にエラーが発生しました。しばらくしてから再実行してください。")
                 if ADVISOR_UI_SHOW_DEBUG:
-                    st.code(f"{type(exc).__name__}: {exc}")
-    reference_examples = list(draft.get("reference_examples", []) or [])
-    if reference_examples:
-        st.markdown("**参照例**")
-        st.markdown("\n".join(reference_examples))
-
-    if advisor_reference_rows:
-        _render_reference_image_candidates(
-            "",
-            advisor_reference_images,
-            target_total=8,
-            compact_advisor_cards=True,
-            show_title=False,
-            show_summary=False,
-            show_empty_message=False,
-            evidence_context=context,
-        )
-
+                    st.code(f"stage={locals().get('followup_stage', 'unknown')} | {type(exc).__name__}: {exc}")
     if wants_image_generation:
-        st.markdown("**画像補助（type 2）**")
+        st.markdown("**画像生成**")
         if not type2_preview:
             st.caption("画像生成を希望して Advisor を実行すると、画像補助結果を表示します。")
         else:
             status = str(type2_preview.get("status") or "")
             user_message = str(type2_preview.get("user_message") or "")
-            if status == "success":
-                st.success("画像生成を実行しました。")
-            else:
+            if status != "success":
                 st.info(user_message or "今回は画像補助を表示できなかったため、本文と根拠のみ表示しています。")
 
             image_bytes = type2_preview.get("generated_image_bytes")
@@ -2213,6 +2363,22 @@ def render_advisor() -> None:
                         debug_err = str(type2_preview.get("debug_error") or "")
                         if debug_err:
                             st.code(debug_err)
+
+    if advisor_reference_examples:
+        st.markdown("**参照例**")
+        st.markdown("\n".join(advisor_reference_examples))
+
+    if advisor_reference_rows:
+        _render_reference_image_candidates(
+            "",
+            advisor_reference_images,
+            target_total=8,
+            compact_advisor_cards=True,
+            show_title=False,
+            show_summary=False,
+            show_empty_message=False,
+            evidence_context=advisor_reference_display_context,
+        )
 
     urls = draft.get("evidence_urls", {})
     ex_urls = urls.get("exhibition", [])

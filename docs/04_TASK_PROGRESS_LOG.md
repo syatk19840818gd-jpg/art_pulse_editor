@@ -5142,3 +5142,21 @@ _trash 運用方針:
   - no code/data/app behavior changes.
   - image-attached -> image generation is not declared accepted.
   - Feature 4 Advisor as a whole is not declared fully complete.
+
+
+## 2026-03-19 TASK316 DOC_SYNC_PHASE4_ADVISOR_POST_A17_TO_A30_01
+- scope: docs-only sync for Feature 4 Advisor after type2 acceptance expansion, UI cleanup batches, and follow-up stabilization (01/02/03/04 only).
+- result:
+  - Feature 4 Advisor type1 text-only and image-attached text-question lanes remain completed/locked and tiny-fix-only on regression recurrence.
+  - Feature 4 Advisor type2 text-only -> image generation remains accepted, and image-attached -> image generation is now recorded as smoke-success / accepted.
+  - accepted runtime is fixed in docs as `gpt-image-1` / `low` / `1024x1024` / `1 image`.
+  - type2 accepted progression is summarized as: gate uses truncated grounded text, model drift correction, `gpt-image-1 + low` adoption, medium/format fidelity tuning, and visual nucleus tiny fix.
+  - text-only image generation is accepted across painting / installation / photograph, and image-attached -> image generation smoke also succeeded without opening a persistent blocker.
+  - Advisor UI cleanup batches are recorded as completed: aligned fair/select + image-generation checkbox, uploader-note removal, debug panels hidden by flag, compact single image view with fullscreen-icon removal, reset/progress display, fair filter warning fix, reference cards unified with search UI, and scrollable long summaries inside cards.
+  - follow-up is recorded as session-only with no persistence (no R2/file/DB/JSON/CSV writes), using fixed anchor + compressed memory + latest one-turn context, Q1/Q2 numbering, input auto-clear for initial/follow-up questions, output normalization, length tuning around ~700 chars, linebreak render preservation, and partial re-grounding via fixed-core + dynamic reference refresh.
+  - follow-up crash root-cause is recorded as an `effective_fair` undefined path in the new reference refresh branch; this is fixed and treated as a root fix for that crash path.
+  - Feature 4 Advisor is now treated as accepted/completed for the current scope; future handling is major-regression-only tiny fix.
+  - next roadmap priority is moved to `A12_PHASE5_EXCLUSIVE_ADVISOR_KICKOFF_01`.
+- not done:
+  - no code/data/app behavior changes in this docs sync.
+  - no claim beyond the accepted/current-scope behavior already implemented in repo.

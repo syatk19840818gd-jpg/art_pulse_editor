@@ -962,3 +962,193 @@ def build_advisor_grounded_context(
             "history is not used as a default query path."
         ),
     }
+
+
+def build_advisor_followup_reference_patch(
+    fair_label: str,
+    question_text: str,
+    base_context: Dict[str, object],
+    existing_urls: List[str] | None = None,
+    limit_total: int = 5,
+) -> Dict[str, object]:
+    selection = dict((base_context or {}).get("selection", {}) or {})
+    tokens = _tokenize_query(question_text)
+    if not tokens:
+        fallback_seen = set()
+        fallback_tokens: List[str] = []
+        for token in re.findall(r"[一-龠ぁ-んァ-ヶー]{2,8}|[a-z]{3,12}", (question_text or "").lower()):
+            low = str(token or "").strip().lower()
+            if len(low) < 2 or low in fallback_seen:
+                continue
+            fallback_seen.add(low)
+            fallback_tokens.append(low)
+            if len(fallback_tokens) >= 12:
+                break
+        tokens = fallback_tokens
+    q = (question_text or "").strip().lower()
+    existing_norm_urls = {
+        normalize_url(str(url or ""))
+        for url in list(existing_urls or [])
+        if str(url or "").strip()
+    }
+    base_tokens = {
+        str(token or "").strip().lower()
+        for token in list(selection.get("tokens", []) or [])
+        if str(token or "").strip()
+    }
+    intent_focus = _detect_intent_focus(question_text, tokens)
+    focus_changed = bool(intent_focus and intent_focus != str(selection.get("intent_focus") or "").strip())
+    new_token_count = len([token for token in tokens if token not in base_tokens and len(token) >= 2])
+    expansion_hints = ("他にも", "ほかに", "別", "別方向", "別案", "違う", "もっと", "寄り", "another", "else")
+    needs_refresh = focus_changed or new_token_count >= 1 or any(hint in q for hint in expansion_hints)
+    if not needs_refresh:
+        return {
+            "refreshed": False,
+            "selection": {
+                "tokens": tokens,
+                "intent_focus": intent_focus,
+                "focus_changed": focus_changed,
+                "new_token_count": new_token_count,
+            },
+            "exhibition_evidence": [],
+            "artist_evidence": [],
+        }
+
+    fair_slugs = set(resolve_fair_slugs(fair_label))
+    cross_fair_mode = len(fair_slugs) > 1
+    broad_query_mode = _is_broad_query(question_text, tokens)
+    ideation_query = _is_ideation_query(question_text)
+    safe_limit_total = max(2, int(limit_total or 5))
+    per_kind_limit = max(1, min(3, (safe_limit_total + 1) // 2))
+
+    ex_data = load_exhibition_records_readonly()
+    ar_data = load_artist_records_readonly()
+    exhibitions = [r for r in ex_data.records if str(r.get("fair_slug") or "") in fair_slugs]
+    artists = [r for r in ar_data.records if str(r.get("fair_slug") or "") in fair_slugs]
+    exhibitions, exhibitions_latest_year = _filter_latest_available_year_rows(exhibitions)
+    artists, artists_latest_year = _filter_latest_available_year_rows(artists)
+    available_years = [y for y in [exhibitions_latest_year, artists_latest_year] if y is not None]
+    reference_year = max(available_years) if available_years else 2025
+
+    exhibition_rows: List[dict] = []
+    for row in exhibitions:
+        source_url = str(row.get("source_url") or "").strip()
+        if existing_norm_urls and normalize_url(source_url) in existing_norm_urls:
+            continue
+        row_year = _coerce_year(row.get("year"))
+        if row_year is None:
+            row_year = exhibitions_latest_year if exhibitions_latest_year is not None else reference_year
+        candidate = {
+            "kind": "exhibition",
+            "fair_slug": str(row.get("fair_slug") or ""),
+            "fair_label": str(row.get("fair_label") or ""),
+            "gallery": str(row.get("gallery_name") or ""),
+            "title": str(row.get("exhibition_title") or ""),
+            "headline_ja": str(row.get("headline_ja") or "").strip(),
+            "summary_ja": str(row.get("summary_ja") or "").strip(),
+            "source_url": source_url,
+            "text": str(row.get("text") or "").strip(),
+            "image_preview": str(row.get("image_preview") or "").strip(),
+            "image_preview_r2_key": str(row.get("image_preview_r2_key") or "").strip(),
+            "year": row_year,
+        }
+        hay = " ".join(
+            [
+                candidate["gallery"],
+                candidate["title"],
+                candidate["headline_ja"],
+                candidate["summary_ja"],
+                candidate["text"][:1200],
+            ]
+        )
+        intent_score = _intent_signal_score(hay, intent_focus) if intent_focus else 0
+        page_score = _page_description_score(hay)
+        candidate["_intent_score"] = intent_score
+        candidate["_score"] = _score_text(hay, tokens) + (intent_score * 3) - (page_score * 2 if ideation_query else 0)
+        exhibition_rows.append(candidate)
+
+    artist_rows: List[dict] = []
+    for row in artists:
+        artist_name = str(row.get("artist_name") or "").strip()
+        if is_invalid_artist_name(artist_name):
+            continue
+        source_url = str(row.get("source_url") or "").strip()
+        if existing_norm_urls and normalize_url(source_url) in existing_norm_urls:
+            continue
+        row_year = _coerce_year(row.get("year"))
+        if row_year is None:
+            row_year = artists_latest_year if artists_latest_year is not None else reference_year
+        candidate = {
+            "kind": "artist",
+            "fair_slug": str(row.get("fair_slug") or ""),
+            "fair_label": str(row.get("fair_label") or ""),
+            "gallery": str(row.get("gallery_name") or ""),
+            "artist_name": artist_name,
+            "artist_name_kana": str(row.get("artist_name_kana") or "").strip(),
+            "headline_ja": str(row.get("headline_ja") or "").strip(),
+            "summary_ja": str(row.get("summary_ja") or "").strip(),
+            "source_url": source_url,
+            "text": str(row.get("text") or "").strip(),
+            "artist_image_preview_candidates": list(row.get("artist_image_preview_candidates") or []),
+            "year": row_year,
+        }
+        hay = " ".join(
+            [
+                candidate["gallery"],
+                candidate["artist_name"],
+                candidate["artist_name_kana"],
+                candidate["headline_ja"],
+                candidate["summary_ja"],
+                candidate["text"][:1200],
+            ]
+        )
+        intent_score = _intent_signal_score(hay, intent_focus) if intent_focus else 0
+        page_score = _page_description_score(hay)
+        candidate["_intent_score"] = intent_score
+        candidate["_score"] = _score_text(hay, tokens) + (intent_score * 3) - (page_score * 2 if ideation_query else 0)
+        artist_rows.append(candidate)
+
+    ex_scored = [r for r in exhibition_rows if int(r.get("_score", 0)) > 0] or exhibition_rows
+    ar_scored = [r for r in artist_rows if int(r.get("_score", 0)) > 0] or artist_rows
+    ex_scored, _ = _trim_rows_by_intent(ex_scored, intent_focus, per_kind_limit, [], "advisor_followup_exhibition")
+    ar_scored, _ = _trim_rows_by_intent(ar_scored, intent_focus, per_kind_limit, [], "advisor_followup_artist")
+    exhibition_evidence = _select_evidence_with_rotation(
+        ex_scored,
+        per_kind_limit,
+        cross_fair_mode=cross_fair_mode,
+        broad_query_mode=broad_query_mode,
+        rotation_index=0,
+        recent_broad_history=[],
+        kind="exhibition",
+        intent_focus=intent_focus,
+    )
+    artist_evidence = _select_evidence_with_rotation(
+        ar_scored,
+        per_kind_limit,
+        cross_fair_mode=cross_fair_mode,
+        broad_query_mode=broad_query_mode,
+        rotation_index=0,
+        recent_broad_history=[],
+        kind="artist",
+        intent_focus=intent_focus,
+    )
+    for row in exhibition_evidence:
+        row.pop("_score", None)
+        row.pop("_intent_score", None)
+    for row in artist_evidence:
+        row.pop("_score", None)
+        row.pop("_intent_score", None)
+    return {
+        "refreshed": bool(exhibition_evidence or artist_evidence),
+        "selection": {
+            "fair_label": fair_label,
+            "tokens": tokens,
+            "intent_focus": intent_focus,
+            "cross_fair_mode": cross_fair_mode,
+            "broad_query_mode": broad_query_mode,
+            "focus_changed": focus_changed,
+            "new_token_count": new_token_count,
+        },
+        "exhibition_evidence": exhibition_evidence[:per_kind_limit],
+        "artist_evidence": artist_evidence[:per_kind_limit],
+    }

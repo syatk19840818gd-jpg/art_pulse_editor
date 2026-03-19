@@ -501,7 +501,7 @@ SSOT source:
 - 01 section 8 (Phase 2 milestones)
 - 01 section 5-8 (sync model: current/history/R2/local fallback)
 
-Index update (2026-03-18):
+Index update (2026-03-19):
 - phase status:
   - feature 1 Art Pulse: completed
   - feature 2 Exhibition Search: completed
@@ -513,9 +513,9 @@ Index update (2026-03-18):
     - type1 image-attached implemented set (derived index): transient visual observation via in-memory image payload only, no persist/vectorize/RAG-mix, observation-first answer weighting, asked-mode alignment, display/describe/reference mode salvage, non-reference proper-noun suppression, and grounded reference only as secondary support when needed
   - advisor type2:
     - text-only -> image generation lane is accepted
+    - image-attached -> image generation lane is accepted after image-attached smoke success
     - fixed runtime is `gpt-image-1` / `low` / `1024x1024` / `1 image`
-    - current prompt build keeps medium fidelity and visual-nucleus-first ordering
-    - image-attached -> image generation lane remains pending validation/smoke and is the next validation/tuning target inside Feature 4
+    - current prompt build keeps medium fidelity and visual-nucleus-first ordering, including the visual nucleus tiny fix
 - current/history rebaseline: completed (A2-A9)
   - storage scaffold in `data/current/enrichment/` and `data/history/enrichment/{artists,exhibitions}/`
   - writer contract: history timestamp write first, then current fixed-name promotion only when batch evidence + rerun-guard evidence are present for bulk apply
@@ -530,8 +530,9 @@ Index update (2026-03-18):
     - exhibitions enrichment current output
     - artists enrichment current output
   - evidence refs/source refs are shown from read-only outputs
-  - lane operation note: type1 text-only and image-attached lanes are now tiny-fix-only on regression recurrence; type2 text-only accepted scope stays stable while image-attached -> image generation is validated next
+  - lane operation note: type1 text-only and image-attached lanes are now tiny-fix-only on regression recurrence; type2 text-only and image-attached -> image generation lanes are accepted for the current scope, and future handling is major-regression-only tiny fix.
+  - follow-up note: Advisor follow-up is session-only, no persistence, and keeps reference refresh lightweight via fixed-core + dynamic-refresh rather than full re-grounding.
 
 Next (from STATE/NEXT):
-- A17_PHASE4_ADVISOR_TYPE2_IMAGE_ATTACHED_TO_IMAGE_GENERATION_SMOKE_01
+- A12_PHASE5_EXCLUSIVE_ADVISOR_KICKOFF_01
 
