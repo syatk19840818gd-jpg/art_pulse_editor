@@ -514,7 +514,7 @@ Index update (2026-03-19):
   - advisor type2:
     - text-only -> image generation lane is accepted
     - image-attached -> image generation lane is accepted after image-attached smoke success
-    - fixed runtime is `gpt-image-1` / `low` / `1024x1024` / `1 image`
+    - fixed runtime is `gpt-image-1` / `low` / `auto` / `1 image`
     - current prompt build keeps medium fidelity and visual-nucleus-first ordering, including the visual nucleus tiny fix
 - current/history rebaseline: completed (A2-A9)
   - storage scaffold in `data/current/enrichment/` and `data/history/enrichment/{artists,exhibitions}/`
@@ -531,7 +531,7 @@ Index update (2026-03-19):
     - artists enrichment current output
   - evidence refs/source refs are shown from read-only outputs
   - lane operation note: type1 text-only and image-attached lanes are now tiny-fix-only on regression recurrence; type2 text-only and image-attached -> image generation lanes are accepted for the current scope, and future handling is major-regression-only tiny fix.
-  - follow-up note: Advisor follow-up is session-only, no persistence, and keeps reference refresh lightweight via fixed-core + dynamic-refresh rather than full re-grounding.
+  - follow-up note: Advisor follow-up is session-only, no persistence, keeps reference refresh lightweight via fixed-core + dynamic-refresh rather than full re-grounding, and uses Q-numbering plus initial/follow-up input clear and uploader clear inside session UI only.
 
 Next (from STATE/NEXT):
 - A12_PHASE5_EXCLUSIVE_ADVISOR_KICKOFF_01

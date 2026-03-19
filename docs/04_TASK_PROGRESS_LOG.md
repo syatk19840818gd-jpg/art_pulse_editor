@@ -5160,3 +5160,18 @@ _trash 運用方針:
 - not done:
   - no code/data/app behavior changes in this docs sync.
   - no claim beyond the accepted/current-scope behavior already implemented in repo.
+
+## 2026-03-19 TASK317 DOC_SYNC_PHASE4_ADVISOR_COMPLETE_POST_A17_TO_A32_01
+- scope: docs-only sync for Feature 4 Advisor after post-A17 type2 acceptance, UI cleanup completion, and follow-up/session UX stabilization (01/02/03/04 only).
+- result:
+  - Feature 4 Advisor type1 text-only and image-attached text-question lanes remain completed/locked and tiny-fix-only on regression recurrence.
+  - Feature 4 Advisor type2 text-only -> image generation and image-attached -> image generation are accepted for the current scope.
+  - current accepted type2 runtime in code/docs is `gpt-image-1` / `low` / `auto` / `1 image`.
+  - accepted type2 progression is summarized as: gate uses truncated grounded text, model drift correction, `gpt-image-1 + low` adoption, medium/format fidelity tuning, visual nucleus tiny fix, and accepted image-generation result placement/UX cleanup.
+  - Advisor UI cleanup is now recorded as complete for the current scope: fair/select plus image-generation checkbox alignment, uploader-note removal, debug panels hidden by flag, compact single generated-image view, fullscreen-icon removal, reset/progress handling, fair-filter warning fix, reference cards unified with search UI, scrollable long summaries, generated-image placement above reference examples, success green-bar removal, and failure message retention.
+  - follow-up is recorded as session-only with no persistence (no R2/file/DB/JSON/CSV writes), using fixed anchor + compressed memory + latest one-turn context, Q1/Q2 numbering, no A-lines, normalized output cleanup, length tuning around ~700 chars, linebreak render preservation, partial re-grounding via fixed-core + dynamic reference refresh, and effective_fair root-fix for the refresh path.
+  - initial/follow-up input clear is accepted in UI behavior, and initial image-attached questions now clear the uploader after send while showing an attachment meta label (`添付画像: file_name / size`) under Q1 when present.
+  - Feature 4 Advisor is treated as accepted/completed for the current scope, and the next roadmap priority remains `A12_PHASE5_EXCLUSIVE_ADVISOR_KICKOFF_01`.
+- not done:
+  - no code/data/app behavior changes in this docs sync.
+  - no claim beyond the accepted/current-scope behavior already implemented in repo.

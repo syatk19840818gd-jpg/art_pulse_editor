@@ -1825,6 +1825,27 @@ def _ensure_advisor_followup_base_state(question_text: str, context: dict, draft
     st.session_state["advisor_followup_reference_images"] = dict(draft.get("reference_images") or {})
 
 
+def _format_uploaded_file_size(size_bytes: int) -> str:
+    size = max(0, int(size_bytes or 0))
+    if size >= 1024 * 1024:
+        value = round(size / (1024 * 1024), 1)
+        return f"{value:.1f}MB"
+    if size >= 1024:
+        return f"{int(round(size / 1024))}KB"
+    return f"{size}B"
+
+
+def _build_advisor_uploaded_image_label(uploaded_image_payload: dict | None) -> str:
+    if not isinstance(uploaded_image_payload, dict):
+        return ""
+    name = str(uploaded_image_payload.get("name") or "").strip()
+    raw_bytes = uploaded_image_payload.get("bytes")
+    if not name:
+        return ""
+    size_label = _format_uploaded_file_size(len(raw_bytes) if isinstance(raw_bytes, (bytes, bytearray)) else 0)
+    return f"添付画像:{name}/{size_label}"
+
+
 def _build_advisor_followup_prompt(base_payload: dict, memory_summary: str, turns: list[dict], new_question: str) -> str:
     previous_turn = turns[-1] if turns else {}
     include_full_base = not turns
@@ -1957,15 +1978,23 @@ def render_advisor() -> None:
     reset_requested_key = "advisor_reset_requested"
     question_clear_input_key = "advisor_question_clear_input_requested"
     followup_clear_input_key = "advisor_followup_clear_input_requested"
+    uploaded_image_clear_key = "advisor_uploaded_image_clear_requested"
+    uploaded_image_nonce_key = "advisor_uploaded_image_nonce"
     if st.session_state.pop(question_clear_input_key, False):
         st.session_state["advisor_question_text"] = ""
     if st.session_state.pop(followup_clear_input_key, False):
         st.session_state["advisor_followup_input"] = ""
+    if st.session_state.pop(uploaded_image_clear_key, False):
+        current_nonce = int(st.session_state.get(uploaded_image_nonce_key, 0) or 0)
+        st.session_state.pop(f"advisor_uploaded_image_{current_nonce}", None)
+        st.session_state[uploaded_image_nonce_key] = current_nonce + 1
     if st.session_state.pop(reset_requested_key, False):
+        current_nonce = int(st.session_state.get(uploaded_image_nonce_key, 0) or 0)
         st.session_state.pop("advisor_fair_filter", None)
         st.session_state.pop("advisor_wants_image_generation", None)
         st.session_state.pop("advisor_question_text", None)
-        st.session_state.pop("advisor_uploaded_image", None)
+        st.session_state.pop(f"advisor_uploaded_image_{current_nonce}", None)
+        st.session_state[uploaded_image_nonce_key] = current_nonce + 1
         st.session_state.pop("advisor_context", None)
         st.session_state.pop("advisor_selection", None)
         st.session_state.pop("advisor_draft", None)
@@ -1980,6 +2009,7 @@ def render_advisor() -> None:
         st.session_state.pop("advisor_followup_turns", None)
         st.session_state.pop("advisor_followup_last_question", None)
         st.session_state.pop("advisor_followup_last_answer", None)
+        st.session_state.pop("advisor_followup_base_image_label", None)
         st.session_state.pop("advisor_followup_reference_core_context", None)
         st.session_state.pop("advisor_followup_reference_dynamic_context", None)
         st.session_state.pop("advisor_followup_reference_examples", None)
@@ -2009,10 +2039,11 @@ def render_advisor() -> None:
         placeholder="例: 素材の選び方を教えて。",
     )
     effective_fair = str(fair_mode or FAIR_OPTIONS[0])
+    uploader_key = f"advisor_uploaded_image_{int(st.session_state.get(uploaded_image_nonce_key, 0) or 0)}"
     uploaded_image = st.file_uploader(
         "画像添付（テキスト+画像添付で質問可）",
         type=["png", "jpg", "jpeg", "webp"],
-        key="advisor_uploaded_image",
+        key=uploader_key,
     )
     upload_valid = False
     uploaded_image_payload = None
@@ -2111,7 +2142,9 @@ def render_advisor() -> None:
                 st.session_state["advisor_type2_preview"] = type2_preview
             else:
                 st.session_state["advisor_type2_preview"] = None
+            st.session_state["advisor_followup_base_image_label"] = _build_advisor_uploaded_image_label(uploaded_image_payload)
             st.session_state[question_clear_input_key] = True
+            st.session_state[uploaded_image_clear_key] = True
             st.rerun()
         except Exception as exc:
             status_slot.empty()
@@ -2194,6 +2227,9 @@ def render_advisor() -> None:
     )
     if initial_question_label:
         st.caption(f"Q1: {initial_question_label}")
+    initial_uploaded_image_label = str(st.session_state.get("advisor_followup_base_image_label") or "").strip()
+    if initial_uploaded_image_label:
+        st.caption(initial_uploaded_image_label)
     _render_markdown_with_galleries(
         str(draft.get("answer", "")),
         {"by_source": {}, "by_image_url": {}},

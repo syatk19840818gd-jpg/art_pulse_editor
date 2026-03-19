@@ -13,7 +13,7 @@ STREAMLIT_ENTRYPOINT（固定）
 - Local run: streamlit run app.py
 
 SOURCE_SSOT: 01_PROJECT_SPEC_CURRENT_FULL.docx
-LAST_UPDATED: 2026-03-19 18:35 JST
+LAST_UPDATED: 2026-03-19 22:10 JST
 
 
 ========================
@@ -87,9 +87,9 @@ STATE_SNAPSHOT（現在地）
     - type1 image-attached text question lane is completed/locked
     - type1 text-only lane achieved set: selected/reference split, fixed prose helper ban, generic intent focus, same-focus ranking tuning, caption/page-description suppression, fragment guard, grounded enrichment, and OpenAI-path suppression for `anchor > 0` snippet-only outputs
     - type1 image-attached lane achieved set: transient visual observation via in-memory image payload only, no persist/vectorize/RAG-mix, observation-first answer weighting, asked-mode alignment, display/describe/reference recovery, and grounded reference only as secondary support when needed
-    - follow-up note: session-only only, no persistence, fixed anchor + compressed memory + latest one-turn context, Q1/Q2 numbering, refreshed references by fixed-core + dynamic-refresh, and debug panels hidden by flag
+    - follow-up note: session-only only, no persistence, fixed anchor + compressed memory + latest one-turn context, Q1/Q2 numbering, refreshed references by fixed-core + dynamic-refresh, initial/follow-up input clear plus uploader clear, attachment meta label under Q1 when present, and debug panels hidden by flag
     - operational note: type1 lanes are tiny-fix-only on regression recurrence
-  - type2 status: text-only -> image generation is accepted; image-attached -> image generation is accepted after smoke success, both on fixed runtime `gpt-image-1` / `low` / `1024x1024` / `1 image`
+  - type2 status: text-only -> image generation is accepted; image-attached -> image generation is accepted after smoke success, both on current fixed runtime `gpt-image-1` / `low` / `auto` / `1 image`
   - current/history rebaseline phase: completed (A2-A9)
   - Immediate priority: A12_PHASE5_EXCLUSIVE_ADVISOR_KICKOFF_01
   - current state note: Feature 4 Advisor is accepted/completed for the current scope; future handling is major-regression-only tiny fix while roadmap focus moves to Feature 5
@@ -260,11 +260,11 @@ NEXT_TASKS（次回やること）
 
 [x] 315) A17_PHASE4_ADVISOR_TYPE2_IMAGE_ATTACHED_TO_IMAGE_GENERATION_SMOKE_01 (done)
     - scope: validate and tune Feature 4 Advisor type2 for image-attached -> image generation while keeping accepted text-only -> image generation behavior stable
-    - completion evidence: image-attached -> image generation smoke succeeded, accepted runtime stays `gpt-image-1` / `low` / `1024x1024` / `1 image`, and current medium-fidelity / visual-nucleus ordering remained stable
+    - completion evidence: image-attached -> image generation smoke succeeded, accepted runtime stays `gpt-image-1` / `low` / `auto` / `1 image`, and current medium-fidelity / visual-nucleus ordering remained stable
 
 [ ] 307) A12_PHASE5_EXCLUSIVE_ADVISOR_KICKOFF_01 (top priority)
     - scope: kickoff for Feature 5 Exclusive Advisor after Feature 4 Advisor completion/acceptance sync
-    - current assumption: Feature 4 is accepted/completed for the current scope; only major-regression tiny fixes should reopen it
+    - current assumption: Feature 4 is accepted/completed for the current scope; only major-regression tiny fixes should reopen it, including follow-up/session UI regressions only when they materially affect accepted behavior
     - goal: move roadmap focus from Feature 4 maintenance to Feature 5 design/execution start
 
 [x] 228) Exhibitions Image completion closure memo（完了）
