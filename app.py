@@ -1,5 +1,7 @@
 ﻿import os
 import re
+import ast
+import json
 import mimetypes
 from base64 import b64encode
 from html import escape
@@ -14,7 +16,14 @@ except Exception:
 from phase2_art_pulse_config import PERSONAS
 from phase2_art_pulse_draft import generate_art_pulse_draft
 from phase2_art_pulse_readonly import build_art_pulse_overview
-from phase2_advisor_draft import ADVISOR_TEXT_MAX_CHARS, generate_advisor_grounded_draft
+from phase2_advisor_draft import (
+    ADVISOR_TEXT_MAX_CHARS,
+    _build_visual_observation_digest,
+    _ensure_natural_ending,
+    _ensure_plain_answer_text,
+    _normalize_answer_text,
+    generate_advisor_grounded_draft,
+)
 from phase2_advisor_readonly import build_advisor_grounded_context
 from phase2_advisor_type2_execute import run_type2_gated_image_generation
 from phase2_exclusive_advisor_draft import (
@@ -1568,12 +1577,296 @@ def render_artist_search() -> None:
     )
 
 
+
+def _clip_compact_text(text: object, max_chars: int = 280) -> str:
+    cleaned = re.sub(r"\s+", " ", str(text or "")).strip()
+    if not cleaned:
+        return ""
+    if len(cleaned) <= max_chars:
+        return cleaned
+    return cleaned[: max_chars - 3].rstrip() + "..."
+
+
+def _unwrap_followup_answer_text(raw_output: object) -> str:
+    if isinstance(raw_output, dict):
+        raw = str(raw_output.get("answer") or "").strip()
+    else:
+        raw = str(raw_output or "").strip()
+    if not raw:
+        return ""
+
+    candidates = [raw]
+    fence_match = re.search(r"```(?:json)?\s*([\s\S]*?)```", raw, re.IGNORECASE)
+    if fence_match:
+        candidates.insert(0, fence_match.group(1).strip())
+    brace_match = re.search(r"\{[\s\S]*\}", raw)
+    if brace_match:
+        candidates.insert(0, brace_match.group(0).strip())
+
+    parsed_payload = None
+    for candidate in candidates:
+        for parser in (json.loads, ast.literal_eval):
+            try:
+                parsed = parser(candidate)
+            except Exception:
+                continue
+            if isinstance(parsed, dict):
+                parsed_payload = parsed
+                break
+            if isinstance(parsed, str) and parsed.strip():
+                parsed_payload = {"answer": parsed}
+                break
+        if parsed_payload is not None:
+            break
+
+    if isinstance(parsed_payload, dict):
+        answer_text = str(parsed_payload.get("answer") or "").strip()
+    else:
+        answer_text = raw
+
+    if raw and raw.lstrip().startswith("{") and '"answer"' in raw:
+        answer_field = re.search(r'"answer"\s*:\s*"([\s\S]*)', raw)
+        if answer_field:
+            answer_text = answer_field.group(1).strip() or answer_text
+
+    answer_text = (
+        answer_text.replace(r"\r\n", "\n")
+        .replace(r"\n\n", "\n\n")
+        .replace(r"\n", "\n")
+        .replace(r"\r", "\n")
+        .replace(r'\"', '"')
+    )
+    answer_text = re.sub(r'"\s*,\s*"memory_summary"\s*:\s*"[\s\S]*$', "", answer_text).strip()
+    answer_text = re.sub(r'"\s*\}\s*$', "", answer_text).strip()
+    answer_text = _ensure_plain_answer_text(answer_text)
+    if not answer_text:
+        fallback = re.sub(r"^```(?:json)?\s*|\s*```$", "", raw, flags=re.IGNORECASE).strip()
+        fallback = (
+            fallback.replace(r"\r\n", "\n")
+            .replace(r"\n\n", "\n\n")
+            .replace(r"\n", "\n")
+            .replace(r"\r", "\n")
+            .replace(r'\"', '"')
+        )
+        fallback = re.sub(r'^\s*\{\s*"answer"\s*:\s*', "", fallback).strip()
+        fallback = re.sub(r'"\s*,\s*"memory_summary"\s*:\s*"[\s\S]*$', "", fallback).strip()
+        fallback = re.sub(r'"\s*\}\s*$', "", fallback).strip()
+        answer_text = _ensure_plain_answer_text(fallback) or fallback
+    answer_text = _normalize_answer_text(answer_text)
+    answer_text = re.sub(r"^\s*-\s*$", "", answer_text, flags=re.MULTILINE)
+    answer_text = re.sub(r"^\s*-\s+", "", answer_text)
+    return answer_text.strip()
+
+
+def _finalize_followup_answer_text(text: object, soft_limit: int = 850) -> str:
+    cleaned = _normalize_answer_text(_unwrap_followup_answer_text(text))
+    if not cleaned:
+        return ""
+    if len(cleaned) > soft_limit:
+        truncated = cleaned[:soft_limit]
+        sentence_ends = [truncated.rfind(mark) for mark in ("。", "！", "？", ".", "!", "?")]
+        cut = max(sentence_ends)
+        if cut >= max(soft_limit // 2, 80):
+            cleaned = truncated[: cut + 1].strip()
+        else:
+            newline_cut = max(truncated.rfind("\n\n"), truncated.rfind("\n- "), truncated.rfind("\n"))
+            if newline_cut >= max(soft_limit // 2, 80):
+                cleaned = truncated[:newline_cut].strip()
+            else:
+                cleaned = truncated.rstrip(" 、,;:-—・")
+    cleaned = re.sub(r"\n-\s*$", "", cleaned).strip()
+    cleaned = _ensure_natural_ending(cleaned)
+    cleaned = _normalize_answer_text(cleaned)
+    return cleaned.strip()
+
+def _sentence_compact_summary(text: object, max_chars: int = 260, max_sentences: int = 3) -> str:
+    cleaned = _clip_compact_text(
+        re.sub(r"!?\[[^\]]*\]\([^)]*\)", "", str(text or "")),
+        max_chars=max_chars * 3,
+    )
+    if not cleaned:
+        return ""
+    parts = [
+        part.strip()
+        for part in re.split(r"(?<=[\u3002\uff01\uff1f!?])\s*", cleaned)
+        if part.strip()
+    ]
+    selected: list[str] = []
+    total = ""
+    for part in parts:
+        candidate = (" ".join(selected + [part])).strip()
+        if len(candidate) > max_chars and selected:
+            break
+        selected.append(part)
+        total = candidate
+        if len(selected) >= max_sentences:
+            break
+    return total or _clip_compact_text(cleaned, max_chars=max_chars)
+
+
+def _build_advisor_followup_base_payload(question_text: str, context: dict, draft: dict) -> dict:
+    reference_examples = [
+        _clip_compact_text(line, 120)
+        for line in list(draft.get("reference_examples", []) or [])[:4]
+        if str(line or "").strip()
+    ]
+    urls = draft.get("evidence_urls", {}) if isinstance(draft, dict) else {}
+    all_urls = []
+    for url in list(urls.get("exhibition", []) or []) + list(urls.get("artist", []) or []):
+        val = str(url or "").strip()
+        if not val or val in all_urls:
+            continue
+        all_urls.append(val)
+        if len(all_urls) >= 6:
+            break
+    visual_summary = _clip_compact_text(
+        _build_visual_observation_digest((context or {}).get("visual_observation", {})),
+        max_chars=280,
+    )
+    base_answer = str((draft or {}).get("answer") or "").strip()
+    return {
+        "base_question": str(question_text or "").strip(),
+        "base_answer": base_answer,
+        "base_summary": _sentence_compact_summary(base_answer, max_chars=260, max_sentences=3),
+        "base_entities": reference_examples,
+        "base_urls": all_urls,
+        "base_visual_summary": visual_summary,
+    }
+
+
+def _ensure_advisor_followup_base_state(question_text: str, context: dict, draft: dict) -> None:
+    payload = _build_advisor_followup_base_payload(question_text, context, draft)
+    st.session_state["advisor_followup_base_question"] = payload["base_question"]
+    st.session_state["advisor_followup_base_answer"] = payload["base_answer"]
+    st.session_state["advisor_followup_base_summary"] = payload["base_summary"]
+    st.session_state["advisor_followup_base_entities"] = payload["base_entities"]
+    st.session_state["advisor_followup_base_urls"] = payload["base_urls"]
+    st.session_state["advisor_followup_base_visual_summary"] = payload["base_visual_summary"]
+    st.session_state["advisor_followup_memory_summary"] = ""
+    st.session_state["advisor_followup_turns"] = []
+    st.session_state["advisor_followup_last_question"] = ""
+    st.session_state["advisor_followup_last_answer"] = ""
+
+
+def _build_advisor_followup_prompt(base_payload: dict, memory_summary: str, turns: list[dict], new_question: str) -> str:
+    previous_turn = turns[-1] if turns else {}
+    include_full_base = not turns
+    base_entities = [
+        str(item or "").strip()
+        for item in list(base_payload.get("base_entities", []) or [])
+        if str(item or "").strip()
+    ]
+    base_urls = [
+        str(item or "").strip()
+        for item in list(base_payload.get("base_urls", []) or [])
+        if str(item or "").strip()
+    ]
+    visual_summary = str(base_payload.get("base_visual_summary") or "").strip()
+    base_answer = str(base_payload.get("base_answer") or "").strip()
+    base_summary = str(base_payload.get("base_summary") or "").strip()
+    previous_q = str(previous_turn.get("question") or "").strip()
+    previous_a = str(previous_turn.get("answer") or "").strip()
+    sections = [
+        "You are answering a Japanese follow-up question for an existing Advisor conversation.",
+        "Keep continuity with the initial answer, but answer the new question directly.",
+        "Do not restate the whole conversation.",
+        "Use the initial anchor as canonical context.",
+        "If an initial image observation summary exists, use it only as remembered context. Do not pretend to re-read the image.",
+        'Output JSON only: {"answer":"...","memory_summary":"..."}',
+        "The answer must be natural Japanese prose.",
+        "Aim for about 700 Japanese characters, with a soft range around 550-850 characters.",
+        "Prefer one clear line of development over listing many options.",
+        "Keep bullets to a minimum unless the user's question clearly requires a list.",
+        "The memory_summary must be a short Japanese memo (about 120-220 chars) capturing decided direction, avoided directions, focal points, and unresolved points for the next follow-up.",
+        "Avoid inventing facts or references.",
+        "",
+        "Fixed anchor:",
+        f"- Initial question: {base_payload.get('base_question') or '-'}",
+        f"- Initial answer summary: {base_summary or '-'}",
+    ]
+    if include_full_base and base_answer:
+        sections.append(f"- Initial answer full text: {_clip_compact_text(base_answer, max_chars=1200)}")
+    if base_entities:
+        sections.append(f"- Main references: {' / '.join(base_entities)}")
+    if base_urls:
+        sections.append(f"- Main URLs: {' | '.join(base_urls)}")
+    if visual_summary:
+        sections.append(f"- Initial image observation summary: {visual_summary}")
+    sections.extend([
+        "",
+        "Compressed memory:",
+        memory_summary if str(memory_summary or '').strip() else "- none yet",
+        "",
+        "Latest one-turn context:",
+    ])
+    if previous_q and previous_a:
+        sections.append(f"- Previous follow-up question: {previous_q}")
+        sections.append(f"- Previous follow-up answer: {_clip_compact_text(previous_a, max_chars=480)}")
+    else:
+        sections.append("- none yet")
+    sections.extend([
+        "",
+        "Current follow-up question:",
+        str(new_question or "").strip(),
+    ])
+    return "\n".join(sections).strip()
+
+
+def _extract_followup_response_payload(raw_output: str, fallback_memory_summary: str) -> dict:
+    raw = str(raw_output or "").strip()
+    payload = None
+    candidates = [raw]
+    matched = re.search(r"\{[\s\S]*\}", raw)
+    if matched:
+        candidates.insert(0, matched.group(0))
+    for candidate in candidates:
+        for parser in (json.loads, ast.literal_eval):
+            try:
+                parsed = parser(candidate)
+            except Exception:
+                continue
+            if isinstance(parsed, dict):
+                payload = parsed
+                break
+        if isinstance(payload, dict):
+            break
+    if not isinstance(payload, dict):
+        return {
+            "answer": _finalize_followup_answer_text(_unwrap_followup_answer_text(raw)),
+            "memory_summary": str(fallback_memory_summary or "").strip(),
+        }
+    return {
+        "answer": _finalize_followup_answer_text(_unwrap_followup_answer_text(payload.get("answer") or raw)),
+        "memory_summary": _clip_compact_text(
+            payload.get("memory_summary") or fallback_memory_summary,
+            max_chars=260,
+        ),
+    }
+
+
+def _run_advisor_followup_turn(base_payload: dict, memory_summary: str, turns: list[dict], new_question: str) -> dict:
+    api_key = os.getenv("OPENAI_API_KEY", "").strip()
+    if not api_key:
+        raise RuntimeError("OPENAI_API_KEY is not configured")
+    from openai import OpenAI
+
+    client = OpenAI(api_key=api_key)
+    model = os.getenv("TEXT_MODEL", "gpt-5-mini")
+    prompt = _build_advisor_followup_prompt(base_payload, memory_summary, turns, new_question)
+    response = client.responses.create(model=model, input=prompt, max_output_tokens=900)
+    output_text = str(getattr(response, "output_text", "") or "")
+    return _extract_followup_response_payload(output_text, memory_summary)
+
+
 def render_advisor() -> None:
     _render_mode_heading("Advisor")
     _render_mode_explanation(
         "フェア文脈アドバイザー（type 1中心 / 必要時のみ画像生成）"
     )
     reset_requested_key = "advisor_reset_requested"
+    followup_clear_input_key = "advisor_followup_clear_input_requested"
+    if st.session_state.pop(followup_clear_input_key, False):
+        st.session_state.pop("advisor_followup_input", None)
     if st.session_state.pop(reset_requested_key, False):
         st.session_state.pop("advisor_fair_filter", None)
         st.session_state.pop("advisor_wants_image_generation", None)
@@ -1583,6 +1876,18 @@ def render_advisor() -> None:
         st.session_state.pop("advisor_selection", None)
         st.session_state.pop("advisor_draft", None)
         st.session_state.pop("advisor_type2_preview", None)
+        st.session_state.pop("advisor_followup_base_question", None)
+        st.session_state.pop("advisor_followup_base_answer", None)
+        st.session_state.pop("advisor_followup_base_summary", None)
+        st.session_state.pop("advisor_followup_base_entities", None)
+        st.session_state.pop("advisor_followup_base_urls", None)
+        st.session_state.pop("advisor_followup_base_visual_summary", None)
+        st.session_state.pop("advisor_followup_memory_summary", None)
+        st.session_state.pop("advisor_followup_turns", None)
+        st.session_state.pop("advisor_followup_last_question", None)
+        st.session_state.pop("advisor_followup_last_answer", None)
+        st.session_state.pop("advisor_followup_input", None)
+        st.session_state.pop(followup_clear_input_key, None)
 
     col1, col2 = st.columns([3, 2])
     fair_mode = col1.selectbox(
@@ -1690,6 +1995,7 @@ def render_advisor() -> None:
             )
             _render_advisor_progress(68)
             st.session_state["advisor_draft"] = draft_type1
+            _ensure_advisor_followup_base_state(question_text, context, draft_type1)
             broad_meta = dict(draft_type1.get("broad_diversity_meta") or {})
             if broad_meta:
                 broad_meta["fair_mode"] = effective_fair
@@ -1729,6 +2035,13 @@ def render_advisor() -> None:
     if not draft:
         return
 
+    if not st.session_state.get("advisor_followup_base_question"):
+        _ensure_advisor_followup_base_state(
+            str(selection.get("question_text") or question_text or ""),
+            context,
+            draft,
+        )
+
     advisor_reference_images = dict(draft.get("reference_images") or {})
     advisor_reference_rows = list(advisor_reference_images.get("all", []) or [])
 
@@ -1754,6 +2067,75 @@ def render_advisor() -> None:
         str(draft.get("answer", "")),
         {"by_source": {}, "by_image_url": {}},
     )
+    followup_turns = list(st.session_state.get("advisor_followup_turns", []) or [])
+    followup_memory_summary = str(st.session_state.get("advisor_followup_memory_summary") or "")
+    base_payload = {
+        "base_question": str(st.session_state.get("advisor_followup_base_question") or ""),
+        "base_answer": str(st.session_state.get("advisor_followup_base_answer") or ""),
+        "base_summary": str(st.session_state.get("advisor_followup_base_summary") or ""),
+        "base_entities": list(st.session_state.get("advisor_followup_base_entities", []) or []),
+        "base_urls": list(st.session_state.get("advisor_followup_base_urls", []) or []),
+        "base_visual_summary": str(st.session_state.get("advisor_followup_base_visual_summary") or ""),
+    }
+    if followup_turns:
+        for idx, turn in enumerate(followup_turns, start=1):
+            question_label = _clip_compact_text(turn.get("question"), max_chars=220)
+            if question_label:
+                st.caption(f"Q{idx}: {question_label}")
+            _render_markdown_with_galleries(
+                str(turn.get("answer") or ""),
+                {"by_source": {}, "by_image_url": {}},
+            )
+    st.markdown("**追加質問**")
+    followup_question = st.text_input(
+        "追加質問",
+        value="",
+        key="advisor_followup_input",
+        label_visibility="collapsed",
+        placeholder="例: さっきの方向で、もう少し素材の選び方だけ絞って教えてください。",
+    )
+    followup_run = st.button("深掘りする", key="advisor_followup_run")
+    followup_status_slot = st.empty()
+    if followup_run:
+        if not followup_question.strip():
+            st.warning("追加質問を入力してください。")
+        else:
+            followup_status_slot.markdown(
+                (
+                    '<div class="ap-progress-row">'
+                    '<span class="ap-progress-spinner"></span>'
+                    "<span>深掘り中...</span>"
+                    "</div>"
+                ),
+                unsafe_allow_html=True,
+            )
+            try:
+                followup_result = _run_advisor_followup_turn(
+                    base_payload=base_payload,
+                    memory_summary=followup_memory_summary,
+                    turns=followup_turns,
+                    new_question=followup_question,
+                )
+                followup_answer = str(followup_result.get("answer") or "").strip()
+                if not followup_answer:
+                    raise ValueError("empty_followup_answer")
+                updated_turns = (
+                    followup_turns
+                    + [{"question": followup_question.strip(), "answer": followup_answer}]
+                )[-3:]
+                st.session_state["advisor_followup_turns"] = updated_turns
+                st.session_state["advisor_followup_last_question"] = followup_question.strip()
+                st.session_state["advisor_followup_last_answer"] = followup_answer
+                st.session_state["advisor_followup_memory_summary"] = str(
+                    followup_result.get("memory_summary") or followup_memory_summary
+                ).strip()
+                st.session_state[followup_clear_input_key] = True
+                st.rerun()
+            except Exception as exc:
+                followup_status_slot.empty()
+                st.error("追加質問の生成中にエラーが発生しました。しばらくしてから再実行してください。")
+                if ADVISOR_UI_SHOW_DEBUG:
+                    st.code(f"{type(exc).__name__}: {exc}")
     reference_examples = list(draft.get("reference_examples", []) or [])
     if reference_examples:
         st.markdown("**参照例**")
