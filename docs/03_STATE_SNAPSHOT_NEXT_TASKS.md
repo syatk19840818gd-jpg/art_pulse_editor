@@ -13,7 +13,7 @@ STREAMLIT_ENTRYPOINT（固定）
 - Local run: streamlit run app.py
 
 SOURCE_SSOT: 01_PROJECT_SPEC_CURRENT_FULL.docx
-LAST_UPDATED: 2026-03-17 18:04 JST
+LAST_UPDATED: 2026-03-18 11:12 JST
 
 
 ========================
@@ -88,15 +88,15 @@ STATE_SNAPSHOT（現在地）
     - type1 text-only lane achieved set: selected/reference split, fixed prose helper ban, generic intent focus, same-focus ranking tuning, caption/page-description suppression, fragment guard, grounded enrichment, and OpenAI-path suppression for `anchor > 0` snippet-only outputs
     - type1 image-attached lane achieved set: transient visual observation via in-memory image payload only, no persist/vectorize/RAG-mix, observation-first answer weighting, asked-mode alignment, display/describe/reference recovery, and grounded reference only as secondary support when needed
     - operational note: both type1 lanes are tiny-fix-only on regression recurrence
-  - type2 status: connected, not yet validated/accepted, and is the next validation/tuning target inside Feature 4
+  - type2 status: text-only -> image generation is accepted; image-attached -> image generation remains pending validation/tuning and is the next target inside Feature 4
   - current/history rebaseline phase: completed (A2-A9)
-  - Immediate priority: A12_PHASE4_ADVISOR_TYPE2_SUCCESS_PATH_SMOKE_WHEN_ENV_READY_01
-  - current state note: Feature 4 type1 is now locked for normal roadmap progress, but Feature 4 overall remains open until type2 image-generation validation/tuning is accepted; Feature 5 follows after that
+  - Immediate priority: A17_PHASE4_ADVISOR_TYPE2_IMAGE_ATTACHED_TO_IMAGE_GENERATION_SMOKE_01
+  - current state note: Feature 4 type1 is locked, type2 text-only -> image generation is now accepted, and Feature 4 overall remains open only because image-attached -> image generation still needs validation/tuning before Feature 5
   - enrichment requests policy note: runtime-path switch is applied and verify verdict is GO (`data/runtime/enrichment_requests/...` active, `_completed` archive lane, `_reports` audit lane); keep/delete remains evidence-gated
 - NOTE: keep this current-goal line updated whenever phase priority changes.
 - Fixed master roadmap alignment (from SSOT 01):
   - 5 RAG categories (Tarutani_Text / Artist Works Images / Artist Text / Exhibitions Image / Exhibitions Text) are established at 10-gallery operational scope
-  - App features status: 1/2 completed, 3 incident-closed (residual=0), 4 type1 text-only lane completed/locked + type1 image-attached text-question lane completed/locked; type2 remains connected and pending validation/tuning inside Feature 4
+  - App features status: 1/2 completed, 3 incident-closed (residual=0), 4 type1 text-only lane completed/locked + type1 image-attached text-question lane completed/locked; type2 text-only -> image generation is accepted and image-attached -> image generation remains pending inside Feature 4
   - Mandatory pre-Advisor phase (current/history canonical rebaseline) is completed and fixed in roadmap
   - Role split: current=day-to-day canonical / history=audit archive / R2=primary persistent sync target for current / local=current fallback
   - app/read-only must read current first
@@ -257,9 +257,13 @@ NEXT_TASKS（次回やること）
     - completion evidence: in-memory visual observation, observation-first weighting, asked-mode alignment, and real-image human eval for describe/display/reference are accepted
     - note: no persist, no vectorize, no RAG-mix; future handling is tiny-fix-only on regression recurrence
 
-[ ] 307) A12_PHASE5_EXCLUSIVE_ADVISOR_KICKOFF_01 (after 306)
+[ ] 315) A17_PHASE4_ADVISOR_TYPE2_IMAGE_ATTACHED_TO_IMAGE_GENERATION_SMOKE_01 (top priority)
+    - scope: validate and tune Feature 4 Advisor type2 for image-attached -> image generation while keeping accepted text-only -> image generation behavior stable
+    - acceptance target: keep `gpt-image-1` / `low` / `1024x1024` / `1 image`, confirm image-attached success-path smoke, and decide whether any tiny fix is needed
+
+[ ] 307) A12_PHASE5_EXCLUSIVE_ADVISOR_KICKOFF_01 (after 315)
     - scope: kickoff for Feature 5 Exclusive Advisor after Feature 4 Advisor type1 lane stabilization
-    - current assumption: Feature 4 type1 text-only / image-attached lanes are completed/locked, and type2 remains secondary / non-blocking
+    - current assumption: Feature 4 type1 lanes are completed/locked, type2 text-only -> image generation is accepted, and image-attached -> image generation must be closed first
     - goal: move roadmap focus from Feature 4 tiny-fix-only maintenance to Feature 5 design/execution start
 
 [x] 228) Exhibitions Image completion closure memo（完了）
@@ -361,8 +365,9 @@ NEXT_TASKS（次回やること）
 [x] 313) VERIFY_ENRICHMENT_REQUESTS_RUNTIME_PATH_AND_RETENTION_POLICY_01 (GO)
     - scope: verified runtime-path consistency (generate/read/apply), legacy path detach, migration-report/file integrity, and retention helper safety (synthetic keep/allow checks)
 
-[ ] 306) A12_PHASE4_ADVISOR_TYPE2_SUCCESS_PATH_SMOKE_WHEN_ENV_READY_01 (top priority)
-    - scope: run Advisor checkbox ON success-path smoke when API/billing environment allows (confirm generated image + image_rationale, keep type1-primary + fail-soft)
+[x] 306) A12_PHASE4_ADVISOR_TYPE2_SUCCESS_PATH_SMOKE_WHEN_ENV_READY_01 (done for text-only lane)
+    - scope: validate the Feature 4 Advisor type2 success path for text-only -> image generation without regressing type1
+    - completion evidence: accepted runtime is `gpt-image-1` / `low` / `1024x1024` / `1 image`, prompt fidelity and visual nucleus tiny fix are in place, and text-only image generation is accepted across painting / installation / photograph
 
 
 [x] 1) ギャラリーリストCSVを repo に配置してコミットする（完了）

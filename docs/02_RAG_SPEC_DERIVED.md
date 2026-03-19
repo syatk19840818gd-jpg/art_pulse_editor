@@ -501,7 +501,7 @@ SSOT source:
 - 01 section 8 (Phase 2 milestones)
 - 01 section 5-8 (sync model: current/history/R2/local fallback)
 
-Index update (2026-03-17):
+Index update (2026-03-18):
 - phase status:
   - feature 1 Art Pulse: completed
   - feature 2 Exhibition Search: completed
@@ -511,7 +511,11 @@ Index update (2026-03-17):
     - type1 image-attached text-question lane is completed/locked
     - type1 text-only implemented set (derived index): selected/reference entity split, fixed prose helper ban, generic intent focus, same-focus ranking tuning, caption/page-description suppression, fragment guard, grounded enrichment, and OpenAI-path snippet-only suppression when anchor > 0
     - type1 image-attached implemented set (derived index): transient visual observation via in-memory image payload only, no persist/vectorize/RAG-mix, observation-first answer weighting, asked-mode alignment, display/describe/reference mode salvage, non-reference proper-noun suppression, and grounded reference only as secondary support when needed
-  - advisor type2: connected in app flow, not yet validated/accepted as a completion target, and remains the next validation/tuning target inside Feature 4
+  - advisor type2:
+    - text-only -> image generation lane is accepted
+    - fixed runtime is `gpt-image-1` / `low` / `1024x1024` / `1 image`
+    - current prompt build keeps medium fidelity and visual-nucleus-first ordering
+    - image-attached -> image generation lane remains pending validation/smoke and is the next validation/tuning target inside Feature 4
 - current/history rebaseline: completed (A2-A9)
   - storage scaffold in `data/current/enrichment/` and `data/history/enrichment/{artists,exhibitions}/`
   - writer contract: history timestamp write first, then current fixed-name promotion only when batch evidence + rerun-guard evidence are present for bulk apply
@@ -526,8 +530,8 @@ Index update (2026-03-17):
     - exhibitions enrichment current output
     - artists enrichment current output
   - evidence refs/source refs are shown from read-only outputs
-  - lane operation note: type1 text-only and image-attached lanes are now tiny-fix-only on regression recurrence; no broad redesign planned
+  - lane operation note: type1 text-only and image-attached lanes are now tiny-fix-only on regression recurrence; type2 text-only accepted scope stays stable while image-attached -> image generation is validated next
 
 Next (from STATE/NEXT):
-- A12_PHASE4_ADVISOR_TYPE2_SUCCESS_PATH_SMOKE_WHEN_ENV_READY_01
+- A17_PHASE4_ADVISOR_TYPE2_IMAGE_ATTACHED_TO_IMAGE_GENERATION_SMOKE_01
 

@@ -5111,8 +5111,10 @@ _trash 運用方針:
   - roadmap priority is moved forward to `A12_PHASE5_EXCLUSIVE_ADVISOR_KICKOFF_01`, while Feature 4 type1 stays tiny-fix-only and type2 remains connected/secondary rather than newly declared complete.
 - not done:
   - no code/data/app behavior changes.
-  - no statement that Feature 4 Advisor as a whole or type2 is fully complete.
-
+  - no statement that Feature 4 Advisor as a whole or type2 is fully complete.
+
+
+
 
 ## 2026-03-17 TASK314 DOCS_CORRECTION_AFTER_ADVISOR_TYPE1_COMPLETION
 - scope: docs-only correction after Feature 4 Advisor type1 completion sync (01/02/03/04).
@@ -5124,3 +5126,19 @@ _trash 運用方針:
 - not done:
   - no code/data/app behavior changes.
   - no rollback of the accepted type1 lane completion state.
+
+
+## 2026-03-18 TASK315 DOC_SYNC_PHASE4_ADVISOR_TYPE2_ACCEPT_TEXT_ONLY_PENDING_IMAGE_ATTACHED_01
+- scope: docs-only sync for the latest accepted/pending split inside Feature 4 Advisor type2 (01/02/03/04 only).
+- result:
+  - Feature 4 Advisor type1 text-only and image-attached text-question lanes remain completed/locked and tiny-fix-only on regression recurrence.
+  - Feature 4 Advisor type2 text-only -> image generation lane is now recorded as accepted.
+  - accepted runtime is fixed in docs as `gpt-image-1` / `low` / `1024x1024` / `1 image`.
+  - accepted text-only type2 progression is summarized in docs as: gate uses truncated grounded text, model/cost drift is fixed to SSOT, `gpt-image-1` low experiment is accepted, medium-fidelity tuning is in place, and the visual nucleus tiny fix is applied.
+  - text-only image generation is recorded as accepted across painting / installation / photograph; one installation fail-soft occurred during iteration but a rerun succeeded, so it is not recorded as a persistent blocker.
+  - Feature 4 overall remains open because image-attached -> image generation is still pending validation/smoke.
+  - immediate priority is moved to `A17_PHASE4_ADVISOR_TYPE2_IMAGE_ATTACHED_TO_IMAGE_GENERATION_SMOKE_01`; Feature 5 returns to the post-Feature-4 position.
+- not done:
+  - no code/data/app behavior changes.
+  - image-attached -> image generation is not declared accepted.
+  - Feature 4 Advisor as a whole is not declared fully complete.

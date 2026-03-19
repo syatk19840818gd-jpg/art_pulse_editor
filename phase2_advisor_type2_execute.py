@@ -68,19 +68,25 @@ def _compress_visual_direction(question_text: str, grounded_answer: str, primary
         lower = sentence.lower()
         score = 0
         medium_hits = _count_hint_hits(lower, medium_hints)
+        visual_hits = _count_hint_hits(lower, _TYPE2_VISUAL_HINTS)
+        operational_hits = _count_hint_hits(lower, _TYPE2_OPERATIONAL_HINTS)
         if medium_hits:
-            score += 5 * medium_hits
-        if any(h.lower() in lower for h in _TYPE2_VISUAL_HINTS):
-            score += 2
-        if any(h.lower() in lower for h in _TYPE2_OPERATIONAL_HINTS):
-            score -= 3
+            score += 6 * medium_hits
+        if visual_hits:
+            score += 3 * min(visual_hits, 3)
+        if operational_hits:
+            score -= 5 * operational_hits
         if source_kind == "question":
-            score += 2
+            score += 3
+        elif not visual_hits:
+            score -= 2
         for medium, hints in _TYPE2_MEDIUM_HINTS.items():
             if medium != primary_medium and _count_hint_hits(lower, hints):
-                score -= 3
+                score -= 4
         if len(sentence) < 8:
             score -= 1
+        if len(sentence) > 160:
+            score -= 2
         if score > 0:
             scored.append((score, sentence, source_kind))
     scored.sort(key=lambda item: (-item[0], 0 if item[2] == "question" else 1))
@@ -89,14 +95,54 @@ def _compress_visual_direction(question_text: str, grounded_answer: str, primary
     for _, sentence, _ in scored:
         if sentence in selected:
             continue
-        if total + len(sentence) > 360 and selected:
+        if total + len(sentence) > 260 and selected:
             continue
         selected.append(sentence)
         total += len(sentence)
-        if len(selected) >= 4:
+        if len(selected) >= 3:
             break
     if not selected:
         selected = question_sentences[:1] + grounded_sentences[:1]
+    return " ".join(selected).strip()
+
+
+def _compress_secondary_concepts(question_text: str, grounded_answer: str, primary_medium: str, visual_core: str) -> str:
+    medium_hints = _TYPE2_MEDIUM_HINTS.get(primary_medium, ())
+    grounded_sentences = [s.strip() for s in re.split(r"(?<=[。.!?])\s+|\n+", grounded_answer or "") if s.strip()]
+    visual_sentences = {s.strip() for s in re.split(r"(?<=[。.!?])\s+|\n+", visual_core or "") if s.strip()}
+    scored = []
+    for sentence in grounded_sentences:
+        if sentence in visual_sentences:
+            continue
+        lower = sentence.lower()
+        visual_hits = _count_hint_hits(lower, _TYPE2_VISUAL_HINTS)
+        operational_hits = _count_hint_hits(lower, _TYPE2_OPERATIONAL_HINTS)
+        medium_hits = _count_hint_hits(lower, medium_hints)
+        score = 0
+        if operational_hits:
+            score -= 4 * operational_hits
+        if medium_hits:
+            score += 2 * medium_hits
+        if visual_hits:
+            score -= visual_hits
+        if 16 <= len(sentence) <= 140:
+            score += 2
+        if sentence and sentence in question_text:
+            score += 1
+        if score > 0:
+            scored.append((score, sentence))
+    scored.sort(key=lambda item: -item[0])
+    selected = []
+    total = 0
+    for _, sentence in scored:
+        if sentence in selected:
+            continue
+        if total + len(sentence) > 160 and selected:
+            continue
+        selected.append(sentence)
+        total += len(sentence)
+        if len(selected) >= 2:
+            break
     return " ".join(selected).strip()
 
 
@@ -158,6 +204,7 @@ def _build_type2_image_prompt(
     )
     primary_medium = _infer_type2_primary_medium(question_text, grounded_answer)
     visual_core = _compress_visual_direction(question_text, grounded_answer, primary_medium)
+    secondary_concepts = _compress_secondary_concepts(question_text, grounded_answer, primary_medium, visual_core)
     medium_guidance = _build_medium_focus_guidance(primary_medium)
     medium_label = primary_medium or "unspecified"
 
@@ -174,9 +221,10 @@ def _build_type2_image_prompt(
         f"User question: {question_text[:1200]}\n"
         f"Primary medium / format to preserve: {medium_label}\n"
         f"Medium fidelity rule: {medium_guidance}\n"
-        f"Visual core from grounded text: {visual_core[:900]}\n"
-        f"Exhibition hints: {ex_hint}\n"
-        f"Artist hints: {ar_hint}\n"
+        f"Visual nucleus: {visual_core[:700]}\n"
+        f"Secondary concept hints: {(secondary_concepts or 'Keep any remaining conceptual context secondary to the visible nucleus.')[:260]}\n"
+        f"Exhibition hints (secondary): {ex_hint}\n"
+        f"Artist hints (secondary): {ar_hint}\n"
         f"Attachment hint: {attachment_hint}\n"
         "Output: one contemporary concept image that keeps the requested medium/format explicit and visually readable."
     )

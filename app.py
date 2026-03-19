@@ -55,6 +55,7 @@ MODE_HEADING_FONT_SIZE_PX = 30
 EXPLANATION_OF_MODES_FONT_SIZE_PX = 15
 IMAGE_MARKDOWN_RE = re.compile(r"!\[(?P<alt>[^\]]*)\]\((?P<url>[^)]+)\)")
 SOURCE_LINE_RE = re.compile(r"^Source:\s*<(?P<url>[^>]+)>\s*$")
+ADVISOR_UI_SHOW_DEBUG = False
 
 
 def apply_global_font_styles() -> None:
@@ -130,6 +131,29 @@ def apply_global_font_styles() -> None:
           background-color: #ffffff !important;
           border: 1px solid #d9dbe2 !important;
           border-radius: 12px !important;
+        }
+        .advisor-toggle-spacer {
+          height: 2.1rem;
+        }
+        .advisor-generated-image-wrap {
+          display: flex;
+          justify-content: center;
+          margin: 0.25rem 0 0.35rem 0;
+        }
+        .advisor-generated-image-link {
+          display: block;
+          width: min(100%, 560px);
+          text-decoration: none;
+        }
+        .advisor-generated-image-link img {
+          display: block;
+          width: 100%;
+          height: auto;
+          max-height: 68vh;
+          object-fit: contain;
+          border-radius: 10px;
+          border: 1px solid #d9dbe2;
+          background: #f6f8fb;
         }
         .stApp [data-testid="stMarkdownContainer"],
         .stApp [data-testid="stCaptionContainer"],
@@ -357,6 +381,11 @@ def apply_global_font_styles() -> None:
           line-height: 1.55;
           color: #111111;
           margin: 0;
+          max-height: 15.5rem;
+          overflow-y: auto;
+          overflow-x: hidden;
+          padding-right: 0.22rem;
+          scrollbar-gutter: stable;
         }
         .artist-search-scroll,
         .exh-results-scroll {
@@ -386,23 +415,25 @@ def apply_global_font_styles() -> None:
         .artist-search-scroll .exh-search-card,
         .exh-results-scroll .exh-search-card {
           flex: 0 0 clamp(300px, 26vw, 460px);
-          height: 640px;
+          height: 590px;
           overflow: hidden;
         }
         .advisor-ref-scroll .exh-search-card {
           flex: 0 0 clamp(300px, 26vw, 460px);
-          height: auto;
-          overflow: visible;
-        }
-        .advisor-ref-scroll .exh-search-thumb,
-        .advisor-ref-scroll .exh-search-fallback {
-          min-height: 280px;
-          max-height: 280px;
+          height: 590px;
+          overflow: hidden;
         }
         .artist-search-scroll .exh-search-summary {
-          overflow: visible;
+          overflow-y: auto;
+          overflow-x: hidden;
           display: block;
-          max-height: none;
+          max-height: 15.5rem;
+        }
+        .advisor-ref-scroll .advisor-ref-artist-card .exh-search-summary {
+          overflow-y: auto;
+          overflow-x: hidden;
+          display: block;
+          max-height: 15.5rem;
         }
         .artist-search-thumb-row {
           display: grid;
@@ -428,6 +459,10 @@ def apply_global_font_styles() -> None:
           background: #f6f8fb;
         }
         .artist-search-scroll .exh-search-fallback {
+          min-height: 140px;
+          max-height: 140px;
+        }
+        .advisor-ref-scroll .advisor-ref-artist-card .exh-search-fallback {
           min-height: 140px;
           max-height: 140px;
         }
@@ -480,7 +515,9 @@ def apply_global_font_styles() -> None:
           .exh-results-scroll .exh-search-summary {
             display: block;
             -webkit-line-clamp: unset;
-            max-height: none;
+            max-height: 12rem;
+            overflow-y: auto;
+            overflow-x: hidden;
           }
           .artist-search-scroll .exh-search-card {
             flex-basis: 84vw;
@@ -491,18 +528,26 @@ def apply_global_font_styles() -> None:
           .artist-search-scroll .exh-search-summary {
             display: block;
             -webkit-line-clamp: unset;
-            max-height: none;
+            max-height: 12rem;
+            overflow-y: auto;
+            overflow-x: hidden;
+          }
+          .advisor-ref-scroll .advisor-ref-artist-card .exh-search-summary {
+            display: block;
+            -webkit-line-clamp: unset;
+            max-height: 12rem;
+            overflow-y: auto;
+            overflow-x: hidden;
           }
           .advisor-ref-scroll .exh-search-card {
             flex-basis: 84vw;
             height: auto;
-            min-height: 0;
+            min-height: 600px;
             overflow: visible;
           }
-          .advisor-ref-scroll .exh-search-thumb,
-          .advisor-ref-scroll .exh-search-fallback {
-            min-height: 240px;
-            max-height: 240px;
+          .advisor-ref-scroll .advisor-ref-artist-card .exh-search-fallback {
+            min-height: 110px;
+            max-height: 110px;
           }
         }
         </style>
@@ -822,59 +867,130 @@ def _render_markdown_with_galleries(markdown_text: str, local_lookup: dict[str, 
             _render_responsive_image_gallery(payload, local_lookup)
 
 
+def _build_exhibition_card_html(row: dict, idx: int) -> str:
+    title = escape(str(row.get("exhibition_title") or "(untitled)"))
+    source_url = str(row.get("source_url") or "").strip()
+    safe_src = escape(source_url, quote=True)
+    summary = escape(str(row.get("summary_display_ja") or "\u672a\u4ed8\u4e0e"))
+
+    image_url = str(row.get("image_direct_url") or "").strip()
+    if not image_url:
+        image_url = _presign_r2_get_url(str(row.get("image_preview_r2_key") or ""))
+    if not image_url:
+        image_url = _local_image_path_to_data_uri(str(row.get("image_preview") or ""))
+    if not image_url:
+        reference_images = list(row.get("reference_images") or [])
+        if reference_images:
+            ref0 = reference_images[0] or {}
+            image_url = _presign_r2_get_url(str(ref0.get("r2_key") or ""))
+            if not image_url:
+                image_url = _local_image_path_to_data_uri(str(ref0.get("local_path") or ""))
+            if not image_url:
+                image_url = str(ref0.get("image_url") or "").strip()
+
+    if image_url:
+        safe_img = escape(image_url, quote=True)
+        image_html = (
+            f'<a class="exh-search-thumb" href="{safe_img}" target="_blank" rel="noopener noreferrer" '
+            f'title="\u753b\u50cf\u3092\u62e1\u5927\u8868\u793a" '
+            f'style="background-image:url(\'{safe_img}\');'
+            'background-size:contain;background-position:center center;'
+            'background-repeat:no-repeat;"></a>'
+        )
+    else:
+        image_html = (
+            '<div class="exh-search-fallback">'
+            "\u53c2\u8003\u753b\u50cf\u306f\u672a\u53d6\u5f97\u3067\u3059\u3002<br>"
+            "Source\u304b\u3089\u78ba\u8a8d\u3067\u304d\u307e\u3059\u3002"
+            "</div>"
+        )
+
+    source_html = (
+        f'<p class="exh-search-source">Source: <a href="{safe_src}" '
+        f'target="_blank" rel="noopener noreferrer">{safe_src}</a></p>'
+        if source_url
+        else '<p class="exh-search-source">Source: (not available)</p>'
+    )
+
+    return (
+        '<div class="exh-search-card advisor-ref-exhibition-card">'
+        f'<p class="exh-search-title">{idx}. {title}</p>'
+        f"{image_html}"
+        f"{source_html}"
+        f'<p class="exh-search-summary">{summary}</p>'
+        "</div>"
+    )
+
+
+def _build_artist_card_html(row: dict, idx: int) -> str:
+    artist_name = str(row.get("artist_name") or "(untitled)").strip()
+    artist_name_kana = str(row.get("artist_name_kana") or "").strip()
+    title = escape(
+        f"{artist_name}（{artist_name_kana}）" if artist_name_kana else artist_name
+    )
+    gallery = escape(str(row.get("gallery_name") or row.get("gallery") or "").strip())
+    fair = escape(str(row.get("fair_label") or "").strip())
+    source_url = str(row.get("source_url") or "").strip()
+    safe_src = escape(source_url, quote=True)
+    summary = escape(str(row.get("summary_display_ja") or "\u672a\u4ed8\u4e0e"))
+
+    preview_urls: list[str] = []
+    preview_candidates = list(row.get("artist_image_preview_candidates") or [])[:ARTIST_SEARCH_THUMB_FROM_ARTIST]
+    for candidate in preview_candidates:
+        candidate_r2 = str(candidate.get("r2_key") or "").strip()
+        candidate_local = str(candidate.get("local_path") or "").strip()
+        candidate_url = str(candidate.get("image_url") or "").strip()
+        resolved = _presign_r2_get_url(candidate_r2) if candidate_r2 else ""
+        if not resolved and candidate_local:
+            resolved = _local_image_path_to_data_uri(candidate_local)
+        if not resolved and candidate_url:
+            resolved = candidate_url
+        if resolved:
+            preview_urls.append(resolved)
+
+    if preview_urls:
+        image_html = '<div class="artist-search-thumb-row">' + "".join(
+            (
+                f'<a class="artist-search-thumb" href="{escape(url, quote=True)}" '
+                f'target="_blank" rel="noopener noreferrer" title="\u753b\u50cf\u3092\u62e1\u5927\u8868\u793a">'
+                f'<img src="{escape(url, quote=True)}" alt="{title}" loading="lazy" /></a>'
+            )
+            for url in preview_urls
+        ) + "</div>"
+    else:
+        image_html = (
+            '<div class="exh-search-fallback">'
+            "\u53c2\u8003\u753b\u50cf\u306f\u672a\u53d6\u5f97\u3067\u3059\u3002<br>"
+            "Source\u304b\u3089\u78ba\u8a8d\u3067\u304d\u307e\u3059\u3002"
+            "</div>"
+        )
+
+    meta_html = ""
+    if gallery or fair:
+        meta_text = " / ".join([item for item in [gallery, fair] if item])
+        meta_html = f'<p class="exh-search-source">{meta_text}</p>'
+    source_html = (
+        f'<p class="exh-search-source">Source: <a href="{safe_src}" '
+        f'target="_blank" rel="noopener noreferrer">{safe_src}</a></p>'
+        if source_url
+        else '<p class="exh-search-source">Source: (not available)</p>'
+    )
+
+    return (
+        '<div class="exh-search-card advisor-ref-artist-card">'
+        f'<p class="exh-search-title">{idx}. {title}</p>'
+        f"{image_html}"
+        f"{meta_html}"
+        f"{source_html}"
+        f'<p class="exh-search-summary">{summary}</p>'
+        "</div>"
+    )
+
+
 def _render_exhibition_result_cards(rows: list[dict]) -> None:
     cards: list[str] = []
     for idx, row in enumerate(rows, start=1):
-        title = escape(str(row.get("exhibition_title") or "(untitled)"))
-        source_url = str(row.get("source_url") or "").strip()
-        safe_src = escape(source_url, quote=True)
-        summary = escape(str(row.get("summary_display_ja") or "\u672a\u4ed8\u4e0e"))
-
-        image_url = _presign_r2_get_url(str(row.get("image_preview_r2_key") or ""))
-        if not image_url:
-            image_url = _local_image_path_to_data_uri(str(row.get("image_preview") or ""))
-        if not image_url:
-            reference_images = list(row.get("reference_images") or [])
-            if reference_images:
-                ref0 = reference_images[0] or {}
-                image_url = _presign_r2_get_url(str(ref0.get("r2_key") or ""))
-                if not image_url:
-                    image_url = _local_image_path_to_data_uri(str(ref0.get("local_path") or ""))
-
-        if image_url:
-            safe_img = escape(image_url, quote=True)
-            image_html = (
-                f'<a class="exh-search-thumb" href="{safe_img}" target="_blank" rel="noopener noreferrer" '
-                f'title="\u753b\u50cf\u3092\u62e1\u5927\u8868\u793a" '
-                f'style="background-image:url(\'{safe_img}\');'
-                'background-size:contain;background-position:center center;'
-                'background-repeat:no-repeat;"></a>'
-            )
-        else:
-            image_html = (
-                '<div class="exh-search-fallback">'
-                "\u53c2\u8003\u753b\u50cf\u306f\u672a\u53d6\u5f97\u3067\u3059\u3002<br>"
-                "Source\u304b\u3089\u78ba\u8a8d\u3067\u304d\u307e\u3059\u3002"
-                "</div>"
-            )
-
-        source_html = (
-            f'<p class="exh-search-source">Source: <a href="{safe_src}" '
-            f'target="_blank" rel="noopener noreferrer">{safe_src}</a></p>'
-            if source_url
-            else '<p class="exh-search-source">Source: (not available)</p>'
-        )
-
-        cards.append(
-            (
-                '<div class="exh-search-card">'
-                f'<p class="exh-search-title">{idx}. {title}</p>'
-                f"{image_html}"
-                f"{source_html}"
-                f'<p class="exh-search-summary">{summary}</p>'
-                "</div>"
-            )
-        )
+        cards.append(_build_exhibition_card_html(row, idx))
 
     if cards:
         st.markdown(f'<div class="exh-results-scroll">{"".join(cards)}</div>', unsafe_allow_html=True)
@@ -883,75 +999,10 @@ def _render_exhibition_result_cards(rows: list[dict]) -> None:
 def _render_artist_result_cards(rows: list[dict]) -> None:
     cards: list[str] = []
     for idx, row in enumerate(rows, start=1):
-        artist_name = str(row.get("artist_name") or "(untitled)").strip()
-        artist_name_kana = str(row.get("artist_name_kana") or "").strip()
-        title = escape(
-            f"{artist_name}（{artist_name_kana}）" if artist_name_kana else artist_name
-        )
-        gallery = escape(str(row.get("gallery_name") or "").strip())
-        fair = escape(str(row.get("fair_label") or "").strip())
-        source_url = str(row.get("source_url") or "").strip()
-        safe_src = escape(source_url, quote=True)
-        summary = escape(
-            str(
-                row.get("summary_display_ja")
-                or build_artist_summary_ja(row, max_chars=ARTIST_SEARCH_SUMMARY_MAX_CHARS)
-            )
-        )
-
-        preview_urls: list[str] = []
-        preview_candidates = list(row.get("artist_image_preview_candidates") or [])[:ARTIST_SEARCH_THUMB_FROM_ARTIST]
-        for candidate in preview_candidates:
-            candidate_r2 = str(candidate.get("r2_key") or "").strip()
-            candidate_local = str(candidate.get("local_path") or "").strip()
-            candidate_url = str(candidate.get("image_url") or "").strip()
-            resolved = _presign_r2_get_url(candidate_r2) if candidate_r2 else ""
-            if not resolved and candidate_local:
-                resolved = _local_image_path_to_data_uri(candidate_local)
-            if not resolved and candidate_url:
-                resolved = candidate_url
-            if resolved:
-                preview_urls.append(resolved)
-
-        if preview_urls:
-            image_html = '<div class="artist-search-thumb-row">' + "".join(
-                (
-                    f'<a class="artist-search-thumb" href="{escape(url, quote=True)}" '
-                    f'target="_blank" rel="noopener noreferrer" title="画像を拡大表示">'
-                    f'<img src="{escape(url, quote=True)}" alt="{title}" loading="lazy" /></a>'
-                )
-                for url in preview_urls
-            ) + "</div>"
-        else:
-            image_html = (
-                '<div class="exh-search-fallback">'
-                "参考画像は未取得です。<br>"
-                "Sourceから確認できます。"
-                "</div>"
-            )
-
-        meta_html = ""
-        if gallery or fair:
-            meta_text = " / ".join([item for item in [gallery, fair] if item])
-            meta_html = f'<p class="exh-search-source">{meta_text}</p>'
-        source_html = (
-            f'<p class="exh-search-source">Source: <a href="{safe_src}" '
-            f'target="_blank" rel="noopener noreferrer">{safe_src}</a></p>'
-            if source_url
-            else '<p class="exh-search-source">Source: (not available)</p>'
-        )
-
-        cards.append(
-            (
-                '<div class="exh-search-card">'
-                f'<p class="exh-search-title">{idx}. {title}</p>'
-                f"{image_html}"
-                f"{meta_html}"
-                f"{source_html}"
-                f'<p class="exh-search-summary">{summary}</p>'
-                "</div>"
-            )
-        )
+        row_copy = dict(row)
+        if not row_copy.get("summary_display_ja"):
+            row_copy["summary_display_ja"] = build_artist_summary_ja(row, max_chars=ARTIST_SEARCH_SUMMARY_MAX_CHARS)
+        cards.append(_build_artist_card_html(row_copy, idx))
 
     if cards:
         st.markdown(f'<div class="artist-search-scroll">{"".join(cards)}</div>', unsafe_allow_html=True)
@@ -1026,15 +1077,97 @@ def _render_reference_image_candidates(
     target_total: int = 8,
     empty_message: str = "参考画像候補はありません。",
     compact_advisor_cards: bool = False,
+    show_title: bool = True,
+    show_summary: bool = True,
+    show_empty_message: bool = True,
+    evidence_context: dict | None = None,
 ) -> None:
+    def _match_advisor_reference_evidence(item: dict) -> dict:
+        if not isinstance(evidence_context, dict):
+            return {}
+        kind = str(item.get("kind") or "").strip()
+        label = str(item.get("label") or "").strip()
+        source_url = str(item.get("source_url") or "").strip()
+        if kind == "artist":
+            for row in list(evidence_context.get("artist_evidence", []) or []):
+                if source_url and str(row.get("source_url") or "").strip() != source_url:
+                    continue
+                if label and str(row.get("artist_name") or "").strip() != label:
+                    continue
+                return dict(row)
+            return {}
+        for row in list(evidence_context.get("exhibition_evidence", []) or []):
+            if source_url and str(row.get("source_url") or "").strip() != source_url:
+                continue
+            if label and str(row.get("title") or "").strip() != label:
+                continue
+            return dict(row)
+        return {}
+
     def _render_reference_image_cards(items: list[dict]) -> None:
         cards: list[str] = []
         for idx, item in enumerate(items, start=1):
+            kind = str(item.get("kind") or "").strip()
+            if compact_advisor_cards and evidence_context:
+                matched_row = _match_advisor_reference_evidence(item)
+                if kind == "artist":
+                    preview_candidates = list(matched_row.get("artist_image_preview_candidates") or [])
+                    if not preview_candidates:
+                        preview_candidates = [{
+                            "local_path": str(item.get("local_path") or "").strip(),
+                            "r2_key": str(item.get("r2_key") or "").strip(),
+                            "image_url": str(item.get("image_url") or "").strip(),
+                        }]
+                    artist_summary = str(
+                        matched_row.get("summary_ja")
+                        or matched_row.get("headline_ja")
+                        or matched_row.get("text")
+                        or ""
+                    ).strip()
+                    if not artist_summary and matched_row:
+                        artist_summary = build_artist_summary_ja(
+                            matched_row,
+                            max_chars=ARTIST_SEARCH_SUMMARY_MAX_CHARS,
+                        )
+                    artist_row = {
+                        "artist_name": str(item.get("label") or "").strip(),
+                        "artist_name_kana": str(matched_row.get("artist_name_kana") or item.get("artist_name_kana") or "").strip(),
+                        "gallery_name": str(matched_row.get("gallery") or item.get("gallery") or "").strip(),
+                        "gallery": str(matched_row.get("gallery") or item.get("gallery") or "").strip(),
+                        "fair_label": str(matched_row.get("fair_label") or item.get("fair_label") or "").strip(),
+                        "source_url": str(item.get("source_url") or matched_row.get("source_url") or "").strip(),
+                        "summary_display_ja": artist_summary,
+                        "artist_image_preview_candidates": preview_candidates,
+                    }
+                    cards.append(_build_artist_card_html(artist_row, idx))
+                else:
+                    exhibition_summary = str(
+                        matched_row.get("summary_ja")
+                        or matched_row.get("headline_ja")
+                        or matched_row.get("text")
+                        or ""
+                    ).strip()
+                    if not exhibition_summary and matched_row:
+                        exhibition_summary = build_exhibition_summary_ja(
+                            matched_row,
+                            max_chars=EXHIBITION_SEARCH_SUMMARY_MAX_CHARS,
+                        )
+                    exhibition_row = {
+                        "exhibition_title": str(item.get("label") or "").strip(),
+                        "source_url": str(item.get("source_url") or matched_row.get("source_url") or "").strip(),
+                        "summary_display_ja": exhibition_summary,
+                        "image_preview_r2_key": str(matched_row.get("image_preview_r2_key") or item.get("r2_key") or "").strip(),
+                        "image_preview": str(matched_row.get("image_preview") or item.get("local_path") or "").strip(),
+                        "image_direct_url": str(item.get("image_url") or "").strip(),
+                    }
+                    cards.append(_build_exhibition_card_html(exhibition_row, idx))
+                continue
+
             source_url = str(item.get("source_url") or "").strip()
             gallery = escape(str(item.get("gallery") or "").strip())
-            kind = "Artist" if str(item.get("kind") or "").strip() == "artist" else "Exhibition"
+            kind_label = "Artist" if kind == "artist" else "Exhibition"
             entity_label = escape(str(item.get("label") or "").strip())
-            title_text = " / ".join([part for part in [kind, entity_label or gallery] if part]) or kind
+            title_text = " / ".join([part for part in [kind_label, entity_label or gallery] if part]) or kind_label
 
             image_ref = _resolve_art_pulse_image_ref(item, {"by_source": {}, "by_image_url": {}})
             r2_url = _presign_r2_get_url(str(image_ref.get("r2_key") or ""))
@@ -1085,21 +1218,51 @@ def _render_reference_image_candidates(
     rows = []
     if isinstance(reference_images, dict):
         rows = list(reference_images.get("all", []) or [])
-    st.markdown(f"**{title}**")
-    summary = {
-        "目安": target_total,
-        "参考画像候補件数": len(rows),
-    }
-    if isinstance(reference_images, dict):
-        if "target_exhibition_images" in reference_images:
-            summary["目安(Exhibition)"] = reference_images.get("target_exhibition_images")
-        if "target_artist_images" in reference_images:
-            summary["目安(Artist)"] = reference_images.get("target_artist_images")
-    st.write(summary)
+    if show_title and title:
+        st.markdown(f"**{title}**")
+    if show_summary:
+        summary = {
+            "目安": target_total,
+            "参考画像候補件数": len(rows),
+        }
+        if isinstance(reference_images, dict):
+            if "target_exhibition_images" in reference_images:
+                summary["目安(Exhibition)"] = reference_images.get("target_exhibition_images")
+            if "target_artist_images" in reference_images:
+                summary["目安(Artist)"] = reference_images.get("target_artist_images")
+        st.write(summary)
     if rows:
         _render_reference_image_cards(rows[:8])
-    else:
+    elif show_empty_message:
         st.info(empty_message)
+
+
+def _render_compact_generated_image(image_source, caption: str = "AI generated") -> None:
+    if isinstance(image_source, (bytes, bytearray)):
+        raw = bytes(image_source)
+        mime = "image/png"
+        if raw.startswith(b"\xff\xd8"):
+            mime = "image/jpeg"
+        elif raw.startswith(b"RIFF") and raw[8:12] == b"WEBP":
+            mime = "image/webp"
+        image_href = f"data:{mime};base64,{b64encode(raw).decode('ascii')}"
+    else:
+        image_href = str(image_source or "").strip()
+
+    if not image_href:
+        return
+
+    st.markdown(
+        (
+            '<div class="advisor-generated-image-wrap">'
+            f'<a class="advisor-generated-image-link" href="{escape(image_href, quote=True)}" '
+            'target="_blank" rel="noopener noreferrer" title="画像を拡大表示">'
+            f'<img src="{escape(image_href, quote=True)}" alt="{escape(caption, quote=True)}">'
+            "</a>"
+            "</div>"
+        ),
+        unsafe_allow_html=True,
+    )
 
 
 def render_art_pulse() -> None:
@@ -1410,19 +1573,31 @@ def render_advisor() -> None:
     _render_mode_explanation(
         "フェア文脈アドバイザー（type 1中心 / 必要時のみ画像生成）"
     )
+    reset_requested_key = "advisor_reset_requested"
+    if st.session_state.pop(reset_requested_key, False):
+        st.session_state.pop("advisor_fair_filter", None)
+        st.session_state.pop("advisor_wants_image_generation", None)
+        st.session_state.pop("advisor_question_text", None)
+        st.session_state.pop("advisor_uploaded_image", None)
+        st.session_state.pop("advisor_context", None)
+        st.session_state.pop("advisor_selection", None)
+        st.session_state.pop("advisor_draft", None)
+        st.session_state.pop("advisor_type2_preview", None)
 
-    col1, col2 = st.columns([1, 1])
+    col1, col2 = st.columns([3, 2])
     fair_mode = col1.selectbox(
         "フェア選択",
         FAIR_OPTIONS,
         index=2,
         key="advisor_fair_filter",
     )
-    wants_image_generation = col2.checkbox(
-        "画像生成を希望する（利用条件あり）",
-        value=False,
-        key="advisor_wants_image_generation",
-    )
+    with col2:
+        st.markdown('<div class="advisor-toggle-spacer"></div>', unsafe_allow_html=True)
+        wants_image_generation = st.checkbox(
+            "画像生成を希望する（利用条件あり）",
+            value=False,
+            key="advisor_wants_image_generation",
+        )
 
     question_text = st.text_area(
         "相談内容（制作したい作品の概要や悩み）",
@@ -1438,15 +1613,14 @@ def render_advisor() -> None:
     )
     upload_valid = False
     uploaded_image_payload = None
-    upload_note = "添付画像なし。"
     if uploaded_image is not None:
         try:
             raw = uploaded_image.getvalue()
             mime = str(getattr(uploaded_image, "type", "") or "")
             if not raw:
-                upload_note = "添付画像を読み込めなかったため、画像なしとして処理します。"
+                uploaded_image_payload = None
             elif mime and not mime.startswith("image/"):
-                upload_note = "添付ファイルが画像形式ではないため、画像なしとして処理します。"
+                uploaded_image_payload = None
             else:
                 upload_valid = True
                 uploaded_image_payload = {
@@ -1454,19 +1628,31 @@ def render_advisor() -> None:
                     "mime_type": mime or mimetypes.guess_type(str(uploaded_image.name or ""))[0] or "image/png",
                     "name": str(uploaded_image.name or ""),
                 }
-                upload_note = f"添付画像: {uploaded_image.name}（保存しない / ベクトル化しない / RAG混入なし）"
         except Exception:
-            upload_note = "添付画像の読み込みに失敗したため、画像なしとして処理します。"
+            uploaded_image_payload = None
 
-    st.caption(upload_note)
-    if wants_image_generation:
-        st.info("画像補助は type 1（本文＋根拠）を基に実行します。利用できない場合は本文と根拠のみ表示します。")
-
+    st.caption("相談内容を入力して「Advisor を実行」を押すと、type 1回答と根拠を表示します。")
     run = st.button("Advisor を実行", key="advisor_run")
+    if st.button("リセット", key="advisor_reset_button"):
+        st.session_state[reset_requested_key] = True
+        st.rerun()
+    status_slot = st.empty()
     if run:
         if not question_text.strip():
             st.warning("相談内容を入力してください。")
             return
+
+        def _render_advisor_progress(pct: int) -> None:
+            safe_pct = max(0, min(99, int(pct)))
+            status_slot.markdown(
+                (
+                    '<div class="ap-progress-row">'
+                    '<span class="ap-progress-spinner"></span>'
+                    f"<span>{escape(f'{safe_pct}%')}</span>"
+                    "</div>"
+                ),
+                unsafe_allow_html=True,
+            )
 
         effective_fair = fair_mode
         rotation_key = f"{effective_fair}::{question_text.strip().casefold()}"
@@ -1477,12 +1663,14 @@ def render_advisor() -> None:
         broad_history = list(st.session_state.get("advisor_broad_query_history", []) or [])
         recent_broad_history = [item for item in broad_history if str(item.get("fair_mode") or "") == effective_fair][-8:]
         try:
+            _render_advisor_progress(8)
             context = build_advisor_grounded_context(
                 fair_label=effective_fair,
                 question_text=question_text,
                 rotation_index=rotation_index,
                 recent_broad_history=recent_broad_history,
             )
+            _render_advisor_progress(34)
             st.session_state["advisor_context"] = context
             st.session_state["advisor_selection"] = {
                 "fair": effective_fair,
@@ -1500,6 +1688,7 @@ def render_advisor() -> None:
                 uploaded_image_name=(uploaded_image.name if uploaded_image is not None else ""),
                 uploaded_image_payload=uploaded_image_payload,
             )
+            _render_advisor_progress(68)
             st.session_state["advisor_draft"] = draft_type1
             broad_meta = dict(draft_type1.get("broad_diversity_meta") or {})
             if broad_meta:
@@ -1509,18 +1698,20 @@ def render_advisor() -> None:
                 st.session_state["advisor_broad_query_history"] = broad_history[-12:]
 
             if wants_image_generation:
-                with st.spinner("画像補助を生成しています..."):
-                    type2_preview = run_type2_gated_image_generation(
-                        fair_label=effective_fair,
-                        question_text=question_text,
-                        type1_draft=draft_type1,
-                        context=context,
-                        has_uploaded_image=upload_valid,
-                    )
+                _render_advisor_progress(86)
+                type2_preview = run_type2_gated_image_generation(
+                    fair_label=effective_fair,
+                    question_text=question_text,
+                    type1_draft=draft_type1,
+                    context=context,
+                    has_uploaded_image=upload_valid,
+                )
                 st.session_state["advisor_type2_preview"] = type2_preview
             else:
                 st.session_state["advisor_type2_preview"] = None
+            status_slot.empty()
         except Exception as exc:
+            status_slot.empty()
             st.error("Advisor 実行中にエラーが発生しました。入力条件を見直して再実行してください。")
             with st.expander("詳細（開発確認用）", expanded=False):
                 st.code(f"{type(exc).__name__}: {exc}")
@@ -1533,7 +1724,6 @@ def render_advisor() -> None:
     wants_image_generation = bool(selection.get("wants_image_generation"))
 
     if not context:
-        st.caption("相談内容を入力して「Advisor を実行」を押すと、type 1回答と根拠を表示します。")
         return
 
     if not draft:
@@ -1549,16 +1739,17 @@ def render_advisor() -> None:
     )
     st.markdown("**Advisor回答（日本語 / type 1）**")
     st.caption(f"参照年: {reference_year_display}")
-    _render_evidence_summary(
-        {
-            "質問タイプ": "type 2 希望（画像補助）" if wants_image_generation else "type 1",
-            "参照年": reference_year_display,
-            "モード": draft.get("mode"),
-            "本文文字数": draft.get("answer_chars"),
-            "本文上限": ADVISOR_TEXT_MAX_CHARS,
-            "URL件数": draft.get("evidence_counts", {}).get("all_unique_urls", 0),
-        }
-    )
+    if ADVISOR_UI_SHOW_DEBUG:
+        _render_evidence_summary(
+            {
+                "質問タイプ": "type 2 希望（画像補助）" if wants_image_generation else "type 1",
+                "参照年": reference_year_display,
+                "モード": draft.get("mode"),
+                "本文文字数": draft.get("answer_chars"),
+                "本文上限": ADVISOR_TEXT_MAX_CHARS,
+                "URL件数": draft.get("evidence_counts", {}).get("all_unique_urls", 0),
+            }
+        )
     _render_markdown_with_galleries(
         str(draft.get("answer", "")),
         {"by_source": {}, "by_image_url": {}},
@@ -1567,6 +1758,18 @@ def render_advisor() -> None:
     if reference_examples:
         st.markdown("**参照例**")
         st.markdown("\n".join(reference_examples))
+
+    if advisor_reference_rows:
+        _render_reference_image_candidates(
+            "",
+            advisor_reference_images,
+            target_total=8,
+            compact_advisor_cards=True,
+            show_title=False,
+            show_summary=False,
+            show_empty_message=False,
+            evidence_context=context,
+        )
 
     if wants_image_generation:
         st.markdown("**画像補助（type 2）**")
@@ -1583,13 +1786,13 @@ def render_advisor() -> None:
             image_bytes = type2_preview.get("generated_image_bytes")
             image_url = str(type2_preview.get("generated_image_url") or "")
             if image_bytes:
-                st.image(image_bytes, caption="AI generated", use_container_width=True)
+                _render_compact_generated_image(image_bytes, caption="AI generated")
                 st.caption("Source: AI generated")
                 rationale = str(type2_preview.get("image_rationale") or "")
                 if rationale:
                     st.caption(rationale)
             elif image_url:
-                st.image(image_url, caption="AI generated", use_container_width=True)
+                _render_compact_generated_image(image_url, caption="AI generated")
                 st.caption("Source: AI generated")
                 rationale = str(type2_preview.get("image_rationale") or "")
                 if rationale:
@@ -1597,82 +1800,84 @@ def render_advisor() -> None:
             else:
                 st.caption("生成画像はありません。")
 
-            with st.expander("type2 詳細 / prompt preview（開発確認用）", expanded=False):
-                check_rows = [
-                    {
-                        "check_id": c.get("id"),
-                        "ok": bool(c.get("ok")),
-                        "detail": c.get("detail"),
-                    }
-                    for c in type2_preview.get("checks", [])
-                ]
-                st.dataframe(check_rows, use_container_width=True, hide_index=True, height=240)
-                st.write(
-                    {
-                        "status": status,
-                        "required_env_keys": type2_preview.get("required_env_keys", []),
-                        "optional_env_keys": type2_preview.get("optional_env_keys", []),
-                        "resolved_env": type2_preview.get("resolved_env", {}),
-                        "api_called": bool(type2_preview.get("api_called", False)),
-                    }
-                )
-                st.text_area(
-                    "type 2 prompt プレビュー",
-                    value=str(type2_preview.get("prompt_preview") or ""),
-                    height=240,
-                    disabled=True,
-                )
-                if type2_preview.get("error"):
-                    st.warning(f"画像生成結果: {type2_preview.get('error')}")
-                    debug_err = str(type2_preview.get("debug_error") or "")
-                    if debug_err:
-                        st.code(debug_err)
+            if ADVISOR_UI_SHOW_DEBUG:
+                with st.expander("type2 詳細 / prompt preview（開発確認用）", expanded=False):
+                    check_rows = [
+                        {
+                            "check_id": c.get("id"),
+                            "ok": bool(c.get("ok")),
+                            "detail": c.get("detail"),
+                        }
+                        for c in type2_preview.get("checks", [])
+                    ]
+                    st.dataframe(check_rows, use_container_width=True, hide_index=True, height=240)
+                    st.write(
+                        {
+                            "status": status,
+                            "required_env_keys": type2_preview.get("required_env_keys", []),
+                            "optional_env_keys": type2_preview.get("optional_env_keys", []),
+                            "resolved_env": type2_preview.get("resolved_env", {}),
+                            "api_called": bool(type2_preview.get("api_called", False)),
+                        }
+                    )
+                    st.text_area(
+                        "type 2 prompt プレビュー",
+                        value=str(type2_preview.get("prompt_preview") or ""),
+                        height=240,
+                        disabled=True,
+                    )
+                    if type2_preview.get("error"):
+                        st.warning(f"画像生成結果: {type2_preview.get('error')}")
+                        debug_err = str(type2_preview.get("debug_error") or "")
+                        if debug_err:
+                            st.code(debug_err)
 
     urls = draft.get("evidence_urls", {})
     ex_urls = urls.get("exhibition", [])
     ar_urls = urls.get("artist", [])
 
-    with st.expander("根拠と参照データ（source refs / URL）", expanded=True):
-        st.markdown("**Advisor grounding overview（読み取り専用）**")
-        st.write(
-            {
-                "fair": context["selection"]["fair_label"],
-                "year": reference_year_display,
-                "question_type": "type 2 希望（画像補助）" if wants_image_generation else "type 1",
-                "token_count": len(context["selection"].get("tokens", [])),
-            }
-        )
-        _render_evidence_summary(
-            {
-                "Exhibitions根拠件数": context["counts"]["exhibitions_text_evidence_count"],
-                "Artists根拠件数": context["counts"]["artist_text_evidence_count"],
-                "URL件数": context["counts"]["all_unique_url_count"],
-                "参考画像候補件数": len(advisor_reference_rows),
-            }
-        )
-        st.markdown("**根拠一覧（source refs + snippet）**")
-        evidence_rows = list(context.get("evidence_rows", []) or [])
-        if evidence_rows:
-            st.dataframe(evidence_rows[:16], use_container_width=True, hide_index=True, height=260)
-        else:
-            st.info("表示可能な根拠行はありません。")
+    if ADVISOR_UI_SHOW_DEBUG:
+        with st.expander("根拠と参照データ（source refs / URL）", expanded=True):
+            st.markdown("**Advisor grounding overview（読み取り専用）**")
+            st.write(
+                {
+                    "fair": context["selection"]["fair_label"],
+                    "year": reference_year_display,
+                    "question_type": "type 2 希望（画像補助）" if wants_image_generation else "type 1",
+                    "token_count": len(context["selection"].get("tokens", [])),
+                }
+            )
+            _render_evidence_summary(
+                {
+                    "Exhibitions根拠件数": context["counts"]["exhibitions_text_evidence_count"],
+                    "Artists根拠件数": context["counts"]["artist_text_evidence_count"],
+                    "URL件数": context["counts"]["all_unique_url_count"],
+                    "参考画像候補件数": len(advisor_reference_rows),
+                }
+            )
+            st.markdown("**根拠一覧（source refs + snippet）**")
+            evidence_rows = list(context.get("evidence_rows", []) or [])
+            if evidence_rows:
+                st.dataframe(evidence_rows[:16], use_container_width=True, hide_index=True, height=260)
+            else:
+                st.info("表示可能な根拠行はありません。")
 
-        _render_evidence_urls("根拠URL一覧", ex_urls, ar_urls)
-        _render_reference_image_candidates(
-            "参考画像候補",
-            advisor_reference_images,
-            target_total=8,
-            compact_advisor_cards=True,
-        )
+            _render_evidence_urls("根拠URL一覧", ex_urls, ar_urls)
+            _render_reference_image_candidates(
+                "参考画像候補",
+                advisor_reference_images,
+                target_total=8,
+                compact_advisor_cards=True,
+            )
 
-        if context.get("warnings"):
-            with st.expander("警告（Advisor）", expanded=False):
-                for warning in context["warnings"][:20]:
-                    st.write(f"- {warning}")
-        if draft.get("warnings"):
-            with st.expander("警告（Advisor draft）", expanded=False):
-                for warning in draft["warnings"]:
-                    st.write(f"- {warning}")
+            if context.get("warnings"):
+                with st.expander("警告（Advisor）", expanded=False):
+                    for warning in context["warnings"][:20]:
+                        st.write(f"- {warning}")
+            if draft.get("warnings"):
+                with st.expander("警告（Advisor draft）", expanded=False):
+                    for warning in draft["warnings"]:
+                        st.write(f"- {warning}")
 
 
 def render_exclusive_advisor() -> None:
