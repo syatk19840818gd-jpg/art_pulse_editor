@@ -2,13 +2,14 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sys
 from collections import Counter
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlunparse
 
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -60,6 +61,9 @@ from run_enrichment_artists_preview import (
 TARGET_YEAR = 2025
 
 REQUESTS_PATH = REQUESTS_OUTPUT_PATH
+LOCALIZED_REPAIR_TARGET_REQUEST_IDS = {
+    "seed10_artists_enrich_336ffd39ede28d95d3a1983d90f7174bb1f0b740fd34b710a968f6fb4ba38f74",
+}
 NON_ARTIST_UTILITY_TOKENS = {
     "privacy",
     "policy",
@@ -110,6 +114,23 @@ def build_row_index(rows: list[dict[str, Any]]) -> dict[tuple[str, str], int]:
         if (text_hash, "") not in index:
             index[(text_hash, "")] = i
     return index
+
+
+def normalize_source_url_for_match(url: str) -> str:
+    value = str(url or "").strip()
+    if not value:
+        return ""
+    try:
+        parsed = urlparse(value)
+    except Exception:
+        return value.strip().rstrip("/").lower()
+    scheme = str(parsed.scheme or "https").lower()
+    netloc = str(parsed.netloc or "").lower()
+    if netloc.startswith("www."):
+        netloc = netloc[4:]
+    path = str(parsed.path or "").rstrip("/")
+    path = path or "/"
+    return urlunparse((scheme, netloc, path, "", "", ""))
 
 
 def is_non_artist_utility_url(url: str) -> bool:
@@ -171,6 +192,112 @@ def build_batch_row_map(rows: list[dict[str, Any]]) -> dict[str, dict[str, Any]]
         if custom_id:
             out[custom_id] = row
     return out
+
+
+def build_current_applied_row_index(current_output_path: Path) -> dict[tuple[str, str, str, str], dict[str, Any]]:
+    if not current_output_path.exists():
+        return {}
+    out: dict[tuple[str, str, str, str], dict[str, Any]] = {}
+    for row in read_jsonl(current_output_path):
+        if str(row.get("status") or "").strip() != "APPLIED":
+            continue
+        request_id = str(row.get("request_id") or "").strip()
+        fair_slug = str(row.get("fair_slug") or "").strip()
+        text_hash = str(row.get("text_hash") or "").strip()
+        source_url_norm = normalize_source_url_for_match(str(row.get("source_url") or ""))
+        if not request_id or not text_hash or not source_url_norm:
+            continue
+        out[(request_id, fair_slug, text_hash, source_url_norm)] = row
+    return out
+
+
+def diagnostic_path_for_apply(paths: dict[str, Path]) -> Path:
+    return paths["history_summary_path"].with_name(
+        paths["history_summary_path"].name.replace("_apply_summary_", "_apply_diagnostics_")
+    )
+
+
+def extract_response_text_for_diagnostic(response_body: dict[str, Any]) -> str:
+    output_items = response_body.get("output")
+    if isinstance(output_items, list):
+        for item in output_items:
+            if not isinstance(item, dict):
+                continue
+            content = item.get("content")
+            if not isinstance(content, list):
+                continue
+            for chunk in content:
+                if not isinstance(chunk, dict):
+                    continue
+                if str(chunk.get("type") or "") in {"output_text", "text"}:
+                    text = str(chunk.get("text") or "")
+                    if text:
+                        return text
+    return str(response_body.get("output_text") or "")
+
+
+def maybe_build_localized_repair_update(
+    *,
+    task: dict[str, Any],
+    current_applied_index: dict[tuple[str, str, str, str], dict[str, Any]],
+    batch_job_id: str,
+    parser_error: str,
+) -> tuple[dict[str, Any] | None, dict[str, Any]]:
+    request_id = str(task.get("request_id") or "").strip()
+    fair_slug = str(task.get("fair_slug") or "").strip()
+    text_hash = str(task.get("text_hash") or "").strip()
+    source_url = str(task.get("source_url") or "").strip()
+    source_url_norm = normalize_source_url_for_match(source_url)
+    diagnostic = {
+        "request_id": request_id,
+        "fair_slug": fair_slug,
+        "text_hash": text_hash,
+        "source_url": source_url,
+        "source_url_normalized": source_url_norm,
+        "batch_job_id": batch_job_id,
+        "parser_error": parser_error,
+        "repair_target_request_id_match": request_id in LOCALIZED_REPAIR_TARGET_REQUEST_IDS,
+        "repair_current_applied_match": False,
+        "localized_repair_applied": False,
+        "repair_disposition": "not_attempted",
+    }
+    if request_id not in LOCALIZED_REPAIR_TARGET_REQUEST_IDS:
+        diagnostic["repair_disposition"] = "request_id_not_whitelisted"
+        return None, diagnostic
+
+    matched = current_applied_index.get((request_id, fair_slug, text_hash, source_url_norm))
+    if not matched:
+        diagnostic["repair_disposition"] = "current_applied_row_not_found"
+        return None, diagnostic
+
+    diagnostic["repair_current_applied_match"] = True
+    headline_ja = str(matched.get("headline_ja") or "").strip()
+    summary_ja = str(matched.get("summary_ja") or "").strip()
+    artist_name_kana = str(matched.get("artist_name_kana") or "").strip()
+    if not headline_ja or not summary_ja or not artist_name_kana:
+        diagnostic["repair_disposition"] = "current_applied_row_missing_fields"
+        return None, diagnostic
+
+    diagnostic["localized_repair_applied"] = True
+    diagnostic["repair_disposition"] = "carry_forward_current_applied_row"
+    diagnostic["repair_source_status"] = str(matched.get("status") or "")
+    diagnostic["repair_source_enrich_mode"] = str(matched.get("enrich_mode") or "")
+    update = {
+        "fair_slug": fair_slug,
+        "row_index": int(task["row_index"]),
+        "text_hash": text_hash,
+        "source_url": source_url,
+        "request_id": request_id,
+        "headline_ja": headline_ja,
+        "summary_ja": summary_ja,
+        "artist_name_kana": artist_name_kana,
+        "warnings": [],
+        "input_chars": int(task["input_chars"]),
+        "repair_mode": "localized_carry_forward_current_applied_row",
+        "repair_source_request_id": request_id,
+        "repair_source_summary_chars": len(summary_ja),
+    }
+    return update, diagnostic
 
 
 def summarize_raw_state(
@@ -734,10 +861,13 @@ def main() -> int:
         error_rows = download_batch_file_rows(client, str(batch_state.get("error_file_id") or ""))
         output_map = build_batch_row_map(output_rows)
         error_map = build_batch_row_map(error_rows)
+        current_applied_index = build_current_applied_row_index(paths["current_output_path"])
+        diagnostics_path = diagnostic_path_for_apply(paths)
 
         staged_updates: list[dict[str, Any]] = []
         warning_count = 0
         batch_result_rows: list[dict[str, Any]] = []
+        diagnostic_rows: list[dict[str, Any]] = []
         parsed_success_rows = 0
         batch_error_count = 0
 
@@ -776,15 +906,41 @@ def main() -> int:
             try:
                 headline_ja, summary_ja, artist_name_kana = parse_openai_response_body(response_body)
             except Exception as exc:
-                batch_error_count += 1
-                counters["batch_parse_failed"] += 1
-                batch_result_rows.append({"request_id": custom_id, "fair_slug": str(task["fair_slug"]), "text_hash": str(task["text_hash"]), "source_url": str(task["source_url"]), "status": "BATCH_PARSE_FAILED", "batch_job_id": batch_job_id, "batch_status": batch_status, "error": str(exc)})
+                parser_error = str(exc)
+                response_request_id = ""
+                if isinstance(response_info, dict):
+                    response_request_id = str(response_info.get("request_id") or "").strip()
+                response_text = extract_response_text_for_diagnostic(response_body)
+                repaired_update, diagnostic = maybe_build_localized_repair_update(
+                    task=task,
+                    current_applied_index=current_applied_index,
+                    batch_job_id=batch_job_id,
+                    parser_error=parser_error,
+                )
+                diagnostic.update(
+                    {
+                        "batch_status": batch_status,
+                        "response_request_id": response_request_id,
+                        "response_status_code": status_code,
+                        "response_text": response_text,
+                    }
+                )
+                diagnostic_rows.append(diagnostic)
+                if repaired_update is None:
+                    batch_error_count += 1
+                    counters["batch_parse_failed"] += 1
+                    batch_result_rows.append({"request_id": custom_id, "fair_slug": str(task["fair_slug"]), "text_hash": str(task["text_hash"]), "source_url": str(task["source_url"]), "status": "BATCH_PARSE_FAILED", "batch_job_id": batch_job_id, "batch_status": batch_status, "error": parser_error})
+                    continue
+
+                counters["batch_parse_failed_localized_repair_applied"] += 1
+                parsed_success_rows += 1
+                staged_updates.append(repaired_update)
                 continue
 
             warnings = build_warnings(summary_ja=summary_ja, artist_name_en=artist_name_en, artist_name_kana=artist_name_kana)
             warning_count += len(warnings)
             parsed_success_rows += 1
-            staged_updates.append({"fair_slug": str(task["fair_slug"]), "row_index": int(task["row_index"]), "text_hash": str(task["text_hash"]), "source_url": str(task["source_url"]), "request_id": custom_id, "headline_ja": headline_ja, "summary_ja": summary_ja, "artist_name_kana": artist_name_kana, "warnings": warnings, "input_chars": int(task["input_chars"])})
+            staged_updates.append({"fair_slug": str(task["fair_slug"]), "row_index": int(task["row_index"]), "text_hash": str(task["text_hash"]), "source_url": str(task["source_url"]), "request_id": custom_id, "headline_ja": headline_ja, "summary_ja": summary_ja, "artist_name_kana": artist_name_kana, "warnings": warnings, "input_chars": int(task["input_chars"]), "repair_mode": "", "repair_source_request_id": "", "repair_source_summary_chars": 0})
 
         committed_rows = 0
         if batch_error_count == 0 and parsed_success_rows == target_rows:
@@ -806,7 +962,7 @@ def main() -> int:
                 row["enrich_summary_chars"] = len(update["summary_ja"])
                 row["enrich_artist_name_kana_chars"] = len(update["artist_name_kana"])
                 row["enrich_generated_at"] = utc_now_iso()
-                row["enrich_notes"] = ""
+                row["enrich_notes"] = str(update.get("repair_mode") or "")
                 row["enrich_batch_job_id"] = batch_job_id
                 committed_rows += 1
                 if len(update["headline_ja"]) > HEADLINE_MAX_CHARS:
@@ -817,16 +973,28 @@ def main() -> int:
                     counters["artist_name_kana_over_limit"] += 1
                 if update["warnings"]:
                     counters["warnings_rows"] += 1
-                batch_result_rows.append({"request_id": update["request_id"], "fair_slug": fair_slug, "text_hash": update["text_hash"], "source_url": update["source_url"], "status": "APPLIED", "headline_ja": update["headline_ja"], "summary_ja": update["summary_ja"], "artist_name_kana": update["artist_name_kana"], "headline_ja_chars": len(update["headline_ja"]), "summary_ja_chars": len(update["summary_ja"]), "artist_name_kana_chars": len(update["artist_name_kana"]), "warnings": update["warnings"], "enrich_model": model, "enrich_mode": "openai_batch_apply", "enrich_use_openai_batch": use_batch, "enrich_completion_window": completion_window, "enrich_prompt_version": ENRICH_PROMPT_VERSION, "enrich_input_text_hash": update["text_hash"], "enrich_batch_job_id": batch_job_id, "enrich_notes": ""})
+                batch_result_rows.append({"request_id": update["request_id"], "fair_slug": fair_slug, "text_hash": update["text_hash"], "source_url": update["source_url"], "status": "APPLIED", "headline_ja": update["headline_ja"], "summary_ja": update["summary_ja"], "artist_name_kana": update["artist_name_kana"], "headline_ja_chars": len(update["headline_ja"]), "summary_ja_chars": len(update["summary_ja"]), "artist_name_kana_chars": len(update["artist_name_kana"]), "warnings": update["warnings"], "enrich_model": model, "enrich_mode": "openai_batch_apply", "enrich_use_openai_batch": use_batch, "enrich_completion_window": completion_window, "enrich_prompt_version": ENRICH_PROMPT_VERSION, "enrich_input_text_hash": update["text_hash"], "enrich_batch_job_id": batch_job_id, "enrich_notes": str(update.get("repair_mode") or "")})
             for fair_slug, raw_path in RAW_INPUT_PATHS.items():
                 write_jsonl(raw_path, raw_rows_by_fair[fair_slug])
         else:
             for update in staged_updates:
-                batch_result_rows.append({"request_id": update["request_id"], "fair_slug": update["fair_slug"], "text_hash": update["text_hash"], "source_url": update["source_url"], "status": "BATCH_RESULT_READY_UNCOMMITTED", "headline_ja": update["headline_ja"], "summary_ja": update["summary_ja"], "artist_name_kana": update["artist_name_kana"], "warnings": update["warnings"], "batch_job_id": batch_job_id, "batch_status": batch_status})
+                status = "LOCALIZED_REPAIR_READY_UNCOMMITTED" if str(update.get("repair_mode") or "") else "BATCH_RESULT_READY_UNCOMMITTED"
+                batch_result_rows.append({"request_id": update["request_id"], "fair_slug": update["fair_slug"], "text_hash": update["text_hash"], "source_url": update["source_url"], "status": status, "headline_ja": update["headline_ja"], "summary_ja": update["summary_ja"], "artist_name_kana": update["artist_name_kana"], "warnings": update["warnings"], "batch_job_id": batch_job_id, "batch_status": batch_status, "repair_mode": str(update.get("repair_mode") or ""), "repair_source_request_id": str(update.get("repair_source_request_id") or "")})
 
         apply_rows.extend(batch_result_rows)
         raw_state = summarize_raw_state(raw_rows_by_fair, raw_text_before)
         error_count = counters["skipped_non_artists_category"] + counters["skipped_invalid_fair_slug"] + counters["skipped_missing_text_hash"] + counters["skipped_target_guard_non_artist_utility_url"] + counters["skipped_target_guard_missing_target"] + counters["skipped_target_row_not_found"] + counters["skipped_empty_text"] + batch_error_count
+
+        diagnostics_payload = {
+            "category": "artists",
+            "target_year": TARGET_YEAR,
+            "batch_job_id": batch_job_id,
+            "batch_status": batch_status,
+            "localized_repair_applied": int(counters.get("batch_parse_failed_localized_repair_applied", 0)),
+            "diagnostic_rows": diagnostic_rows,
+        }
+        if diagnostic_rows:
+            write_json(diagnostics_path, diagnostics_payload)
 
         summary = {
             "started_at": str(guard_state.get("started_at") or started_at),
@@ -852,6 +1020,9 @@ def main() -> int:
             "request_counts": batch_state.get("request_counts") or {},
             "parsed_success_rows": parsed_success_rows,
             "batch_error_rows": batch_error_count,
+            "diagnostics_path": str(diagnostics_path) if diagnostic_rows else "",
+            "diagnostic_rows": len(diagnostic_rows),
+            "localized_repair_applied": int(counters.get("batch_parse_failed_localized_repair_applied", 0)),
             "promoted_to_current": False,
             "promote_verdict": "",
             "guard_state_path": str(paths["guard_state_path"]),
@@ -879,6 +1050,9 @@ def main() -> int:
             "batch_output_file_id": str(batch_state.get("output_file_id") or ""),
             "batch_error_file_id": str(batch_state.get("error_file_id") or ""),
             "batch_input_path": str(paths["batch_input_path"]),
+            "diagnostics_path": str(diagnostics_path) if diagnostic_rows else "",
+            "diagnostic_rows": len(diagnostic_rows),
+            "localized_repair_applied": int(counters.get("batch_parse_failed_localized_repair_applied", 0)),
             "enrich_model": model,
             "enrich_prompt_version": ENRICH_PROMPT_VERSION,
             "enrich_completion_window": completion_window,

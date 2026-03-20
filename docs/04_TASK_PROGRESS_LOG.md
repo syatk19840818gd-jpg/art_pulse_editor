@@ -5175,3 +5175,31 @@ _trash 運用方針:
 - not done:
   - no code/data/app behavior changes in this docs sync.
   - no claim beyond the accepted/current-scope behavior already implemented in repo.
+
+## 2026-03-20 TASK DOCS_ONLY_LOCK_REEXTRACTION_COST_GUARD_RULES_2025
+- scope: docs-only lock for re-extraction cost guard rules and next-step narrowing after the generic guard promote attempt (01/03/04 only).
+- result:
+  - canonical promote attempt for the generic URL scope guard was executed, but artists apply hit a single `batch_parse_failed=1` / `promote_blocked_updated_rows_mismatch`, so rollback was completed and canonical current/history were not left partially updated.
+  - operational reflection is fixed: no silent re-extraction / re-generation / canonical rebuild / promote rerun is allowed anymore; user-confirmation-first is mandatory before any cost-incurring rerun.
+  - diagnosis order is fixed as offline-first: use existing artifacts / logs / batch output / current files first, and only move to rerun after the user is shown why re-extraction is necessary and what it will cost.
+  - full rebuild / full re-take is explicitly treated as last resort; localized repair / failed-row diagnosis is now the default first response.
+  - Artists / Exhibitions bulk OpenAI execution is re-affirmed as Batch API only; direct OpenAI bulk execution is prohibited.
+  - URL scope guard itself remains a promote candidate, but the next step is locked to single artists parse-failure diagnosis first rather than returning to re-extraction.
+- not done:
+  - no code/data/current/history/app changes.
+  - no re-extraction / no rebuild / no batch rerun / no promote rerun in this docs task.
+
+## 2026-03-20 TASK DOCS_SYNC_DELTA_PROMOTE_LANE_AS_STANDARD_FIRST_RESPONSE_2025
+- scope: docs-only sync after no-reextraction delta promote lane dry-run and canonical apply success (01/03/04 only).
+- result:
+  - URL scope contamination incident and single-row artists batch parse failure incident are both treated as resolved.
+  - no-reextraction delta promote lane is promoted to the standard first-response for Text enrichment small-delta incidents.
+  - dry-run succeeded first, then canonical apply also succeeded without rerun / rebuild / re-extraction / batch rerun.
+  - raw stayed untouched throughout; rollback was not required in the successful canonical delta apply.
+  - exhibitions delta removed `/art-fairs` 2 rows from current/history/runtime.
+  - artists delta removed utility 7 rows from current/history/runtime.
+  - artists single-row localized repair was applied once for the known Addis row, and diagnostics / manifest / summary were preserved in history.
+  - roadmap focus can return to Feature 5 / Exclusive Advisor, while future similar incidents should first evaluate the delta promote lane.
+- not done:
+  - no code/data/current/history/app changes in this docs sync.
+  - no expansion of the lane beyond Text enrichment or beyond intentional drop + localized repair.

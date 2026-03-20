@@ -228,6 +228,24 @@ def _normalize_host(url: str) -> str:
     return host
 
 
+def _path_segments(url: str) -> list[str]:
+    path = (urlparse(url).path or "").lower()
+    return [segment for segment in path.split("/") if segment]
+
+
+def _artist_listing_scope_mode(list_page_url: str) -> str:
+    segments = _path_segments(list_page_url)
+    if not segments:
+        return "unknown"
+    if segments[0] == "category" and any(segment.startswith("artist") for segment in segments[1:]):
+        return "taxonomy"
+    if segments[0] in {"artist", "artists"}:
+        return "family"
+    if any("artist" in segment for segment in segments):
+        return "root-listing"
+    return "unknown"
+
+
 def looks_like_artist_detail_url(
     candidate_url: str,
     list_page_url: str,
@@ -255,6 +273,12 @@ def looks_like_artist_detail_url(
 
     # Fallback for listing pages that expose artist details at root path.
     if looks_like_artist_listing_url(list_page_url):
+        scope_mode = _artist_listing_scope_mode(list_page_url)
+        candidate_segments = _path_segments(candidate_url)
+        if scope_mode not in {"root-listing", "taxonomy"}:
+            return False
+        if len(candidate_segments) != 1:
+            return False
         slug = candidate_path.strip("/").split("/")[-1].strip().lower()
         if not slug:
             return False

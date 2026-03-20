@@ -13,7 +13,7 @@ STREAMLIT_ENTRYPOINT（固定）
 - Local run: streamlit run app.py
 
 SOURCE_SSOT: 01_PROJECT_SPEC_CURRENT_FULL.docx
-LAST_UPDATED: 2026-03-19 22:10 JST
+LAST_UPDATED: 2026-03-20 12:35 JST
 
 
 ========================
@@ -92,8 +92,9 @@ STATE_SNAPSHOT（現在地）
   - type2 status: text-only -> image generation is accepted; image-attached -> image generation is accepted after smoke success, both on current fixed runtime `gpt-image-1` / `low` / `auto` / `1 image`
   - current/history rebaseline phase: completed (A2-A9)
   - Immediate priority: A12_PHASE5_EXCLUSIVE_ADVISOR_KICKOFF_01
-  - current state note: Feature 4 Advisor is accepted/completed for the current scope; future handling is major-regression-only tiny fix while roadmap focus moves to Feature 5
+  - current state note: Feature 4 Advisor is accepted/completed for the current scope; future handling is major-regression-only tiny fix, and roadmap focus has returned to Feature 5 after the text enrichment incident was formally resolved
   - enrichment requests policy note: runtime-path switch is applied and verify verdict is GO (`data/runtime/enrichment_requests/...` active, `_completed` archive lane, `_reports` audit lane); keep/delete remains evidence-gated
+  - enrichment execution note: URL scope contamination incident and the single artists batch parse failure incident are resolved. For future Text enrichment incidents, the standard first-response is existing-artifact diagnosis + intentional drop + localized repair + no-reextraction delta promote; full rerun / full rebuild / re-extraction / batch rerun remain last-resort and user-confirmed only
 - NOTE: keep this current-goal line updated whenever phase priority changes.
 - Fixed master roadmap alignment (from SSOT 01):
   - 5 RAG categories (Tarutani_Text / Artist Works Images / Artist Text / Exhibitions Image / Exhibitions Text) are established at 10-gallery operational scope
@@ -223,6 +224,10 @@ STATE_SNAPSHOT（現在地）
 - LLM加工（headline_ja / かな等）は取得ループ内で逐次実行しない（FetchとEnrichmentを分離）
 - ドメイン専用ハードコード増殖は禁止（頻出ドメイン×汎用ロジックのみ改善／取れない分はログ化して割り切る）
 - 共通化できる判定・抽出ロジックは必ず共通モジュールへ寄せる。個別スクリプトへの重複実装を禁止し、修正点を1箇所に集約する（シンプル運用固定）。
+- 無断の再抽出・再生成・canonical rebuild・promote再実行を禁止する。コストや正本更新が絡む再実行は、必ず事前にユーザー確認を取る。
+- 既存 artifact / logs / batch output / current files だけで診断できる限り、再抽出しない。full rebuild / full re-take は最終手段とし、まず localized repair / failed-row diagnosis を優先する。
+- Artists / Exhibitions の bulk OpenAI 実行は半額 Batch API のみ許可する。direct OpenAI の bulk 実行は禁止し、Batch evidence が確認できない run は promote だけでなく実行判断自体を止める。
+- コストを伴う再実行の前には、「何を再実行するか」「なぜ必要か」「再抽出なしでは駄目な理由」「予想コスト影響」を短く提示し、確認が取れるまで進めない。
 
 ■リスク台帳（短く：必要に応じて更新OK）
 - 429/403/Timeout：同一ドメインで連続したら打ち切り、失敗一覧に残す
@@ -246,6 +251,11 @@ NEXT_TASKS（次回やること）
 ※共通スキップ（固定）: `data/gallery_lists/skipped_galleries_registry.csv` に登録されたgalleryは Artists/Exhibitions の text/image 抽出すべてで自動スキップする。
 ※共通同期（固定）: Artists/Exhibitions の text/image/vector/derived すべてに同一の guarded R2同期ルール（dry-run -> guarded apply）を適用する。
 
+[x] 318) DIAGNOSE_SINGLE_ARTISTS_BATCH_PARSE_FAILURE_AND_PREPARE_SAFE_RETRY_2025 (resolved)
+    - result: the failed row (`request_id=seed10_artists_enrich_336ffd39ede28d95d3a1983d90f7174bb1f0b740fd34b710a968f6fb4ba38f74`, Addis / Tariku Shiferaw - Works) was identified from existing batch artifacts, classified as malformed batch output (`openai_output_not_json` caused by unescaped double quotes), and verified as non-guard
+    - resolution path: single-row localized repair was verified with existing batch output, then the no-reextraction delta promote lane was dry-run validated and canonically applied without touching raw
+    - fixed outcome: future small-delta Text enrichment incidents should consider delta promote before any full rerun / full rebuild / re-extraction / batch rerun
+
 [x] 190) hundreds of galleries 向け標準フロー具体化（完了）
     - 目的：④ Exhibitions Image を、10ギャラリー成功で終わらせず、何百ギャラリーへ横展開できる標準実行フローとして固定する
     - 位置づけ：これは 5種類RAGのうち「④ Exhibitions Image を先に仕上げる」ための最優先タスク
@@ -266,6 +276,7 @@ NEXT_TASKS（次回やること）
     - scope: kickoff for Feature 5 Exclusive Advisor after Feature 4 Advisor completion/acceptance sync
     - current assumption: Feature 4 is accepted/completed for the current scope; only major-regression tiny fixes should reopen it, including follow-up/session UI regressions only when they materially affect accepted behavior
     - goal: move roadmap focus from Feature 4 maintenance to Feature 5 design/execution start
+    - resumed note: URL scope contamination and single-row artists parse failure are resolved; if a similar Text enrichment small-delta incident reappears, check the no-reextraction delta promote lane first before considering rerun
 
 [x] 228) Exhibitions Image completion closure memo（完了）
     - 目的：TASK215〜227の remediation / guard hardening / final isolated rerun retry を確定履歴として closure し、④ Exhibitions Image を completion として正式記録する
@@ -6514,6 +6525,8 @@ CODEX_SNIPPETS（頻出コピペ：ここだけ使えば回る）
 
 ========================
 CHANGELOG（このファイルの更新履歴）
+- 2026-03-20 JST: TASK DOCS_SYNC_DELTA_PROMOTE_LANE_AS_STANDARD_FIRST_RESPONSE_2025 を反映。URL scope contamination incident と single artists batch parse failure incident を resolved として同期し、Text enrichment の standard first-response を `existing artifacts diagnosis -> intentional drop -> localized repair -> no-reextraction delta promote` に固定。Immediate priority を `A12_PHASE5_EXCLUSIVE_ADVISOR_KICKOFF_01` へ戻し、small-delta incident では full rerun / full rebuild / re-extraction / batch rerun を標準手順にしないことを明記。
+- 2026-03-20 JST: TASK DOCS_ONLY_LOCK_REEXTRACTION_COST_GUARD_RULES_2025 を反映。運用ルールに「無断再抽出禁止」「再抽出・canonical rebuild・promote再実行前のユーザー確認必須」「existing artifacts で診断できる限り再抽出しない」「Artists/Exhibitions の bulk OpenAI 実行は半額 Batch API のみ」を固定。STATE_SNAPSHOT は `DIAGNOSE_SINGLE_ARTISTS_BATCH_PARSE_FAILURE_AND_PREPARE_SAFE_RETRY_2025` を最優先へ更新し、URL scope guard 件は promote 候補だが next step は single parse failure の diagnosis-first であることを明記。
 - 2026-03-05 JST: TASK228 実施。④ Exhibitions Image の completion closure memo を確定し、STATE_SNAPSHOT を `completion closure 完了` へ更新。TASK227結果（`PASS_FOR_CLOSURE` / `CURRENT_FORMAL_STILL_VALID` / Baton再発0 / Athr再出現0 / duplicate 0）を反映。final isolated rerun retry の新規1件は `SAFE_BUT_NOT_NEEDED` として formal 不採用を明記。次タスクを `TASK229（⑤ Exhibitions Text kickoff / spec start）` に更新。
 - 2026-03-04 JST: TASK182 実施。TASK181設計を反映して03/04同期方針を更新（現在地を「3ギャラリー + Unit-F + Unit-L 正式採用済み」へ更新、anti-mixing短縮文言を固定、次の最優先をTASK183 Safe群レーン開始準備に一本化）。
 - 2026-03-02 JST: TASK125 文書同期を実施。TASK124 close（verdict=close / remaining_rerun_targets_count=0）を 03/04 に反映し、T123は低優先維持のまま次の最優先を TASK125（Exhibitions Text再開ブートストラップ）へ更新。

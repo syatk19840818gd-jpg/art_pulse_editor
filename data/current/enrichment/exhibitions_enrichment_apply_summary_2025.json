@@ -1,11 +1,11 @@
 {
   "started_at": "2026-03-09T10:21:46Z",
-  "completed_at": "2026-03-09T10:50:13Z",
+  "completed_at": "2026-03-20T03:26:08Z",
   "target_year": 2025,
   "requests_path": "data\\phase1_seed10\\derived\\exhibitions_enrichment_requests_2025.jsonl",
-  "apply_output_path": "data\\phase1_seed10\\derived\\exhibitions_enrichment_apply_output_2025_20260309T102146Z.jsonl",
+  "apply_output_path": "data\\history\\enrichment\\exhibitions\\exhibitions_enrichment_apply_output_2025_20260320T032608Z.jsonl",
   "total_targeted": 83,
-  "total_applied": 83,
+  "total_applied": 81,
   "skipped_already_filled": 0,
   "skipped_hash_match": 0,
   "error_count": 0,
@@ -35,5 +35,26 @@
       "headline_ja_chars": 15,
       "summary_ja_chars": 173
     }
-  }
+  },
+  "category": "exhibitions",
+  "execution_mode": "delta_promote",
+  "delta_mode": "no_reextraction_text_enrichment",
+  "delta_dry_run": false,
+  "delta_manifest_path": "c:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\trials\\text_enrichment_delta_promote_2025\\url_scope_guard_incident_delta_manifest_20260320.json",
+  "apply_summary_path": "data\\history\\enrichment\\exhibitions\\exhibitions_enrichment_apply_summary_2025_20260320T032608Z.json",
+  "current_output_path": "data\\current\\enrichment\\exhibitions_enrichment_apply_output_2025.jsonl",
+  "current_summary_path": "data\\current\\enrichment\\exhibitions_enrichment_apply_summary_2025.json",
+  "runtime_requests_path": "data\\runtime\\enrichment_requests\\exhibitions\\exhibitions_enrichment_requests_2025.jsonl",
+  "diagnostics_path": "data\\history\\enrichment\\exhibitions\\exhibitions_enrichment_delta_diagnostics_2025_20260320T032608Z.json",
+  "delta_before_output_rows": 83,
+  "delta_after_output_rows": 81,
+  "delta_before_runtime_request_rows": 83,
+  "delta_after_runtime_request_rows": 81,
+  "delta_intentional_drop_output_rows": 2,
+  "delta_intentional_drop_runtime_requests": 2,
+  "delta_localized_repair_targets": 0,
+  "delta_localized_repair_applied": 0,
+  "delta_localized_repair_changed_rows": 0,
+  "promoted_to_current": true,
+  "promote_verdict": "delta_promote_applied"
 }

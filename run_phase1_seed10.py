@@ -495,6 +495,42 @@ def _is_listing_like_exhibition_url(url: str) -> bool:
     return False
 
 
+def _is_exhibition_family_segment(segment: str) -> bool:
+    lowered = segment.lower().strip()
+    if not lowered:
+        return False
+    if lowered in EXHIBITION_LISTING_PATH_SEGMENTS:
+        return lowered not in {"category", "news", "events", "event", "archive", "past", "current"}
+    return bool(re.match(r"^(exhib|expo|show|project|program|viewing-room|viewingroom)", lowered))
+
+
+def _exhibition_listing_scope_mode(list_page_url: str) -> str:
+    segments = _path_segments_from_url(list_page_url)
+    if not segments:
+        return "unknown"
+    if segments[0] == "category" and any(_is_exhibition_family_segment(segment) for segment in segments[1:]):
+        return "taxonomy"
+    if _is_exhibition_family_segment(segments[0]):
+        if len(segments) == 1 and segments[0] not in {"exhibition", "exhibitions", "show", "shows", "project", "projects"}:
+            return "root-listing"
+        return "family"
+    if any(_is_exhibition_family_segment(segment) for segment in segments):
+        return "root-listing"
+    return "unknown"
+
+
+def _matches_exhibition_listing_scope(candidate_url: str, list_page_url: str) -> bool:
+    candidate_segments = _path_segments_from_url(candidate_url)
+    if not candidate_segments:
+        return False
+    scope_mode = _exhibition_listing_scope_mode(list_page_url)
+    if scope_mode == "family":
+        return _is_exhibition_family_segment(candidate_segments[0])
+    if scope_mode in {"root-listing", "taxonomy"}:
+        return len(candidate_segments) == 1 or _is_exhibition_family_segment(candidate_segments[0])
+    return False
+
+
 def _is_probable_exhibition_detail_url(url: str) -> bool:
     segments = _path_segments_from_url(url)
     if not segments:
@@ -579,6 +615,7 @@ def extract_candidate_exhibition_urls(list_page_url: str, list_page_html: str) -
             fallback_allowed = (
                 _is_listing_like_exhibition_url(list_page_url)
                 and _is_probable_exhibition_detail_url(normalized)
+                and _matches_exhibition_listing_scope(normalized, list_page_url)
             )
             if not fallback_allowed:
                 continue
@@ -971,8 +1008,13 @@ def load_artist_master_global(path: Path) -> dict[str, dict[str, Any]]:
     return out
 
 
-def merge_artist_master_from_artists_raw(master: dict[str, dict[str, Any]], *, target_year: int) -> None:
-    for raw_path in sorted(RAW_DIR.glob(f"artists_*_{target_year}.jsonl")):
+def merge_artist_master_from_artists_raw(
+    master: dict[str, dict[str, Any]],
+    *,
+    target_year: int,
+    raw_dir: Path = RAW_DIR,
+) -> None:
+    for raw_path in sorted(raw_dir.glob(f"artists_*_{target_year}.jsonl")):
         rows = read_jsonl_rows(raw_path)
         for row in rows:
             if is_manual_seed_row(row):
@@ -1528,7 +1570,11 @@ def main() -> int:
         fair_slug: Counter() for fair_slug in CSV_PATHS
     }
     artist_master_global = load_artist_master_global(artist_master_global_path)
-    merge_artist_master_from_artists_raw(artist_master_global, target_year=TARGET_YEAR)
+    merge_artist_master_from_artists_raw(
+        artist_master_global,
+        target_year=TARGET_YEAR,
+        raw_dir=raw_dir,
+    )
     artists_seen_identity_keys_in_run: set[str] = set()
     if include_artists_text:
         bootstrap_notes: list[str] = []
