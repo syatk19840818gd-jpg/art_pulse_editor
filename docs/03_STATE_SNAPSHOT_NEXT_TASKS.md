@@ -13,7 +13,7 @@ STREAMLIT_ENTRYPOINT（固定）
 - Local run: streamlit run app.py
 
 SOURCE_SSOT: 01_PROJECT_SPEC_CURRENT_FULL.docx
-LAST_UPDATED: 2026-03-20 12:35 JST
+LAST_UPDATED: 2026-03-21 19:17 JST
 
 
 ========================
@@ -91,10 +91,13 @@ STATE_SNAPSHOT（現在地）
     - operational note: type1 lanes are tiny-fix-only on regression recurrence
   - type2 status: text-only -> image generation is accepted; image-attached -> image generation is accepted after smoke success, both on current fixed runtime `gpt-image-1` / `low` / `auto` / `1 image`
   - current/history rebaseline phase: completed (A2-A9)
-  - Immediate priority: A12_PHASE5_EXCLUSIVE_ADVISOR_KICKOFF_01
-  - current state note: Feature 4 Advisor is accepted/completed for the current scope; future handling is major-regression-only tiny fix, and roadmap focus has returned to Feature 5 after the text enrichment incident was formally resolved
-  - enrichment requests policy note: runtime-path switch is applied and verify verdict is GO (`data/runtime/enrichment_requests/...` active, `_completed` archive lane, `_reports` audit lane); keep/delete remains evidence-gated
-  - enrichment execution note: URL scope contamination incident and the single artists batch parse failure incident are resolved. For future Text enrichment incidents, the standard first-response is existing-artifact diagnosis + intentional drop + localized repair + no-reextraction delta promote; full rerun / full rebuild / re-extraction / batch rerun remain last-resort and user-confirmed only
+  - Immediate priority: cleanup lane is closed; return to main roadmap only by explicit user task（Feature 5 auto-start はしない）
+  - current state note: repo hygiene cleanup / output hygiene permanent guard / aggressive prune are completed and accepted. Feature 4 Advisor remains major-regression-only tiny fix, and normal feature work may resume from the main roadmap when the user explicitly asks for it
+  - enrichment requests policy note: runtime-path switch is applied and verify verdict is GO (`data/runtime/enrichment_requests/...` active, `_completed` archive lane, `_reports` migration/retention audit lane); `_reports` is not always-on and keep/delete remains evidence-gated
+  - enrichment execution note: URL scope contamination incident and the single artists batch parse failure incident are resolved. For future Text enrichment incidents, the standard first-response is existing-artifact diagnosis + intentional drop + localized repair + no-reextraction delta promote, the standard entrypoint is `run_text_enrichment_delta_promote.py`, and full rerun / full rebuild / re-extraction / batch rerun remain last-resort and user-confirmed only
+  - artifact policy note: optional artifact is opt-in only via `ART_PULSE_OUTPUT_ARTIFACTS`; `preview` / `diagnostics` / `report` / `latest` / `diff` / `inventory` are default-off, duplicate mirror storage is prohibited, and new temp / backup / report roots must not be introduced outside `_trash`
+  - essential artifact exception note: `run_r2_sync.py` plan log remains always-on because `apply-prune` guard consumes it; `run_phase1_seed10_exhibition_image_collect.py` `summary_latest` is default-off and timestamped summary is the standard output
+  - cleanup closure note: `data/backups/` mirror bundle purge, `data/trials/` cleanup, `_trash/ADOPT*` purge, stale `_trial` bundle provenance prune, `FORMAL_CURRENT_POINTER.json` stale rollback provenance prune, `tests/` removal, and root `py` aggressive prune are completed; none remain as open blockers
 - NOTE: keep this current-goal line updated whenever phase priority changes.
 - Fixed master roadmap alignment (from SSOT 01):
   - 5 RAG categories (Tarutani_Text / Artist Works Images / Artist Text / Exhibitions Image / Exhibitions Text) are established at 10-gallery operational scope
@@ -272,11 +275,11 @@ NEXT_TASKS（次回やること）
     - scope: validate and tune Feature 4 Advisor type2 for image-attached -> image generation while keeping accepted text-only -> image generation behavior stable
     - completion evidence: image-attached -> image generation smoke succeeded, accepted runtime stays `gpt-image-1` / `low` / `auto` / `1 image`, and current medium-fidelity / visual-nucleus ordering remained stable
 
-[ ] 307) A12_PHASE5_EXCLUSIVE_ADVISOR_KICKOFF_01 (top priority)
-    - scope: kickoff for Feature 5 Exclusive Advisor after Feature 4 Advisor completion/acceptance sync
-    - current assumption: Feature 4 is accepted/completed for the current scope; only major-regression tiny fixes should reopen it, including follow-up/session UI regressions only when they materially affect accepted behavior
-    - goal: move roadmap focus from Feature 4 maintenance to Feature 5 design/execution start
-    - resumed note: URL scope contamination and single-row artists parse failure are resolved; if a similar Text enrichment small-delta incident reappears, check the no-reextraction delta promote lane first before considering rerun
+[ ] 307) A12_PHASE5_EXCLUSIVE_ADVISOR_KICKOFF_01 (deferred until explicit user task)
+    - scope: keep Feature 5 as the next main-roadmap option after cleanup closeout, but do not auto-start it from this snapshot
+    - current assumption: Feature 4 is accepted/completed for the current scope; only major-regression tiny fixes should reopen it, and repo hygiene / output hygiene lane is already completed
+    - goal: resume normal feature work only when the user explicitly requests the next product task
+    - resumed note: if a similar Text enrichment small-delta incident reappears, use `run_text_enrichment_delta_promote.py` first; do not reopen full rerun / rebuild / re-extraction / canonical rebuild / promote rerun without user confirmation
 
 [x] 228) Exhibitions Image completion closure memo（完了）
     - 目的：TASK215〜227の remediation / guard hardening / final isolated rerun retry を確定履歴として closure し、④ Exhibitions Image を completion として正式記録する
@@ -6525,6 +6528,7 @@ CODEX_SNIPPETS（頻出コピペ：ここだけ使えば回る）
 
 ========================
 CHANGELOG（このファイルの更新履歴）
+- 2026-03-21 JST: TASK DOC_SYNC_REPO_OUTPUT_HYGIENE_CONSTITUTION_01 を反映。repo hygiene cleanup / output hygiene permanent guard / aggressive prune を completed / accepted として同期し、steady-state policy を「増えた artifact を後で消す」ではなく「default で増やさない」に固定。`ART_PULSE_OUTPUT_ARTIFACTS` opt-in、`preview` / `diagnostics` / `report` / `latest` / `diff` / `inventory` default-off、`run_r2_sync.py` plan log essential、`run_phase1_seed10_exhibition_image_collect.py` `summary_latest` default-off、small-delta incident の standard entrypoint=`run_text_enrichment_delta_promote.py`、Feature 5 は main roadmap return だが explicit user task まで auto-start しないことを明記。
 - 2026-03-20 JST: TASK DOCS_SYNC_DELTA_PROMOTE_LANE_AS_STANDARD_FIRST_RESPONSE_2025 を反映。URL scope contamination incident と single artists batch parse failure incident を resolved として同期し、Text enrichment の standard first-response を `existing artifacts diagnosis -> intentional drop -> localized repair -> no-reextraction delta promote` に固定。Immediate priority を `A12_PHASE5_EXCLUSIVE_ADVISOR_KICKOFF_01` へ戻し、small-delta incident では full rerun / full rebuild / re-extraction / batch rerun を標準手順にしないことを明記。
 - 2026-03-20 JST: TASK DOCS_ONLY_LOCK_REEXTRACTION_COST_GUARD_RULES_2025 を反映。運用ルールに「無断再抽出禁止」「再抽出・canonical rebuild・promote再実行前のユーザー確認必須」「existing artifacts で診断できる限り再抽出しない」「Artists/Exhibitions の bulk OpenAI 実行は半額 Batch API のみ」を固定。STATE_SNAPSHOT は `DIAGNOSE_SINGLE_ARTISTS_BATCH_PARSE_FAILURE_AND_PREPARE_SAFE_RETRY_2025` を最優先へ更新し、URL scope guard 件は promote 候補だが next step は single parse failure の diagnosis-first であることを明記。
 - 2026-03-05 JST: TASK228 実施。④ Exhibitions Image の completion closure memo を確定し、STATE_SNAPSHOT を `completion closure 完了` へ更新。TASK227結果（`PASS_FOR_CLOSURE` / `CURRENT_FORMAL_STILL_VALID` / Baton再発0 / Athr再出現0 / duplicate 0）を反映。final isolated rerun retry の新規1件は `SAFE_BUT_NOT_NEEDED` として formal 不採用を明記。次タスクを `TASK229（⑤ Exhibitions Text kickoff / spec start）` に更新。

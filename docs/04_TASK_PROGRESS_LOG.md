@@ -1,6 +1,6 @@
 # 04_TASK_PROGRESS_LOG.md
 
-最終更新: 2026-03-01 16:35 JST  
+最終更新: 2026-03-21 19:17 JST  
 対象プロジェクト: ART_PULSE_EDITOR（Phase1 seed10 / Guard運用整備）  
 位置づけ: 実装進捗ログ（01=SSOT、02=索引、03=現行運用タスクの補助ログ）
 
@@ -5203,3 +5203,52 @@ _trash 運用方針:
 - not done:
   - no code/data/current/history/app changes in this docs sync.
   - no expansion of the lane beyond Text enrichment or beyond intentional drop + localized repair.
+
+## 2026-03-21 TASK REPO_HYGIENE_HARD_CLEANUP_01
+- scope: root/top-level hygiene cleanup execute.
+- result:
+  - root snapshot / `.bak` / smoke temp files were deleted.
+  - top-level smoke dirs were removed.
+  - mixed temp groups were consolidated into the existing `_trash/repo_hygiene_hold_20260321/` lane only.
+  - Python cache (`__pycache__`, `*.pyc`, `*.pyo`) was purged repo-wide.
+
+## 2026-03-21 TASK DATA_BACKUPS / DATA_TRIALS CLEANUP SERIES
+- scope: verify-first + execute cleanup for `data/backups/`, `data/trials/`, and adjacent stale trial/mirror payloads.
+- result:
+  - `data/backups/` single mirror bundle was classified, duplicate-only files were deleted first, and the remaining mirror bundle was fully purged after live-match / no-reader verification.
+  - `data/trials/url_scope_guard_2025/` was split into keep vs archive-candidate; keep reports stayed in place and archive payloads moved into the existing `_trash/repo_hygiene_hold_20260321/` hold lane.
+  - `data/trials/text_enrichment_delta_promote_2025/20260320T032043Z/` was bulk-purged by role; only the live-referenced manifest anchor remained.
+  - stale `_trial` bundle provenance was removed from `PHASE2_INPUT_BUNDLE_TASK293_PREP02.json` / `PHASE2_INPUT_BUNDLE_TASK293_FREEZE01.json`.
+  - `FORMAL_CURRENT_POINTER.json` stale rollback provenance to deleted `_trash/ADOPT*` was pruned.
+
+## 2026-03-21 TASK PHASE1_SEED10_TRASH_ADOPT_BULK_PURGE_01
+- scope: purge `data/phase1_seed10/_trash/ADOPT*` bundles after live-reference check.
+- result:
+  - `_trash/ADOPT*` bundles were deleted in bulk because no live current/history/runtime/code anchor depended on them.
+  - `_trial` root itself was already absent in repo and was confirmed as not recoverable/active.
+
+## 2026-03-21 TASK OUTPUT_HYGIENE_PERMANENT_GUARD_01 + FINAL_OUTPUT_HYGIENE_RESIDUALS_01
+- scope: permanent output-hygiene guard implementation plus final residual decisions.
+- result:
+  - common opt-in guard `ART_PULSE_OUTPUT_ARTIFACTS` was established for optional artifacts.
+  - `preview` / `diagnostics` / `report` / `latest` were fixed as default-off across the updated generation lanes.
+  - `run_text_enrichment_delta_promote.py` dry-run previews / diagnostics / reports became opt-in artifacts only.
+  - runtime `_reports` lane was kept as migration/retention audit lane but stopped being always-on.
+  - `run_r2_sync.py` plan log was verified as essential because `apply-prune` guard consumes it.
+  - `run_phase1_seed10_exhibition_image_collect.py` `summary_latest` moved to default-off; timestamped summary became the standard output.
+
+## 2026-03-21 TASK ROOT_PY_AND_TESTS_AGGRESSIVE_PRUNE_01 + ROOT_PY_RESTORE_NECESSITY_CHECK_01
+- scope: aggressive prune for root `py` and `tests/`, then restore-necessity check for three deleted scripts.
+- result:
+  - `tests/` was removed as historical fixture-only assets with no active current runner dependency.
+  - root `py` was compressed aggressively; one-off / compare / scaffold / migration / old-task scripts were deleted.
+  - restore exception was only `run_text_enrichment_delta_promote.py`; it was restored because the no-reextraction delta promote lane remains the standard first-response for future small-delta Text enrichment incidents.
+  - `run_artist_text_canonical_dryrun.py` and `run_artist_text_canonical_execute.py` remained retired one-off scripts.
+
+## 2026-03-21 TASK CLOSEOUT
+- result:
+  - repo hygiene cleanup: completed.
+  - output hygiene permanent guard: completed.
+  - aggressive prune: completed / fully accepted.
+  - stale backup mirror / stale trial payload / stale `_trial` provenance / stale rollback provenance cleanup: completed.
+  - main-roadmap return is fixed; cleanup is no longer the top-priority lane, and future cleanup reopening or Feature 5 start requires explicit user instruction.

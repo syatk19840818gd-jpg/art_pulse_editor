@@ -416,8 +416,12 @@ SSOT_TAG: 01>5-8) Sync Model (R2 primary + current/history + local fallback | fi
 固定：役割分担（索引）
 - current: 機械・人間の常用正本（アプリの普段の読み先）
 - history: 監査・比較の履歴置き場（非デフォルト経路）
+- runtime: runtime input / staging lane（非canonical、デフォルトの app/read-only 参照先ではない）
+- `_trash`: 明示的 hold lane（temp / backup / review-needed artifact の単一退避先）
+- `data/phase1_seed10/`: working/validation lane（長期 canonical root ではない）
 - R2: current 永続同期の主対象
 - local fallback: R2未達/差分時に current 運用を継続するための補助
+- app/read-only: current-first。history は audit lane であり default runtime lane に混ぜない
 
 ============================================================
 CARD_ID: 22_PRE_ADVISOR_STORAGE_CONTRACT_01（実装前契約固定）
@@ -447,12 +451,21 @@ SSOT_TAG: 01>5-8) Sync Model (R2 primary + current/history + local fallback | fi
   - `data/runtime/enrichment_requests/exhibitions/exhibitions_enrichment_requests_2025.jsonl`
 - runtime subdirs:
   - `_completed/` is archive lane for terminal-complete requests artifacts
-  - `_reports/` is migration/retention audit report lane
+  - `_reports/` is migration/retention audit lane（常時生成しない。verify / migration / retention 監査時のみ）
 - requests runtime retention policy:
   - keep while batch is `in_progress` / `validating` / `finalizing`, or while resume path is open (`rerun_guard_verdict=resume_existing_batch` with active guard/lock).
   - deletable after batch reaches terminal state and history output/summary/manifest plus current promote verdict are fixed with batch/guard evidence fields.
   - long-term retention is not required because requests can be regenerated from raw when needed.
 - verify status: runtime-path switch and retention safety verify are GO (preflight path checks + migration-report/file consistency + synthetic retention checks passed).
+- artifact policy (derived from 01 hygiene constitution):
+  - optional artifact is opt-in only via `ART_PULSE_OUTPUT_ARTIFACTS`
+  - `preview` / `diagnostics` / `report` / `latest` / `diff` / `inventory` are default-off
+  - do not keep duplicate mirror storage across current/history/runtime/trial/backup lanes
+  - do not add new temp / backup / report root when current/history/runtime/`_trash` already cover the role
+  - `latest` + timestamped dual retention is prohibited by default; timestamped single-source is preferred
+  - exception: `run_r2_sync.py` plan log is an essential artifact because `apply-prune` guard consumes it
+  - `run_phase1_seed10_exhibition_image_collect.py` `summary_latest` is default-off; timestamped summary is standard
+  - `run_text_enrichment_delta_promote.py` dry-run previews / diagnostics / category report / run report are optional artifacts only
 
 固定：writer/readers/sync責務
 - writer:
@@ -501,7 +514,7 @@ SSOT source:
 - 01 section 8 (Phase 2 milestones)
 - 01 section 5-8 (sync model: current/history/R2/local fallback)
 
-Index update (2026-03-19):
+Index update (2026-03-21):
 - phase status:
   - feature 1 Art Pulse: completed
   - feature 2 Exhibition Search: completed
@@ -532,7 +545,18 @@ Index update (2026-03-19):
   - evidence refs/source refs are shown from read-only outputs
   - lane operation note: type1 text-only and image-attached lanes are now tiny-fix-only on regression recurrence; type2 text-only and image-attached -> image generation lanes are accepted for the current scope, and future handling is major-regression-only tiny fix.
   - follow-up note: Advisor follow-up is session-only, no persistence, keeps reference refresh lightweight via fixed-core + dynamic-refresh rather than full re-grounding, and uses Q-numbering plus initial/follow-up input clear and uploader clear inside session UI only.
+- repo/output hygiene steady state:
+  - cleanup lane is completed; steady-state policy is “増えた artifact を後で消す” ではなく “default で増やさない”
+  - optional artifact is opt-in only; no default `preview` / `diagnostics` / `report` / `latest` / `diff` / `inventory`
+  - no new temp / backup / report root; no duplicate mirror storage; no default latest alias when timestamped single-source is sufficient
+  - historical `tests/` fixtures, stale `_trial` provenance, backup mirror bundles, and `_trash/ADOPT*` are not active dependencies
+- text enrichment small-delta incident handling:
+  - standard first-response = `existing-artifact diagnosis -> intentional drop -> localized repair -> no-reextraction delta promote`
+  - standard entrypoint = `run_text_enrichment_delta_promote.py`
+  - `run_artist_text_canonical_dryrun.py` / `run_artist_text_canonical_execute.py` are retired one-off scripts
+  - full rerun / full rebuild / re-extraction / canonical rebuild / promote rerun are last-resort + user-confirmed only
 
 Next (from STATE/NEXT):
-- A12_PHASE5_EXCLUSIVE_ADVISOR_KICKOFF_01
+- cleanup lane is completed/fixed; return to main roadmap only by explicit user task
+- do not auto-start Feature 5 and do not reopen cleanup without explicit user instruction
 
