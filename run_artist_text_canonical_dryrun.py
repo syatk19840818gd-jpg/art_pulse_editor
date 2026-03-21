@@ -18,6 +18,7 @@ from phase1_artist_link_utils import (
     normalize_url_for_link_compare,
     sanitize_artist_name_en,
 )
+from enrichment_batch_common import is_optional_output_enabled
 
 REPO_ROOT = Path(__file__).resolve().parent
 
@@ -467,6 +468,7 @@ def main() -> int:
     summary_path = output_dir / f"artist_text_canonical_dryrun_summary_{target_year}_{suffix}.json"
     manifest_latest = output_dir / "artist_text_canonical_dryrun_manifest_latest.json"
     summary_latest = output_dir / "artist_text_canonical_dryrun_summary_latest.json"
+    emit_latest = is_optional_output_enabled("latest")
 
     summary_payload: dict[str, Any] = {
         "runner": "run_artist_text_canonical_dryrun.py",
@@ -502,8 +504,8 @@ def main() -> int:
         "outputs": {
             "manifest_path": str(manifest_path),
             "summary_path": str(summary_path),
-            "manifest_latest": str(manifest_latest),
-            "summary_latest": str(summary_latest),
+            "manifest_latest": str(manifest_latest) if emit_latest else "",
+            "summary_latest": str(summary_latest) if emit_latest else "",
         },
     }
 
@@ -533,8 +535,9 @@ def main() -> int:
 
     write_json(manifest_path, manifest_payload)
     write_json(summary_path, summary_payload)
-    write_json(manifest_latest, manifest_payload)
-    write_json(summary_latest, summary_payload)
+    if emit_latest:
+        write_json(manifest_latest, manifest_payload)
+        write_json(summary_latest, summary_payload)
 
     print(f"[DRYRUN] target_year={target_year} rows={len(raw_rows)}")
     print(

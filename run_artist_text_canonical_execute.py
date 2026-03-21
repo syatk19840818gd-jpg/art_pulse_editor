@@ -44,8 +44,8 @@ WORKS_PATHS = {
 }
 CURRENT_APPLY_PATH = REPO_ROOT / get_enrichment_current_output_path("artists", TARGET_YEAR)
 CURRENT_SUMMARY_PATH = REPO_ROOT / get_enrichment_current_summary_path("artists", TARGET_YEAR)
-DRYRUN_MANIFEST_PATH = REPO_ROOT / "data/phase1_seed10/logs/artist_text_canonical_dryrun_manifest_latest.json"
-DRYRUN_SUMMARY_PATH = REPO_ROOT / "data/phase1_seed10/logs/artist_text_canonical_dryrun_summary_latest.json"
+DRYRUN_MANIFEST_LATEST_PATH = REPO_ROOT / "data/phase1_seed10/logs/artist_text_canonical_dryrun_manifest_latest.json"
+DRYRUN_SUMMARY_LATEST_PATH = REPO_ROOT / "data/phase1_seed10/logs/artist_text_canonical_dryrun_summary_latest.json"
 TRAILING_DIGIT_RE = re.compile(r".*\s\d+$")
 
 EXPECTED_SHA256 = {
@@ -132,6 +132,17 @@ def normalize_for_pair(url: str) -> str:
     return normalize_source_url(str(url or ""))
 
 
+def resolve_dryrun_artifact(kind: str, *, target_year: int) -> Path:
+    latest_path = DRYRUN_MANIFEST_LATEST_PATH if kind == "manifest" else DRYRUN_SUMMARY_LATEST_PATH
+    if latest_path.exists():
+        return latest_path
+    pattern = f"artist_text_canonical_dryrun_{kind}_{target_year}_*.json"
+    candidates = list(LOG_DIR.glob(pattern))
+    if candidates:
+        return max(candidates, key=lambda path: path.stat().st_mtime)
+    raise FileNotFoundError(f"missing artist canonical dryrun {kind}: {pattern}")
+
+
 def build_row_ref(path: Path, line_no: int) -> str:
     return f"{path}:{line_no}"
 
@@ -200,14 +211,20 @@ def stage_request_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return request_rows
 
 
-def build_preflight(manifest: dict[str, Any], summary: dict[str, Any]) -> dict[str, Any]:
+def build_preflight(
+    manifest: dict[str, Any],
+    summary: dict[str, Any],
+    *,
+    manifest_path: Path,
+    summary_path: Path,
+) -> dict[str, Any]:
     checks: list[dict[str, Any]] = []
 
     def record(name: str, ok: bool, details: dict[str, Any]) -> None:
         checks.append({"name": name, "ok": bool(ok), "details": details})
 
-    manifest_sha = sha256_file(DRYRUN_MANIFEST_PATH)
-    summary_sha = sha256_file(DRYRUN_SUMMARY_PATH)
+    manifest_sha = sha256_file(manifest_path)
+    summary_sha = sha256_file(summary_path)
     record(
         "dryrun_sha256",
         manifest_sha == EXPECTED_SHA256["dryrun_manifest"] and summary_sha == EXPECTED_SHA256["dryrun_summary"],
@@ -722,9 +739,16 @@ def main() -> int:
     preflight_path = stage_dir / "preflight.json"
     verdict_path = stage_dir / "verdict.json"
 
-    manifest = read_json(DRYRUN_MANIFEST_PATH)
-    summary = read_json(DRYRUN_SUMMARY_PATH)
-    preflight = build_preflight(manifest, summary)
+    dryrun_manifest_path = resolve_dryrun_artifact("manifest", target_year=TARGET_YEAR)
+    dryrun_summary_path = resolve_dryrun_artifact("summary", target_year=TARGET_YEAR)
+    manifest = read_json(dryrun_manifest_path)
+    summary = read_json(dryrun_summary_path)
+    preflight = build_preflight(
+        manifest,
+        summary,
+        manifest_path=dryrun_manifest_path,
+        summary_path=dryrun_summary_path,
+    )
     write_json(preflight_path, preflight)
     if not preflight.get("ok"):
         verdict = {

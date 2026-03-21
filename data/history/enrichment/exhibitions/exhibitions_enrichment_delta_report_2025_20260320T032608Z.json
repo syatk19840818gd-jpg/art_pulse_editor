@@ -1,0 +1,45 @@
+{
+  "category": "exhibitions",
+  "history_output_path": "data\\history\\enrichment\\exhibitions\\exhibitions_enrichment_apply_output_2025_20260320T032608Z.jsonl",
+  "history_summary_path": "data\\history\\enrichment\\exhibitions\\exhibitions_enrichment_apply_summary_2025_20260320T032608Z.json",
+  "history_manifest_path": "data\\history\\enrichment\\exhibitions\\exhibitions_enrichment_delta_manifest_2025_20260320T032608Z.json",
+  "current_output_path": "data\\current\\enrichment\\exhibitions_enrichment_apply_output_2025.jsonl",
+  "current_summary_path": "data\\current\\enrichment\\exhibitions_enrichment_apply_summary_2025.json",
+  "runtime_requests_path": "data\\runtime\\enrichment_requests\\exhibitions\\exhibitions_enrichment_requests_2025.jsonl",
+  "diagnostics_path": "data\\history\\enrichment\\exhibitions\\exhibitions_enrichment_delta_diagnostics_2025_20260320T032608Z.json",
+  "report_path": "data\\history\\enrichment\\exhibitions\\exhibitions_enrichment_delta_report_2025_20260320T032608Z.json",
+  "before_output_rows": 83,
+  "after_output_rows": 81,
+  "before_runtime_request_rows": 83,
+  "after_runtime_request_rows": 81,
+  "dropped_output_rows": [
+    {
+      "request_id": "seed10_exhibitions_enrich_7dffe06cee838daf8357e7707110a54b961c8802e8684952d8a890c7df2f306e",
+      "status": "APPLIED",
+      "source_url": "https://athrart.com/art-fairs"
+    },
+    {
+      "request_id": "seed10_exhibitions_enrich_b9714ec7d4f410a47d0112f51d2f03289533b6b6ff5c6c38bdb006a26cbcb7e7",
+      "status": "APPLIED",
+      "source_url": "https://addisfineart.com/art-fairs"
+    }
+  ],
+  "dropped_runtime_requests": [
+    {
+      "request_id": "seed10_exhibitions_enrich_7dffe06cee838daf8357e7707110a54b961c8802e8684952d8a890c7df2f306e",
+      "source_urls": [
+        "https://athrart.com/art-fairs",
+        "https://athrart.com/art-fairs"
+      ]
+    },
+    {
+      "request_id": "seed10_exhibitions_enrich_b9714ec7d4f410a47d0112f51d2f03289533b6b6ff5c6c38bdb006a26cbcb7e7",
+      "source_urls": [
+        "https://addisfineart.com/art-fairs",
+        "https://addisfineart.com/art-fairs"
+      ]
+    }
+  ],
+  "localized_repair_applied": [],
+  "non_target_removed_rows": []
+}

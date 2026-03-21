@@ -66,6 +66,14 @@ MANIFEST
 Thumbs.db
 _trash
 _trial/
+tmp/
+tmp_*/
+*.bak
+*.bak_migrate
+*.broken_snapshot_*.txt
+*.recovery_start_snapshot_*.txt
+*.tmp_copy
+*.tmp_promote
 
 ############################################################
 # ⑨ エディタ設定（基本は入れない）

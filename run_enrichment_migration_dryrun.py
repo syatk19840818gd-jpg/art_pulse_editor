@@ -7,6 +7,7 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
+from enrichment_batch_common import is_optional_output_enabled
 from run_enrichment_exhibitions_preview import utc_now_compact, utc_now_iso
 
 from phase2_art_pulse_config import (
@@ -263,12 +264,14 @@ def main() -> int:
 
     DRYRUN_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     output_path = DRYRUN_OUTPUT_DIR / f"enrichment_migration_dryrun_{target_year}_{stamp}.json"
-    latest_path = DRYRUN_OUTPUT_DIR / f"enrichment_migration_dryrun_{target_year}_latest.json"
     output_path.write_text(json.dumps(plan, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    latest_path.write_text(json.dumps(plan, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    latest_path = DRYRUN_OUTPUT_DIR / f"enrichment_migration_dryrun_{target_year}_latest.json"
+    if is_optional_output_enabled("latest"):
+        latest_path.write_text(json.dumps(plan, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
     print(f"[DONE] dryrun_output={output_path}")
-    print(f"[DONE] dryrun_latest={latest_path}")
+    if is_optional_output_enabled("latest"):
+        print(f"[DONE] dryrun_latest={latest_path}")
     print(f"[DONE] action_counts={action_counts}")
     return 0
 

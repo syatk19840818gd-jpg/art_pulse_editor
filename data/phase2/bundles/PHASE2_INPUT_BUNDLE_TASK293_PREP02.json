@@ -7,12 +7,7 @@
   "input_fingerprint": "05760d1d6737c73ea74d3f04eebdd37df6ab62c43e27ab3030dc9576c54abf9f",
   "code_fingerprint": "d1c5b3a5caa863cbf45889270c6e1fef52a5c9a4f3d5e52b0e9dd8c8f1d7f857",
   "exhibitions_text_truth": {
-    "path": "data\\phase1_seed10\\_trial\\TASK293_PREP02_20260305T174805Z\\exhibitions_text_trial_truth_2025.jsonl",
     "sha256": "ef07ad555a68bdf6cdf2b6067c175f739c4ca09ce6c17386490fb34e239d2a50"
-  },
-  "exhibitions_text_metrics": {
-    "coverage_by_gallery_csv": "data\\phase1_seed10\\_trial\\TASK293_PREP02_20260305T174805Z\\exhibitions_text_matched_coverage_by_gallery_task293_prep02.csv",
-    "coverage_summary_json": "data\\phase1_seed10\\_trial\\TASK293_PREP02_20260305T174805Z\\exhibitions_text_matched_coverage_summary_task293_prep02.json"
   },
   "anti_mixing": {
     "formal_read_only": true,

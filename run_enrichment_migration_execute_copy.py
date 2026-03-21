@@ -9,6 +9,7 @@ from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any
 
+from enrichment_batch_common import is_optional_output_enabled
 from run_enrichment_exhibitions_preview import utc_now_compact, utc_now_iso
 
 from phase2_art_pulse_config import (
@@ -17,7 +18,6 @@ from phase2_art_pulse_config import (
     get_enrichment_current_summary_path,
 )
 
-MANIFEST_LATEST_PATH = Path("data/phase1_seed10/logs/enrichment_migration_dryrun_2025_latest.json")
 EXECUTION_OUTPUT_DIR = Path("data/phase1_seed10/logs")
 CURRENT_DECISION_CHECK_STAMP_ARTISTS = "20260311T042229Z"
 
@@ -39,6 +39,20 @@ def _atomic_copy(source: Path, target: Path) -> None:
     finally:
         if tmp_path.exists():
             tmp_path.unlink(missing_ok=True)
+
+
+def _resolve_dryrun_manifest_path(target_year: int) -> Path:
+    latest_path = EXECUTION_OUTPUT_DIR / f"enrichment_migration_dryrun_{target_year}_latest.json"
+    if latest_path.exists():
+        return latest_path
+    candidates = [
+        path
+        for path in EXECUTION_OUTPUT_DIR.glob(f"enrichment_migration_dryrun_{target_year}_*.json")
+        if not path.name.endswith("_latest.json")
+    ]
+    if candidates:
+        return max(candidates, key=lambda path: path.stat().st_mtime)
+    raise FileNotFoundError(f"missing dry-run manifest for target_year={target_year}")
 
 
 def _summary_lookup(manifest: dict[str, Any], category: str, stamp: str) -> dict[str, Any] | None:
@@ -203,9 +217,8 @@ def main() -> int:
     stamp = utc_now_compact()
     target_year = TARGET_YEAR
 
-    if not MANIFEST_LATEST_PATH.exists():
-        raise FileNotFoundError(f"missing dry-run manifest: {MANIFEST_LATEST_PATH}")
-    manifest = json.loads(MANIFEST_LATEST_PATH.read_text(encoding="utf-8"))
+    manifest_path = _resolve_dryrun_manifest_path(target_year)
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
 
     actions: list[dict[str, Any]] = list(manifest.get("actions") or [])
     current_candidates = {str(c.get("category") or ""): c for c in manifest.get("current_candidates") or []}
@@ -275,7 +288,7 @@ def main() -> int:
         "started_at": started_at,
         "completed_at": utc_now_iso(),
         "target_year": target_year,
-        "dryrun_manifest_path": str(MANIFEST_LATEST_PATH),
+        "dryrun_manifest_path": str(manifest_path),
         "current_decision": {
             "artists_default_stamp": artists_default_stamp,
             "artists_final_stamp": artists_final_stamp,
@@ -293,12 +306,14 @@ def main() -> int:
 
     EXECUTION_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     out_path = EXECUTION_OUTPUT_DIR / f"enrichment_migration_execute_copy_{target_year}_{stamp}.json"
-    latest_path = EXECUTION_OUTPUT_DIR / f"enrichment_migration_execute_copy_{target_year}_latest.json"
     out_path.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    latest_path.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    latest_path = EXECUTION_OUTPUT_DIR / f"enrichment_migration_execute_copy_{target_year}_latest.json"
+    if is_optional_output_enabled("latest"):
+        latest_path.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
     print(f"[DONE] execute_output={out_path}")
-    print(f"[DONE] execute_latest={latest_path}")
+    if is_optional_output_enabled("latest"):
+        print(f"[DONE] execute_latest={latest_path}")
     print(f"[DONE] action_counts_executed={action_counts}")
     print(f"[DONE] legacy_preserved={result['legacy_preserved']}")
     return 0

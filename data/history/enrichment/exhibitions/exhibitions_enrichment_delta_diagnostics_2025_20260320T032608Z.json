@@ -1,0 +1,38 @@
+{
+  "category": "exhibitions",
+  "target_year": 2025,
+  "delta_manifest_path": "c:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\trials\\text_enrichment_delta_promote_2025\\url_scope_guard_incident_delta_manifest_20260320.json",
+  "intentional_drop_urls": [
+    "https://athrart.com/art-fairs",
+    "https://addisfineart.com/art-fairs"
+  ],
+  "dropped_output_rows": [
+    {
+      "request_id": "seed10_exhibitions_enrich_7dffe06cee838daf8357e7707110a54b961c8802e8684952d8a890c7df2f306e",
+      "status": "APPLIED",
+      "source_url": "https://athrart.com/art-fairs"
+    },
+    {
+      "request_id": "seed10_exhibitions_enrich_b9714ec7d4f410a47d0112f51d2f03289533b6b6ff5c6c38bdb006a26cbcb7e7",
+      "status": "APPLIED",
+      "source_url": "https://addisfineart.com/art-fairs"
+    }
+  ],
+  "dropped_runtime_requests": [
+    {
+      "request_id": "seed10_exhibitions_enrich_7dffe06cee838daf8357e7707110a54b961c8802e8684952d8a890c7df2f306e",
+      "source_urls": [
+        "https://athrart.com/art-fairs",
+        "https://athrart.com/art-fairs"
+      ]
+    },
+    {
+      "request_id": "seed10_exhibitions_enrich_b9714ec7d4f410a47d0112f51d2f03289533b6b6ff5c6c38bdb006a26cbcb7e7",
+      "source_urls": [
+        "https://addisfineart.com/art-fairs",
+        "https://addisfineart.com/art-fairs"
+      ]
+    }
+  ],
+  "localized_repairs": []
+}

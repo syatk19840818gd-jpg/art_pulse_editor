@@ -1,0 +1,13 @@
+{
+  "category": "exhibitions",
+  "year": 2025,
+  "intentional_drop_urls": [
+    "https://athrart.com/art-fairs",
+    "https://addisfineart.com/art-fairs"
+  ],
+  "localized_repairs": [],
+  "diagnostics_metadata": {
+    "reason": "gallery_list_prefix_scope_violation",
+    "evidence": "phase1_candidate_acceptance_drift"
+  }
+}

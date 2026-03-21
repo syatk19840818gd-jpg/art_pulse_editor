@@ -1,0 +1,52 @@
+{
+  "schema_name": "text_enrichment_delta_manifest",
+  "target_year": 2025,
+  "incident_key": "url_scope_guard_2025",
+  "operations": [
+    {
+      "category": "exhibitions",
+      "year": 2025,
+      "intentional_drop_urls": [
+        "https://athrart.com/art-fairs",
+        "https://addisfineart.com/art-fairs"
+      ],
+      "localized_repairs": [],
+      "diagnostics_metadata": {
+        "reason": "gallery_list_prefix_scope_violation",
+        "evidence": "phase1_candidate_acceptance_drift"
+      }
+    },
+    {
+      "category": "artists",
+      "year": 2025,
+      "intentional_drop_urls": [
+        "https://gallerybaton.com/chapter-ii",
+        "https://gallerybaton.com/mailing-list",
+        "https://gallerybaton.com/privacy-policy",
+        "https://addisfineart.com/recovery-2",
+        "https://addisfineart.com/privacy",
+        "https://athrart.com/contact/form",
+        "https://www.theapproach.co.uk/books-and-editions"
+      ],
+      "localized_repairs": [
+        {
+          "request_id": "seed10_artists_enrich_336ffd39ede28d95d3a1983d90f7174bb1f0b740fd34b710a968f6fb4ba38f74",
+          "fair_slug": "liste",
+          "text_hash": "336ffd39ede28d95d3a1983d90f7174bb1f0b740fd34b710a968f6fb4ba38f74",
+          "source_url": "https://addisfineart.com/artists/55-tariku-shiferaw/works",
+          "repair_mode": "carry_forward_current_applied_row",
+          "diagnostics_metadata": {
+            "batch_job_id": "batch_69bca5d4b1b4819096a337557825e4e0",
+            "batch_input_file_id": "file-SqTpdM5uuwuP3Fzspf6o6Q",
+            "response_request_id": "de20c6ad-a2f4-44ee-b43c-d2879f87af01",
+            "parser_error": "openai_output_not_json"
+          }
+        }
+      ],
+      "diagnostics_metadata": {
+        "reason": "utility_url_drop_plus_single_row_carry_forward_repair",
+        "evidence": "existing_current_applied_row_and_existing_batch_output"
+      }
+    }
+  ]
+}

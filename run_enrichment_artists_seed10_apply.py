@@ -25,6 +25,7 @@ from enrichment_batch_common import (
     create_responses_batch,
     download_batch_file_rows,
     finalize_runtime_requests_retention,
+    is_optional_output_enabled,
     load_guard_state,
     read_jsonl,
     release_process_lock,
@@ -863,6 +864,7 @@ def main() -> int:
         error_map = build_batch_row_map(error_rows)
         current_applied_index = build_current_applied_row_index(paths["current_output_path"])
         diagnostics_path = diagnostic_path_for_apply(paths)
+        emit_diagnostics = is_optional_output_enabled("diagnostics")
 
         staged_updates: list[dict[str, Any]] = []
         warning_count = 0
@@ -993,7 +995,7 @@ def main() -> int:
             "localized_repair_applied": int(counters.get("batch_parse_failed_localized_repair_applied", 0)),
             "diagnostic_rows": diagnostic_rows,
         }
-        if diagnostic_rows:
+        if diagnostic_rows and emit_diagnostics:
             write_json(diagnostics_path, diagnostics_payload)
 
         summary = {
@@ -1020,7 +1022,7 @@ def main() -> int:
             "request_counts": batch_state.get("request_counts") or {},
             "parsed_success_rows": parsed_success_rows,
             "batch_error_rows": batch_error_count,
-            "diagnostics_path": str(diagnostics_path) if diagnostic_rows else "",
+            "diagnostics_path": str(diagnostics_path) if diagnostic_rows and emit_diagnostics else "",
             "diagnostic_rows": len(diagnostic_rows),
             "localized_repair_applied": int(counters.get("batch_parse_failed_localized_repair_applied", 0)),
             "promoted_to_current": False,
@@ -1050,7 +1052,7 @@ def main() -> int:
             "batch_output_file_id": str(batch_state.get("output_file_id") or ""),
             "batch_error_file_id": str(batch_state.get("error_file_id") or ""),
             "batch_input_path": str(paths["batch_input_path"]),
-            "diagnostics_path": str(diagnostics_path) if diagnostic_rows else "",
+            "diagnostics_path": str(diagnostics_path) if diagnostic_rows and emit_diagnostics else "",
             "diagnostic_rows": len(diagnostic_rows),
             "localized_repair_applied": int(counters.get("batch_parse_failed_localized_repair_applied", 0)),
             "enrich_model": model,

@@ -8,20 +8,13 @@
   "code_fingerprint": "a5351e095630756e4268b8acfe965c998c418a17b8c154af706855982820ea7f",
   "artist_rag_truth": {
     "artist_text_truth": {
-      "path": "data\\phase1_seed10\\_trial\\TASK293_FREEZE01_20260306T014320Z\\artist_text_trial_truth_task293_freeze01.jsonl",
       "sha256": "8da559e9e8b63d1cd2a6c816c815c2e3d32bca2bcb9dd1d336e875d48570117f"
     },
     "artist_works_images_truth": {
-      "path": "data\\phase1_seed10\\_trial\\TASK293_FREEZE01_20260306T014320Z\\artist_works_images_trial_truth_task293_freeze01.jsonl",
       "sha256": "cc0c7a05e9d737389905da909dd78fc2ffe1d224424f9eaadc73ef8136a9e95a"
     }
   },
-  "artist_rag_metrics": {
-    "by_gallery_csv": "data\\phase1_seed10\\_trial\\TASK293_FREEZE01_20260306T014320Z\\artist_rag_match_metrics_by_gallery_task293_freeze01.csv",
-    "summary_json": "data\\phase1_seed10\\_trial\\TASK293_FREEZE01_20260306T014320Z\\artist_rag_match_metrics_summary_task293_freeze01.json"
-  },
   "exhibitions_text_truth": {
-    "path": "data\\phase1_seed10\\_trial\\TASK293_PREP02_20260305T174805Z\\exhibitions_text_trial_truth_2025.jsonl",
     "sha256": "ef07ad555a68bdf6cdf2b6067c175f739c4ca09ce6c17386490fb34e239d2a50"
   },
   "exhibitions_image_truth": [

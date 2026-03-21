@@ -1,0 +1,106 @@
+{
+  "category": "artists",
+  "history_output_path": "data\\history\\enrichment\\artists\\artists_enrichment_apply_output_2025_20260320T032608Z.jsonl",
+  "history_summary_path": "data\\history\\enrichment\\artists\\artists_enrichment_apply_summary_2025_20260320T032608Z.json",
+  "history_manifest_path": "data\\history\\enrichment\\artists\\artists_enrichment_delta_manifest_2025_20260320T032608Z.json",
+  "current_output_path": "data\\current\\enrichment\\artists_enrichment_apply_output_2025.jsonl",
+  "current_summary_path": "data\\current\\enrichment\\artists_enrichment_apply_summary_2025.json",
+  "runtime_requests_path": "data\\runtime\\enrichment_requests\\artists\\artists_enrichment_requests_2025.jsonl",
+  "diagnostics_path": "data\\history\\enrichment\\artists\\artists_enrichment_delta_diagnostics_2025_20260320T032608Z.json",
+  "report_path": "data\\history\\enrichment\\artists\\artists_enrichment_delta_report_2025_20260320T032608Z.json",
+  "before_output_rows": 285,
+  "after_output_rows": 278,
+  "before_runtime_request_rows": 287,
+  "after_runtime_request_rows": 280,
+  "dropped_output_rows": [
+    {
+      "request_id": "seed10_artists_enrich_3468526cfb5aab83901097ee63bc8b31cf6b9c9747fcd3f3526ba720c277f7f0",
+      "status": "SKIPPED_TARGET_GUARD_NON_ARTIST_UTILITY_URL",
+      "source_url": "https://gallerybaton.com/privacy-policy"
+    },
+    {
+      "request_id": "seed10_artists_enrich_5f730bdd805b6ef38b65d086cc25918b83a5a2c6356815f589f5d14e2a6ab5d5",
+      "status": "SKIPPED_TARGET_GUARD_NON_ARTIST_UTILITY_URL",
+      "source_url": "https://addisfineart.com/privacy"
+    },
+    {
+      "request_id": "seed10_artists_enrich_85b719d19e7f57fd5da486a895c5d5ae1de3a42a419ece9adb8b119714c0af88",
+      "status": "SKIPPED_TARGET_GUARD_NON_ARTIST_UTILITY_URL",
+      "source_url": "https://athrart.com/contact/form"
+    },
+    {
+      "request_id": "seed10_artists_enrich_130fdf7cc8a0653d6d1bc8b0530a6d1c8a011a0da96628838f08f53d9a74986d",
+      "status": "APPLIED",
+      "source_url": "https://gallerybaton.com/chapter-ii"
+    },
+    {
+      "request_id": "seed10_artists_enrich_3a1a814cf3226cdefa5b8c2e1c3f2678c4bdf54907509f4f3ffdd520585ae5c8",
+      "status": "APPLIED",
+      "source_url": "https://gallerybaton.com/mailing-list"
+    },
+    {
+      "request_id": "seed10_artists_enrich_96e84f4fd29d51538dc456659605122e883a3fd2ef75e1faea699b596465b949",
+      "status": "APPLIED",
+      "source_url": "https://www.theapproach.co.uk/books-and-editions"
+    },
+    {
+      "request_id": "seed10_artists_enrich_e37dc00fca8a39febd257c087115f0bf6db5ba6f7322d613ef44d599b60677e2",
+      "status": "APPLIED",
+      "source_url": "https://addisfineart.com/recovery-2"
+    }
+  ],
+  "dropped_runtime_requests": [
+    {
+      "request_id": "seed10_artists_enrich_130fdf7cc8a0653d6d1bc8b0530a6d1c8a011a0da96628838f08f53d9a74986d",
+      "source_urls": [
+        "https://gallerybaton.com/chapter-ii"
+      ]
+    },
+    {
+      "request_id": "seed10_artists_enrich_3468526cfb5aab83901097ee63bc8b31cf6b9c9747fcd3f3526ba720c277f7f0",
+      "source_urls": [
+        "https://gallerybaton.com/privacy-policy"
+      ]
+    },
+    {
+      "request_id": "seed10_artists_enrich_3a1a814cf3226cdefa5b8c2e1c3f2678c4bdf54907509f4f3ffdd520585ae5c8",
+      "source_urls": [
+        "https://gallerybaton.com/mailing-list"
+      ]
+    },
+    {
+      "request_id": "seed10_artists_enrich_5f730bdd805b6ef38b65d086cc25918b83a5a2c6356815f589f5d14e2a6ab5d5",
+      "source_urls": [
+        "https://addisfineart.com/privacy"
+      ]
+    },
+    {
+      "request_id": "seed10_artists_enrich_85b719d19e7f57fd5da486a895c5d5ae1de3a42a419ece9adb8b119714c0af88",
+      "source_urls": [
+        "https://athrart.com/contact/form"
+      ]
+    },
+    {
+      "request_id": "seed10_artists_enrich_96e84f4fd29d51538dc456659605122e883a3fd2ef75e1faea699b596465b949",
+      "source_urls": [
+        "https://www.theapproach.co.uk/books-and-editions"
+      ]
+    },
+    {
+      "request_id": "seed10_artists_enrich_e37dc00fca8a39febd257c087115f0bf6db5ba6f7322d613ef44d599b60677e2",
+      "source_urls": [
+        "https://addisfineart.com/recovery-2"
+      ]
+    }
+  ],
+  "localized_repair_applied": [
+    {
+      "request_id": "seed10_artists_enrich_336ffd39ede28d95d3a1983d90f7174bb1f0b740fd34b710a968f6fb4ba38f74",
+      "source_url": "https://addisfineart.com/artists/55-tariku-shiferaw/works",
+      "changed_fields": [],
+      "repair_mode": "carry_forward_current_applied_row",
+      "disposition": "carry_forward_current_applied_row"
+    }
+  ],
+  "non_target_removed_rows": []
+}

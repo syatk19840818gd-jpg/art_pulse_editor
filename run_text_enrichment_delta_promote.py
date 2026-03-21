@@ -7,7 +7,14 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
-from enrichment_batch_common import read_jsonl, utc_now_compact, utc_now_iso, write_json, write_jsonl
+from enrichment_batch_common import (
+    is_optional_output_enabled,
+    read_jsonl,
+    utc_now_compact,
+    utc_now_iso,
+    write_json,
+    write_jsonl,
+)
 from phase2_art_pulse_config import (
     get_enrichment_current_output_path,
     get_enrichment_current_summary_path,
@@ -110,9 +117,29 @@ def build_paths(*, category: str, target_year: int, stamp: str, dry_run: bool, t
     }
 
 
-def ensure_parent_dirs(paths: dict[str, Path]) -> None:
-    for path in paths.values():
+def ensure_parent_dirs(paths: list[Path]) -> None:
+    for path in paths:
         path.parent.mkdir(parents=True, exist_ok=True)
+
+
+def serialize_paths(
+    paths: dict[str, Path],
+    *,
+    dry_run: bool,
+    emit_preview: bool,
+    emit_diagnostics: bool,
+    emit_reports: bool,
+) -> dict[str, str]:
+    out = {key: str(value) for key, value in paths.items()}
+    if dry_run and not emit_preview:
+        out["current_output_path"] = ""
+        out["current_summary_path"] = ""
+        out["runtime_requests_path"] = ""
+    if not emit_diagnostics:
+        out["diagnostics_path"] = ""
+    if not emit_reports:
+        out["report_path"] = ""
+    return out
 
 
 def apply_intentional_drops_to_output(
@@ -340,7 +367,30 @@ def process_category(
     if category not in SUPPORTED_CATEGORIES:
         raise ValueError(f"Unsupported category in manifest: {category}")
     paths = build_paths(category=category, target_year=target_year, stamp=stamp, dry_run=dry_run, trial_root=trial_root)
-    ensure_parent_dirs(paths)
+    emit_preview = dry_run and is_optional_output_enabled("preview")
+    emit_diagnostics = is_optional_output_enabled("diagnostics")
+    emit_reports = is_optional_output_enabled("report")
+    required_paths = [
+        paths["history_output_path"],
+        paths["history_summary_path"],
+        paths["history_manifest_path"],
+    ]
+    if dry_run:
+        if emit_preview:
+            required_paths.extend(
+                [
+                    paths["current_output_path"],
+                    paths["current_summary_path"],
+                    paths["runtime_requests_path"],
+                ]
+            )
+    else:
+        required_paths.append(paths["runtime_requests_path"])
+    if emit_diagnostics:
+        required_paths.append(paths["diagnostics_path"])
+    if emit_reports:
+        required_paths.append(paths["report_path"])
+    ensure_parent_dirs(required_paths)
 
     current_output_path = get_enrichment_current_output_path(category, target_year)
     current_summary_path = get_enrichment_current_summary_path(category, target_year)
@@ -379,6 +429,12 @@ def process_category(
         dropped_request_rows=dropped_request_rows,
         repair_diagnostics=repair_diagnostics,
     )
+    if dry_run and not emit_preview:
+        summary["current_output_path"] = ""
+        summary["current_summary_path"] = ""
+        summary["runtime_requests_path"] = ""
+    if not emit_diagnostics:
+        summary["diagnostics_path"] = ""
     diagnostics = {
         "category": category,
         "target_year": target_year,
@@ -417,25 +473,36 @@ def process_category(
     write_jsonl(paths["history_output_path"], output_after_repair)
     write_json(paths["history_summary_path"], summary)
     write_json(paths["history_manifest_path"], deepcopy(op))
-    write_jsonl(paths["runtime_requests_path"], requests_after_drop)
-    write_json(paths["diagnostics_path"], diagnostics)
-    write_json(paths["report_path"], report)
+    if not dry_run:
+        write_jsonl(paths["runtime_requests_path"], requests_after_drop)
+    if emit_diagnostics:
+        write_json(paths["diagnostics_path"], diagnostics)
+    if emit_reports:
+        write_json(paths["report_path"], report)
 
     if dry_run:
-        write_jsonl(paths["current_output_path"], output_after_repair)
-        write_json(paths["current_summary_path"], summary)
+        if emit_preview:
+            write_jsonl(paths["current_output_path"], output_after_repair)
+            write_json(paths["current_summary_path"], summary)
+            write_jsonl(paths["runtime_requests_path"], requests_after_drop)
     else:
         promote_history_file_to_current(paths["history_output_path"], paths["current_output_path"])
         promote_history_file_to_current(paths["history_summary_path"], paths["current_summary_path"])
-        write_jsonl(paths["runtime_requests_path"], requests_after_drop)
         summary["promoted_to_current"] = True
         summary["promote_verdict"] = "delta_promote_applied"
         write_json(paths["history_summary_path"], summary)
         write_json(paths["current_summary_path"], summary)
 
+    visible_paths = serialize_paths(
+        paths,
+        dry_run=dry_run,
+        emit_preview=emit_preview,
+        emit_diagnostics=emit_diagnostics,
+        emit_reports=emit_reports,
+    )
     return {
         "category": category,
-        "paths": {k: str(v) for k, v in paths.items()},
+        "paths": visible_paths,
         "summary": summary,
         "diagnostics": diagnostics,
         "report": report,
@@ -481,25 +548,28 @@ def main() -> int:
             )
         )
 
-    run_root = trial_root / stamp if dry_run else get_enrichment_history_dir("artists").parent / "_delta_runs" / stamp
-    run_root.mkdir(parents=True, exist_ok=True)
-    run_report = {
-        "schema_name": "text_enrichment_delta_promote_run_report",
-        "started_at": utc_now_iso(),
-        "completed_at": utc_now_iso(),
-        "dry_run": dry_run,
-        "target_year": target_year,
-        "manifest_path": str(manifest_path),
-        "categories": category_results,
-    }
-    run_report_path = run_root / "delta_promote_run_report.json"
-    write_json(run_report_path, run_report)
+    run_report_path = ""
+    if is_optional_output_enabled("report"):
+        run_root = trial_root / stamp if dry_run else get_enrichment_history_dir("artists").parent / "_delta_runs" / stamp
+        run_root.mkdir(parents=True, exist_ok=True)
+        run_report = {
+            "schema_name": "text_enrichment_delta_promote_run_report",
+            "started_at": utc_now_iso(),
+            "completed_at": utc_now_iso(),
+            "dry_run": dry_run,
+            "target_year": target_year,
+            "manifest_path": str(manifest_path),
+            "categories": category_results,
+        }
+        run_report_obj = run_root / "delta_promote_run_report.json"
+        write_json(run_report_obj, run_report)
+        run_report_path = str(run_report_obj)
     print(
         json.dumps(
             {
                 "dry_run": dry_run,
                 "manifest_path": str(manifest_path),
-                "run_report_path": str(run_report_path),
+                "run_report_path": run_report_path,
                 "categories": [
                     {
                         "category": item["category"],

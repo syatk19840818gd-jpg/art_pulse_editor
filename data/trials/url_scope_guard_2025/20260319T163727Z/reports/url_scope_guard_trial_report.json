@@ -1,0 +1,4023 @@
+{
+  "trial_root": "c:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\trials\\url_scope_guard_2025\\20260319T163727Z",
+  "phase1_root": "c:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\trials\\url_scope_guard_2025\\20260319T163727Z\\20260319T163727Z",
+  "artifacts": [
+    "c:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\trials\\url_scope_guard_2025\\20260319T163727Z\\20260319T163727Z\\logs\\artist_master_global.json",
+    "c:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\trials\\url_scope_guard_2025\\20260319T163727Z\\20260319T163727Z\\logs\\failed_fetches_artists_seed10_2025.json",
+    "c:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\trials\\url_scope_guard_2025\\20260319T163727Z\\20260319T163727Z\\logs\\failed_fetches_seed10_2025.json",
+    "c:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\trials\\url_scope_guard_2025\\20260319T163727Z\\20260319T163727Z\\logs\\run_summary_seed10_2025.json",
+    "c:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\trials\\url_scope_guard_2025\\20260319T163727Z\\20260319T163727Z\\logs\\visited_pages_artists_seed10_2025.json",
+    "c:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\trials\\url_scope_guard_2025\\20260319T163727Z\\20260319T163727Z\\logs\\visited_pages_seed10_2025.json",
+    "c:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\trials\\url_scope_guard_2025\\20260319T163727Z\\20260319T163727Z\\raw\\artists_frieze_london_2025.jsonl",
+    "c:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\trials\\url_scope_guard_2025\\20260319T163727Z\\20260319T163727Z\\raw\\artists_liste_2025.jsonl",
+    "c:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\trials\\url_scope_guard_2025\\20260319T163727Z\\20260319T163727Z\\raw\\exhibitions_frieze_london_2025.jsonl",
+    "c:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\trials\\url_scope_guard_2025\\20260319T163727Z\\20260319T163727Z\\raw\\exhibitions_liste_2025.jsonl",
+    "c:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\trials\\url_scope_guard_2025\\20260319T163727Z\\apply\\artists_enrichment_apply_trial_2025.jsonl",
+    "c:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\trials\\url_scope_guard_2025\\20260319T163727Z\\apply\\artists_enrichment_apply_trial_2025_summary.json",
+    "c:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\trials\\url_scope_guard_2025\\20260319T163727Z\\apply\\exhibitions_enrichment_apply_trial_2025.jsonl",
+    "c:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\trials\\url_scope_guard_2025\\20260319T163727Z\\apply\\exhibitions_enrichment_apply_trial_2025_summary.json",
+    "c:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\trials\\url_scope_guard_2025\\20260319T163727Z\\reports\\phase1_trial_bootstrap.json",
+    "c:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\trials\\url_scope_guard_2025\\20260319T163727Z\\requests\\artists_enrichment_requests_2025.jsonl",
+    "c:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\trials\\url_scope_guard_2025\\20260319T163727Z\\requests\\artists_enrichment_requests_2025_summary.json",
+    "c:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\trials\\url_scope_guard_2025\\20260319T163727Z\\requests\\exhibitions_enrichment_requests_2025.jsonl",
+    "c:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\trials\\url_scope_guard_2025\\20260319T163727Z\\requests\\exhibitions_enrichment_requests_2025_summary.json"
+  ],
+  "diff": {
+    "exhibitions": {
+      "raw": {
+        "before_rows_total": 83,
+        "after_rows_total": 82,
+        "before_strict_mismatch_total": 43,
+        "after_strict_mismatch_total": 42,
+        "gallery_diffs": [
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "before_rows_total": 8,
+            "after_rows_total": 7,
+            "before_strict_mismatch": 1,
+            "after_strict_mismatch": 0,
+            "removed_urls": [
+              "https://addisfineart.com/art-fairs"
+            ],
+            "added_urls": []
+          },
+          {
+            "gallery_name": "Athr（ｱｻﾙ / ｼﾞｪｯﾀﾞ･ｱﾙｳﾗ･ﾘﾔﾄﾞ）",
+            "before_rows_total": 3,
+            "after_rows_total": 3,
+            "before_strict_mismatch": 3,
+            "after_strict_mismatch": 3,
+            "removed_urls": [
+              "https://athrart.com/art-fairs",
+              "https://athrart.com/exhibitions/43-behind-the-frame-curated-by-athr-art-handlers/overview"
+            ],
+            "added_urls": [
+              "https://athrart.com/exhibitions/18-and-make-me-light-solo-exhibition-by-fahrah-behbehani/overview",
+              "https://athrart.com/exhibitions/43-behind-the-frame/overview"
+            ]
+          }
+        ],
+        "removed_urls": [
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/art-fairs"
+          },
+          {
+            "gallery_name": "Athr（ｱｻﾙ / ｼﾞｪｯﾀﾞ･ｱﾙｳﾗ･ﾘﾔﾄﾞ）",
+            "source_url": "https://athrart.com/art-fairs"
+          },
+          {
+            "gallery_name": "Athr（ｱｻﾙ / ｼﾞｪｯﾀﾞ･ｱﾙｳﾗ･ﾘﾔﾄﾞ）",
+            "source_url": "https://athrart.com/exhibitions/43-behind-the-frame-curated-by-athr-art-handlers/overview"
+          }
+        ]
+      },
+      "requests": {
+        "before_rows_total": 83,
+        "after_rows_total": 82,
+        "before_strict_mismatch_total": 43,
+        "after_strict_mismatch_total": 42,
+        "gallery_diffs": [
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "before_rows_total": 8,
+            "after_rows_total": 7,
+            "before_strict_mismatch": 1,
+            "after_strict_mismatch": 0,
+            "removed_urls": [
+              "https://addisfineart.com/art-fairs"
+            ],
+            "added_urls": []
+          },
+          {
+            "gallery_name": "Athr（ｱｻﾙ / ｼﾞｪｯﾀﾞ･ｱﾙｳﾗ･ﾘﾔﾄﾞ）",
+            "before_rows_total": 3,
+            "after_rows_total": 3,
+            "before_strict_mismatch": 3,
+            "after_strict_mismatch": 3,
+            "removed_urls": [
+              "https://athrart.com/art-fairs",
+              "https://athrart.com/exhibitions/43-behind-the-frame-curated-by-athr-art-handlers/overview"
+            ],
+            "added_urls": [
+              "https://athrart.com/exhibitions/18-and-make-me-light-solo-exhibition-by-fahrah-behbehani/overview",
+              "https://athrart.com/exhibitions/43-behind-the-frame/overview"
+            ]
+          }
+        ],
+        "removed_urls": [
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/art-fairs"
+          },
+          {
+            "gallery_name": "Athr（ｱｻﾙ / ｼﾞｪｯﾀﾞ･ｱﾙｳﾗ･ﾘﾔﾄﾞ）",
+            "source_url": "https://athrart.com/art-fairs"
+          },
+          {
+            "gallery_name": "Athr（ｱｻﾙ / ｼﾞｪｯﾀﾞ･ｱﾙｳﾗ･ﾘﾔﾄﾞ）",
+            "source_url": "https://athrart.com/exhibitions/43-behind-the-frame-curated-by-athr-art-handlers/overview"
+          }
+        ]
+      },
+      "apply": {
+        "before_rows_total": 83,
+        "after_rows_total": 82,
+        "before_strict_mismatch_total": 43,
+        "after_strict_mismatch_total": 42,
+        "gallery_diffs": [
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "before_rows_total": 8,
+            "after_rows_total": 7,
+            "before_strict_mismatch": 1,
+            "after_strict_mismatch": 0,
+            "removed_urls": [
+              "https://addisfineart.com/art-fairs"
+            ],
+            "added_urls": []
+          },
+          {
+            "gallery_name": "Athr（ｱｻﾙ / ｼﾞｪｯﾀﾞ･ｱﾙｳﾗ･ﾘﾔﾄﾞ）",
+            "before_rows_total": 3,
+            "after_rows_total": 3,
+            "before_strict_mismatch": 3,
+            "after_strict_mismatch": 3,
+            "removed_urls": [
+              "https://athrart.com/art-fairs",
+              "https://athrart.com/exhibitions/43-behind-the-frame-curated-by-athr-art-handlers/overview"
+            ],
+            "added_urls": [
+              "https://athrart.com/exhibitions/18-and-make-me-light-solo-exhibition-by-fahrah-behbehani/overview",
+              "https://athrart.com/exhibitions/43-behind-the-frame/overview"
+            ]
+          }
+        ],
+        "removed_urls": [
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/art-fairs"
+          },
+          {
+            "gallery_name": "Athr（ｱｻﾙ / ｼﾞｪｯﾀﾞ･ｱﾙｳﾗ･ﾘﾔﾄﾞ）",
+            "source_url": "https://athrart.com/art-fairs"
+          },
+          {
+            "gallery_name": "Athr（ｱｻﾙ / ｼﾞｪｯﾀﾞ･ｱﾙｳﾗ･ﾘﾔﾄﾞ）",
+            "source_url": "https://athrart.com/exhibitions/43-behind-the-frame-curated-by-athr-art-handlers/overview"
+          }
+        ]
+      }
+    },
+    "artists": {
+      "raw": {
+        "before_rows_total": 290,
+        "after_rows_total": 129,
+        "before_strict_mismatch_total": 60,
+        "after_strict_mismatch_total": 26,
+        "gallery_diffs": [
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "before_rows_total": 28,
+            "after_rows_total": 27,
+            "before_strict_mismatch": 0,
+            "after_strict_mismatch": 0,
+            "removed_urls": [
+              "https://aplusart.asia/artists/106-ho-rui-an",
+              "https://aplusart.asia/artists/107-isola-tong",
+              "https://aplusart.asia/artists/34-mella-jaarsma",
+              "https://aplusart.asia/artists/35-chong-kim-chiew",
+              "https://aplusart.asia/artists/36-tan-zi-hao",
+              "https://aplusart.asia/artists/37-yim-yen-sum",
+              "https://aplusart.asia/artists/39-mary-pakinee",
+              "https://aplusart.asia/artists/40-kentaro-hiroki",
+              "https://aplusart.asia/artists/41-gan-chin-lee/",
+              "https://aplusart.asia/artists/42-pangrok-sulap",
+              "https://aplusart.asia/artists/44-ha-ninh-pham",
+              "https://aplusart.asia/artists/46-ahmad-fuad-osman",
+              "https://aplusart.asia/artists/48-luke-heng",
+              "https://aplusart.asia/artists/50-tawan-wattuya",
+              "https://aplusart.asia/artists/52-yuli-prayitno",
+              "https://aplusart.asia/artists/53-au-sow-yee",
+              "https://aplusart.asia/artists/55-phornphop-sittiruk",
+              "https://aplusart.asia/artists/57-phuan-thai-meng",
+              "https://aplusart.asia/artists/62-tith-kanitha",
+              "https://aplusart.asia/artists/63-tawatchai-puntusawasdi",
+              "https://aplusart.asia/artists/66-melati-suryodarmo",
+              "https://aplusart.asia/artists/70-agus-suwage",
+              "https://aplusart.asia/artists/71-izat-arif",
+              "https://aplusart.asia/artists/79-than-sok",
+              "https://aplusart.asia/artists/85-trinh-cam-nhi",
+              "https://aplusart.asia/artists/86-dang-thuy-anh",
+              "https://aplusart.asia/artists/93-ariana-chaivaranon",
+              "https://aplusart.asia/artists/94-jo-tanierla"
+            ],
+            "added_urls": [
+              "https://aplusart.asia/artists/106-ho-rui-an/",
+              "https://aplusart.asia/artists/107-isola-tong/",
+              "https://aplusart.asia/artists/34-mella-jaarsma/",
+              "https://aplusart.asia/artists/35-chong-kim-chiew/",
+              "https://aplusart.asia/artists/36-tan-zi-hao/",
+              "https://aplusart.asia/artists/37-yim-yen-sum/",
+              "https://aplusart.asia/artists/39-mary-pakinee/",
+              "https://aplusart.asia/artists/40-kentaro-hiroki/",
+              "https://aplusart.asia/artists/42-pangrok-sulap/",
+              "https://aplusart.asia/artists/44-ha-ninh-pham/",
+              "https://aplusart.asia/artists/46-ahmad-fuad-osman/",
+              "https://aplusart.asia/artists/48-luke-heng/",
+              "https://aplusart.asia/artists/50-tawan-wattuya/",
+              "https://aplusart.asia/artists/52-yuli-prayitno/",
+              "https://aplusart.asia/artists/53-au-sow-yee/",
+              "https://aplusart.asia/artists/55-phornphop-sittiruk/",
+              "https://aplusart.asia/artists/57-phuan-thai-meng/",
+              "https://aplusart.asia/artists/62-tith-kanitha/",
+              "https://aplusart.asia/artists/63-tawatchai-puntusawasdi/",
+              "https://aplusart.asia/artists/66-melati-suryodarmo/",
+              "https://aplusart.asia/artists/70-agus-suwage/",
+              "https://aplusart.asia/artists/71-izat-arif/",
+              "https://aplusart.asia/artists/79-than-sok/",
+              "https://aplusart.asia/artists/85-trinh-cam-nhi/",
+              "https://aplusart.asia/artists/86-dang-thuy-anh/",
+              "https://aplusart.asia/artists/93-ariana-chaivaranon/",
+              "https://aplusart.asia/artists/94-jo-tanierla/"
+            ]
+          },
+          {
+            "gallery_name": "Adams and Ollman（ｱﾀﾞﾑｽﾞｱﾝﾄﾞｵﾙﾏﾝ / ﾎﾟｰﾄﾗﾝﾄﾞ）",
+            "before_rows_total": 21,
+            "after_rows_total": 18,
+            "before_strict_mismatch": 21,
+            "after_strict_mismatch": 18,
+            "removed_urls": [
+              "https://adamsandollman.com/James-Castle",
+              "https://adamsandollman.com/Katherine-Bradford"
+            ],
+            "added_urls": []
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "before_rows_total": 24,
+            "after_rows_total": 22,
+            "before_strict_mismatch": 1,
+            "after_strict_mismatch": 0,
+            "removed_urls": [
+              "https://addisfineart.com/artists/108-tsedaye-makonnen/works",
+              "https://addisfineart.com/artists/109-selome-muleta/works",
+              "https://addisfineart.com/artists/110-helina-metaferia/works",
+              "https://addisfineart.com/artists/120-dawit-adnew/works",
+              "https://addisfineart.com/artists/123-girmachew-getnet/works",
+              "https://addisfineart.com/artists/129-amel-bashier/works",
+              "https://addisfineart.com/artists/130-tesfaye-bekele/works",
+              "https://addisfineart.com/artists/135-engdaye-lemma/works",
+              "https://addisfineart.com/artists/136-noah-beyene/works",
+              "https://addisfineart.com/artists/138-nahom-teklehaimanot/works",
+              "https://addisfineart.com/artists/140-skunder-boghossian/works",
+              "https://addisfineart.com/artists/142-zerihun-yetimgeta/biography",
+              "https://addisfineart.com/artists/143-dereje-demissie/biography",
+              "https://addisfineart.com/artists/29-tadesse-mesfin/works",
+              "https://addisfineart.com/artists/46-merikokeb-berhanu/works",
+              "https://addisfineart.com/artists/51-addis-gezehagn/works",
+              "https://addisfineart.com/artists/55-tariku-shiferaw/works",
+              "https://addisfineart.com/artists/63-nirit-takele/works",
+              "https://addisfineart.com/artists/69-wosene-worke-kosrof/works",
+              "https://addisfineart.com/artists/79-tizta-berhanu/works",
+              "https://addisfineart.com/artists/84-ermias-kifleyesus/works",
+              "https://addisfineart.com/artists/85-tesfaye-urgessa/works",
+              "https://addisfineart.com/artists/86-adiskidan-ambaye/works",
+              "https://addisfineart.com/recovery-2"
+            ],
+            "added_urls": [
+              "https://addisfineart.com/artists/108-tsedaye-makonnen/works/",
+              "https://addisfineart.com/artists/109-selome-muleta/works/",
+              "https://addisfineart.com/artists/110-helina-metaferia/works/",
+              "https://addisfineart.com/artists/120-dawit-adnew/works/",
+              "https://addisfineart.com/artists/123-girmachew-getnet/works/",
+              "https://addisfineart.com/artists/129-amel-bashier/works/",
+              "https://addisfineart.com/artists/130-tesfaye-bekele/works/",
+              "https://addisfineart.com/artists/135-engdaye-lemma/works/",
+              "https://addisfineart.com/artists/136-noah-beyene/works/",
+              "https://addisfineart.com/artists/138-nahom-teklehaimanot/works/",
+              "https://addisfineart.com/artists/140-skunder-boghossian/works/",
+              "https://addisfineart.com/artists/143-dereje-demissie/biography/",
+              "https://addisfineart.com/artists/29-tadesse-mesfin/works/",
+              "https://addisfineart.com/artists/46-merikokeb-berhanu/works/",
+              "https://addisfineart.com/artists/51-addis-gezehagn/works/",
+              "https://addisfineart.com/artists/55-tariku-shiferaw/works/",
+              "https://addisfineart.com/artists/63-nirit-takele/works/",
+              "https://addisfineart.com/artists/69-wosene-worke-kosrof/works/",
+              "https://addisfineart.com/artists/79-tizta-berhanu/works/",
+              "https://addisfineart.com/artists/84-ermias-kifleyesus/works/",
+              "https://addisfineart.com/artists/85-tesfaye-urgessa/works/",
+              "https://addisfineart.com/artists/86-adiskidan-ambaye/works/"
+            ]
+          },
+          {
+            "gallery_name": "Afriart Gallery （ｱﾌﾘｱｰﾄ ｷﾞｬﾗﾘｰ / ｶﾝﾊﾟﾗ）",
+            "before_rows_total": 26,
+            "after_rows_total": 0,
+            "before_strict_mismatch": 0,
+            "after_strict_mismatch": 0,
+            "removed_urls": [
+              "https://afriartgallery.org/artists/april-kamunde",
+              "https://afriartgallery.org/artists/charlene-komuntale",
+              "https://afriartgallery.org/artists/collin-sekajugo",
+              "https://afriartgallery.org/artists/daniel-atenyi",
+              "https://afriartgallery.org/artists/eria-nsubuga-sane",
+              "https://afriartgallery.org/artists/fiker-solomon",
+              "https://afriartgallery.org/artists/henry-mzili-mujunga",
+              "https://afriartgallery.org/artists/kaleab-abate",
+              "https://afriartgallery.org/artists/mona-taha",
+              "https://afriartgallery.org/artists/odur-ronald",
+              "https://afriartgallery.org/artists/richard-atugonza",
+              "https://afriartgallery.org/artists/samuel-kakaire",
+              "https://afriartgallery.org/artists/sanaa-gateja",
+              "https://afriartgallery.org/artists/sungi-mlengeya",
+              "https://afriartgallery.org/artists/xenson"
+            ],
+            "added_urls": []
+          },
+          {
+            "gallery_name": "Amanita （ｱﾏﾆﾀ / ﾆｭｰﾖｰｸ）",
+            "before_rows_total": 25,
+            "after_rows_total": 0,
+            "before_strict_mismatch": 0,
+            "after_strict_mismatch": 0,
+            "removed_urls": [
+              "https://spazioamanita.com/Artists/Adrian-Schachter",
+              "https://spazioamanita.com/Artists/Alessandro-Twombly.html",
+              "https://spazioamanita.com/Artists/Andrew-Piedilato",
+              "https://spazioamanita.com/Artists/Arianna-Tosi",
+              "https://spazioamanita.com/Artists/Ben-Werther",
+              "https://spazioamanita.com/Artists/Bill-Jensen",
+              "https://spazioamanita.com/Artists/Craig-Boagey",
+              "https://spazioamanita.com/Artists/Daniele-Milvio",
+              "https://spazioamanita.com/Artists/Eva-Beresin",
+              "https://spazioamanita.com/Artists/Francesco-Cima",
+              "https://spazioamanita.com/Artists/Issen-Nishigaki.html",
+              "https://spazioamanita.com/Artists/Leonardo-Meoni",
+              "https://spazioamanita.com/Artists/Marco-Scarpi",
+              "https://spazioamanita.com/Artists/Nicholas-Campbell"
+            ],
+            "added_urls": []
+          },
+          {
+            "gallery_name": "Anca Poteraşu Gallery （ｱﾝｶ ﾎﾟﾃﾗｼｭ ｷﾞｬﾗﾘｰ / ﾌﾞｶﾚｽﾄ）",
+            "before_rows_total": 17,
+            "after_rows_total": 7,
+            "before_strict_mismatch": 17,
+            "after_strict_mismatch": 7,
+            "removed_urls": [
+              "https://www.ancapoterasu.com/artists/aurora-kiraly/",
+              "https://www.ancapoterasu.com/artists/decebal-scriba-2/",
+              "https://www.ancapoterasu.com/artists/delia-popa/",
+              "https://www.ancapoterasu.com/artists/doina-simionescu-2/",
+              "https://www.ancapoterasu.com/artists/dragos-badita/",
+              "https://www.ancapoterasu.com/artists/ioana-cirlig/",
+              "https://www.ancapoterasu.com/artists/iosif-kiraly/",
+              "https://www.ancapoterasu.com/artists/iulian-bisericaru-2/",
+              "https://www.ancapoterasu.com/artists/kinema-ikon-2/"
+            ],
+            "added_urls": []
+          },
+          {
+            "gallery_name": "Arcadia Missa（ｱﾙｶﾃﾞｨｱ･ﾐｯｻ / ﾛﾝﾄﾞﾝ）",
+            "before_rows_total": 18,
+            "after_rows_total": 1,
+            "before_strict_mismatch": 18,
+            "after_strict_mismatch": 1,
+            "removed_urls": [
+              "https://arcadiamissa.com/brad-kronz/",
+              "https://arcadiamissa.com/coumba-samba/",
+              "https://arcadiamissa.com/hamishi-farah/",
+              "https://arcadiamissa.com/hannah-black/",
+              "https://arcadiamissa.com/hannah-quinlan-rosie-hastings/",
+              "https://arcadiamissa.com/jan-vorisek/",
+              "https://arcadiamissa.com/janiva-ellis/",
+              "https://arcadiamissa.com/jesse-darling/",
+              "https://arcadiamissa.com/lewis-hammond/",
+              "https://arcadiamissa.com/maja-cule/",
+              "https://arcadiamissa.com/melike-kara/",
+              "https://arcadiamissa.com/nikhil-vettukattil/",
+              "https://arcadiamissa.com/onyeka-igwe/",
+              "https://arcadiamissa.com/penny-goring/",
+              "https://arcadiamissa.com/phoebe-collings-james/",
+              "https://arcadiamissa.com/reina-sugihara/",
+              "https://arcadiamissa.com/rene-matic/"
+            ],
+            "added_urls": []
+          },
+          {
+            "gallery_name": "Athr（ｱｻﾙ / ｼﾞｪｯﾀﾞ･ｱﾙｳﾗ･ﾘﾔﾄﾞ）",
+            "before_rows_total": 16,
+            "after_rows_total": 13,
+            "before_strict_mismatch": 0,
+            "after_strict_mismatch": 0,
+            "removed_urls": [
+              "https://athrart.com/artists/31-sultan-bin-fahad/biography",
+              "https://athrart.com/artists/33-sara-abdu/biography",
+              "https://athrart.com/artists/34-sarah-abu-abdallah/biography",
+              "https://athrart.com/artists/37-daniah-alsaleh/biography",
+              "https://athrart.com/artists/39-asma-bahmim/biography",
+              "https://athrart.com/artists/41-rami-farook/biography",
+              "https://athrart.com/artists/42-basmah-felemban/biography",
+              "https://athrart.com/artists/43-/biography",
+              "https://athrart.com/artists/44-muhannad-shono/biography",
+              "https://athrart.com/artists/49-lulua-alyahya/biography",
+              "https://athrart.com/artists/51-/biography"
+            ],
+            "added_urls": [
+              "https://athrart.com/artists/31-sultan-bin-fahad/biography/",
+              "https://athrart.com/artists/33-/biography",
+              "https://athrart.com/artists/34-sarah-abu-abdallah/biography/",
+              "https://athrart.com/artists/37-daniah-alsaleh/biography/",
+              "https://athrart.com/artists/39-asma-bahmim/biography/",
+              "https://athrart.com/artists/41-rami-farook/biography/",
+              "https://athrart.com/artists/42-basmah-felemban/biography/",
+              "https://athrart.com/artists/44-/biography"
+            ]
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "before_rows_total": 53,
+            "after_rows_total": 41,
+            "before_strict_mismatch": 2,
+            "after_strict_mismatch": 0,
+            "removed_urls": [
+              "https://gallerybaton.com/artists/132-noemie-goudal",
+              "https://gallerybaton.com/artists/136-jimok-choi",
+              "https://gallerybaton.com/artists/139-lee-jaeseok",
+              "https://gallerybaton.com/artists/145-tony-swain",
+              "https://gallerybaton.com/artists/148-doki-kim",
+              "https://gallerybaton.com/artists/149-christian-hidaka",
+              "https://gallerybaton.com/artists/151-ido-park",
+              "https://gallerybaton.com/artists/154-chung-eun-mo",
+              "https://gallerybaton.com/artists/155-claire-fontaine",
+              "https://gallerybaton.com/artists/159-andi-fischer",
+              "https://gallerybaton.com/artists/161-minyoung-choi",
+              "https://gallerybaton.com/artists/166-jonathan-monk",
+              "https://gallerybaton.com/artists/29-rinus-van-de-velde",
+              "https://gallerybaton.com/artists/34-bin-woo-hyuk",
+              "https://gallerybaton.com/artists/35-liam-gillick",
+              "https://gallerybaton.com/artists/36-tobias-rehberger",
+              "https://gallerybaton.com/artists/37-koen-van-den-broek",
+              "https://gallerybaton.com/artists/38-tatsuo-miyajima",
+              "https://gallerybaton.com/artists/39-bae-yoon-hwan",
+              "https://gallerybaton.com/artists/40-suzanne-song",
+              "https://gallerybaton.com/artists/42-anne-collier",
+              "https://gallerybaton.com/artists/43-markus-amm",
+              "https://gallerybaton.com/artists/45-jinnie-seo",
+              "https://gallerybaton.com/artists/50-max-frisinger",
+              "https://gallerybaton.com/artists/51-heeseung-chung",
+              "https://gallerybaton.com/artists/52-hoh-woo-jung",
+              "https://gallerybaton.com/artists/53-koh-san-keum",
+              "https://gallerybaton.com/artists/54-rosa-loy",
+              "https://gallerybaton.com/artists/55-hugh-scott-douglas",
+              "https://gallerybaton.com/artists/56-marcin-maciejowski",
+              "https://gallerybaton.com/artists/58-peter-stichbury",
+              "https://gallerybaton.com/artists/59-chung-chi-yung",
+              "https://gallerybaton.com/artists/60-kim-sang-gyun",
+              "https://gallerybaton.com/artists/62-djordje-ozbolt",
+              "https://gallerybaton.com/artists/64-david-okane",
+              "https://gallerybaton.com/artists/65-stef-driesen",
+              "https://gallerybaton.com/artists/66-yuichi-hirako",
+              "https://gallerybaton.com/artists/69-rho-eunjoo",
+              "https://gallerybaton.com/artists/71-song-burnsoo",
+              "https://gallerybaton.com/artists/77-choi-soo-jung",
+              "https://gallerybaton.com/chapter-ii",
+              "https://gallerybaton.com/mailing-list"
+            ],
+            "added_urls": [
+              "https://gallerybaton.com/artists/132-noemie-goudal/",
+              "https://gallerybaton.com/artists/136-jimok-choi/",
+              "https://gallerybaton.com/artists/139-lee-jaeseok/",
+              "https://gallerybaton.com/artists/145-tony-swain/",
+              "https://gallerybaton.com/artists/148-doki-kim/",
+              "https://gallerybaton.com/artists/149-christian-hidaka/",
+              "https://gallerybaton.com/artists/151-ido-park/",
+              "https://gallerybaton.com/artists/154-chung-eun-mo/",
+              "https://gallerybaton.com/artists/155-claire-fontaine/",
+              "https://gallerybaton.com/artists/159-andi-fischer/",
+              "https://gallerybaton.com/artists/161-minyoung-choi/",
+              "https://gallerybaton.com/artists/166-jonathan-monk/",
+              "https://gallerybaton.com/artists/29-rinus-van-de-velde/",
+              "https://gallerybaton.com/artists/34-bin-woo-hyuk/",
+              "https://gallerybaton.com/artists/35-liam-gillick/",
+              "https://gallerybaton.com/artists/36-tobias-rehberger/",
+              "https://gallerybaton.com/artists/37-koen-van-den-broek/",
+              "https://gallerybaton.com/artists/38-tatsuo-miyajima/",
+              "https://gallerybaton.com/artists/39-bae-yoon-hwan/",
+              "https://gallerybaton.com/artists/40-suzanne-song/",
+              "https://gallerybaton.com/artists/42-anne-collier/",
+              "https://gallerybaton.com/artists/43-markus-amm/",
+              "https://gallerybaton.com/artists/45-jinnie-seo/",
+              "https://gallerybaton.com/artists/50-max-frisinger/",
+              "https://gallerybaton.com/artists/51-heeseung-chung/",
+              "https://gallerybaton.com/artists/52-hoh-woo-jung/",
+              "https://gallerybaton.com/artists/53-koh-san-keum/",
+              "https://gallerybaton.com/artists/54-rosa-loy/",
+              "https://gallerybaton.com/artists/55-hugh-scott-douglas/",
+              "https://gallerybaton.com/artists/56-marcin-maciejowski/",
+              "https://gallerybaton.com/artists/58-peter-stichbury/",
+              "https://gallerybaton.com/artists/59-chung-chi-yung/",
+              "https://gallerybaton.com/artists/60-kim-sang-gyun/",
+              "https://gallerybaton.com/artists/62-djordje-ozbolt/",
+              "https://gallerybaton.com/artists/64-david-okane/",
+              "https://gallerybaton.com/artists/65-stef-driesen/",
+              "https://gallerybaton.com/artists/66-yuichi-hirako/",
+              "https://gallerybaton.com/artists/69-rho-eunjoo/",
+              "https://gallerybaton.com/artists/71-song-burnsoo/",
+              "https://gallerybaton.com/artists/77-choi-soo-jung/"
+            ]
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "before_rows_total": 62,
+            "after_rows_total": 0,
+            "before_strict_mismatch": 1,
+            "after_strict_mismatch": 0,
+            "removed_urls": [
+              "https://www.theapproach.co.uk/artists/adelaide-cioni",
+              "https://www.theapproach.co.uk/artists/adelaide-cioni/",
+              "https://www.theapproach.co.uk/artists/amanda-ross-ho",
+              "https://www.theapproach.co.uk/artists/anderson-borba",
+              "https://www.theapproach.co.uk/artists/anderson-borba/",
+              "https://www.theapproach.co.uk/artists/anna-glantz",
+              "https://www.theapproach.co.uk/artists/bill-lynch",
+              "https://www.theapproach.co.uk/artists/evren-tekinoktay",
+              "https://www.theapproach.co.uk/artists/germaine-kruip",
+              "https://www.theapproach.co.uk/artists/glenn-goldberg",
+              "https://www.theapproach.co.uk/artists/hana-miletic",
+              "https://www.theapproach.co.uk/artists/heidi-bucher",
+              "https://www.theapproach.co.uk/artists/heidi-bucher/",
+              "https://www.theapproach.co.uk/artists/helene-appel",
+              "https://www.theapproach.co.uk/artists/helene-appel/",
+              "https://www.theapproach.co.uk/artists/jack-lavender",
+              "https://www.theapproach.co.uk/artists/john-maclean",
+              "https://www.theapproach.co.uk/artists/john-stezaker",
+              "https://www.theapproach.co.uk/artists/kira-freije",
+              "https://www.theapproach.co.uk/artists/lisa-oppenheim",
+              "https://www.theapproach.co.uk/artists/magali-reus",
+              "https://www.theapproach.co.uk/artists/maria-pininska-beres",
+              "https://www.theapproach.co.uk/artists/mike-silva",
+              "https://www.theapproach.co.uk/artists/paloma-proudfoot",
+              "https://www.theapproach.co.uk/artists/peter-davies",
+              "https://www.theapproach.co.uk/artists/peter-davies/",
+              "https://www.theapproach.co.uk/artists/phillip-allen",
+              "https://www.theapproach.co.uk/artists/phillip-allen/",
+              "https://www.theapproach.co.uk/artists/rezi-van-lankveld",
+              "https://www.theapproach.co.uk/artists/sam-windett",
+              "https://www.theapproach.co.uk/artists/sandra-mujinga",
+              "https://www.theapproach.co.uk/artists/sara-barker",
+              "https://www.theapproach.co.uk/artists/sara-barker/",
+              "https://www.theapproach.co.uk/artists/sara-cwynar",
+              "https://www.theapproach.co.uk/artists/sara-cwynar/",
+              "https://www.theapproach.co.uk/artists/sara-vanderbeek",
+              "https://www.theapproach.co.uk/artists/sophie-bueno-boutellier",
+              "https://www.theapproach.co.uk/artists/sophie-bueno-boutellier/",
+              "https://www.theapproach.co.uk/artists/tom-allen",
+              "https://www.theapproach.co.uk/artists/tom-allen/",
+              "https://www.theapproach.co.uk/books-and-editions"
+            ],
+            "added_urls": []
+          }
+        ],
+        "removed_urls": [
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/106-ho-rui-an"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/107-isola-tong"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/34-mella-jaarsma"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/35-chong-kim-chiew"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/36-tan-zi-hao"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/37-yim-yen-sum"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/39-mary-pakinee"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/40-kentaro-hiroki"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/41-gan-chin-lee/"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/42-pangrok-sulap"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/44-ha-ninh-pham"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/46-ahmad-fuad-osman"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/48-luke-heng"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/50-tawan-wattuya"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/52-yuli-prayitno"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/53-au-sow-yee"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/55-phornphop-sittiruk"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/57-phuan-thai-meng"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/62-tith-kanitha"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/63-tawatchai-puntusawasdi"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/66-melati-suryodarmo"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/70-agus-suwage"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/71-izat-arif"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/79-than-sok"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/85-trinh-cam-nhi"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/86-dang-thuy-anh"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/93-ariana-chaivaranon"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/94-jo-tanierla"
+          },
+          {
+            "gallery_name": "Adams and Ollman（ｱﾀﾞﾑｽﾞｱﾝﾄﾞｵﾙﾏﾝ / ﾎﾟｰﾄﾗﾝﾄﾞ）",
+            "source_url": "https://adamsandollman.com/James-Castle"
+          },
+          {
+            "gallery_name": "Adams and Ollman（ｱﾀﾞﾑｽﾞｱﾝﾄﾞｵﾙﾏﾝ / ﾎﾟｰﾄﾗﾝﾄﾞ）",
+            "source_url": "https://adamsandollman.com/Katherine-Bradford"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/108-tsedaye-makonnen/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/109-selome-muleta/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/110-helina-metaferia/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/120-dawit-adnew/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/123-girmachew-getnet/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/129-amel-bashier/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/130-tesfaye-bekele/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/135-engdaye-lemma/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/136-noah-beyene/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/138-nahom-teklehaimanot/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/140-skunder-boghossian/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/142-zerihun-yetimgeta/biography"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/143-dereje-demissie/biography"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/29-tadesse-mesfin/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/46-merikokeb-berhanu/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/51-addis-gezehagn/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/55-tariku-shiferaw/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/63-nirit-takele/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/69-wosene-worke-kosrof/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/79-tizta-berhanu/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/84-ermias-kifleyesus/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/85-tesfaye-urgessa/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/86-adiskidan-ambaye/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/recovery-2"
+          },
+          {
+            "gallery_name": "Afriart Gallery （ｱﾌﾘｱｰﾄ ｷﾞｬﾗﾘｰ / ｶﾝﾊﾟﾗ）",
+            "source_url": "https://afriartgallery.org/artists/april-kamunde"
+          },
+          {
+            "gallery_name": "Afriart Gallery （ｱﾌﾘｱｰﾄ ｷﾞｬﾗﾘｰ / ｶﾝﾊﾟﾗ）",
+            "source_url": "https://afriartgallery.org/artists/charlene-komuntale"
+          },
+          {
+            "gallery_name": "Afriart Gallery （ｱﾌﾘｱｰﾄ ｷﾞｬﾗﾘｰ / ｶﾝﾊﾟﾗ）",
+            "source_url": "https://afriartgallery.org/artists/collin-sekajugo"
+          },
+          {
+            "gallery_name": "Afriart Gallery （ｱﾌﾘｱｰﾄ ｷﾞｬﾗﾘｰ / ｶﾝﾊﾟﾗ）",
+            "source_url": "https://afriartgallery.org/artists/daniel-atenyi"
+          },
+          {
+            "gallery_name": "Afriart Gallery （ｱﾌﾘｱｰﾄ ｷﾞｬﾗﾘｰ / ｶﾝﾊﾟﾗ）",
+            "source_url": "https://afriartgallery.org/artists/eria-nsubuga-sane"
+          },
+          {
+            "gallery_name": "Afriart Gallery （ｱﾌﾘｱｰﾄ ｷﾞｬﾗﾘｰ / ｶﾝﾊﾟﾗ）",
+            "source_url": "https://afriartgallery.org/artists/fiker-solomon"
+          },
+          {
+            "gallery_name": "Afriart Gallery （ｱﾌﾘｱｰﾄ ｷﾞｬﾗﾘｰ / ｶﾝﾊﾟﾗ）",
+            "source_url": "https://afriartgallery.org/artists/henry-mzili-mujunga"
+          },
+          {
+            "gallery_name": "Afriart Gallery （ｱﾌﾘｱｰﾄ ｷﾞｬﾗﾘｰ / ｶﾝﾊﾟﾗ）",
+            "source_url": "https://afriartgallery.org/artists/kaleab-abate"
+          },
+          {
+            "gallery_name": "Afriart Gallery （ｱﾌﾘｱｰﾄ ｷﾞｬﾗﾘｰ / ｶﾝﾊﾟﾗ）",
+            "source_url": "https://afriartgallery.org/artists/mona-taha"
+          },
+          {
+            "gallery_name": "Afriart Gallery （ｱﾌﾘｱｰﾄ ｷﾞｬﾗﾘｰ / ｶﾝﾊﾟﾗ）",
+            "source_url": "https://afriartgallery.org/artists/odur-ronald"
+          },
+          {
+            "gallery_name": "Afriart Gallery （ｱﾌﾘｱｰﾄ ｷﾞｬﾗﾘｰ / ｶﾝﾊﾟﾗ）",
+            "source_url": "https://afriartgallery.org/artists/richard-atugonza"
+          },
+          {
+            "gallery_name": "Afriart Gallery （ｱﾌﾘｱｰﾄ ｷﾞｬﾗﾘｰ / ｶﾝﾊﾟﾗ）",
+            "source_url": "https://afriartgallery.org/artists/samuel-kakaire"
+          },
+          {
+            "gallery_name": "Afriart Gallery （ｱﾌﾘｱｰﾄ ｷﾞｬﾗﾘｰ / ｶﾝﾊﾟﾗ）",
+            "source_url": "https://afriartgallery.org/artists/sanaa-gateja"
+          },
+          {
+            "gallery_name": "Afriart Gallery （ｱﾌﾘｱｰﾄ ｷﾞｬﾗﾘｰ / ｶﾝﾊﾟﾗ）",
+            "source_url": "https://afriartgallery.org/artists/sungi-mlengeya"
+          },
+          {
+            "gallery_name": "Afriart Gallery （ｱﾌﾘｱｰﾄ ｷﾞｬﾗﾘｰ / ｶﾝﾊﾟﾗ）",
+            "source_url": "https://afriartgallery.org/artists/xenson"
+          },
+          {
+            "gallery_name": "Amanita （ｱﾏﾆﾀ / ﾆｭｰﾖｰｸ）",
+            "source_url": "https://spazioamanita.com/Artists/Adrian-Schachter"
+          },
+          {
+            "gallery_name": "Amanita （ｱﾏﾆﾀ / ﾆｭｰﾖｰｸ）",
+            "source_url": "https://spazioamanita.com/Artists/Alessandro-Twombly.html"
+          },
+          {
+            "gallery_name": "Amanita （ｱﾏﾆﾀ / ﾆｭｰﾖｰｸ）",
+            "source_url": "https://spazioamanita.com/Artists/Andrew-Piedilato"
+          },
+          {
+            "gallery_name": "Amanita （ｱﾏﾆﾀ / ﾆｭｰﾖｰｸ）",
+            "source_url": "https://spazioamanita.com/Artists/Arianna-Tosi"
+          },
+          {
+            "gallery_name": "Amanita （ｱﾏﾆﾀ / ﾆｭｰﾖｰｸ）",
+            "source_url": "https://spazioamanita.com/Artists/Ben-Werther"
+          },
+          {
+            "gallery_name": "Amanita （ｱﾏﾆﾀ / ﾆｭｰﾖｰｸ）",
+            "source_url": "https://spazioamanita.com/Artists/Bill-Jensen"
+          },
+          {
+            "gallery_name": "Amanita （ｱﾏﾆﾀ / ﾆｭｰﾖｰｸ）",
+            "source_url": "https://spazioamanita.com/Artists/Craig-Boagey"
+          },
+          {
+            "gallery_name": "Amanita （ｱﾏﾆﾀ / ﾆｭｰﾖｰｸ）",
+            "source_url": "https://spazioamanita.com/Artists/Daniele-Milvio"
+          },
+          {
+            "gallery_name": "Amanita （ｱﾏﾆﾀ / ﾆｭｰﾖｰｸ）",
+            "source_url": "https://spazioamanita.com/Artists/Eva-Beresin"
+          },
+          {
+            "gallery_name": "Amanita （ｱﾏﾆﾀ / ﾆｭｰﾖｰｸ）",
+            "source_url": "https://spazioamanita.com/Artists/Francesco-Cima"
+          },
+          {
+            "gallery_name": "Amanita （ｱﾏﾆﾀ / ﾆｭｰﾖｰｸ）",
+            "source_url": "https://spazioamanita.com/Artists/Issen-Nishigaki.html"
+          },
+          {
+            "gallery_name": "Amanita （ｱﾏﾆﾀ / ﾆｭｰﾖｰｸ）",
+            "source_url": "https://spazioamanita.com/Artists/Leonardo-Meoni"
+          },
+          {
+            "gallery_name": "Amanita （ｱﾏﾆﾀ / ﾆｭｰﾖｰｸ）",
+            "source_url": "https://spazioamanita.com/Artists/Marco-Scarpi"
+          },
+          {
+            "gallery_name": "Amanita （ｱﾏﾆﾀ / ﾆｭｰﾖｰｸ）",
+            "source_url": "https://spazioamanita.com/Artists/Nicholas-Campbell"
+          },
+          {
+            "gallery_name": "Anca Poteraşu Gallery （ｱﾝｶ ﾎﾟﾃﾗｼｭ ｷﾞｬﾗﾘｰ / ﾌﾞｶﾚｽﾄ）",
+            "source_url": "https://www.ancapoterasu.com/artists/aurora-kiraly/"
+          },
+          {
+            "gallery_name": "Anca Poteraşu Gallery （ｱﾝｶ ﾎﾟﾃﾗｼｭ ｷﾞｬﾗﾘｰ / ﾌﾞｶﾚｽﾄ）",
+            "source_url": "https://www.ancapoterasu.com/artists/decebal-scriba-2/"
+          },
+          {
+            "gallery_name": "Anca Poteraşu Gallery （ｱﾝｶ ﾎﾟﾃﾗｼｭ ｷﾞｬﾗﾘｰ / ﾌﾞｶﾚｽﾄ）",
+            "source_url": "https://www.ancapoterasu.com/artists/delia-popa/"
+          },
+          {
+            "gallery_name": "Anca Poteraşu Gallery （ｱﾝｶ ﾎﾟﾃﾗｼｭ ｷﾞｬﾗﾘｰ / ﾌﾞｶﾚｽﾄ）",
+            "source_url": "https://www.ancapoterasu.com/artists/doina-simionescu-2/"
+          },
+          {
+            "gallery_name": "Anca Poteraşu Gallery （ｱﾝｶ ﾎﾟﾃﾗｼｭ ｷﾞｬﾗﾘｰ / ﾌﾞｶﾚｽﾄ）",
+            "source_url": "https://www.ancapoterasu.com/artists/dragos-badita/"
+          },
+          {
+            "gallery_name": "Anca Poteraşu Gallery （ｱﾝｶ ﾎﾟﾃﾗｼｭ ｷﾞｬﾗﾘｰ / ﾌﾞｶﾚｽﾄ）",
+            "source_url": "https://www.ancapoterasu.com/artists/ioana-cirlig/"
+          },
+          {
+            "gallery_name": "Anca Poteraşu Gallery （ｱﾝｶ ﾎﾟﾃﾗｼｭ ｷﾞｬﾗﾘｰ / ﾌﾞｶﾚｽﾄ）",
+            "source_url": "https://www.ancapoterasu.com/artists/iosif-kiraly/"
+          },
+          {
+            "gallery_name": "Anca Poteraşu Gallery （ｱﾝｶ ﾎﾟﾃﾗｼｭ ｷﾞｬﾗﾘｰ / ﾌﾞｶﾚｽﾄ）",
+            "source_url": "https://www.ancapoterasu.com/artists/iulian-bisericaru-2/"
+          },
+          {
+            "gallery_name": "Anca Poteraşu Gallery （ｱﾝｶ ﾎﾟﾃﾗｼｭ ｷﾞｬﾗﾘｰ / ﾌﾞｶﾚｽﾄ）",
+            "source_url": "https://www.ancapoterasu.com/artists/kinema-ikon-2/"
+          },
+          {
+            "gallery_name": "Arcadia Missa（ｱﾙｶﾃﾞｨｱ･ﾐｯｻ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://arcadiamissa.com/brad-kronz/"
+          },
+          {
+            "gallery_name": "Arcadia Missa（ｱﾙｶﾃﾞｨｱ･ﾐｯｻ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://arcadiamissa.com/coumba-samba/"
+          },
+          {
+            "gallery_name": "Arcadia Missa（ｱﾙｶﾃﾞｨｱ･ﾐｯｻ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://arcadiamissa.com/hamishi-farah/"
+          },
+          {
+            "gallery_name": "Arcadia Missa（ｱﾙｶﾃﾞｨｱ･ﾐｯｻ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://arcadiamissa.com/hannah-black/"
+          },
+          {
+            "gallery_name": "Arcadia Missa（ｱﾙｶﾃﾞｨｱ･ﾐｯｻ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://arcadiamissa.com/hannah-quinlan-rosie-hastings/"
+          },
+          {
+            "gallery_name": "Arcadia Missa（ｱﾙｶﾃﾞｨｱ･ﾐｯｻ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://arcadiamissa.com/jan-vorisek/"
+          },
+          {
+            "gallery_name": "Arcadia Missa（ｱﾙｶﾃﾞｨｱ･ﾐｯｻ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://arcadiamissa.com/janiva-ellis/"
+          },
+          {
+            "gallery_name": "Arcadia Missa（ｱﾙｶﾃﾞｨｱ･ﾐｯｻ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://arcadiamissa.com/jesse-darling/"
+          },
+          {
+            "gallery_name": "Arcadia Missa（ｱﾙｶﾃﾞｨｱ･ﾐｯｻ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://arcadiamissa.com/lewis-hammond/"
+          },
+          {
+            "gallery_name": "Arcadia Missa（ｱﾙｶﾃﾞｨｱ･ﾐｯｻ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://arcadiamissa.com/maja-cule/"
+          },
+          {
+            "gallery_name": "Arcadia Missa（ｱﾙｶﾃﾞｨｱ･ﾐｯｻ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://arcadiamissa.com/melike-kara/"
+          },
+          {
+            "gallery_name": "Arcadia Missa（ｱﾙｶﾃﾞｨｱ･ﾐｯｻ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://arcadiamissa.com/nikhil-vettukattil/"
+          },
+          {
+            "gallery_name": "Arcadia Missa（ｱﾙｶﾃﾞｨｱ･ﾐｯｻ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://arcadiamissa.com/onyeka-igwe/"
+          },
+          {
+            "gallery_name": "Arcadia Missa（ｱﾙｶﾃﾞｨｱ･ﾐｯｻ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://arcadiamissa.com/penny-goring/"
+          },
+          {
+            "gallery_name": "Arcadia Missa（ｱﾙｶﾃﾞｨｱ･ﾐｯｻ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://arcadiamissa.com/phoebe-collings-james/"
+          },
+          {
+            "gallery_name": "Arcadia Missa（ｱﾙｶﾃﾞｨｱ･ﾐｯｻ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://arcadiamissa.com/reina-sugihara/"
+          },
+          {
+            "gallery_name": "Arcadia Missa（ｱﾙｶﾃﾞｨｱ･ﾐｯｻ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://arcadiamissa.com/rene-matic/"
+          },
+          {
+            "gallery_name": "Athr（ｱｻﾙ / ｼﾞｪｯﾀﾞ･ｱﾙｳﾗ･ﾘﾔﾄﾞ）",
+            "source_url": "https://athrart.com/artists/31-sultan-bin-fahad/biography"
+          },
+          {
+            "gallery_name": "Athr（ｱｻﾙ / ｼﾞｪｯﾀﾞ･ｱﾙｳﾗ･ﾘﾔﾄﾞ）",
+            "source_url": "https://athrart.com/artists/33-sara-abdu/biography"
+          },
+          {
+            "gallery_name": "Athr（ｱｻﾙ / ｼﾞｪｯﾀﾞ･ｱﾙｳﾗ･ﾘﾔﾄﾞ）",
+            "source_url": "https://athrart.com/artists/34-sarah-abu-abdallah/biography"
+          },
+          {
+            "gallery_name": "Athr（ｱｻﾙ / ｼﾞｪｯﾀﾞ･ｱﾙｳﾗ･ﾘﾔﾄﾞ）",
+            "source_url": "https://athrart.com/artists/37-daniah-alsaleh/biography"
+          },
+          {
+            "gallery_name": "Athr（ｱｻﾙ / ｼﾞｪｯﾀﾞ･ｱﾙｳﾗ･ﾘﾔﾄﾞ）",
+            "source_url": "https://athrart.com/artists/39-asma-bahmim/biography"
+          },
+          {
+            "gallery_name": "Athr（ｱｻﾙ / ｼﾞｪｯﾀﾞ･ｱﾙｳﾗ･ﾘﾔﾄﾞ）",
+            "source_url": "https://athrart.com/artists/41-rami-farook/biography"
+          },
+          {
+            "gallery_name": "Athr（ｱｻﾙ / ｼﾞｪｯﾀﾞ･ｱﾙｳﾗ･ﾘﾔﾄﾞ）",
+            "source_url": "https://athrart.com/artists/42-basmah-felemban/biography"
+          },
+          {
+            "gallery_name": "Athr（ｱｻﾙ / ｼﾞｪｯﾀﾞ･ｱﾙｳﾗ･ﾘﾔﾄﾞ）",
+            "source_url": "https://athrart.com/artists/43-/biography"
+          },
+          {
+            "gallery_name": "Athr（ｱｻﾙ / ｼﾞｪｯﾀﾞ･ｱﾙｳﾗ･ﾘﾔﾄﾞ）",
+            "source_url": "https://athrart.com/artists/44-muhannad-shono/biography"
+          },
+          {
+            "gallery_name": "Athr（ｱｻﾙ / ｼﾞｪｯﾀﾞ･ｱﾙｳﾗ･ﾘﾔﾄﾞ）",
+            "source_url": "https://athrart.com/artists/49-lulua-alyahya/biography"
+          },
+          {
+            "gallery_name": "Athr（ｱｻﾙ / ｼﾞｪｯﾀﾞ･ｱﾙｳﾗ･ﾘﾔﾄﾞ）",
+            "source_url": "https://athrart.com/artists/51-/biography"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/132-noemie-goudal"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/136-jimok-choi"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/139-lee-jaeseok"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/145-tony-swain"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/148-doki-kim"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/149-christian-hidaka"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/151-ido-park"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/154-chung-eun-mo"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/155-claire-fontaine"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/159-andi-fischer"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/161-minyoung-choi"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/166-jonathan-monk"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/29-rinus-van-de-velde"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/34-bin-woo-hyuk"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/35-liam-gillick"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/36-tobias-rehberger"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/37-koen-van-den-broek"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/38-tatsuo-miyajima"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/39-bae-yoon-hwan"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/40-suzanne-song"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/42-anne-collier"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/43-markus-amm"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/45-jinnie-seo"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/50-max-frisinger"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/51-heeseung-chung"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/52-hoh-woo-jung"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/53-koh-san-keum"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/54-rosa-loy"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/55-hugh-scott-douglas"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/56-marcin-maciejowski"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/58-peter-stichbury"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/59-chung-chi-yung"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/60-kim-sang-gyun"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/62-djordje-ozbolt"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/64-david-okane"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/65-stef-driesen"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/66-yuichi-hirako"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/69-rho-eunjoo"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/71-song-burnsoo"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/77-choi-soo-jung"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/chapter-ii"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/mailing-list"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/adelaide-cioni"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/adelaide-cioni/"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/amanda-ross-ho"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/anderson-borba"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/anderson-borba/"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/anna-glantz"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/bill-lynch"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/evren-tekinoktay"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/germaine-kruip"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/glenn-goldberg"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/hana-miletic"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/heidi-bucher"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/heidi-bucher/"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/helene-appel"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/helene-appel/"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/jack-lavender"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/john-maclean"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/john-stezaker"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/kira-freije"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/lisa-oppenheim"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/magali-reus"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/maria-pininska-beres"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/mike-silva"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/paloma-proudfoot"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/peter-davies"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/peter-davies/"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/phillip-allen"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/phillip-allen/"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/rezi-van-lankveld"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/sam-windett"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/sandra-mujinga"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/sara-barker"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/sara-barker/"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/sara-cwynar"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/sara-cwynar/"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/sara-vanderbeek"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/sophie-bueno-boutellier"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/sophie-bueno-boutellier/"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/tom-allen"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/tom-allen/"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/books-and-editions"
+          }
+        ]
+      },
+      "requests": {
+        "before_rows_total": 287,
+        "after_rows_total": 129,
+        "before_strict_mismatch_total": 61,
+        "after_strict_mismatch_total": 26,
+        "gallery_diffs": [
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "before_rows_total": 28,
+            "after_rows_total": 27,
+            "before_strict_mismatch": 0,
+            "after_strict_mismatch": 0,
+            "removed_urls": [
+              "https://aplusart.asia/artists/106-ho-rui-an",
+              "https://aplusart.asia/artists/107-isola-tong",
+              "https://aplusart.asia/artists/34-mella-jaarsma",
+              "https://aplusart.asia/artists/35-chong-kim-chiew",
+              "https://aplusart.asia/artists/36-tan-zi-hao",
+              "https://aplusart.asia/artists/37-yim-yen-sum",
+              "https://aplusart.asia/artists/39-mary-pakinee",
+              "https://aplusart.asia/artists/40-kentaro-hiroki",
+              "https://aplusart.asia/artists/41-gan-chin-lee/",
+              "https://aplusart.asia/artists/42-pangrok-sulap",
+              "https://aplusart.asia/artists/44-ha-ninh-pham",
+              "https://aplusart.asia/artists/46-ahmad-fuad-osman",
+              "https://aplusart.asia/artists/48-luke-heng",
+              "https://aplusart.asia/artists/50-tawan-wattuya",
+              "https://aplusart.asia/artists/52-yuli-prayitno",
+              "https://aplusart.asia/artists/53-au-sow-yee",
+              "https://aplusart.asia/artists/55-phornphop-sittiruk",
+              "https://aplusart.asia/artists/57-phuan-thai-meng",
+              "https://aplusart.asia/artists/62-tith-kanitha",
+              "https://aplusart.asia/artists/63-tawatchai-puntusawasdi",
+              "https://aplusart.asia/artists/66-melati-suryodarmo",
+              "https://aplusart.asia/artists/70-agus-suwage",
+              "https://aplusart.asia/artists/71-izat-arif",
+              "https://aplusart.asia/artists/79-than-sok",
+              "https://aplusart.asia/artists/85-trinh-cam-nhi",
+              "https://aplusart.asia/artists/86-dang-thuy-anh",
+              "https://aplusart.asia/artists/93-ariana-chaivaranon",
+              "https://aplusart.asia/artists/94-jo-tanierla"
+            ],
+            "added_urls": [
+              "https://aplusart.asia/artists/106-ho-rui-an/",
+              "https://aplusart.asia/artists/107-isola-tong/",
+              "https://aplusart.asia/artists/34-mella-jaarsma/",
+              "https://aplusart.asia/artists/35-chong-kim-chiew/",
+              "https://aplusart.asia/artists/36-tan-zi-hao/",
+              "https://aplusart.asia/artists/37-yim-yen-sum/",
+              "https://aplusart.asia/artists/39-mary-pakinee/",
+              "https://aplusart.asia/artists/40-kentaro-hiroki/",
+              "https://aplusart.asia/artists/42-pangrok-sulap/",
+              "https://aplusart.asia/artists/44-ha-ninh-pham/",
+              "https://aplusart.asia/artists/46-ahmad-fuad-osman/",
+              "https://aplusart.asia/artists/48-luke-heng/",
+              "https://aplusart.asia/artists/50-tawan-wattuya/",
+              "https://aplusart.asia/artists/52-yuli-prayitno/",
+              "https://aplusart.asia/artists/53-au-sow-yee/",
+              "https://aplusart.asia/artists/55-phornphop-sittiruk/",
+              "https://aplusart.asia/artists/57-phuan-thai-meng/",
+              "https://aplusart.asia/artists/62-tith-kanitha/",
+              "https://aplusart.asia/artists/63-tawatchai-puntusawasdi/",
+              "https://aplusart.asia/artists/66-melati-suryodarmo/",
+              "https://aplusart.asia/artists/70-agus-suwage/",
+              "https://aplusart.asia/artists/71-izat-arif/",
+              "https://aplusart.asia/artists/79-than-sok/",
+              "https://aplusart.asia/artists/85-trinh-cam-nhi/",
+              "https://aplusart.asia/artists/86-dang-thuy-anh/",
+              "https://aplusart.asia/artists/93-ariana-chaivaranon/",
+              "https://aplusart.asia/artists/94-jo-tanierla/"
+            ]
+          },
+          {
+            "gallery_name": "Adams and Ollman（ｱﾀﾞﾑｽﾞｱﾝﾄﾞｵﾙﾏﾝ / ﾎﾟｰﾄﾗﾝﾄﾞ）",
+            "before_rows_total": 20,
+            "after_rows_total": 18,
+            "before_strict_mismatch": 20,
+            "after_strict_mismatch": 18,
+            "removed_urls": [
+              "https://adamsandollman.com/James-Castle",
+              "https://adamsandollman.com/Katherine-Bradford"
+            ],
+            "added_urls": []
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "before_rows_total": 25,
+            "after_rows_total": 22,
+            "before_strict_mismatch": 2,
+            "after_strict_mismatch": 0,
+            "removed_urls": [
+              "https://addisfineart.com/artists/108-tsedaye-makonnen/works",
+              "https://addisfineart.com/artists/109-selome-muleta/works",
+              "https://addisfineart.com/artists/110-helina-metaferia/works",
+              "https://addisfineart.com/artists/120-dawit-adnew/works",
+              "https://addisfineart.com/artists/123-girmachew-getnet/works",
+              "https://addisfineart.com/artists/129-amel-bashier/works",
+              "https://addisfineart.com/artists/130-tesfaye-bekele/works",
+              "https://addisfineart.com/artists/135-engdaye-lemma/works",
+              "https://addisfineart.com/artists/136-noah-beyene/works",
+              "https://addisfineart.com/artists/138-nahom-teklehaimanot/works",
+              "https://addisfineart.com/artists/140-skunder-boghossian/works",
+              "https://addisfineart.com/artists/142-zerihun-yetimgeta/biography",
+              "https://addisfineart.com/artists/143-dereje-demissie/biography",
+              "https://addisfineart.com/artists/29-tadesse-mesfin/works",
+              "https://addisfineart.com/artists/46-merikokeb-berhanu/works",
+              "https://addisfineart.com/artists/51-addis-gezehagn/works",
+              "https://addisfineart.com/artists/55-tariku-shiferaw/works",
+              "https://addisfineart.com/artists/63-nirit-takele/works",
+              "https://addisfineart.com/artists/69-wosene-worke-kosrof/works",
+              "https://addisfineart.com/artists/79-tizta-berhanu/works",
+              "https://addisfineart.com/artists/84-ermias-kifleyesus/works",
+              "https://addisfineart.com/artists/85-tesfaye-urgessa/works",
+              "https://addisfineart.com/artists/86-adiskidan-ambaye/works",
+              "https://addisfineart.com/privacy",
+              "https://addisfineart.com/recovery-2"
+            ],
+            "added_urls": [
+              "https://addisfineart.com/artists/108-tsedaye-makonnen/works/",
+              "https://addisfineart.com/artists/109-selome-muleta/works/",
+              "https://addisfineart.com/artists/110-helina-metaferia/works/",
+              "https://addisfineart.com/artists/120-dawit-adnew/works/",
+              "https://addisfineart.com/artists/123-girmachew-getnet/works/",
+              "https://addisfineart.com/artists/129-amel-bashier/works/",
+              "https://addisfineart.com/artists/130-tesfaye-bekele/works/",
+              "https://addisfineart.com/artists/135-engdaye-lemma/works/",
+              "https://addisfineart.com/artists/136-noah-beyene/works/",
+              "https://addisfineart.com/artists/138-nahom-teklehaimanot/works/",
+              "https://addisfineart.com/artists/140-skunder-boghossian/works/",
+              "https://addisfineart.com/artists/143-dereje-demissie/biography/",
+              "https://addisfineart.com/artists/29-tadesse-mesfin/works/",
+              "https://addisfineart.com/artists/46-merikokeb-berhanu/works/",
+              "https://addisfineart.com/artists/51-addis-gezehagn/works/",
+              "https://addisfineart.com/artists/55-tariku-shiferaw/works/",
+              "https://addisfineart.com/artists/63-nirit-takele/works/",
+              "https://addisfineart.com/artists/69-wosene-worke-kosrof/works/",
+              "https://addisfineart.com/artists/79-tizta-berhanu/works/",
+              "https://addisfineart.com/artists/84-ermias-kifleyesus/works/",
+              "https://addisfineart.com/artists/85-tesfaye-urgessa/works/",
+              "https://addisfineart.com/artists/86-adiskidan-ambaye/works/"
+            ]
+          },
+          {
+            "gallery_name": "Afriart Gallery （ｱﾌﾘｱｰﾄ ｷﾞｬﾗﾘｰ / ｶﾝﾊﾟﾗ）",
+            "before_rows_total": 25,
+            "after_rows_total": 0,
+            "before_strict_mismatch": 0,
+            "after_strict_mismatch": 0,
+            "removed_urls": [
+              "https://afriartgallery.org/artists/april-kamunde",
+              "https://afriartgallery.org/artists/charlene-komuntale",
+              "https://afriartgallery.org/artists/collin-sekajugo",
+              "https://afriartgallery.org/artists/daniel-atenyi",
+              "https://afriartgallery.org/artists/eria-nsubuga-sane",
+              "https://afriartgallery.org/artists/fiker-solomon",
+              "https://afriartgallery.org/artists/henry-mzili-mujunga",
+              "https://afriartgallery.org/artists/kaleab-abate",
+              "https://afriartgallery.org/artists/mona-taha",
+              "https://afriartgallery.org/artists/odur-ronald",
+              "https://afriartgallery.org/artists/richard-atugonza",
+              "https://afriartgallery.org/artists/samuel-kakaire",
+              "https://afriartgallery.org/artists/sanaa-gateja",
+              "https://afriartgallery.org/artists/sungi-mlengeya",
+              "https://afriartgallery.org/artists/xenson"
+            ],
+            "added_urls": []
+          },
+          {
+            "gallery_name": "Amanita （ｱﾏﾆﾀ / ﾆｭｰﾖｰｸ）",
+            "before_rows_total": 24,
+            "after_rows_total": 0,
+            "before_strict_mismatch": 0,
+            "after_strict_mismatch": 0,
+            "removed_urls": [
+              "https://spazioamanita.com/Artists/Adrian-Schachter",
+              "https://spazioamanita.com/Artists/Alessandro-Twombly.html",
+              "https://spazioamanita.com/Artists/Andrew-Piedilato",
+              "https://spazioamanita.com/Artists/Arianna-Tosi",
+              "https://spazioamanita.com/Artists/Ben-Werther",
+              "https://spazioamanita.com/Artists/Bill-Jensen",
+              "https://spazioamanita.com/Artists/Craig-Boagey",
+              "https://spazioamanita.com/Artists/Daniele-Milvio",
+              "https://spazioamanita.com/Artists/Eva-Beresin",
+              "https://spazioamanita.com/Artists/Francesco-Cima",
+              "https://spazioamanita.com/Artists/Issen-Nishigaki.html",
+              "https://spazioamanita.com/Artists/Leonardo-Meoni",
+              "https://spazioamanita.com/Artists/Marco-Scarpi",
+              "https://spazioamanita.com/Artists/Nicholas-Campbell"
+            ],
+            "added_urls": []
+          },
+          {
+            "gallery_name": "Anca Poteraşu Gallery （ｱﾝｶ ﾎﾟﾃﾗｼｭ ｷﾞｬﾗﾘｰ / ﾌﾞｶﾚｽﾄ）",
+            "before_rows_total": 16,
+            "after_rows_total": 7,
+            "before_strict_mismatch": 16,
+            "after_strict_mismatch": 7,
+            "removed_urls": [
+              "https://www.ancapoterasu.com/artists/aurora-kiraly/",
+              "https://www.ancapoterasu.com/artists/decebal-scriba-2/",
+              "https://www.ancapoterasu.com/artists/delia-popa/",
+              "https://www.ancapoterasu.com/artists/doina-simionescu-2/",
+              "https://www.ancapoterasu.com/artists/dragos-badita/",
+              "https://www.ancapoterasu.com/artists/ioana-cirlig/",
+              "https://www.ancapoterasu.com/artists/iosif-kiraly/",
+              "https://www.ancapoterasu.com/artists/iulian-bisericaru-2/",
+              "https://www.ancapoterasu.com/artists/kinema-ikon-2/"
+            ],
+            "added_urls": []
+          },
+          {
+            "gallery_name": "Arcadia Missa（ｱﾙｶﾃﾞｨｱ･ﾐｯｻ / ﾛﾝﾄﾞﾝ）",
+            "before_rows_total": 18,
+            "after_rows_total": 1,
+            "before_strict_mismatch": 18,
+            "after_strict_mismatch": 1,
+            "removed_urls": [
+              "https://arcadiamissa.com/brad-kronz/",
+              "https://arcadiamissa.com/coumba-samba/",
+              "https://arcadiamissa.com/hamishi-farah/",
+              "https://arcadiamissa.com/hannah-black/",
+              "https://arcadiamissa.com/hannah-quinlan-rosie-hastings/",
+              "https://arcadiamissa.com/jan-vorisek/",
+              "https://arcadiamissa.com/janiva-ellis/",
+              "https://arcadiamissa.com/jesse-darling/",
+              "https://arcadiamissa.com/lewis-hammond/",
+              "https://arcadiamissa.com/maja-cule/",
+              "https://arcadiamissa.com/melike-kara/",
+              "https://arcadiamissa.com/nikhil-vettukattil/",
+              "https://arcadiamissa.com/onyeka-igwe/",
+              "https://arcadiamissa.com/penny-goring/",
+              "https://arcadiamissa.com/phoebe-collings-james/",
+              "https://arcadiamissa.com/reina-sugihara/",
+              "https://arcadiamissa.com/rene-matic/"
+            ],
+            "added_urls": []
+          },
+          {
+            "gallery_name": "Athr（ｱｻﾙ / ｼﾞｪｯﾀﾞ･ｱﾙｳﾗ･ﾘﾔﾄﾞ）",
+            "before_rows_total": 17,
+            "after_rows_total": 13,
+            "before_strict_mismatch": 1,
+            "after_strict_mismatch": 0,
+            "removed_urls": [
+              "https://athrart.com/artists/31-sultan-bin-fahad/biography",
+              "https://athrart.com/artists/33-sara-abdu/biography",
+              "https://athrart.com/artists/34-sarah-abu-abdallah/biography",
+              "https://athrart.com/artists/37-daniah-alsaleh/biography",
+              "https://athrart.com/artists/39-asma-bahmim/biography",
+              "https://athrart.com/artists/41-rami-farook/biography",
+              "https://athrart.com/artists/42-basmah-felemban/biography",
+              "https://athrart.com/artists/43-/biography",
+              "https://athrart.com/artists/44-muhannad-shono/biography",
+              "https://athrart.com/artists/49-lulua-alyahya/biography",
+              "https://athrart.com/artists/51-/biography",
+              "https://athrart.com/contact/form"
+            ],
+            "added_urls": [
+              "https://athrart.com/artists/31-sultan-bin-fahad/biography/",
+              "https://athrart.com/artists/33-/biography",
+              "https://athrart.com/artists/34-sarah-abu-abdallah/biography/",
+              "https://athrart.com/artists/37-daniah-alsaleh/biography/",
+              "https://athrart.com/artists/39-asma-bahmim/biography/",
+              "https://athrart.com/artists/41-rami-farook/biography/",
+              "https://athrart.com/artists/42-basmah-felemban/biography/",
+              "https://athrart.com/artists/44-/biography"
+            ]
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "before_rows_total": 54,
+            "after_rows_total": 41,
+            "before_strict_mismatch": 3,
+            "after_strict_mismatch": 0,
+            "removed_urls": [
+              "https://gallerybaton.com/artists/132-noemie-goudal",
+              "https://gallerybaton.com/artists/136-jimok-choi",
+              "https://gallerybaton.com/artists/139-lee-jaeseok",
+              "https://gallerybaton.com/artists/145-tony-swain",
+              "https://gallerybaton.com/artists/148-doki-kim",
+              "https://gallerybaton.com/artists/149-christian-hidaka",
+              "https://gallerybaton.com/artists/151-ido-park",
+              "https://gallerybaton.com/artists/154-chung-eun-mo",
+              "https://gallerybaton.com/artists/155-claire-fontaine",
+              "https://gallerybaton.com/artists/159-andi-fischer",
+              "https://gallerybaton.com/artists/161-minyoung-choi",
+              "https://gallerybaton.com/artists/166-jonathan-monk",
+              "https://gallerybaton.com/artists/29-rinus-van-de-velde",
+              "https://gallerybaton.com/artists/34-bin-woo-hyuk",
+              "https://gallerybaton.com/artists/35-liam-gillick",
+              "https://gallerybaton.com/artists/36-tobias-rehberger",
+              "https://gallerybaton.com/artists/37-koen-van-den-broek",
+              "https://gallerybaton.com/artists/38-tatsuo-miyajima",
+              "https://gallerybaton.com/artists/39-bae-yoon-hwan",
+              "https://gallerybaton.com/artists/40-suzanne-song",
+              "https://gallerybaton.com/artists/42-anne-collier",
+              "https://gallerybaton.com/artists/43-markus-amm",
+              "https://gallerybaton.com/artists/45-jinnie-seo",
+              "https://gallerybaton.com/artists/50-max-frisinger",
+              "https://gallerybaton.com/artists/51-heeseung-chung",
+              "https://gallerybaton.com/artists/52-hoh-woo-jung",
+              "https://gallerybaton.com/artists/53-koh-san-keum",
+              "https://gallerybaton.com/artists/54-rosa-loy",
+              "https://gallerybaton.com/artists/55-hugh-scott-douglas",
+              "https://gallerybaton.com/artists/56-marcin-maciejowski",
+              "https://gallerybaton.com/artists/58-peter-stichbury",
+              "https://gallerybaton.com/artists/59-chung-chi-yung",
+              "https://gallerybaton.com/artists/60-kim-sang-gyun",
+              "https://gallerybaton.com/artists/62-djordje-ozbolt",
+              "https://gallerybaton.com/artists/64-david-okane",
+              "https://gallerybaton.com/artists/65-stef-driesen",
+              "https://gallerybaton.com/artists/66-yuichi-hirako",
+              "https://gallerybaton.com/artists/69-rho-eunjoo",
+              "https://gallerybaton.com/artists/71-song-burnsoo",
+              "https://gallerybaton.com/artists/77-choi-soo-jung",
+              "https://gallerybaton.com/chapter-ii",
+              "https://gallerybaton.com/mailing-list",
+              "https://gallerybaton.com/privacy-policy"
+            ],
+            "added_urls": [
+              "https://gallerybaton.com/artists/132-noemie-goudal/",
+              "https://gallerybaton.com/artists/136-jimok-choi/",
+              "https://gallerybaton.com/artists/139-lee-jaeseok/",
+              "https://gallerybaton.com/artists/145-tony-swain/",
+              "https://gallerybaton.com/artists/148-doki-kim/",
+              "https://gallerybaton.com/artists/149-christian-hidaka/",
+              "https://gallerybaton.com/artists/151-ido-park/",
+              "https://gallerybaton.com/artists/154-chung-eun-mo/",
+              "https://gallerybaton.com/artists/155-claire-fontaine/",
+              "https://gallerybaton.com/artists/159-andi-fischer/",
+              "https://gallerybaton.com/artists/161-minyoung-choi/",
+              "https://gallerybaton.com/artists/166-jonathan-monk/",
+              "https://gallerybaton.com/artists/29-rinus-van-de-velde/",
+              "https://gallerybaton.com/artists/34-bin-woo-hyuk/",
+              "https://gallerybaton.com/artists/35-liam-gillick/",
+              "https://gallerybaton.com/artists/36-tobias-rehberger/",
+              "https://gallerybaton.com/artists/37-koen-van-den-broek/",
+              "https://gallerybaton.com/artists/38-tatsuo-miyajima/",
+              "https://gallerybaton.com/artists/39-bae-yoon-hwan/",
+              "https://gallerybaton.com/artists/40-suzanne-song/",
+              "https://gallerybaton.com/artists/42-anne-collier/",
+              "https://gallerybaton.com/artists/43-markus-amm/",
+              "https://gallerybaton.com/artists/45-jinnie-seo/",
+              "https://gallerybaton.com/artists/50-max-frisinger/",
+              "https://gallerybaton.com/artists/51-heeseung-chung/",
+              "https://gallerybaton.com/artists/52-hoh-woo-jung/",
+              "https://gallerybaton.com/artists/53-koh-san-keum/",
+              "https://gallerybaton.com/artists/54-rosa-loy/",
+              "https://gallerybaton.com/artists/55-hugh-scott-douglas/",
+              "https://gallerybaton.com/artists/56-marcin-maciejowski/",
+              "https://gallerybaton.com/artists/58-peter-stichbury/",
+              "https://gallerybaton.com/artists/59-chung-chi-yung/",
+              "https://gallerybaton.com/artists/60-kim-sang-gyun/",
+              "https://gallerybaton.com/artists/62-djordje-ozbolt/",
+              "https://gallerybaton.com/artists/64-david-okane/",
+              "https://gallerybaton.com/artists/65-stef-driesen/",
+              "https://gallerybaton.com/artists/66-yuichi-hirako/",
+              "https://gallerybaton.com/artists/69-rho-eunjoo/",
+              "https://gallerybaton.com/artists/71-song-burnsoo/",
+              "https://gallerybaton.com/artists/77-choi-soo-jung/"
+            ]
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "before_rows_total": 60,
+            "after_rows_total": 0,
+            "before_strict_mismatch": 1,
+            "after_strict_mismatch": 0,
+            "removed_urls": [
+              "https://www.theapproach.co.uk/artists/adelaide-cioni",
+              "https://www.theapproach.co.uk/artists/adelaide-cioni/",
+              "https://www.theapproach.co.uk/artists/amanda-ross-ho",
+              "https://www.theapproach.co.uk/artists/anderson-borba",
+              "https://www.theapproach.co.uk/artists/anderson-borba/",
+              "https://www.theapproach.co.uk/artists/anna-glantz",
+              "https://www.theapproach.co.uk/artists/bill-lynch",
+              "https://www.theapproach.co.uk/artists/evren-tekinoktay",
+              "https://www.theapproach.co.uk/artists/germaine-kruip",
+              "https://www.theapproach.co.uk/artists/glenn-goldberg",
+              "https://www.theapproach.co.uk/artists/hana-miletic",
+              "https://www.theapproach.co.uk/artists/heidi-bucher",
+              "https://www.theapproach.co.uk/artists/heidi-bucher/",
+              "https://www.theapproach.co.uk/artists/helene-appel",
+              "https://www.theapproach.co.uk/artists/helene-appel/",
+              "https://www.theapproach.co.uk/artists/jack-lavender",
+              "https://www.theapproach.co.uk/artists/john-maclean",
+              "https://www.theapproach.co.uk/artists/john-stezaker",
+              "https://www.theapproach.co.uk/artists/kira-freije",
+              "https://www.theapproach.co.uk/artists/lisa-oppenheim",
+              "https://www.theapproach.co.uk/artists/magali-reus",
+              "https://www.theapproach.co.uk/artists/maria-pininska-beres",
+              "https://www.theapproach.co.uk/artists/mike-silva",
+              "https://www.theapproach.co.uk/artists/paloma-proudfoot",
+              "https://www.theapproach.co.uk/artists/peter-davies",
+              "https://www.theapproach.co.uk/artists/peter-davies/",
+              "https://www.theapproach.co.uk/artists/phillip-allen",
+              "https://www.theapproach.co.uk/artists/rezi-van-lankveld",
+              "https://www.theapproach.co.uk/artists/sam-windett",
+              "https://www.theapproach.co.uk/artists/sandra-mujinga",
+              "https://www.theapproach.co.uk/artists/sara-barker",
+              "https://www.theapproach.co.uk/artists/sara-barker/",
+              "https://www.theapproach.co.uk/artists/sara-cwynar",
+              "https://www.theapproach.co.uk/artists/sara-cwynar/",
+              "https://www.theapproach.co.uk/artists/sara-vanderbeek",
+              "https://www.theapproach.co.uk/artists/sophie-bueno-boutellier",
+              "https://www.theapproach.co.uk/artists/sophie-bueno-boutellier/",
+              "https://www.theapproach.co.uk/artists/tom-allen",
+              "https://www.theapproach.co.uk/artists/tom-allen/",
+              "https://www.theapproach.co.uk/books-and-editions"
+            ],
+            "added_urls": []
+          }
+        ],
+        "removed_urls": [
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/106-ho-rui-an"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/107-isola-tong"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/34-mella-jaarsma"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/35-chong-kim-chiew"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/36-tan-zi-hao"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/37-yim-yen-sum"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/39-mary-pakinee"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/40-kentaro-hiroki"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/41-gan-chin-lee/"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/42-pangrok-sulap"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/44-ha-ninh-pham"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/46-ahmad-fuad-osman"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/48-luke-heng"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/50-tawan-wattuya"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/52-yuli-prayitno"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/53-au-sow-yee"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/55-phornphop-sittiruk"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/57-phuan-thai-meng"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/62-tith-kanitha"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/63-tawatchai-puntusawasdi"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/66-melati-suryodarmo"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/70-agus-suwage"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/71-izat-arif"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/79-than-sok"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/85-trinh-cam-nhi"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/86-dang-thuy-anh"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/93-ariana-chaivaranon"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/94-jo-tanierla"
+          },
+          {
+            "gallery_name": "Adams and Ollman（ｱﾀﾞﾑｽﾞｱﾝﾄﾞｵﾙﾏﾝ / ﾎﾟｰﾄﾗﾝﾄﾞ）",
+            "source_url": "https://adamsandollman.com/James-Castle"
+          },
+          {
+            "gallery_name": "Adams and Ollman（ｱﾀﾞﾑｽﾞｱﾝﾄﾞｵﾙﾏﾝ / ﾎﾟｰﾄﾗﾝﾄﾞ）",
+            "source_url": "https://adamsandollman.com/Katherine-Bradford"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/108-tsedaye-makonnen/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/109-selome-muleta/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/110-helina-metaferia/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/120-dawit-adnew/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/123-girmachew-getnet/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/129-amel-bashier/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/130-tesfaye-bekele/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/135-engdaye-lemma/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/136-noah-beyene/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/138-nahom-teklehaimanot/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/140-skunder-boghossian/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/142-zerihun-yetimgeta/biography"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/143-dereje-demissie/biography"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/29-tadesse-mesfin/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/46-merikokeb-berhanu/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/51-addis-gezehagn/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/55-tariku-shiferaw/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/63-nirit-takele/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/69-wosene-worke-kosrof/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/79-tizta-berhanu/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/84-ermias-kifleyesus/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/85-tesfaye-urgessa/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/86-adiskidan-ambaye/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/privacy"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/recovery-2"
+          },
+          {
+            "gallery_name": "Afriart Gallery （ｱﾌﾘｱｰﾄ ｷﾞｬﾗﾘｰ / ｶﾝﾊﾟﾗ）",
+            "source_url": "https://afriartgallery.org/artists/april-kamunde"
+          },
+          {
+            "gallery_name": "Afriart Gallery （ｱﾌﾘｱｰﾄ ｷﾞｬﾗﾘｰ / ｶﾝﾊﾟﾗ）",
+            "source_url": "https://afriartgallery.org/artists/charlene-komuntale"
+          },
+          {
+            "gallery_name": "Afriart Gallery （ｱﾌﾘｱｰﾄ ｷﾞｬﾗﾘｰ / ｶﾝﾊﾟﾗ）",
+            "source_url": "https://afriartgallery.org/artists/collin-sekajugo"
+          },
+          {
+            "gallery_name": "Afriart Gallery （ｱﾌﾘｱｰﾄ ｷﾞｬﾗﾘｰ / ｶﾝﾊﾟﾗ）",
+            "source_url": "https://afriartgallery.org/artists/daniel-atenyi"
+          },
+          {
+            "gallery_name": "Afriart Gallery （ｱﾌﾘｱｰﾄ ｷﾞｬﾗﾘｰ / ｶﾝﾊﾟﾗ）",
+            "source_url": "https://afriartgallery.org/artists/eria-nsubuga-sane"
+          },
+          {
+            "gallery_name": "Afriart Gallery （ｱﾌﾘｱｰﾄ ｷﾞｬﾗﾘｰ / ｶﾝﾊﾟﾗ）",
+            "source_url": "https://afriartgallery.org/artists/fiker-solomon"
+          },
+          {
+            "gallery_name": "Afriart Gallery （ｱﾌﾘｱｰﾄ ｷﾞｬﾗﾘｰ / ｶﾝﾊﾟﾗ）",
+            "source_url": "https://afriartgallery.org/artists/henry-mzili-mujunga"
+          },
+          {
+            "gallery_name": "Afriart Gallery （ｱﾌﾘｱｰﾄ ｷﾞｬﾗﾘｰ / ｶﾝﾊﾟﾗ）",
+            "source_url": "https://afriartgallery.org/artists/kaleab-abate"
+          },
+          {
+            "gallery_name": "Afriart Gallery （ｱﾌﾘｱｰﾄ ｷﾞｬﾗﾘｰ / ｶﾝﾊﾟﾗ）",
+            "source_url": "https://afriartgallery.org/artists/mona-taha"
+          },
+          {
+            "gallery_name": "Afriart Gallery （ｱﾌﾘｱｰﾄ ｷﾞｬﾗﾘｰ / ｶﾝﾊﾟﾗ）",
+            "source_url": "https://afriartgallery.org/artists/odur-ronald"
+          },
+          {
+            "gallery_name": "Afriart Gallery （ｱﾌﾘｱｰﾄ ｷﾞｬﾗﾘｰ / ｶﾝﾊﾟﾗ）",
+            "source_url": "https://afriartgallery.org/artists/richard-atugonza"
+          },
+          {
+            "gallery_name": "Afriart Gallery （ｱﾌﾘｱｰﾄ ｷﾞｬﾗﾘｰ / ｶﾝﾊﾟﾗ）",
+            "source_url": "https://afriartgallery.org/artists/samuel-kakaire"
+          },
+          {
+            "gallery_name": "Afriart Gallery （ｱﾌﾘｱｰﾄ ｷﾞｬﾗﾘｰ / ｶﾝﾊﾟﾗ）",
+            "source_url": "https://afriartgallery.org/artists/sanaa-gateja"
+          },
+          {
+            "gallery_name": "Afriart Gallery （ｱﾌﾘｱｰﾄ ｷﾞｬﾗﾘｰ / ｶﾝﾊﾟﾗ）",
+            "source_url": "https://afriartgallery.org/artists/sungi-mlengeya"
+          },
+          {
+            "gallery_name": "Afriart Gallery （ｱﾌﾘｱｰﾄ ｷﾞｬﾗﾘｰ / ｶﾝﾊﾟﾗ）",
+            "source_url": "https://afriartgallery.org/artists/xenson"
+          },
+          {
+            "gallery_name": "Amanita （ｱﾏﾆﾀ / ﾆｭｰﾖｰｸ）",
+            "source_url": "https://spazioamanita.com/Artists/Adrian-Schachter"
+          },
+          {
+            "gallery_name": "Amanita （ｱﾏﾆﾀ / ﾆｭｰﾖｰｸ）",
+            "source_url": "https://spazioamanita.com/Artists/Alessandro-Twombly.html"
+          },
+          {
+            "gallery_name": "Amanita （ｱﾏﾆﾀ / ﾆｭｰﾖｰｸ）",
+            "source_url": "https://spazioamanita.com/Artists/Andrew-Piedilato"
+          },
+          {
+            "gallery_name": "Amanita （ｱﾏﾆﾀ / ﾆｭｰﾖｰｸ）",
+            "source_url": "https://spazioamanita.com/Artists/Arianna-Tosi"
+          },
+          {
+            "gallery_name": "Amanita （ｱﾏﾆﾀ / ﾆｭｰﾖｰｸ）",
+            "source_url": "https://spazioamanita.com/Artists/Ben-Werther"
+          },
+          {
+            "gallery_name": "Amanita （ｱﾏﾆﾀ / ﾆｭｰﾖｰｸ）",
+            "source_url": "https://spazioamanita.com/Artists/Bill-Jensen"
+          },
+          {
+            "gallery_name": "Amanita （ｱﾏﾆﾀ / ﾆｭｰﾖｰｸ）",
+            "source_url": "https://spazioamanita.com/Artists/Craig-Boagey"
+          },
+          {
+            "gallery_name": "Amanita （ｱﾏﾆﾀ / ﾆｭｰﾖｰｸ）",
+            "source_url": "https://spazioamanita.com/Artists/Daniele-Milvio"
+          },
+          {
+            "gallery_name": "Amanita （ｱﾏﾆﾀ / ﾆｭｰﾖｰｸ）",
+            "source_url": "https://spazioamanita.com/Artists/Eva-Beresin"
+          },
+          {
+            "gallery_name": "Amanita （ｱﾏﾆﾀ / ﾆｭｰﾖｰｸ）",
+            "source_url": "https://spazioamanita.com/Artists/Francesco-Cima"
+          },
+          {
+            "gallery_name": "Amanita （ｱﾏﾆﾀ / ﾆｭｰﾖｰｸ）",
+            "source_url": "https://spazioamanita.com/Artists/Issen-Nishigaki.html"
+          },
+          {
+            "gallery_name": "Amanita （ｱﾏﾆﾀ / ﾆｭｰﾖｰｸ）",
+            "source_url": "https://spazioamanita.com/Artists/Leonardo-Meoni"
+          },
+          {
+            "gallery_name": "Amanita （ｱﾏﾆﾀ / ﾆｭｰﾖｰｸ）",
+            "source_url": "https://spazioamanita.com/Artists/Marco-Scarpi"
+          },
+          {
+            "gallery_name": "Amanita （ｱﾏﾆﾀ / ﾆｭｰﾖｰｸ）",
+            "source_url": "https://spazioamanita.com/Artists/Nicholas-Campbell"
+          },
+          {
+            "gallery_name": "Anca Poteraşu Gallery （ｱﾝｶ ﾎﾟﾃﾗｼｭ ｷﾞｬﾗﾘｰ / ﾌﾞｶﾚｽﾄ）",
+            "source_url": "https://www.ancapoterasu.com/artists/aurora-kiraly/"
+          },
+          {
+            "gallery_name": "Anca Poteraşu Gallery （ｱﾝｶ ﾎﾟﾃﾗｼｭ ｷﾞｬﾗﾘｰ / ﾌﾞｶﾚｽﾄ）",
+            "source_url": "https://www.ancapoterasu.com/artists/decebal-scriba-2/"
+          },
+          {
+            "gallery_name": "Anca Poteraşu Gallery （ｱﾝｶ ﾎﾟﾃﾗｼｭ ｷﾞｬﾗﾘｰ / ﾌﾞｶﾚｽﾄ）",
+            "source_url": "https://www.ancapoterasu.com/artists/delia-popa/"
+          },
+          {
+            "gallery_name": "Anca Poteraşu Gallery （ｱﾝｶ ﾎﾟﾃﾗｼｭ ｷﾞｬﾗﾘｰ / ﾌﾞｶﾚｽﾄ）",
+            "source_url": "https://www.ancapoterasu.com/artists/doina-simionescu-2/"
+          },
+          {
+            "gallery_name": "Anca Poteraşu Gallery （ｱﾝｶ ﾎﾟﾃﾗｼｭ ｷﾞｬﾗﾘｰ / ﾌﾞｶﾚｽﾄ）",
+            "source_url": "https://www.ancapoterasu.com/artists/dragos-badita/"
+          },
+          {
+            "gallery_name": "Anca Poteraşu Gallery （ｱﾝｶ ﾎﾟﾃﾗｼｭ ｷﾞｬﾗﾘｰ / ﾌﾞｶﾚｽﾄ）",
+            "source_url": "https://www.ancapoterasu.com/artists/ioana-cirlig/"
+          },
+          {
+            "gallery_name": "Anca Poteraşu Gallery （ｱﾝｶ ﾎﾟﾃﾗｼｭ ｷﾞｬﾗﾘｰ / ﾌﾞｶﾚｽﾄ）",
+            "source_url": "https://www.ancapoterasu.com/artists/iosif-kiraly/"
+          },
+          {
+            "gallery_name": "Anca Poteraşu Gallery （ｱﾝｶ ﾎﾟﾃﾗｼｭ ｷﾞｬﾗﾘｰ / ﾌﾞｶﾚｽﾄ）",
+            "source_url": "https://www.ancapoterasu.com/artists/iulian-bisericaru-2/"
+          },
+          {
+            "gallery_name": "Anca Poteraşu Gallery （ｱﾝｶ ﾎﾟﾃﾗｼｭ ｷﾞｬﾗﾘｰ / ﾌﾞｶﾚｽﾄ）",
+            "source_url": "https://www.ancapoterasu.com/artists/kinema-ikon-2/"
+          },
+          {
+            "gallery_name": "Arcadia Missa（ｱﾙｶﾃﾞｨｱ･ﾐｯｻ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://arcadiamissa.com/brad-kronz/"
+          },
+          {
+            "gallery_name": "Arcadia Missa（ｱﾙｶﾃﾞｨｱ･ﾐｯｻ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://arcadiamissa.com/coumba-samba/"
+          },
+          {
+            "gallery_name": "Arcadia Missa（ｱﾙｶﾃﾞｨｱ･ﾐｯｻ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://arcadiamissa.com/hamishi-farah/"
+          },
+          {
+            "gallery_name": "Arcadia Missa（ｱﾙｶﾃﾞｨｱ･ﾐｯｻ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://arcadiamissa.com/hannah-black/"
+          },
+          {
+            "gallery_name": "Arcadia Missa（ｱﾙｶﾃﾞｨｱ･ﾐｯｻ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://arcadiamissa.com/hannah-quinlan-rosie-hastings/"
+          },
+          {
+            "gallery_name": "Arcadia Missa（ｱﾙｶﾃﾞｨｱ･ﾐｯｻ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://arcadiamissa.com/jan-vorisek/"
+          },
+          {
+            "gallery_name": "Arcadia Missa（ｱﾙｶﾃﾞｨｱ･ﾐｯｻ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://arcadiamissa.com/janiva-ellis/"
+          },
+          {
+            "gallery_name": "Arcadia Missa（ｱﾙｶﾃﾞｨｱ･ﾐｯｻ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://arcadiamissa.com/jesse-darling/"
+          },
+          {
+            "gallery_name": "Arcadia Missa（ｱﾙｶﾃﾞｨｱ･ﾐｯｻ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://arcadiamissa.com/lewis-hammond/"
+          },
+          {
+            "gallery_name": "Arcadia Missa（ｱﾙｶﾃﾞｨｱ･ﾐｯｻ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://arcadiamissa.com/maja-cule/"
+          },
+          {
+            "gallery_name": "Arcadia Missa（ｱﾙｶﾃﾞｨｱ･ﾐｯｻ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://arcadiamissa.com/melike-kara/"
+          },
+          {
+            "gallery_name": "Arcadia Missa（ｱﾙｶﾃﾞｨｱ･ﾐｯｻ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://arcadiamissa.com/nikhil-vettukattil/"
+          },
+          {
+            "gallery_name": "Arcadia Missa（ｱﾙｶﾃﾞｨｱ･ﾐｯｻ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://arcadiamissa.com/onyeka-igwe/"
+          },
+          {
+            "gallery_name": "Arcadia Missa（ｱﾙｶﾃﾞｨｱ･ﾐｯｻ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://arcadiamissa.com/penny-goring/"
+          },
+          {
+            "gallery_name": "Arcadia Missa（ｱﾙｶﾃﾞｨｱ･ﾐｯｻ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://arcadiamissa.com/phoebe-collings-james/"
+          },
+          {
+            "gallery_name": "Arcadia Missa（ｱﾙｶﾃﾞｨｱ･ﾐｯｻ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://arcadiamissa.com/reina-sugihara/"
+          },
+          {
+            "gallery_name": "Arcadia Missa（ｱﾙｶﾃﾞｨｱ･ﾐｯｻ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://arcadiamissa.com/rene-matic/"
+          },
+          {
+            "gallery_name": "Athr（ｱｻﾙ / ｼﾞｪｯﾀﾞ･ｱﾙｳﾗ･ﾘﾔﾄﾞ）",
+            "source_url": "https://athrart.com/artists/31-sultan-bin-fahad/biography"
+          },
+          {
+            "gallery_name": "Athr（ｱｻﾙ / ｼﾞｪｯﾀﾞ･ｱﾙｳﾗ･ﾘﾔﾄﾞ）",
+            "source_url": "https://athrart.com/artists/33-sara-abdu/biography"
+          },
+          {
+            "gallery_name": "Athr（ｱｻﾙ / ｼﾞｪｯﾀﾞ･ｱﾙｳﾗ･ﾘﾔﾄﾞ）",
+            "source_url": "https://athrart.com/artists/34-sarah-abu-abdallah/biography"
+          },
+          {
+            "gallery_name": "Athr（ｱｻﾙ / ｼﾞｪｯﾀﾞ･ｱﾙｳﾗ･ﾘﾔﾄﾞ）",
+            "source_url": "https://athrart.com/artists/37-daniah-alsaleh/biography"
+          },
+          {
+            "gallery_name": "Athr（ｱｻﾙ / ｼﾞｪｯﾀﾞ･ｱﾙｳﾗ･ﾘﾔﾄﾞ）",
+            "source_url": "https://athrart.com/artists/39-asma-bahmim/biography"
+          },
+          {
+            "gallery_name": "Athr（ｱｻﾙ / ｼﾞｪｯﾀﾞ･ｱﾙｳﾗ･ﾘﾔﾄﾞ）",
+            "source_url": "https://athrart.com/artists/41-rami-farook/biography"
+          },
+          {
+            "gallery_name": "Athr（ｱｻﾙ / ｼﾞｪｯﾀﾞ･ｱﾙｳﾗ･ﾘﾔﾄﾞ）",
+            "source_url": "https://athrart.com/artists/42-basmah-felemban/biography"
+          },
+          {
+            "gallery_name": "Athr（ｱｻﾙ / ｼﾞｪｯﾀﾞ･ｱﾙｳﾗ･ﾘﾔﾄﾞ）",
+            "source_url": "https://athrart.com/artists/43-/biography"
+          },
+          {
+            "gallery_name": "Athr（ｱｻﾙ / ｼﾞｪｯﾀﾞ･ｱﾙｳﾗ･ﾘﾔﾄﾞ）",
+            "source_url": "https://athrart.com/artists/44-muhannad-shono/biography"
+          },
+          {
+            "gallery_name": "Athr（ｱｻﾙ / ｼﾞｪｯﾀﾞ･ｱﾙｳﾗ･ﾘﾔﾄﾞ）",
+            "source_url": "https://athrart.com/artists/49-lulua-alyahya/biography"
+          },
+          {
+            "gallery_name": "Athr（ｱｻﾙ / ｼﾞｪｯﾀﾞ･ｱﾙｳﾗ･ﾘﾔﾄﾞ）",
+            "source_url": "https://athrart.com/artists/51-/biography"
+          },
+          {
+            "gallery_name": "Athr（ｱｻﾙ / ｼﾞｪｯﾀﾞ･ｱﾙｳﾗ･ﾘﾔﾄﾞ）",
+            "source_url": "https://athrart.com/contact/form"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/132-noemie-goudal"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/136-jimok-choi"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/139-lee-jaeseok"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/145-tony-swain"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/148-doki-kim"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/149-christian-hidaka"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/151-ido-park"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/154-chung-eun-mo"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/155-claire-fontaine"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/159-andi-fischer"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/161-minyoung-choi"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/166-jonathan-monk"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/29-rinus-van-de-velde"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/34-bin-woo-hyuk"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/35-liam-gillick"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/36-tobias-rehberger"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/37-koen-van-den-broek"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/38-tatsuo-miyajima"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/39-bae-yoon-hwan"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/40-suzanne-song"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/42-anne-collier"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/43-markus-amm"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/45-jinnie-seo"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/50-max-frisinger"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/51-heeseung-chung"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/52-hoh-woo-jung"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/53-koh-san-keum"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/54-rosa-loy"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/55-hugh-scott-douglas"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/56-marcin-maciejowski"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/58-peter-stichbury"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/59-chung-chi-yung"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/60-kim-sang-gyun"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/62-djordje-ozbolt"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/64-david-okane"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/65-stef-driesen"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/66-yuichi-hirako"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/69-rho-eunjoo"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/71-song-burnsoo"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/77-choi-soo-jung"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/chapter-ii"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/mailing-list"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/privacy-policy"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/adelaide-cioni"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/adelaide-cioni/"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/amanda-ross-ho"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/anderson-borba"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/anderson-borba/"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/anna-glantz"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/bill-lynch"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/evren-tekinoktay"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/germaine-kruip"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/glenn-goldberg"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/hana-miletic"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/heidi-bucher"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/heidi-bucher/"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/helene-appel"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/helene-appel/"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/jack-lavender"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/john-maclean"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/john-stezaker"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/kira-freije"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/lisa-oppenheim"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/magali-reus"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/maria-pininska-beres"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/mike-silva"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/paloma-proudfoot"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/peter-davies"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/peter-davies/"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/phillip-allen"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/rezi-van-lankveld"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/sam-windett"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/sandra-mujinga"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/sara-barker"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/sara-barker/"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/sara-cwynar"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/sara-cwynar/"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/sara-vanderbeek"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/sophie-bueno-boutellier"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/sophie-bueno-boutellier/"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/tom-allen"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/tom-allen/"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/books-and-editions"
+          }
+        ]
+      },
+      "apply": {
+        "before_rows_total": 285,
+        "after_rows_total": 129,
+        "before_strict_mismatch_total": 61,
+        "after_strict_mismatch_total": 26,
+        "gallery_diffs": [
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "before_rows_total": 28,
+            "after_rows_total": 27,
+            "before_strict_mismatch": 0,
+            "after_strict_mismatch": 0,
+            "removed_urls": [
+              "https://aplusart.asia/artists/106-ho-rui-an",
+              "https://aplusart.asia/artists/107-isola-tong",
+              "https://aplusart.asia/artists/34-mella-jaarsma",
+              "https://aplusart.asia/artists/35-chong-kim-chiew",
+              "https://aplusart.asia/artists/36-tan-zi-hao",
+              "https://aplusart.asia/artists/37-yim-yen-sum",
+              "https://aplusart.asia/artists/39-mary-pakinee",
+              "https://aplusart.asia/artists/40-kentaro-hiroki",
+              "https://aplusart.asia/artists/41-gan-chin-lee/",
+              "https://aplusart.asia/artists/42-pangrok-sulap",
+              "https://aplusart.asia/artists/44-ha-ninh-pham",
+              "https://aplusart.asia/artists/46-ahmad-fuad-osman",
+              "https://aplusart.asia/artists/48-luke-heng",
+              "https://aplusart.asia/artists/50-tawan-wattuya",
+              "https://aplusart.asia/artists/52-yuli-prayitno",
+              "https://aplusart.asia/artists/53-au-sow-yee",
+              "https://aplusart.asia/artists/55-phornphop-sittiruk",
+              "https://aplusart.asia/artists/57-phuan-thai-meng",
+              "https://aplusart.asia/artists/62-tith-kanitha",
+              "https://aplusart.asia/artists/63-tawatchai-puntusawasdi",
+              "https://aplusart.asia/artists/66-melati-suryodarmo",
+              "https://aplusart.asia/artists/70-agus-suwage",
+              "https://aplusart.asia/artists/71-izat-arif",
+              "https://aplusart.asia/artists/79-than-sok",
+              "https://aplusart.asia/artists/85-trinh-cam-nhi",
+              "https://aplusart.asia/artists/86-dang-thuy-anh",
+              "https://aplusart.asia/artists/93-ariana-chaivaranon",
+              "https://aplusart.asia/artists/94-jo-tanierla"
+            ],
+            "added_urls": [
+              "https://aplusart.asia/artists/106-ho-rui-an/",
+              "https://aplusart.asia/artists/107-isola-tong/",
+              "https://aplusart.asia/artists/34-mella-jaarsma/",
+              "https://aplusart.asia/artists/35-chong-kim-chiew/",
+              "https://aplusart.asia/artists/36-tan-zi-hao/",
+              "https://aplusart.asia/artists/37-yim-yen-sum/",
+              "https://aplusart.asia/artists/39-mary-pakinee/",
+              "https://aplusart.asia/artists/40-kentaro-hiroki/",
+              "https://aplusart.asia/artists/42-pangrok-sulap/",
+              "https://aplusart.asia/artists/44-ha-ninh-pham/",
+              "https://aplusart.asia/artists/46-ahmad-fuad-osman/",
+              "https://aplusart.asia/artists/48-luke-heng/",
+              "https://aplusart.asia/artists/50-tawan-wattuya/",
+              "https://aplusart.asia/artists/52-yuli-prayitno/",
+              "https://aplusart.asia/artists/53-au-sow-yee/",
+              "https://aplusart.asia/artists/55-phornphop-sittiruk/",
+              "https://aplusart.asia/artists/57-phuan-thai-meng/",
+              "https://aplusart.asia/artists/62-tith-kanitha/",
+              "https://aplusart.asia/artists/63-tawatchai-puntusawasdi/",
+              "https://aplusart.asia/artists/66-melati-suryodarmo/",
+              "https://aplusart.asia/artists/70-agus-suwage/",
+              "https://aplusart.asia/artists/71-izat-arif/",
+              "https://aplusart.asia/artists/79-than-sok/",
+              "https://aplusart.asia/artists/85-trinh-cam-nhi/",
+              "https://aplusart.asia/artists/86-dang-thuy-anh/",
+              "https://aplusart.asia/artists/93-ariana-chaivaranon/",
+              "https://aplusart.asia/artists/94-jo-tanierla/"
+            ]
+          },
+          {
+            "gallery_name": "Adams and Ollman（ｱﾀﾞﾑｽﾞｱﾝﾄﾞｵﾙﾏﾝ / ﾎﾟｰﾄﾗﾝﾄﾞ）",
+            "before_rows_total": 20,
+            "after_rows_total": 18,
+            "before_strict_mismatch": 20,
+            "after_strict_mismatch": 18,
+            "removed_urls": [
+              "https://adamsandollman.com/James-Castle",
+              "https://adamsandollman.com/Katherine-Bradford"
+            ],
+            "added_urls": []
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "before_rows_total": 25,
+            "after_rows_total": 22,
+            "before_strict_mismatch": 2,
+            "after_strict_mismatch": 0,
+            "removed_urls": [
+              "https://addisfineart.com/artists/108-tsedaye-makonnen/works",
+              "https://addisfineart.com/artists/109-selome-muleta/works",
+              "https://addisfineart.com/artists/110-helina-metaferia/works",
+              "https://addisfineart.com/artists/120-dawit-adnew/works",
+              "https://addisfineart.com/artists/123-girmachew-getnet/works",
+              "https://addisfineart.com/artists/129-amel-bashier/works",
+              "https://addisfineart.com/artists/130-tesfaye-bekele/works",
+              "https://addisfineart.com/artists/135-engdaye-lemma/works",
+              "https://addisfineart.com/artists/136-noah-beyene/works",
+              "https://addisfineart.com/artists/138-nahom-teklehaimanot/works",
+              "https://addisfineart.com/artists/140-skunder-boghossian/works",
+              "https://addisfineart.com/artists/142-zerihun-yetimgeta/biography",
+              "https://addisfineart.com/artists/143-dereje-demissie/biography",
+              "https://addisfineart.com/artists/29-tadesse-mesfin/works",
+              "https://addisfineart.com/artists/46-merikokeb-berhanu/works",
+              "https://addisfineart.com/artists/51-addis-gezehagn/works",
+              "https://addisfineart.com/artists/55-tariku-shiferaw/works",
+              "https://addisfineart.com/artists/63-nirit-takele/works",
+              "https://addisfineart.com/artists/69-wosene-worke-kosrof/works",
+              "https://addisfineart.com/artists/79-tizta-berhanu/works",
+              "https://addisfineart.com/artists/84-ermias-kifleyesus/works",
+              "https://addisfineart.com/artists/85-tesfaye-urgessa/works",
+              "https://addisfineart.com/artists/86-adiskidan-ambaye/works",
+              "https://addisfineart.com/privacy",
+              "https://addisfineart.com/recovery-2"
+            ],
+            "added_urls": [
+              "https://addisfineart.com/artists/108-tsedaye-makonnen/works/",
+              "https://addisfineart.com/artists/109-selome-muleta/works/",
+              "https://addisfineart.com/artists/110-helina-metaferia/works/",
+              "https://addisfineart.com/artists/120-dawit-adnew/works/",
+              "https://addisfineart.com/artists/123-girmachew-getnet/works/",
+              "https://addisfineart.com/artists/129-amel-bashier/works/",
+              "https://addisfineart.com/artists/130-tesfaye-bekele/works/",
+              "https://addisfineart.com/artists/135-engdaye-lemma/works/",
+              "https://addisfineart.com/artists/136-noah-beyene/works/",
+              "https://addisfineart.com/artists/138-nahom-teklehaimanot/works/",
+              "https://addisfineart.com/artists/140-skunder-boghossian/works/",
+              "https://addisfineart.com/artists/143-dereje-demissie/biography/",
+              "https://addisfineart.com/artists/29-tadesse-mesfin/works/",
+              "https://addisfineart.com/artists/46-merikokeb-berhanu/works/",
+              "https://addisfineart.com/artists/51-addis-gezehagn/works/",
+              "https://addisfineart.com/artists/55-tariku-shiferaw/works/",
+              "https://addisfineart.com/artists/63-nirit-takele/works/",
+              "https://addisfineart.com/artists/69-wosene-worke-kosrof/works/",
+              "https://addisfineart.com/artists/79-tizta-berhanu/works/",
+              "https://addisfineart.com/artists/84-ermias-kifleyesus/works/",
+              "https://addisfineart.com/artists/85-tesfaye-urgessa/works/",
+              "https://addisfineart.com/artists/86-adiskidan-ambaye/works/"
+            ]
+          },
+          {
+            "gallery_name": "Afriart Gallery （ｱﾌﾘｱｰﾄ ｷﾞｬﾗﾘｰ / ｶﾝﾊﾟﾗ）",
+            "before_rows_total": 24,
+            "after_rows_total": 0,
+            "before_strict_mismatch": 0,
+            "after_strict_mismatch": 0,
+            "removed_urls": [
+              "https://afriartgallery.org/artists/april-kamunde",
+              "https://afriartgallery.org/artists/charlene-komuntale",
+              "https://afriartgallery.org/artists/collin-sekajugo",
+              "https://afriartgallery.org/artists/daniel-atenyi",
+              "https://afriartgallery.org/artists/eria-nsubuga-sane",
+              "https://afriartgallery.org/artists/fiker-solomon",
+              "https://afriartgallery.org/artists/henry-mzili-mujunga",
+              "https://afriartgallery.org/artists/kaleab-abate",
+              "https://afriartgallery.org/artists/mona-taha",
+              "https://afriartgallery.org/artists/odur-ronald",
+              "https://afriartgallery.org/artists/richard-atugonza",
+              "https://afriartgallery.org/artists/samuel-kakaire",
+              "https://afriartgallery.org/artists/sanaa-gateja",
+              "https://afriartgallery.org/artists/sungi-mlengeya",
+              "https://afriartgallery.org/artists/xenson"
+            ],
+            "added_urls": []
+          },
+          {
+            "gallery_name": "Amanita （ｱﾏﾆﾀ / ﾆｭｰﾖｰｸ）",
+            "before_rows_total": 23,
+            "after_rows_total": 0,
+            "before_strict_mismatch": 0,
+            "after_strict_mismatch": 0,
+            "removed_urls": [
+              "https://spazioamanita.com/Artists/Adrian-Schachter",
+              "https://spazioamanita.com/Artists/Alessandro-Twombly.html",
+              "https://spazioamanita.com/Artists/Andrew-Piedilato",
+              "https://spazioamanita.com/Artists/Arianna-Tosi",
+              "https://spazioamanita.com/Artists/Ben-Werther",
+              "https://spazioamanita.com/Artists/Bill-Jensen",
+              "https://spazioamanita.com/Artists/Craig-Boagey",
+              "https://spazioamanita.com/Artists/Daniele-Milvio",
+              "https://spazioamanita.com/Artists/Eva-Beresin",
+              "https://spazioamanita.com/Artists/Francesco-Cima",
+              "https://spazioamanita.com/Artists/Issen-Nishigaki.html",
+              "https://spazioamanita.com/Artists/Leonardo-Meoni",
+              "https://spazioamanita.com/Artists/Marco-Scarpi",
+              "https://spazioamanita.com/Artists/Nicholas-Campbell"
+            ],
+            "added_urls": []
+          },
+          {
+            "gallery_name": "Anca Poteraşu Gallery （ｱﾝｶ ﾎﾟﾃﾗｼｭ ｷﾞｬﾗﾘｰ / ﾌﾞｶﾚｽﾄ）",
+            "before_rows_total": 16,
+            "after_rows_total": 7,
+            "before_strict_mismatch": 16,
+            "after_strict_mismatch": 7,
+            "removed_urls": [
+              "https://www.ancapoterasu.com/artists/aurora-kiraly/",
+              "https://www.ancapoterasu.com/artists/decebal-scriba-2/",
+              "https://www.ancapoterasu.com/artists/delia-popa/",
+              "https://www.ancapoterasu.com/artists/doina-simionescu-2/",
+              "https://www.ancapoterasu.com/artists/dragos-badita/",
+              "https://www.ancapoterasu.com/artists/ioana-cirlig/",
+              "https://www.ancapoterasu.com/artists/iosif-kiraly/",
+              "https://www.ancapoterasu.com/artists/iulian-bisericaru-2/",
+              "https://www.ancapoterasu.com/artists/kinema-ikon-2/"
+            ],
+            "added_urls": []
+          },
+          {
+            "gallery_name": "Arcadia Missa（ｱﾙｶﾃﾞｨｱ･ﾐｯｻ / ﾛﾝﾄﾞﾝ）",
+            "before_rows_total": 18,
+            "after_rows_total": 1,
+            "before_strict_mismatch": 18,
+            "after_strict_mismatch": 1,
+            "removed_urls": [
+              "https://arcadiamissa.com/brad-kronz/",
+              "https://arcadiamissa.com/coumba-samba/",
+              "https://arcadiamissa.com/hamishi-farah/",
+              "https://arcadiamissa.com/hannah-black/",
+              "https://arcadiamissa.com/hannah-quinlan-rosie-hastings/",
+              "https://arcadiamissa.com/jan-vorisek/",
+              "https://arcadiamissa.com/janiva-ellis/",
+              "https://arcadiamissa.com/jesse-darling/",
+              "https://arcadiamissa.com/lewis-hammond/",
+              "https://arcadiamissa.com/maja-cule/",
+              "https://arcadiamissa.com/melike-kara/",
+              "https://arcadiamissa.com/nikhil-vettukattil/",
+              "https://arcadiamissa.com/onyeka-igwe/",
+              "https://arcadiamissa.com/penny-goring/",
+              "https://arcadiamissa.com/phoebe-collings-james/",
+              "https://arcadiamissa.com/reina-sugihara/",
+              "https://arcadiamissa.com/rene-matic/"
+            ],
+            "added_urls": []
+          },
+          {
+            "gallery_name": "Athr（ｱｻﾙ / ｼﾞｪｯﾀﾞ･ｱﾙｳﾗ･ﾘﾔﾄﾞ）",
+            "before_rows_total": 17,
+            "after_rows_total": 13,
+            "before_strict_mismatch": 1,
+            "after_strict_mismatch": 0,
+            "removed_urls": [
+              "https://athrart.com/artists/31-sultan-bin-fahad/biography",
+              "https://athrart.com/artists/33-sara-abdu/biography",
+              "https://athrart.com/artists/34-sarah-abu-abdallah/biography",
+              "https://athrart.com/artists/37-daniah-alsaleh/biography",
+              "https://athrart.com/artists/39-asma-bahmim/biography",
+              "https://athrart.com/artists/41-rami-farook/biography",
+              "https://athrart.com/artists/42-basmah-felemban/biography",
+              "https://athrart.com/artists/43-/biography",
+              "https://athrart.com/artists/44-muhannad-shono/biography",
+              "https://athrart.com/artists/49-lulua-alyahya/biography",
+              "https://athrart.com/artists/51-/biography",
+              "https://athrart.com/contact/form"
+            ],
+            "added_urls": [
+              "https://athrart.com/artists/31-sultan-bin-fahad/biography/",
+              "https://athrart.com/artists/33-/biography",
+              "https://athrart.com/artists/34-sarah-abu-abdallah/biography/",
+              "https://athrart.com/artists/37-daniah-alsaleh/biography/",
+              "https://athrart.com/artists/39-asma-bahmim/biography/",
+              "https://athrart.com/artists/41-rami-farook/biography/",
+              "https://athrart.com/artists/42-basmah-felemban/biography/",
+              "https://athrart.com/artists/44-/biography"
+            ]
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "before_rows_total": 54,
+            "after_rows_total": 41,
+            "before_strict_mismatch": 3,
+            "after_strict_mismatch": 0,
+            "removed_urls": [
+              "https://gallerybaton.com/artists/132-noemie-goudal",
+              "https://gallerybaton.com/artists/136-jimok-choi",
+              "https://gallerybaton.com/artists/139-lee-jaeseok",
+              "https://gallerybaton.com/artists/145-tony-swain",
+              "https://gallerybaton.com/artists/148-doki-kim",
+              "https://gallerybaton.com/artists/149-christian-hidaka",
+              "https://gallerybaton.com/artists/151-ido-park",
+              "https://gallerybaton.com/artists/154-chung-eun-mo",
+              "https://gallerybaton.com/artists/155-claire-fontaine",
+              "https://gallerybaton.com/artists/159-andi-fischer",
+              "https://gallerybaton.com/artists/161-minyoung-choi",
+              "https://gallerybaton.com/artists/166-jonathan-monk",
+              "https://gallerybaton.com/artists/29-rinus-van-de-velde",
+              "https://gallerybaton.com/artists/34-bin-woo-hyuk",
+              "https://gallerybaton.com/artists/35-liam-gillick",
+              "https://gallerybaton.com/artists/36-tobias-rehberger",
+              "https://gallerybaton.com/artists/37-koen-van-den-broek",
+              "https://gallerybaton.com/artists/38-tatsuo-miyajima",
+              "https://gallerybaton.com/artists/39-bae-yoon-hwan",
+              "https://gallerybaton.com/artists/40-suzanne-song",
+              "https://gallerybaton.com/artists/42-anne-collier",
+              "https://gallerybaton.com/artists/43-markus-amm",
+              "https://gallerybaton.com/artists/45-jinnie-seo",
+              "https://gallerybaton.com/artists/50-max-frisinger",
+              "https://gallerybaton.com/artists/51-heeseung-chung",
+              "https://gallerybaton.com/artists/52-hoh-woo-jung",
+              "https://gallerybaton.com/artists/53-koh-san-keum",
+              "https://gallerybaton.com/artists/54-rosa-loy",
+              "https://gallerybaton.com/artists/55-hugh-scott-douglas",
+              "https://gallerybaton.com/artists/56-marcin-maciejowski",
+              "https://gallerybaton.com/artists/58-peter-stichbury",
+              "https://gallerybaton.com/artists/59-chung-chi-yung",
+              "https://gallerybaton.com/artists/60-kim-sang-gyun",
+              "https://gallerybaton.com/artists/62-djordje-ozbolt",
+              "https://gallerybaton.com/artists/64-david-okane",
+              "https://gallerybaton.com/artists/65-stef-driesen",
+              "https://gallerybaton.com/artists/66-yuichi-hirako",
+              "https://gallerybaton.com/artists/69-rho-eunjoo",
+              "https://gallerybaton.com/artists/71-song-burnsoo",
+              "https://gallerybaton.com/artists/77-choi-soo-jung",
+              "https://gallerybaton.com/chapter-ii",
+              "https://gallerybaton.com/mailing-list",
+              "https://gallerybaton.com/privacy-policy"
+            ],
+            "added_urls": [
+              "https://gallerybaton.com/artists/132-noemie-goudal/",
+              "https://gallerybaton.com/artists/136-jimok-choi/",
+              "https://gallerybaton.com/artists/139-lee-jaeseok/",
+              "https://gallerybaton.com/artists/145-tony-swain/",
+              "https://gallerybaton.com/artists/148-doki-kim/",
+              "https://gallerybaton.com/artists/149-christian-hidaka/",
+              "https://gallerybaton.com/artists/151-ido-park/",
+              "https://gallerybaton.com/artists/154-chung-eun-mo/",
+              "https://gallerybaton.com/artists/155-claire-fontaine/",
+              "https://gallerybaton.com/artists/159-andi-fischer/",
+              "https://gallerybaton.com/artists/161-minyoung-choi/",
+              "https://gallerybaton.com/artists/166-jonathan-monk/",
+              "https://gallerybaton.com/artists/29-rinus-van-de-velde/",
+              "https://gallerybaton.com/artists/34-bin-woo-hyuk/",
+              "https://gallerybaton.com/artists/35-liam-gillick/",
+              "https://gallerybaton.com/artists/36-tobias-rehberger/",
+              "https://gallerybaton.com/artists/37-koen-van-den-broek/",
+              "https://gallerybaton.com/artists/38-tatsuo-miyajima/",
+              "https://gallerybaton.com/artists/39-bae-yoon-hwan/",
+              "https://gallerybaton.com/artists/40-suzanne-song/",
+              "https://gallerybaton.com/artists/42-anne-collier/",
+              "https://gallerybaton.com/artists/43-markus-amm/",
+              "https://gallerybaton.com/artists/45-jinnie-seo/",
+              "https://gallerybaton.com/artists/50-max-frisinger/",
+              "https://gallerybaton.com/artists/51-heeseung-chung/",
+              "https://gallerybaton.com/artists/52-hoh-woo-jung/",
+              "https://gallerybaton.com/artists/53-koh-san-keum/",
+              "https://gallerybaton.com/artists/54-rosa-loy/",
+              "https://gallerybaton.com/artists/55-hugh-scott-douglas/",
+              "https://gallerybaton.com/artists/56-marcin-maciejowski/",
+              "https://gallerybaton.com/artists/58-peter-stichbury/",
+              "https://gallerybaton.com/artists/59-chung-chi-yung/",
+              "https://gallerybaton.com/artists/60-kim-sang-gyun/",
+              "https://gallerybaton.com/artists/62-djordje-ozbolt/",
+              "https://gallerybaton.com/artists/64-david-okane/",
+              "https://gallerybaton.com/artists/65-stef-driesen/",
+              "https://gallerybaton.com/artists/66-yuichi-hirako/",
+              "https://gallerybaton.com/artists/69-rho-eunjoo/",
+              "https://gallerybaton.com/artists/71-song-burnsoo/",
+              "https://gallerybaton.com/artists/77-choi-soo-jung/"
+            ]
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "before_rows_total": 60,
+            "after_rows_total": 0,
+            "before_strict_mismatch": 1,
+            "after_strict_mismatch": 0,
+            "removed_urls": [
+              "https://www.theapproach.co.uk/artists/adelaide-cioni",
+              "https://www.theapproach.co.uk/artists/adelaide-cioni/",
+              "https://www.theapproach.co.uk/artists/amanda-ross-ho",
+              "https://www.theapproach.co.uk/artists/anderson-borba",
+              "https://www.theapproach.co.uk/artists/anderson-borba/",
+              "https://www.theapproach.co.uk/artists/anna-glantz",
+              "https://www.theapproach.co.uk/artists/bill-lynch",
+              "https://www.theapproach.co.uk/artists/evren-tekinoktay",
+              "https://www.theapproach.co.uk/artists/germaine-kruip",
+              "https://www.theapproach.co.uk/artists/glenn-goldberg",
+              "https://www.theapproach.co.uk/artists/hana-miletic",
+              "https://www.theapproach.co.uk/artists/heidi-bucher",
+              "https://www.theapproach.co.uk/artists/heidi-bucher/",
+              "https://www.theapproach.co.uk/artists/helene-appel",
+              "https://www.theapproach.co.uk/artists/helene-appel/",
+              "https://www.theapproach.co.uk/artists/jack-lavender",
+              "https://www.theapproach.co.uk/artists/john-maclean",
+              "https://www.theapproach.co.uk/artists/john-stezaker",
+              "https://www.theapproach.co.uk/artists/kira-freije",
+              "https://www.theapproach.co.uk/artists/lisa-oppenheim",
+              "https://www.theapproach.co.uk/artists/magali-reus",
+              "https://www.theapproach.co.uk/artists/maria-pininska-beres",
+              "https://www.theapproach.co.uk/artists/mike-silva",
+              "https://www.theapproach.co.uk/artists/paloma-proudfoot",
+              "https://www.theapproach.co.uk/artists/peter-davies",
+              "https://www.theapproach.co.uk/artists/peter-davies/",
+              "https://www.theapproach.co.uk/artists/phillip-allen",
+              "https://www.theapproach.co.uk/artists/rezi-van-lankveld",
+              "https://www.theapproach.co.uk/artists/sam-windett",
+              "https://www.theapproach.co.uk/artists/sandra-mujinga",
+              "https://www.theapproach.co.uk/artists/sara-barker",
+              "https://www.theapproach.co.uk/artists/sara-barker/",
+              "https://www.theapproach.co.uk/artists/sara-cwynar",
+              "https://www.theapproach.co.uk/artists/sara-cwynar/",
+              "https://www.theapproach.co.uk/artists/sara-vanderbeek",
+              "https://www.theapproach.co.uk/artists/sophie-bueno-boutellier",
+              "https://www.theapproach.co.uk/artists/sophie-bueno-boutellier/",
+              "https://www.theapproach.co.uk/artists/tom-allen",
+              "https://www.theapproach.co.uk/artists/tom-allen/",
+              "https://www.theapproach.co.uk/books-and-editions"
+            ],
+            "added_urls": []
+          }
+        ],
+        "removed_urls": [
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/106-ho-rui-an"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/107-isola-tong"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/34-mella-jaarsma"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/35-chong-kim-chiew"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/36-tan-zi-hao"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/37-yim-yen-sum"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/39-mary-pakinee"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/40-kentaro-hiroki"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/41-gan-chin-lee/"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/42-pangrok-sulap"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/44-ha-ninh-pham"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/46-ahmad-fuad-osman"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/48-luke-heng"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/50-tawan-wattuya"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/52-yuli-prayitno"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/53-au-sow-yee"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/55-phornphop-sittiruk"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/57-phuan-thai-meng"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/62-tith-kanitha"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/63-tawatchai-puntusawasdi"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/66-melati-suryodarmo"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/70-agus-suwage"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/71-izat-arif"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/79-than-sok"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/85-trinh-cam-nhi"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/86-dang-thuy-anh"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/93-ariana-chaivaranon"
+          },
+          {
+            "gallery_name": "A+ Works of Art （ｴｰﾌﾟﾗｽ ﾜｰｸｽ ｵﾌﾞ ｱｰﾄ / ｸｱﾗﾙﾝﾌﾟｰﾙ）",
+            "source_url": "https://aplusart.asia/artists/94-jo-tanierla"
+          },
+          {
+            "gallery_name": "Adams and Ollman（ｱﾀﾞﾑｽﾞｱﾝﾄﾞｵﾙﾏﾝ / ﾎﾟｰﾄﾗﾝﾄﾞ）",
+            "source_url": "https://adamsandollman.com/James-Castle"
+          },
+          {
+            "gallery_name": "Adams and Ollman（ｱﾀﾞﾑｽﾞｱﾝﾄﾞｵﾙﾏﾝ / ﾎﾟｰﾄﾗﾝﾄﾞ）",
+            "source_url": "https://adamsandollman.com/Katherine-Bradford"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/108-tsedaye-makonnen/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/109-selome-muleta/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/110-helina-metaferia/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/120-dawit-adnew/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/123-girmachew-getnet/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/129-amel-bashier/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/130-tesfaye-bekele/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/135-engdaye-lemma/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/136-noah-beyene/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/138-nahom-teklehaimanot/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/140-skunder-boghossian/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/142-zerihun-yetimgeta/biography"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/143-dereje-demissie/biography"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/29-tadesse-mesfin/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/46-merikokeb-berhanu/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/51-addis-gezehagn/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/55-tariku-shiferaw/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/63-nirit-takele/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/69-wosene-worke-kosrof/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/79-tizta-berhanu/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/84-ermias-kifleyesus/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/85-tesfaye-urgessa/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/artists/86-adiskidan-ambaye/works"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/privacy"
+          },
+          {
+            "gallery_name": "Addis Fine Art （ｱﾃﾞｨｽ ﾌｧｲﾝ ｱｰﾄ / ｱﾃﾞｨｽｱﾍﾞﾊﾞ･ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://addisfineart.com/recovery-2"
+          },
+          {
+            "gallery_name": "Afriart Gallery （ｱﾌﾘｱｰﾄ ｷﾞｬﾗﾘｰ / ｶﾝﾊﾟﾗ）",
+            "source_url": "https://afriartgallery.org/artists/april-kamunde"
+          },
+          {
+            "gallery_name": "Afriart Gallery （ｱﾌﾘｱｰﾄ ｷﾞｬﾗﾘｰ / ｶﾝﾊﾟﾗ）",
+            "source_url": "https://afriartgallery.org/artists/charlene-komuntale"
+          },
+          {
+            "gallery_name": "Afriart Gallery （ｱﾌﾘｱｰﾄ ｷﾞｬﾗﾘｰ / ｶﾝﾊﾟﾗ）",
+            "source_url": "https://afriartgallery.org/artists/collin-sekajugo"
+          },
+          {
+            "gallery_name": "Afriart Gallery （ｱﾌﾘｱｰﾄ ｷﾞｬﾗﾘｰ / ｶﾝﾊﾟﾗ）",
+            "source_url": "https://afriartgallery.org/artists/daniel-atenyi"
+          },
+          {
+            "gallery_name": "Afriart Gallery （ｱﾌﾘｱｰﾄ ｷﾞｬﾗﾘｰ / ｶﾝﾊﾟﾗ）",
+            "source_url": "https://afriartgallery.org/artists/eria-nsubuga-sane"
+          },
+          {
+            "gallery_name": "Afriart Gallery （ｱﾌﾘｱｰﾄ ｷﾞｬﾗﾘｰ / ｶﾝﾊﾟﾗ）",
+            "source_url": "https://afriartgallery.org/artists/fiker-solomon"
+          },
+          {
+            "gallery_name": "Afriart Gallery （ｱﾌﾘｱｰﾄ ｷﾞｬﾗﾘｰ / ｶﾝﾊﾟﾗ）",
+            "source_url": "https://afriartgallery.org/artists/henry-mzili-mujunga"
+          },
+          {
+            "gallery_name": "Afriart Gallery （ｱﾌﾘｱｰﾄ ｷﾞｬﾗﾘｰ / ｶﾝﾊﾟﾗ）",
+            "source_url": "https://afriartgallery.org/artists/kaleab-abate"
+          },
+          {
+            "gallery_name": "Afriart Gallery （ｱﾌﾘｱｰﾄ ｷﾞｬﾗﾘｰ / ｶﾝﾊﾟﾗ）",
+            "source_url": "https://afriartgallery.org/artists/mona-taha"
+          },
+          {
+            "gallery_name": "Afriart Gallery （ｱﾌﾘｱｰﾄ ｷﾞｬﾗﾘｰ / ｶﾝﾊﾟﾗ）",
+            "source_url": "https://afriartgallery.org/artists/odur-ronald"
+          },
+          {
+            "gallery_name": "Afriart Gallery （ｱﾌﾘｱｰﾄ ｷﾞｬﾗﾘｰ / ｶﾝﾊﾟﾗ）",
+            "source_url": "https://afriartgallery.org/artists/richard-atugonza"
+          },
+          {
+            "gallery_name": "Afriart Gallery （ｱﾌﾘｱｰﾄ ｷﾞｬﾗﾘｰ / ｶﾝﾊﾟﾗ）",
+            "source_url": "https://afriartgallery.org/artists/samuel-kakaire"
+          },
+          {
+            "gallery_name": "Afriart Gallery （ｱﾌﾘｱｰﾄ ｷﾞｬﾗﾘｰ / ｶﾝﾊﾟﾗ）",
+            "source_url": "https://afriartgallery.org/artists/sanaa-gateja"
+          },
+          {
+            "gallery_name": "Afriart Gallery （ｱﾌﾘｱｰﾄ ｷﾞｬﾗﾘｰ / ｶﾝﾊﾟﾗ）",
+            "source_url": "https://afriartgallery.org/artists/sungi-mlengeya"
+          },
+          {
+            "gallery_name": "Afriart Gallery （ｱﾌﾘｱｰﾄ ｷﾞｬﾗﾘｰ / ｶﾝﾊﾟﾗ）",
+            "source_url": "https://afriartgallery.org/artists/xenson"
+          },
+          {
+            "gallery_name": "Amanita （ｱﾏﾆﾀ / ﾆｭｰﾖｰｸ）",
+            "source_url": "https://spazioamanita.com/Artists/Adrian-Schachter"
+          },
+          {
+            "gallery_name": "Amanita （ｱﾏﾆﾀ / ﾆｭｰﾖｰｸ）",
+            "source_url": "https://spazioamanita.com/Artists/Alessandro-Twombly.html"
+          },
+          {
+            "gallery_name": "Amanita （ｱﾏﾆﾀ / ﾆｭｰﾖｰｸ）",
+            "source_url": "https://spazioamanita.com/Artists/Andrew-Piedilato"
+          },
+          {
+            "gallery_name": "Amanita （ｱﾏﾆﾀ / ﾆｭｰﾖｰｸ）",
+            "source_url": "https://spazioamanita.com/Artists/Arianna-Tosi"
+          },
+          {
+            "gallery_name": "Amanita （ｱﾏﾆﾀ / ﾆｭｰﾖｰｸ）",
+            "source_url": "https://spazioamanita.com/Artists/Ben-Werther"
+          },
+          {
+            "gallery_name": "Amanita （ｱﾏﾆﾀ / ﾆｭｰﾖｰｸ）",
+            "source_url": "https://spazioamanita.com/Artists/Bill-Jensen"
+          },
+          {
+            "gallery_name": "Amanita （ｱﾏﾆﾀ / ﾆｭｰﾖｰｸ）",
+            "source_url": "https://spazioamanita.com/Artists/Craig-Boagey"
+          },
+          {
+            "gallery_name": "Amanita （ｱﾏﾆﾀ / ﾆｭｰﾖｰｸ）",
+            "source_url": "https://spazioamanita.com/Artists/Daniele-Milvio"
+          },
+          {
+            "gallery_name": "Amanita （ｱﾏﾆﾀ / ﾆｭｰﾖｰｸ）",
+            "source_url": "https://spazioamanita.com/Artists/Eva-Beresin"
+          },
+          {
+            "gallery_name": "Amanita （ｱﾏﾆﾀ / ﾆｭｰﾖｰｸ）",
+            "source_url": "https://spazioamanita.com/Artists/Francesco-Cima"
+          },
+          {
+            "gallery_name": "Amanita （ｱﾏﾆﾀ / ﾆｭｰﾖｰｸ）",
+            "source_url": "https://spazioamanita.com/Artists/Issen-Nishigaki.html"
+          },
+          {
+            "gallery_name": "Amanita （ｱﾏﾆﾀ / ﾆｭｰﾖｰｸ）",
+            "source_url": "https://spazioamanita.com/Artists/Leonardo-Meoni"
+          },
+          {
+            "gallery_name": "Amanita （ｱﾏﾆﾀ / ﾆｭｰﾖｰｸ）",
+            "source_url": "https://spazioamanita.com/Artists/Marco-Scarpi"
+          },
+          {
+            "gallery_name": "Amanita （ｱﾏﾆﾀ / ﾆｭｰﾖｰｸ）",
+            "source_url": "https://spazioamanita.com/Artists/Nicholas-Campbell"
+          },
+          {
+            "gallery_name": "Anca Poteraşu Gallery （ｱﾝｶ ﾎﾟﾃﾗｼｭ ｷﾞｬﾗﾘｰ / ﾌﾞｶﾚｽﾄ）",
+            "source_url": "https://www.ancapoterasu.com/artists/aurora-kiraly/"
+          },
+          {
+            "gallery_name": "Anca Poteraşu Gallery （ｱﾝｶ ﾎﾟﾃﾗｼｭ ｷﾞｬﾗﾘｰ / ﾌﾞｶﾚｽﾄ）",
+            "source_url": "https://www.ancapoterasu.com/artists/decebal-scriba-2/"
+          },
+          {
+            "gallery_name": "Anca Poteraşu Gallery （ｱﾝｶ ﾎﾟﾃﾗｼｭ ｷﾞｬﾗﾘｰ / ﾌﾞｶﾚｽﾄ）",
+            "source_url": "https://www.ancapoterasu.com/artists/delia-popa/"
+          },
+          {
+            "gallery_name": "Anca Poteraşu Gallery （ｱﾝｶ ﾎﾟﾃﾗｼｭ ｷﾞｬﾗﾘｰ / ﾌﾞｶﾚｽﾄ）",
+            "source_url": "https://www.ancapoterasu.com/artists/doina-simionescu-2/"
+          },
+          {
+            "gallery_name": "Anca Poteraşu Gallery （ｱﾝｶ ﾎﾟﾃﾗｼｭ ｷﾞｬﾗﾘｰ / ﾌﾞｶﾚｽﾄ）",
+            "source_url": "https://www.ancapoterasu.com/artists/dragos-badita/"
+          },
+          {
+            "gallery_name": "Anca Poteraşu Gallery （ｱﾝｶ ﾎﾟﾃﾗｼｭ ｷﾞｬﾗﾘｰ / ﾌﾞｶﾚｽﾄ）",
+            "source_url": "https://www.ancapoterasu.com/artists/ioana-cirlig/"
+          },
+          {
+            "gallery_name": "Anca Poteraşu Gallery （ｱﾝｶ ﾎﾟﾃﾗｼｭ ｷﾞｬﾗﾘｰ / ﾌﾞｶﾚｽﾄ）",
+            "source_url": "https://www.ancapoterasu.com/artists/iosif-kiraly/"
+          },
+          {
+            "gallery_name": "Anca Poteraşu Gallery （ｱﾝｶ ﾎﾟﾃﾗｼｭ ｷﾞｬﾗﾘｰ / ﾌﾞｶﾚｽﾄ）",
+            "source_url": "https://www.ancapoterasu.com/artists/iulian-bisericaru-2/"
+          },
+          {
+            "gallery_name": "Anca Poteraşu Gallery （ｱﾝｶ ﾎﾟﾃﾗｼｭ ｷﾞｬﾗﾘｰ / ﾌﾞｶﾚｽﾄ）",
+            "source_url": "https://www.ancapoterasu.com/artists/kinema-ikon-2/"
+          },
+          {
+            "gallery_name": "Arcadia Missa（ｱﾙｶﾃﾞｨｱ･ﾐｯｻ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://arcadiamissa.com/brad-kronz/"
+          },
+          {
+            "gallery_name": "Arcadia Missa（ｱﾙｶﾃﾞｨｱ･ﾐｯｻ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://arcadiamissa.com/coumba-samba/"
+          },
+          {
+            "gallery_name": "Arcadia Missa（ｱﾙｶﾃﾞｨｱ･ﾐｯｻ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://arcadiamissa.com/hamishi-farah/"
+          },
+          {
+            "gallery_name": "Arcadia Missa（ｱﾙｶﾃﾞｨｱ･ﾐｯｻ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://arcadiamissa.com/hannah-black/"
+          },
+          {
+            "gallery_name": "Arcadia Missa（ｱﾙｶﾃﾞｨｱ･ﾐｯｻ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://arcadiamissa.com/hannah-quinlan-rosie-hastings/"
+          },
+          {
+            "gallery_name": "Arcadia Missa（ｱﾙｶﾃﾞｨｱ･ﾐｯｻ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://arcadiamissa.com/jan-vorisek/"
+          },
+          {
+            "gallery_name": "Arcadia Missa（ｱﾙｶﾃﾞｨｱ･ﾐｯｻ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://arcadiamissa.com/janiva-ellis/"
+          },
+          {
+            "gallery_name": "Arcadia Missa（ｱﾙｶﾃﾞｨｱ･ﾐｯｻ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://arcadiamissa.com/jesse-darling/"
+          },
+          {
+            "gallery_name": "Arcadia Missa（ｱﾙｶﾃﾞｨｱ･ﾐｯｻ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://arcadiamissa.com/lewis-hammond/"
+          },
+          {
+            "gallery_name": "Arcadia Missa（ｱﾙｶﾃﾞｨｱ･ﾐｯｻ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://arcadiamissa.com/maja-cule/"
+          },
+          {
+            "gallery_name": "Arcadia Missa（ｱﾙｶﾃﾞｨｱ･ﾐｯｻ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://arcadiamissa.com/melike-kara/"
+          },
+          {
+            "gallery_name": "Arcadia Missa（ｱﾙｶﾃﾞｨｱ･ﾐｯｻ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://arcadiamissa.com/nikhil-vettukattil/"
+          },
+          {
+            "gallery_name": "Arcadia Missa（ｱﾙｶﾃﾞｨｱ･ﾐｯｻ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://arcadiamissa.com/onyeka-igwe/"
+          },
+          {
+            "gallery_name": "Arcadia Missa（ｱﾙｶﾃﾞｨｱ･ﾐｯｻ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://arcadiamissa.com/penny-goring/"
+          },
+          {
+            "gallery_name": "Arcadia Missa（ｱﾙｶﾃﾞｨｱ･ﾐｯｻ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://arcadiamissa.com/phoebe-collings-james/"
+          },
+          {
+            "gallery_name": "Arcadia Missa（ｱﾙｶﾃﾞｨｱ･ﾐｯｻ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://arcadiamissa.com/reina-sugihara/"
+          },
+          {
+            "gallery_name": "Arcadia Missa（ｱﾙｶﾃﾞｨｱ･ﾐｯｻ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://arcadiamissa.com/rene-matic/"
+          },
+          {
+            "gallery_name": "Athr（ｱｻﾙ / ｼﾞｪｯﾀﾞ･ｱﾙｳﾗ･ﾘﾔﾄﾞ）",
+            "source_url": "https://athrart.com/artists/31-sultan-bin-fahad/biography"
+          },
+          {
+            "gallery_name": "Athr（ｱｻﾙ / ｼﾞｪｯﾀﾞ･ｱﾙｳﾗ･ﾘﾔﾄﾞ）",
+            "source_url": "https://athrart.com/artists/33-sara-abdu/biography"
+          },
+          {
+            "gallery_name": "Athr（ｱｻﾙ / ｼﾞｪｯﾀﾞ･ｱﾙｳﾗ･ﾘﾔﾄﾞ）",
+            "source_url": "https://athrart.com/artists/34-sarah-abu-abdallah/biography"
+          },
+          {
+            "gallery_name": "Athr（ｱｻﾙ / ｼﾞｪｯﾀﾞ･ｱﾙｳﾗ･ﾘﾔﾄﾞ）",
+            "source_url": "https://athrart.com/artists/37-daniah-alsaleh/biography"
+          },
+          {
+            "gallery_name": "Athr（ｱｻﾙ / ｼﾞｪｯﾀﾞ･ｱﾙｳﾗ･ﾘﾔﾄﾞ）",
+            "source_url": "https://athrart.com/artists/39-asma-bahmim/biography"
+          },
+          {
+            "gallery_name": "Athr（ｱｻﾙ / ｼﾞｪｯﾀﾞ･ｱﾙｳﾗ･ﾘﾔﾄﾞ）",
+            "source_url": "https://athrart.com/artists/41-rami-farook/biography"
+          },
+          {
+            "gallery_name": "Athr（ｱｻﾙ / ｼﾞｪｯﾀﾞ･ｱﾙｳﾗ･ﾘﾔﾄﾞ）",
+            "source_url": "https://athrart.com/artists/42-basmah-felemban/biography"
+          },
+          {
+            "gallery_name": "Athr（ｱｻﾙ / ｼﾞｪｯﾀﾞ･ｱﾙｳﾗ･ﾘﾔﾄﾞ）",
+            "source_url": "https://athrart.com/artists/43-/biography"
+          },
+          {
+            "gallery_name": "Athr（ｱｻﾙ / ｼﾞｪｯﾀﾞ･ｱﾙｳﾗ･ﾘﾔﾄﾞ）",
+            "source_url": "https://athrart.com/artists/44-muhannad-shono/biography"
+          },
+          {
+            "gallery_name": "Athr（ｱｻﾙ / ｼﾞｪｯﾀﾞ･ｱﾙｳﾗ･ﾘﾔﾄﾞ）",
+            "source_url": "https://athrart.com/artists/49-lulua-alyahya/biography"
+          },
+          {
+            "gallery_name": "Athr（ｱｻﾙ / ｼﾞｪｯﾀﾞ･ｱﾙｳﾗ･ﾘﾔﾄﾞ）",
+            "source_url": "https://athrart.com/artists/51-/biography"
+          },
+          {
+            "gallery_name": "Athr（ｱｻﾙ / ｼﾞｪｯﾀﾞ･ｱﾙｳﾗ･ﾘﾔﾄﾞ）",
+            "source_url": "https://athrart.com/contact/form"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/132-noemie-goudal"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/136-jimok-choi"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/139-lee-jaeseok"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/145-tony-swain"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/148-doki-kim"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/149-christian-hidaka"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/151-ido-park"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/154-chung-eun-mo"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/155-claire-fontaine"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/159-andi-fischer"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/161-minyoung-choi"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/166-jonathan-monk"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/29-rinus-van-de-velde"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/34-bin-woo-hyuk"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/35-liam-gillick"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/36-tobias-rehberger"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/37-koen-van-den-broek"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/38-tatsuo-miyajima"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/39-bae-yoon-hwan"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/40-suzanne-song"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/42-anne-collier"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/43-markus-amm"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/45-jinnie-seo"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/50-max-frisinger"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/51-heeseung-chung"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/52-hoh-woo-jung"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/53-koh-san-keum"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/54-rosa-loy"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/55-hugh-scott-douglas"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/56-marcin-maciejowski"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/58-peter-stichbury"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/59-chung-chi-yung"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/60-kim-sang-gyun"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/62-djordje-ozbolt"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/64-david-okane"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/65-stef-driesen"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/66-yuichi-hirako"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/69-rho-eunjoo"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/71-song-burnsoo"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/artists/77-choi-soo-jung"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/chapter-ii"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/mailing-list"
+          },
+          {
+            "gallery_name": "Gallery Baton（ｷﾞｬﾗﾘｰ･ﾊﾞﾄﾝ / ｿｳﾙ）",
+            "source_url": "https://gallerybaton.com/privacy-policy"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/adelaide-cioni"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/adelaide-cioni/"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/amanda-ross-ho"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/anderson-borba"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/anderson-borba/"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/anna-glantz"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/bill-lynch"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/evren-tekinoktay"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/germaine-kruip"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/glenn-goldberg"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/hana-miletic"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/heidi-bucher"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/heidi-bucher/"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/helene-appel"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/helene-appel/"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/jack-lavender"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/john-maclean"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/john-stezaker"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/kira-freije"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/lisa-oppenheim"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/magali-reus"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/maria-pininska-beres"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/mike-silva"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/paloma-proudfoot"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/peter-davies"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/peter-davies/"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/phillip-allen"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/rezi-van-lankveld"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/sam-windett"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/sandra-mujinga"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/sara-barker"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/sara-barker/"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/sara-cwynar"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/sara-cwynar/"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/sara-vanderbeek"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/sophie-bueno-boutellier"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/sophie-bueno-boutellier/"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/tom-allen"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/artists/tom-allen/"
+          },
+          {
+            "gallery_name": "The Approach（ｼﾞ･ｱﾌﾟﾛｰﾁ / ﾛﾝﾄﾞﾝ）",
+            "source_url": "https://www.theapproach.co.uk/books-and-editions"
+          }
+        ]
+      }
+    }
+  },
+  "targets": {
+    "exhibitions": {
+      "https://athrart.com/art-fairs": {
+        "raw": {
+          "before": 1,
+          "after": 0
+        },
+        "requests": {
+          "before": 1,
+          "after": 0
+        },
+        "apply": {
+          "before": 1,
+          "after": 0
+        }
+      },
+      "https://addisfineart.com/art-fairs": {
+        "raw": {
+          "before": 1,
+          "after": 0
+        },
+        "requests": {
+          "before": 1,
+          "after": 0
+        },
+        "apply": {
+          "before": 1,
+          "after": 0
+        }
+      }
+    },
+    "artists": {
+      "https://gallerybaton.com/chapter-ii": {
+        "raw": {
+          "before": 1,
+          "after": 0
+        },
+        "requests": {
+          "before": 1,
+          "after": 0
+        },
+        "apply": {
+          "before": 1,
+          "after": 0
+        }
+      },
+      "https://gallerybaton.com/mailing-list": {
+        "raw": {
+          "before": 1,
+          "after": 0
+        },
+        "requests": {
+          "before": 1,
+          "after": 0
+        },
+        "apply": {
+          "before": 1,
+          "after": 0
+        }
+      },
+      "https://www.theapproach.co.uk/books-and-editions": {
+        "raw": {
+          "before": 1,
+          "after": 0
+        },
+        "requests": {
+          "before": 1,
+          "after": 0
+        },
+        "apply": {
+          "before": 1,
+          "after": 0
+        }
+      },
+      "https://addisfineart.com/recovery-2": {
+        "raw": {
+          "before": 1,
+          "after": 0
+        },
+        "requests": {
+          "before": 1,
+          "after": 0
+        },
+        "apply": {
+          "before": 1,
+          "after": 0
+        }
+      }
+    }
+  },
+  "legitimate_family_checks": {
+    "exhibitions": {
+      "Adams and Ollman": [
+        {
+          "gallery_name": "Adams and Ollman（ｱﾀﾞﾑｽﾞｱﾝﾄﾞｵﾙﾏﾝ / ﾎﾟｰﾄﾗﾝﾄﾞ）",
+          "apply_before_rows_total": 10,
+          "apply_after_rows_total": 10,
+          "apply_before_strict_mismatch": 10,
+          "apply_after_strict_mismatch": 10
+        }
+      ],
+      "Arcadia Missa": [
+        {
+          "gallery_name": "Arcadia Missa（ｱﾙｶﾃﾞｨｱ･ﾐｯｻ / ﾛﾝﾄﾞﾝ）",
+          "apply_before_rows_total": 10,
+          "apply_after_rows_total": 10,
+          "apply_before_strict_mismatch": 10,
+          "apply_after_strict_mismatch": 10
+        }
+      ],
+      "Anca Potera": [
+        {
+          "gallery_name": "Anca Poteraşu Gallery （ｱﾝｶ ﾎﾟﾃﾗｼｭ ｷﾞｬﾗﾘｰ / ﾌﾞｶﾚｽﾄ）",
+          "apply_before_rows_total": 10,
+          "apply_after_rows_total": 10,
+          "apply_before_strict_mismatch": 10,
+          "apply_after_strict_mismatch": 10
+        }
+      ]
+    },
+    "artists": {
+      "Adams and Ollman": [
+        {
+          "gallery_name": "Adams and Ollman（ｱﾀﾞﾑｽﾞｱﾝﾄﾞｵﾙﾏﾝ / ﾎﾟｰﾄﾗﾝﾄﾞ）",
+          "apply_before_rows_total": 20,
+          "apply_after_rows_total": 18,
+          "apply_before_strict_mismatch": 20,
+          "apply_after_strict_mismatch": 18
+        }
+      ],
+      "Arcadia Missa": [
+        {
+          "gallery_name": "Arcadia Missa（ｱﾙｶﾃﾞｨｱ･ﾐｯｻ / ﾛﾝﾄﾞﾝ）",
+          "apply_before_rows_total": 18,
+          "apply_after_rows_total": 1,
+          "apply_before_strict_mismatch": 18,
+          "apply_after_strict_mismatch": 1
+        }
+      ],
+      "Anca Potera": [
+        {
+          "gallery_name": "Anca Poteraşu Gallery （ｱﾝｶ ﾎﾟﾃﾗｼｭ ｷﾞｬﾗﾘｰ / ﾌﾞｶﾚｽﾄ）",
+          "apply_before_rows_total": 16,
+          "apply_after_rows_total": 7,
+          "apply_before_strict_mismatch": 16,
+          "apply_after_strict_mismatch": 7
+        }
+      ]
+    }
+  }
+}

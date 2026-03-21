@@ -1,0 +1,498 @@
+{
+  "schema_name": "text_enrichment_delta_promote_run_report",
+  "started_at": "2026-03-20T03:26:08Z",
+  "completed_at": "2026-03-20T03:26:08Z",
+  "dry_run": false,
+  "target_year": 2025,
+  "manifest_path": "c:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\trials\\text_enrichment_delta_promote_2025\\url_scope_guard_incident_delta_manifest_20260320.json",
+  "categories": [
+    {
+      "category": "exhibitions",
+      "paths": {
+        "history_output_path": "data\\history\\enrichment\\exhibitions\\exhibitions_enrichment_apply_output_2025_20260320T032608Z.jsonl",
+        "history_summary_path": "data\\history\\enrichment\\exhibitions\\exhibitions_enrichment_apply_summary_2025_20260320T032608Z.json",
+        "history_manifest_path": "data\\history\\enrichment\\exhibitions\\exhibitions_enrichment_delta_manifest_2025_20260320T032608Z.json",
+        "current_output_path": "data\\current\\enrichment\\exhibitions_enrichment_apply_output_2025.jsonl",
+        "current_summary_path": "data\\current\\enrichment\\exhibitions_enrichment_apply_summary_2025.json",
+        "runtime_requests_path": "data\\runtime\\enrichment_requests\\exhibitions\\exhibitions_enrichment_requests_2025.jsonl",
+        "diagnostics_path": "data\\history\\enrichment\\exhibitions\\exhibitions_enrichment_delta_diagnostics_2025_20260320T032608Z.json",
+        "report_path": "data\\history\\enrichment\\exhibitions\\exhibitions_enrichment_delta_report_2025_20260320T032608Z.json"
+      },
+      "summary": {
+        "started_at": "2026-03-09T10:21:46Z",
+        "completed_at": "2026-03-20T03:26:08Z",
+        "target_year": 2025,
+        "requests_path": "data\\phase1_seed10\\derived\\exhibitions_enrichment_requests_2025.jsonl",
+        "apply_output_path": "data\\history\\enrichment\\exhibitions\\exhibitions_enrichment_apply_output_2025_20260320T032608Z.jsonl",
+        "total_targeted": 83,
+        "total_applied": 81,
+        "skipped_already_filled": 0,
+        "skipped_hash_match": 0,
+        "error_count": 0,
+        "empty_after_apply_count": 0,
+        "headline_empty_total": 0,
+        "summary_empty_total": 0,
+        "headline_over_50_count": 0,
+        "summary_over_500_count": 0,
+        "warning_count": 1,
+        "raw_text_changed_count": 0,
+        "generated_openai": 83,
+        "generated_fallback": 0,
+        "enrich_model": "gpt-5-mini",
+        "enrich_use_openai_batch": "1",
+        "enrich_completion_window": "24h",
+        "enrich_prompt_version": "exh_preview_v1",
+        "spot_checks": {
+          "frieze_london": {
+            "record_id": "09645512426b5e7dd4efae8404d2ee6d0bb5c3b4542a0775b22399bde0f2bc89",
+            "source_url": "https://adamsandollman.com/Antonia-Kuo-Subcycle",
+            "headline_ja_chars": 15,
+            "summary_ja_chars": 283
+          },
+          "liste": {
+            "record_id": "01c8f6e0919accacc58ccf770a689932cda9f01c2343d4b38641c7c4993f6978",
+            "source_url": "https://www.ancapoterasu.com/expozitii/agir-dans-son-lieu-sacel",
+            "headline_ja_chars": 15,
+            "summary_ja_chars": 173
+          }
+        },
+        "category": "exhibitions",
+        "execution_mode": "delta_promote",
+        "delta_mode": "no_reextraction_text_enrichment",
+        "delta_dry_run": false,
+        "delta_manifest_path": "c:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\trials\\text_enrichment_delta_promote_2025\\url_scope_guard_incident_delta_manifest_20260320.json",
+        "apply_summary_path": "data\\history\\enrichment\\exhibitions\\exhibitions_enrichment_apply_summary_2025_20260320T032608Z.json",
+        "current_output_path": "data\\current\\enrichment\\exhibitions_enrichment_apply_output_2025.jsonl",
+        "current_summary_path": "data\\current\\enrichment\\exhibitions_enrichment_apply_summary_2025.json",
+        "runtime_requests_path": "data\\runtime\\enrichment_requests\\exhibitions\\exhibitions_enrichment_requests_2025.jsonl",
+        "diagnostics_path": "data\\history\\enrichment\\exhibitions\\exhibitions_enrichment_delta_diagnostics_2025_20260320T032608Z.json",
+        "delta_before_output_rows": 83,
+        "delta_after_output_rows": 81,
+        "delta_before_runtime_request_rows": 83,
+        "delta_after_runtime_request_rows": 81,
+        "delta_intentional_drop_output_rows": 2,
+        "delta_intentional_drop_runtime_requests": 2,
+        "delta_localized_repair_targets": 0,
+        "delta_localized_repair_applied": 0,
+        "delta_localized_repair_changed_rows": 0,
+        "promoted_to_current": true,
+        "promote_verdict": "delta_promote_applied"
+      },
+      "diagnostics": {
+        "category": "exhibitions",
+        "target_year": 2025,
+        "delta_manifest_path": "c:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\trials\\text_enrichment_delta_promote_2025\\url_scope_guard_incident_delta_manifest_20260320.json",
+        "intentional_drop_urls": [
+          "https://athrart.com/art-fairs",
+          "https://addisfineart.com/art-fairs"
+        ],
+        "dropped_output_rows": [
+          {
+            "request_id": "seed10_exhibitions_enrich_7dffe06cee838daf8357e7707110a54b961c8802e8684952d8a890c7df2f306e",
+            "status": "APPLIED",
+            "source_url": "https://athrart.com/art-fairs"
+          },
+          {
+            "request_id": "seed10_exhibitions_enrich_b9714ec7d4f410a47d0112f51d2f03289533b6b6ff5c6c38bdb006a26cbcb7e7",
+            "status": "APPLIED",
+            "source_url": "https://addisfineart.com/art-fairs"
+          }
+        ],
+        "dropped_runtime_requests": [
+          {
+            "request_id": "seed10_exhibitions_enrich_7dffe06cee838daf8357e7707110a54b961c8802e8684952d8a890c7df2f306e",
+            "source_urls": [
+              "https://athrart.com/art-fairs",
+              "https://athrart.com/art-fairs"
+            ]
+          },
+          {
+            "request_id": "seed10_exhibitions_enrich_b9714ec7d4f410a47d0112f51d2f03289533b6b6ff5c6c38bdb006a26cbcb7e7",
+            "source_urls": [
+              "https://addisfineart.com/art-fairs",
+              "https://addisfineart.com/art-fairs"
+            ]
+          }
+        ],
+        "localized_repairs": []
+      },
+      "report": {
+        "category": "exhibitions",
+        "history_output_path": "data\\history\\enrichment\\exhibitions\\exhibitions_enrichment_apply_output_2025_20260320T032608Z.jsonl",
+        "history_summary_path": "data\\history\\enrichment\\exhibitions\\exhibitions_enrichment_apply_summary_2025_20260320T032608Z.json",
+        "history_manifest_path": "data\\history\\enrichment\\exhibitions\\exhibitions_enrichment_delta_manifest_2025_20260320T032608Z.json",
+        "current_output_path": "data\\current\\enrichment\\exhibitions_enrichment_apply_output_2025.jsonl",
+        "current_summary_path": "data\\current\\enrichment\\exhibitions_enrichment_apply_summary_2025.json",
+        "runtime_requests_path": "data\\runtime\\enrichment_requests\\exhibitions\\exhibitions_enrichment_requests_2025.jsonl",
+        "diagnostics_path": "data\\history\\enrichment\\exhibitions\\exhibitions_enrichment_delta_diagnostics_2025_20260320T032608Z.json",
+        "report_path": "data\\history\\enrichment\\exhibitions\\exhibitions_enrichment_delta_report_2025_20260320T032608Z.json",
+        "before_output_rows": 83,
+        "after_output_rows": 81,
+        "before_runtime_request_rows": 83,
+        "after_runtime_request_rows": 81,
+        "dropped_output_rows": [
+          {
+            "request_id": "seed10_exhibitions_enrich_7dffe06cee838daf8357e7707110a54b961c8802e8684952d8a890c7df2f306e",
+            "status": "APPLIED",
+            "source_url": "https://athrart.com/art-fairs"
+          },
+          {
+            "request_id": "seed10_exhibitions_enrich_b9714ec7d4f410a47d0112f51d2f03289533b6b6ff5c6c38bdb006a26cbcb7e7",
+            "status": "APPLIED",
+            "source_url": "https://addisfineart.com/art-fairs"
+          }
+        ],
+        "dropped_runtime_requests": [
+          {
+            "request_id": "seed10_exhibitions_enrich_7dffe06cee838daf8357e7707110a54b961c8802e8684952d8a890c7df2f306e",
+            "source_urls": [
+              "https://athrart.com/art-fairs",
+              "https://athrart.com/art-fairs"
+            ]
+          },
+          {
+            "request_id": "seed10_exhibitions_enrich_b9714ec7d4f410a47d0112f51d2f03289533b6b6ff5c6c38bdb006a26cbcb7e7",
+            "source_urls": [
+              "https://addisfineart.com/art-fairs",
+              "https://addisfineart.com/art-fairs"
+            ]
+          }
+        ],
+        "localized_repair_applied": [],
+        "non_target_removed_rows": []
+      }
+    },
+    {
+      "category": "artists",
+      "paths": {
+        "history_output_path": "data\\history\\enrichment\\artists\\artists_enrichment_apply_output_2025_20260320T032608Z.jsonl",
+        "history_summary_path": "data\\history\\enrichment\\artists\\artists_enrichment_apply_summary_2025_20260320T032608Z.json",
+        "history_manifest_path": "data\\history\\enrichment\\artists\\artists_enrichment_delta_manifest_2025_20260320T032608Z.json",
+        "current_output_path": "data\\current\\enrichment\\artists_enrichment_apply_output_2025.jsonl",
+        "current_summary_path": "data\\current\\enrichment\\artists_enrichment_apply_summary_2025.json",
+        "runtime_requests_path": "data\\runtime\\enrichment_requests\\artists\\artists_enrichment_requests_2025.jsonl",
+        "diagnostics_path": "data\\history\\enrichment\\artists\\artists_enrichment_delta_diagnostics_2025_20260320T032608Z.json",
+        "report_path": "data\\history\\enrichment\\artists\\artists_enrichment_delta_report_2025_20260320T032608Z.json"
+      },
+      "summary": {
+        "started_at": "2026-03-11T12:41:18Z",
+        "completed_at": "2026-03-20T03:26:08Z",
+        "target_year": 2025,
+        "rag_category": "artists_text",
+        "repair_mode": "canonical_rebuild_from_existing_apply",
+        "requests_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\phase1_seed10\\logs\\artist_text_canonical_execute_20260311T124118Z\\staging\\artists_enrichment_requests_2025_canonical_repair.jsonl",
+        "raw_input_paths": {
+          "frieze_london": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\phase1_seed10\\logs\\artist_text_canonical_execute_20260311T124118Z\\staging\\raw\\artists_frieze_london_2025.jsonl",
+          "liste": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\phase1_seed10\\logs\\artist_text_canonical_execute_20260311T124118Z\\staging\\raw\\artists_liste_2025.jsonl"
+        },
+        "apply_output_path": "data\\history\\enrichment\\artists\\artists_enrichment_apply_output_2025_20260320T032608Z.jsonl",
+        "apply_summary_path": "data\\history\\enrichment\\artists\\artists_enrichment_apply_summary_2025_20260320T032608Z.json",
+        "current_output_path": "data\\current\\enrichment\\artists_enrichment_apply_output_2025.jsonl",
+        "current_summary_path": "data\\current\\enrichment\\artists_enrichment_apply_summary_2025.json",
+        "source_apply_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\current\\enrichment\\artists_enrichment_apply_output_2025.jsonl",
+        "total_targeted": 287,
+        "total_applied": 278,
+        "total_not_updated": 3,
+        "warning_count": 0,
+        "warning_rows": 0,
+        "generated_openai": 0,
+        "generated_fallback": 0,
+        "headline_empty_total": 0,
+        "summary_empty_total": 0,
+        "artist_name_kana_empty_total": 0,
+        "headline_over_limit": 0,
+        "summary_over_limit": 0,
+        "artist_name_kana_over_limit": 0,
+        "raw_text_changed_count": 0,
+        "counters": {
+          "applied": 284,
+          "skipped_target_guard_non_artist_utility_url": 3,
+          "rows_total": 287
+        },
+        "enrich_model": "carry_forward_existing_apply",
+        "enrich_use_openai_batch": "0",
+        "enrich_completion_window": "",
+        "enrich_prompt_version": "artists_canonical_repair_v1",
+        "openai_client_available": false,
+        "workers": 0,
+        "localized_repair_last": {
+          "task_id": "LOCALIZED_REPAIR_ARTISTS_MISSING_ENRICHMENT_ROWS_2_ONLY_01",
+          "executed_at": "2026-03-12T18:04:58.540878Z",
+          "target_hashes": [
+            "02377132d37db11e100ebd37a60ca782ef88431307af533d8dd5c8463074b340",
+            "5606bc838d72010635ccb0b67e358ed30c485b0574be8d80b5573d30e5ab52ec"
+          ],
+          "requests_added_count": 2,
+          "output_added_count": 2,
+          "carry_forward_source_hash_map": {
+            "02377132d37db11e100ebd37a60ca782ef88431307af533d8dd5c8463074b340": "1a1df045e8b8d67349a3464d81d9a86cb81eb9bd2b1801bb9ac3e6a6f01a433f",
+            "5606bc838d72010635ccb0b67e358ed30c485b0574be8d80b5573d30e5ab52ec": "2cfb1c226ed8bc0226750363af817b2681a82e487d84e7b1970c0bb22e13c593"
+          },
+          "note": "localized two-row repair only; no bulk run; no API call"
+        },
+        "current_output_rows_after_localized_repair": 287,
+        "current_output_applied_rows_after_localized_repair": 284,
+        "reconciled_from_output": true,
+        "reconciled_at": "2026-03-12T18:16:29.463508Z",
+        "reconciliation_reason": "align_current_summary_with_current_output_after_localized_repair",
+        "previous_summary_totals": {
+          "total_targeted": 223,
+          "total_applied": 223,
+          "total_not_updated": 0
+        },
+        "previous_summary_drift_note": "previous summary totals reflected canonical_keep_rows snapshot (223) and drifted from current output (APPLIED=284, SKIPPED_UTILITY=3)",
+        "canonical_repair_counters_snapshot": {
+          "canonical_keep_rows": 223,
+          "canonical_drop_rows": 65,
+          "canonical_quarantine_rows": 2,
+          "canonical_backfill_rows": 39,
+          "canonical_multi_applied_resolved": 57,
+          "canonical_review_rows": 2,
+          "applied": 223
+        },
+        "category": "artists",
+        "execution_mode": "delta_promote",
+        "delta_mode": "no_reextraction_text_enrichment",
+        "delta_dry_run": false,
+        "delta_manifest_path": "c:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\trials\\text_enrichment_delta_promote_2025\\url_scope_guard_incident_delta_manifest_20260320.json",
+        "runtime_requests_path": "data\\runtime\\enrichment_requests\\artists\\artists_enrichment_requests_2025.jsonl",
+        "diagnostics_path": "data\\history\\enrichment\\artists\\artists_enrichment_delta_diagnostics_2025_20260320T032608Z.json",
+        "delta_before_output_rows": 285,
+        "delta_after_output_rows": 278,
+        "delta_before_runtime_request_rows": 287,
+        "delta_after_runtime_request_rows": 280,
+        "delta_intentional_drop_output_rows": 7,
+        "delta_intentional_drop_runtime_requests": 7,
+        "delta_localized_repair_targets": 1,
+        "delta_localized_repair_applied": 1,
+        "delta_localized_repair_changed_rows": 0,
+        "promoted_to_current": true,
+        "promote_verdict": "delta_promote_applied"
+      },
+      "diagnostics": {
+        "category": "artists",
+        "target_year": 2025,
+        "delta_manifest_path": "c:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\trials\\text_enrichment_delta_promote_2025\\url_scope_guard_incident_delta_manifest_20260320.json",
+        "intentional_drop_urls": [
+          "https://gallerybaton.com/chapter-ii",
+          "https://gallerybaton.com/mailing-list",
+          "https://gallerybaton.com/privacy-policy",
+          "https://addisfineart.com/recovery-2",
+          "https://addisfineart.com/privacy",
+          "https://athrart.com/contact/form",
+          "https://www.theapproach.co.uk/books-and-editions"
+        ],
+        "dropped_output_rows": [
+          {
+            "request_id": "seed10_artists_enrich_3468526cfb5aab83901097ee63bc8b31cf6b9c9747fcd3f3526ba720c277f7f0",
+            "status": "SKIPPED_TARGET_GUARD_NON_ARTIST_UTILITY_URL",
+            "source_url": "https://gallerybaton.com/privacy-policy"
+          },
+          {
+            "request_id": "seed10_artists_enrich_5f730bdd805b6ef38b65d086cc25918b83a5a2c6356815f589f5d14e2a6ab5d5",
+            "status": "SKIPPED_TARGET_GUARD_NON_ARTIST_UTILITY_URL",
+            "source_url": "https://addisfineart.com/privacy"
+          },
+          {
+            "request_id": "seed10_artists_enrich_85b719d19e7f57fd5da486a895c5d5ae1de3a42a419ece9adb8b119714c0af88",
+            "status": "SKIPPED_TARGET_GUARD_NON_ARTIST_UTILITY_URL",
+            "source_url": "https://athrart.com/contact/form"
+          },
+          {
+            "request_id": "seed10_artists_enrich_130fdf7cc8a0653d6d1bc8b0530a6d1c8a011a0da96628838f08f53d9a74986d",
+            "status": "APPLIED",
+            "source_url": "https://gallerybaton.com/chapter-ii"
+          },
+          {
+            "request_id": "seed10_artists_enrich_3a1a814cf3226cdefa5b8c2e1c3f2678c4bdf54907509f4f3ffdd520585ae5c8",
+            "status": "APPLIED",
+            "source_url": "https://gallerybaton.com/mailing-list"
+          },
+          {
+            "request_id": "seed10_artists_enrich_96e84f4fd29d51538dc456659605122e883a3fd2ef75e1faea699b596465b949",
+            "status": "APPLIED",
+            "source_url": "https://www.theapproach.co.uk/books-and-editions"
+          },
+          {
+            "request_id": "seed10_artists_enrich_e37dc00fca8a39febd257c087115f0bf6db5ba6f7322d613ef44d599b60677e2",
+            "status": "APPLIED",
+            "source_url": "https://addisfineart.com/recovery-2"
+          }
+        ],
+        "dropped_runtime_requests": [
+          {
+            "request_id": "seed10_artists_enrich_130fdf7cc8a0653d6d1bc8b0530a6d1c8a011a0da96628838f08f53d9a74986d",
+            "source_urls": [
+              "https://gallerybaton.com/chapter-ii"
+            ]
+          },
+          {
+            "request_id": "seed10_artists_enrich_3468526cfb5aab83901097ee63bc8b31cf6b9c9747fcd3f3526ba720c277f7f0",
+            "source_urls": [
+              "https://gallerybaton.com/privacy-policy"
+            ]
+          },
+          {
+            "request_id": "seed10_artists_enrich_3a1a814cf3226cdefa5b8c2e1c3f2678c4bdf54907509f4f3ffdd520585ae5c8",
+            "source_urls": [
+              "https://gallerybaton.com/mailing-list"
+            ]
+          },
+          {
+            "request_id": "seed10_artists_enrich_5f730bdd805b6ef38b65d086cc25918b83a5a2c6356815f589f5d14e2a6ab5d5",
+            "source_urls": [
+              "https://addisfineart.com/privacy"
+            ]
+          },
+          {
+            "request_id": "seed10_artists_enrich_85b719d19e7f57fd5da486a895c5d5ae1de3a42a419ece9adb8b119714c0af88",
+            "source_urls": [
+              "https://athrart.com/contact/form"
+            ]
+          },
+          {
+            "request_id": "seed10_artists_enrich_96e84f4fd29d51538dc456659605122e883a3fd2ef75e1faea699b596465b949",
+            "source_urls": [
+              "https://www.theapproach.co.uk/books-and-editions"
+            ]
+          },
+          {
+            "request_id": "seed10_artists_enrich_e37dc00fca8a39febd257c087115f0bf6db5ba6f7322d613ef44d599b60677e2",
+            "source_urls": [
+              "https://addisfineart.com/recovery-2"
+            ]
+          }
+        ],
+        "localized_repairs": [
+          {
+            "category": "artists",
+            "request_id": "seed10_artists_enrich_336ffd39ede28d95d3a1983d90f7174bb1f0b740fd34b710a968f6fb4ba38f74",
+            "fair_slug": "liste",
+            "text_hash": "336ffd39ede28d95d3a1983d90f7174bb1f0b740fd34b710a968f6fb4ba38f74",
+            "source_url": "https://addisfineart.com/artists/55-tariku-shiferaw/works",
+            "source_url_normalized": "https://addisfineart.com/artists/55-tariku-shiferaw/works",
+            "repair_mode": "carry_forward_current_applied_row",
+            "applied": true,
+            "changed_fields": [],
+            "diagnostics_metadata": {
+              "batch_job_id": "batch_69bca5d4b1b4819096a337557825e4e0",
+              "batch_input_file_id": "file-SqTpdM5uuwuP3Fzspf6o6Q",
+              "response_request_id": "de20c6ad-a2f4-44ee-b43c-d2879f87af01",
+              "parser_error": "openai_output_not_json"
+            },
+            "repair_source_status": "APPLIED",
+            "repair_source_enrich_mode": "openai_direct_apply",
+            "repair_source_summary_chars": 214,
+            "disposition": "carry_forward_current_applied_row"
+          }
+        ]
+      },
+      "report": {
+        "category": "artists",
+        "history_output_path": "data\\history\\enrichment\\artists\\artists_enrichment_apply_output_2025_20260320T032608Z.jsonl",
+        "history_summary_path": "data\\history\\enrichment\\artists\\artists_enrichment_apply_summary_2025_20260320T032608Z.json",
+        "history_manifest_path": "data\\history\\enrichment\\artists\\artists_enrichment_delta_manifest_2025_20260320T032608Z.json",
+        "current_output_path": "data\\current\\enrichment\\artists_enrichment_apply_output_2025.jsonl",
+        "current_summary_path": "data\\current\\enrichment\\artists_enrichment_apply_summary_2025.json",
+        "runtime_requests_path": "data\\runtime\\enrichment_requests\\artists\\artists_enrichment_requests_2025.jsonl",
+        "diagnostics_path": "data\\history\\enrichment\\artists\\artists_enrichment_delta_diagnostics_2025_20260320T032608Z.json",
+        "report_path": "data\\history\\enrichment\\artists\\artists_enrichment_delta_report_2025_20260320T032608Z.json",
+        "before_output_rows": 285,
+        "after_output_rows": 278,
+        "before_runtime_request_rows": 287,
+        "after_runtime_request_rows": 280,
+        "dropped_output_rows": [
+          {
+            "request_id": "seed10_artists_enrich_3468526cfb5aab83901097ee63bc8b31cf6b9c9747fcd3f3526ba720c277f7f0",
+            "status": "SKIPPED_TARGET_GUARD_NON_ARTIST_UTILITY_URL",
+            "source_url": "https://gallerybaton.com/privacy-policy"
+          },
+          {
+            "request_id": "seed10_artists_enrich_5f730bdd805b6ef38b65d086cc25918b83a5a2c6356815f589f5d14e2a6ab5d5",
+            "status": "SKIPPED_TARGET_GUARD_NON_ARTIST_UTILITY_URL",
+            "source_url": "https://addisfineart.com/privacy"
+          },
+          {
+            "request_id": "seed10_artists_enrich_85b719d19e7f57fd5da486a895c5d5ae1de3a42a419ece9adb8b119714c0af88",
+            "status": "SKIPPED_TARGET_GUARD_NON_ARTIST_UTILITY_URL",
+            "source_url": "https://athrart.com/contact/form"
+          },
+          {
+            "request_id": "seed10_artists_enrich_130fdf7cc8a0653d6d1bc8b0530a6d1c8a011a0da96628838f08f53d9a74986d",
+            "status": "APPLIED",
+            "source_url": "https://gallerybaton.com/chapter-ii"
+          },
+          {
+            "request_id": "seed10_artists_enrich_3a1a814cf3226cdefa5b8c2e1c3f2678c4bdf54907509f4f3ffdd520585ae5c8",
+            "status": "APPLIED",
+            "source_url": "https://gallerybaton.com/mailing-list"
+          },
+          {
+            "request_id": "seed10_artists_enrich_96e84f4fd29d51538dc456659605122e883a3fd2ef75e1faea699b596465b949",
+            "status": "APPLIED",
+            "source_url": "https://www.theapproach.co.uk/books-and-editions"
+          },
+          {
+            "request_id": "seed10_artists_enrich_e37dc00fca8a39febd257c087115f0bf6db5ba6f7322d613ef44d599b60677e2",
+            "status": "APPLIED",
+            "source_url": "https://addisfineart.com/recovery-2"
+          }
+        ],
+        "dropped_runtime_requests": [
+          {
+            "request_id": "seed10_artists_enrich_130fdf7cc8a0653d6d1bc8b0530a6d1c8a011a0da96628838f08f53d9a74986d",
+            "source_urls": [
+              "https://gallerybaton.com/chapter-ii"
+            ]
+          },
+          {
+            "request_id": "seed10_artists_enrich_3468526cfb5aab83901097ee63bc8b31cf6b9c9747fcd3f3526ba720c277f7f0",
+            "source_urls": [
+              "https://gallerybaton.com/privacy-policy"
+            ]
+          },
+          {
+            "request_id": "seed10_artists_enrich_3a1a814cf3226cdefa5b8c2e1c3f2678c4bdf54907509f4f3ffdd520585ae5c8",
+            "source_urls": [
+              "https://gallerybaton.com/mailing-list"
+            ]
+          },
+          {
+            "request_id": "seed10_artists_enrich_5f730bdd805b6ef38b65d086cc25918b83a5a2c6356815f589f5d14e2a6ab5d5",
+            "source_urls": [
+              "https://addisfineart.com/privacy"
+            ]
+          },
+          {
+            "request_id": "seed10_artists_enrich_85b719d19e7f57fd5da486a895c5d5ae1de3a42a419ece9adb8b119714c0af88",
+            "source_urls": [
+              "https://athrart.com/contact/form"
+            ]
+          },
+          {
+            "request_id": "seed10_artists_enrich_96e84f4fd29d51538dc456659605122e883a3fd2ef75e1faea699b596465b949",
+            "source_urls": [
+              "https://www.theapproach.co.uk/books-and-editions"
+            ]
+          },
+          {
+            "request_id": "seed10_artists_enrich_e37dc00fca8a39febd257c087115f0bf6db5ba6f7322d613ef44d599b60677e2",
+            "source_urls": [
+              "https://addisfineart.com/recovery-2"
+            ]
+          }
+        ],
+        "localized_repair_applied": [
+          {
+            "request_id": "seed10_artists_enrich_336ffd39ede28d95d3a1983d90f7174bb1f0b740fd34b710a968f6fb4ba38f74",
+            "source_url": "https://addisfineart.com/artists/55-tariku-shiferaw/works",
+            "changed_fields": [],
+            "repair_mode": "carry_forward_current_applied_row",
+            "disposition": "carry_forward_current_applied_row"
+          }
+        ],
+        "non_target_removed_rows": []
+      }
+    }
+  ]
+}

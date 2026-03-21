@@ -24,6 +24,19 @@ from phase2_art_pulse_config import (
 TRUTHY_VALUES = {"1", "true", "yes", "on"}
 TERMINAL_BATCH_STATUSES = {"completed", "failed", "expired", "cancelled"}
 ALLOWED_PROMOTE_RERUN_GUARD_VERDICTS = {"new_run", "resume_existing_batch"}
+OPTIONAL_OUTPUT_ARTIFACTS_ENV = "ART_PULSE_OUTPUT_ARTIFACTS"
+OPTIONAL_OUTPUT_ARTIFACT_ALIASES = {
+    "all": "all",
+    "preview": "preview",
+    "previews": "preview",
+    "diagnostic": "diagnostics",
+    "diagnostics": "diagnostics",
+    "report": "report",
+    "reports": "report",
+    "latest": "latest",
+    "latest_alias": "latest",
+    "latest_aliases": "latest",
+}
 
 
 def utc_now_iso() -> str:
@@ -71,6 +84,29 @@ def is_truthy_flag(value: str | bool | None) -> bool:
     if isinstance(value, bool):
         return value
     return str(value or "").strip().lower() in TRUTHY_VALUES
+
+
+def _normalize_optional_output_kind(kind: str | None) -> str:
+    token = str(kind or "").strip().lower()
+    return OPTIONAL_OUTPUT_ARTIFACT_ALIASES.get(token, token)
+
+
+def get_enabled_optional_output_artifacts() -> set[str]:
+    raw = str(os.getenv(OPTIONAL_OUTPUT_ARTIFACTS_ENV) or "")
+    enabled: set[str] = set()
+    for token in raw.replace(";", ",").split(","):
+        normalized = _normalize_optional_output_kind(token)
+        if normalized:
+            enabled.add(normalized)
+    return enabled
+
+
+def is_optional_output_enabled(kind: str) -> bool:
+    normalized = _normalize_optional_output_kind(kind)
+    if not normalized:
+        return False
+    enabled = get_enabled_optional_output_artifacts()
+    return "all" in enabled or normalized in enabled
 
 
 def sha256_text(value: str) -> str:
@@ -160,19 +196,20 @@ def resolve_runtime_requests_path(category: str, *, target_year: int, migrate_le
     legacy_hash = sha256_file(legacy_path)
     legacy_size = int(legacy_path.stat().st_size)
     os.replace(str(legacy_path), str(runtime_path))
-    write_json(
-        build_requests_runtime_report_path(category, action="legacy_migration", target_year=target_year),
-        {
-            "category": category,
-            "target_year": int(target_year),
-            "action": "legacy_migration_to_runtime_active",
-            "migrated_at": utc_now_iso(),
-            "legacy_requests_path": str(legacy_path),
-            "runtime_requests_path": str(runtime_path),
-            "legacy_sha256": legacy_hash,
-            "legacy_size_bytes": legacy_size,
-        },
-    )
+    if is_optional_output_enabled("report"):
+        write_json(
+            build_requests_runtime_report_path(category, action="legacy_migration", target_year=target_year),
+            {
+                "category": category,
+                "target_year": int(target_year),
+                "action": "legacy_migration_to_runtime_active",
+                "migrated_at": utc_now_iso(),
+                "legacy_requests_path": str(legacy_path),
+                "runtime_requests_path": str(runtime_path),
+                "legacy_sha256": legacy_hash,
+                "legacy_size_bytes": legacy_size,
+            },
+        )
     return runtime_path
 
 
@@ -387,7 +424,7 @@ def finalize_runtime_requests_retention(
         action="retention",
         target_year=target_year,
         stamp=stamp,
-    )
+    ) if is_optional_output_enabled("report") else None
     report: dict[str, Any] = {
         "category": category,
         "target_year": int(target_year),
@@ -416,11 +453,12 @@ def finalize_runtime_requests_retention(
         report["retention_action"] = "kept_runtime_active"
         report["archived_requests_path"] = ""
 
-    write_json(report_path, report)
+    if report_path is not None:
+        write_json(report_path, report)
     return {
         "requests_retention_action": str(report.get("retention_action") or ""),
         "requests_retention_verdict": retention_verdict,
-        "requests_cleanup_report_path": str(report_path),
+        "requests_cleanup_report_path": str(report_path) if report_path is not None else "",
         "archived_requests_path": str(report.get("archived_requests_path") or ""),
     }
 

@@ -17,6 +17,7 @@ import requests
 
 import unicodedata
 
+from enrichment_batch_common import is_optional_output_enabled
 import run_phase1_seed10_artist_image_collect as artist_img
 from phase1_exhibitions_text_utils import should_include_target_year_page
 from tools import skip_policy
@@ -1902,15 +1903,20 @@ def main() -> int:
     if debug_triage_entries and debug_run_id and debug_output_base:
         triage_path = debug_output_base / DEBUG_TRIAGE_FILENAME_TEMPLATE.format(run_id=debug_run_id)
         write_json(triage_path, debug_triage_entries)
-    output_json_path = (
-        Path(args.output_json)
-        if str(args.output_json or "").strip()
-        else (logs_dir / "phase1_seed10_exhibition_image_collect_summary_latest.json")
-    )
+    default_output_path = logs_dir / f"phase1_seed10_exhibition_image_collect_summary_{summary['run_id']}.json"
+    output_json_path = Path(args.output_json) if str(args.output_json or "").strip() else default_output_path
     if not output_json_path.is_absolute():
         output_json_path = (PROJECT_ROOT / output_json_path).resolve()
     write_json(output_json_path, summary)
+    latest_output_path: Path | None = None
+    if not str(args.output_json or "").strip() and is_optional_output_enabled("latest"):
+        latest_output_path = logs_dir / "phase1_seed10_exhibition_image_collect_summary_latest.json"
+        if not latest_output_path.is_absolute():
+            latest_output_path = (PROJECT_ROOT / latest_output_path).resolve()
+        write_json(latest_output_path, summary)
     print(f"[exhibitions-image-collect] output={output_json_path}")
+    if latest_output_path is not None:
+        print(f"[exhibitions-image-collect] latest={latest_output_path}")
     print(
         "[exhibitions-image-collect] "
         f"seed={summary['seed_exhibition_count']} "
