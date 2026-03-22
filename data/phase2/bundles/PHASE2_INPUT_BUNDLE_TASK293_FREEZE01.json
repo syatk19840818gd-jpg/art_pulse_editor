@@ -19,11 +19,11 @@
   },
   "exhibitions_image_truth": [
     {
-      "path": "data\\phase1_seed10\\derived\\exhibitions_images_frieze_london_2025.jsonl",
+      "path": "data\\current\\images\\metadata\\exhibitions_images_frieze_london_2025.jsonl",
       "sha256": "8e90fa012c03f65f82747c489249e9f39a3542c0048759f43972564f9ace6f92"
     },
     {
-      "path": "data\\phase1_seed10\\derived\\exhibitions_images_liste_2025.jsonl",
+      "path": "data\\current\\images\\metadata\\exhibitions_images_liste_2025.jsonl",
       "sha256": "77d9973aa2ca255a09a627d4e4bb40ac90e47fb0e4e4aadd5862feebd6bbfd2d"
     }
   ],

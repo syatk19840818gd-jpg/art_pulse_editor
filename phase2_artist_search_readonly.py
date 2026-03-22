@@ -5,6 +5,7 @@ import re
 from dataclasses import dataclass
 from typing import Dict, List, Tuple
 
+from phase2_art_pulse_config import normalize_image_local_path_text
 from phase2_common_readonly import (
     ARTISTS_TEXT_PATHS,
     ARTIST_WORKS_IMAGE_PATHS,
@@ -54,13 +55,11 @@ def _load_latest_artist_enrichment_map() -> Tuple[Dict[Tuple[str, str], Dict[str
 
 
 def _load_latest_artist_enrichment_rows() -> Tuple[List[dict], List[str]]:
-    source_path, source_kind = resolve_current_first_enrichment_output_path("artists")
+    source_path, _source_kind = resolve_current_first_enrichment_output_path("artists")
     if source_path is None:
         return [], []
 
     rows, warnings = safe_load_jsonl(source_path)
-    if source_kind == "legacy_latest":
-        warnings.append(f"fallback_to_legacy_enrichment_output: {source_path}")
     return rows, warnings
 
 
@@ -128,7 +127,11 @@ def load_artist_records_readonly() -> ArtistSearchData:
                     len(works_image_urls) if isinstance(works_image_urls, list) else 0,
                 )
                 for i in range(max_len):
-                    local_path = str(works_local_paths[i] or "").strip() if isinstance(works_local_paths, list) and i < len(works_local_paths) else ""
+                    local_path = (
+                        normalize_image_local_path_text(works_local_paths[i] or "")
+                        if isinstance(works_local_paths, list) and i < len(works_local_paths)
+                        else ""
+                    )
                     r2_key = str(works_r2_keys[i] or "").strip() if isinstance(works_r2_keys, list) and i < len(works_r2_keys) else ""
                     image_url = str(works_image_urls[i] or "").strip() if isinstance(works_image_urls, list) and i < len(works_image_urls) else ""
                     if not local_path and not r2_key and not image_url:
@@ -232,7 +235,7 @@ def load_artist_records_readonly() -> ArtistSearchData:
         if records:
             fair_rows = fallback_count_by_fair
             warnings.append(
-                "artists_text_raw_missing_or_empty: fallback to enrichment current/legacy output for artist search listing"
+                "artists_text_raw_missing_or_empty: fallback to current enrichment output for artist search listing"
             )
 
     records = _dedup_artist_records(records)
@@ -250,7 +253,7 @@ def load_artist_records_readonly() -> ArtistSearchData:
             "Artist rows use formal raw (artists_*_2025.jsonl). "
             "headline_ja/summary_ja/artist_name_kana uses current-first enrichment output "
             "(data/current/enrichment/artists_enrichment_apply_output_2025.jsonl), "
-            "with legacy latest fallback only when current is missing. "
+            "with strict current-only resolution. "
             "history is not used as a default query path. "
             "works_image_count_hint is matched by source_url against formal artist works-image metadata. "
             "If raw rows are unavailable, listing falls back to enrichment rows."

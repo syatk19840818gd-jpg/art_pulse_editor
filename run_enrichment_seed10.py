@@ -8,15 +8,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from phase2_art_pulse_config import get_current_raw_paths
 from r2_auto_sync import auto_sync_after_job, format_auto_sync_brief
 
 TARGET_YEAR = 2025
 RAG_CATEGORY = "exhibitions_text"
 
-RAW_INPUT_PATHS = {
-    "frieze_london": Path("data/phase1_seed10/raw/exhibitions_frieze_london_2025.jsonl"),
-    "liste": Path("data/phase1_seed10/raw/exhibitions_liste_2025.jsonl"),
-}
+RAW_INPUT_PATHS = get_current_raw_paths("exhibitions", TARGET_YEAR)
 
 ENRICHMENT_OUTPUT_DIR = Path("data/phase1_seed10/enrichment")
 ENRICHMENT_REQUESTS_PATH = ENRICHMENT_OUTPUT_DIR / "enrichment_requests_seed10_2025.jsonl"

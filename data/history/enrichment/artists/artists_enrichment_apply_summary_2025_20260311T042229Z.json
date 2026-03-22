@@ -3,13 +3,12 @@
   "completed_at": "2026-03-11T04:22:29Z",
   "target_year": 2025,
   "rag_category": "artists_text",
-  "requests_path": "data\\phase1_seed10\\derived\\artists_enrichment_requests_2025.jsonl",
   "raw_input_paths": {
     "frieze_london": "data\\phase1_seed10\\raw\\artists_frieze_london_2025.jsonl",
     "liste": "data\\phase1_seed10\\raw\\artists_liste_2025.jsonl"
   },
-  "apply_output_path": "data\\phase1_seed10\\derived\\artists_enrichment_apply_output_2025_20260311T042229Z.jsonl",
-  "apply_summary_path": "data\\phase1_seed10\\logs\\artists_enrichment_apply_summary_2025_20260311T042229Z.json",
+  "apply_output_path": "data\\history\\enrichment\\artists\\artists_enrichment_apply_output_2025_20260311T042229Z.jsonl",
+  "apply_summary_path": "data\\history\\enrichment\\artists\\artists_enrichment_apply_summary_2025_20260311T042229Z.json",
   "total_targeted": 285,
   "total_applied": 0,
   "total_not_updated": 285,

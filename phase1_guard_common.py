@@ -7,6 +7,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
 
+from phase1_ledger_contract import (
+    GUARD_REQUIRED_INPUT_FILES_ARTISTS,
+    GUARD_REQUIRED_INPUT_FILES_EXHIBITIONS,
+)
+
 REGRESSION_EXIT_CODE = 2
 INCOMPATIBLE_EXIT_CODE = 3
 GUARD_SCHEMA_VERSION = "1.0"
@@ -17,14 +22,14 @@ DEFAULT_CATEGORY_PROFILE_CONFIG_VERSION = "1.0"
 DEFAULT_CATEGORY_PROFILE_CONFIG_PATH = Path("config/phase1_guard_category_profiles.json")
 DEFAULT_CATEGORY_PROFILES: dict[str, dict[str, Any]] = {
     "exhibitions_text": {
-        "required_input_files": ["run_summary_path", "visited_pages_path", "failed_fetches_path", "output_files"],
+        "required_input_files": list(GUARD_REQUIRED_INPUT_FILES_EXHIBITIONS),
         "required_summary_keys_drop": [],
         "support_mode": "active",
         "activation_conditions": [],
         "reserved_reason": "",
     },
     "artists_text": {
-        "required_input_files": ["run_summary_path", "visited_pages_path", "failed_fetches_path"],
+        "required_input_files": list(GUARD_REQUIRED_INPUT_FILES_ARTISTS),
         "required_summary_keys_drop": ["output_files"],
         "required_summary_keys_add": [],
         "support_mode": "reserved_minimal",

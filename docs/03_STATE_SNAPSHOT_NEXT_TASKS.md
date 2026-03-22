@@ -13,7 +13,7 @@ STREAMLIT_ENTRYPOINT（固定）
 - Local run: streamlit run app.py
 
 SOURCE_SSOT: 01_PROJECT_SPEC_CURRENT_FULL.docx
-LAST_UPDATED: 2026-03-21 19:17 JST
+LAST_UPDATED: 2026-03-22 11:10 JST
 
 
 ========================
@@ -93,6 +93,8 @@ STATE_SNAPSHOT（現在地）
   - current/history rebaseline phase: completed (A2-A9)
   - Immediate priority: cleanup lane is closed; return to main roadmap only by explicit user task（Feature 5 auto-start はしない）
   - current state note: repo hygiene cleanup / output hygiene permanent guard / aggressive prune are completed and accepted. Feature 4 Advisor remains major-regression-only tiny fix, and normal feature work may resume from the main roadmap when the user explicitly asks for it
+  - canonical storage closeout note: `data/current/raw/`, `data/current/vector/artists/`, `data/current/images/metadata/`, and `data/current/images/cache/` are now the canonical persistent lanes for those families. `data/phase1_seed10/` is not the long-term canonical root and mainly remains a working / validation / retained-ledger legacy parent.
+  - ledger retained-lane closeout note: `visited_pages*`, `failed_fetches_seed10_2025.json`, `failed_fetches_artists_seed10_2025.json`, `failed_fetches_artist_image_collect_{year}.json`, and `artist_master_global.json` are retained-lane ledgers in `data/phase1_seed10/logs/`; only `artist_works_images_known_unresolvable.json` moved to `data/current/ledgers/`
   - enrichment requests policy note: runtime-path switch is applied and verify verdict is GO (`data/runtime/enrichment_requests/...` active, `_completed` archive lane, `_reports` migration/retention audit lane); `_reports` is not always-on and keep/delete remains evidence-gated
   - enrichment execution note: URL scope contamination incident and the single artists batch parse failure incident are resolved. For future Text enrichment incidents, the standard first-response is existing-artifact diagnosis + intentional drop + localized repair + no-reextraction delta promote, the standard entrypoint is `run_text_enrichment_delta_promote.py`, and full rerun / full rebuild / re-extraction / batch rerun remain last-resort and user-confirmed only
   - artifact policy note: optional artifact is opt-in only via `ART_PULSE_OUTPUT_ARTIFACTS`; `preview` / `diagnostics` / `report` / `latest` / `diff` / `inventory` are default-off, duplicate mirror storage is prohibited, and new temp / backup / report roots must not be introduced outside `_trash`
@@ -7673,20 +7675,24 @@ TASK A-3A-CLOSE-1 実施結果（2026-02-27 / Adams and Ollman）
 - next_mainline_task: TASK293 = PHASE2_KICKOFF_GATE_AFTER_PHASE1_5_EXIT_REVIEW.
 
 ## PHASE1.6 FORMALIZE OPERATION FREEZE (Minimal)
-- formal_ssot_filesystem: `data/phase1_seed10/raw` + `data/phase1_seed10/derived` + `data/phase1_seed10/derived/images` is the single formal truth.
+- canonical_current_storage: `data/current/raw` + `data/current/vector/artists` + `data/current/images/metadata` + `data/current/images/cache` are the current canonical persistent roots for those families.
+- phase1_seed10_role: `data/phase1_seed10/` is not the long-term canonical root; it remains a working / validation / retained-lane legacy parent.
+- retained_ledgers: `visited_pages*`, `failed_fetches_seed10_2025.json`, `failed_fetches_artists_seed10_2025.json`, `failed_fetches_artist_image_collect_{year}.json`, and `artist_master_global.json` stay in `data/phase1_seed10/logs/` as retained lane.
+- moved_ledger_exception: `data/current/ledgers/artist_works_images_known_unresolvable.json`
 - adoption_rule: scoped replace only (`_trash` backup -> move/rename replace), append is prohibited.
 - images_prune_rule: union required of Exhibitions Image + Artist Works Images is mandatory; `missing_required_count=0` is enforced.
 - guard_rule: preflight/postflight gates are mandatory; `0 rows / sudden drop / required-key missing / required-image missing / required-count mismatch` => HOLD.
-- next_task: `TASK_FORMALIZE_02 = PHASE1_7_MISSING_ONLY_DEFAULT_ENFORCEMENT`.
+- next_step_note: canonical storage closeout is completed; return to main roadmap / normal feature work only by explicit user task.
 - phase2_gate: `TASK293` remains waiting and starts only after explicit user OK.
 
 ## PHASE1.7 MISSING-ONLY DEFAULT (Freeze)
 - default_mode: `FILL_MISSING` (all 5 categories); existing keys are skipped and only missing records/files are eligible.
 - rebuild_mode: `REBUILD` requires explicit flags and must write to run_id-isolated trial only (`trial -> gate -> adopt`).
 - image_missing_rule: image key without local file is treated as missing-recovery target (not as already-saved).
-- known_unresolvable_ledger: `data/phase1_seed10/logs/artist_works_images_known_unresolvable.json`
+- known_unresolvable_ledger: `data/current/ledgers/artist_works_images_known_unresolvable.json`
 - fill_missing_behavior: entries in ledger are skipped (no-op stability); rebuild may retry.
 - scope: Artist Works Images only (current).
+- ledger_policy_note: other main ledgers remain retained lane in `data/phase1_seed10/logs/`; any future revisit is a behavior-contract task, not a default storage-move task.
 - phase2_status: `TASK293` remains not started until user OK.
 
 
@@ -7709,4 +7715,57 @@ TASK A-3A-CLOSE-1 実施結果（2026-02-27 / Adams and Ollman）
 - ⑥ Gallery list: read-only baseline + tuning（CSV 2列/3列互換、fallback/警告表示）。
 - 重要注記: ⑥はGallery listが正。今回は03/04へのcloseout syncであり、01仕様変更ではない（01/02は未変更）。
 - 次の最優先タスク: TASK293_NEXT_16 = PHASE2_CLOSEOUT_REVIEW_AND_GO_NO_GO_FOR_NEXT_PHASE
+
+## 2026-03-22 PROOF_LANE_CLOSEOUT_AND_ROADMAP_RETURN
+- 現在地:
+  - cleanup / storage再編 / hygiene / aggressive prune / ledger closeout / guarded R2同期 / old-prefix cleanup / strict current-only hardening / no-API smoke まで完了。
+  - このチャットで固定した証明基準に対して、items 1-5 は proof-complete と扱う。
+- current formal families:
+  - `data/current/raw`
+  - `data/current/vector/artists`
+  - `data/current/images/metadata`
+  - `data/current/images/cache`
+  - `data/current/enrichment`
+  - `data/history/enrichment`
+  - `data/runtime/enrichment_requests`
+  - `data/Tarutani_data`
+- current-family R2 verify closeout:
+  - `artists_vector_current`
+  - `raw_current_primary`
+  - `images_metadata_current`
+  - `images_cache_current`
+  - final verify = all `would_upload=0 / would_prune=0`
+- legacy / old-prefix cleanup closeout:
+  - completed legacy prune scopes:
+    - `phase1_seed10_legacy_images_prune`
+    - `phase1_seed10_legacy_image_metadata_prune`
+    - `phase1_seed10_legacy_vector_prune`
+    - `phase1_seed10_legacy_request_prune`
+  - completed old-prefix cleanup scopes:
+    - `phase1_seed10_derived_manifest_legacy_prune`
+    - `phase1_seed10_source_legacy_prune`
+    - `tarutani_legacy_vectors_prune`
+    - `tarutani_legacy_logs_prune`
+    - `tarutani_legacy_derived_prune`
+  - final verify = all `would_upload=0 / would_prune=0`
+- top-level interpretation:
+  - `data/` is the formal keep root.
+  - `phase1_seed10/` remains only as working / validation / retained-ledger parent, with `data/phase1_seed10/logs/` as the retained lane.
+  - old `tarutani/` prefix is cleanup-complete.
+- strict current-only closeout:
+  - 1)/3) text lane legacy fallback removal is completed.
+  - `phase2_common_readonly.py` text enrichment resolver is strict current-only.
+  - `run_phase1_seed10.py` legacy derived touch removal is completed.
+  - 2)/4) image lanes remain current-only and are unchanged by the hardening.
+- no-API smoke closeout:
+  - 1) Exhibitions Text current-only runtime read: passed
+  - 3) Artist Text current-only runtime read: passed
+  - 2) Exhibitions Image / 4) Artist Works Images current-only runtime read: passed
+  - rerun skip proof: passed
+  - new-save contract proof to current formal lanes: passed
+- next-task policy:
+  - cleanup を掘り続ける段階は終了。
+  - 本来ロードマップへ戻ってよい状態。
+  - Feature 5 / Exclusive Advisor はユーザー明示時のみ開始する。
+  - cleanup 再開や新たな proof lane 拡張は、明示タスクがある場合だけ行う。
 

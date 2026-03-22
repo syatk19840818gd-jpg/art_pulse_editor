@@ -4,15 +4,27 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from phase2_art_pulse_config import (
+    PHASE1_SEED10_ROOT,
+    get_current_raw_paths,
+    get_current_artist_image_meta_paths,
+    get_current_exhibitions_image_meta_paths,
+)
 
 try:
     from tools.required_images_union import (
         DEFAULT_ARTIST_META,
         DEFAULT_EXHIBITIONS_META,
-        DEFAULT_IMAGES_ROOT,
+        DEFAULT_IMAGE_CACHE_ROOT,
         build_required_images_union,
         compute_missing_required,
         count_images_under_root,
@@ -21,26 +33,30 @@ except ModuleNotFoundError:
     from required_images_union import (  # type: ignore
         DEFAULT_ARTIST_META,
         DEFAULT_EXHIBITIONS_META,
-        DEFAULT_IMAGES_ROOT,
+        DEFAULT_IMAGE_CACHE_ROOT,
         build_required_images_union,
         compute_missing_required,
         count_images_under_root,
     )
 
-PHASE1_ROOT = Path("data/phase1_seed10")
+PHASE1_ROOT = PHASE1_SEED10_ROOT
 REPORT_PATH = PHASE1_ROOT / "logs/formal_gate_postflight_report.md"
+ARTISTS_RAW_PATHS = get_current_raw_paths("artists")
+EXHIBITIONS_RAW_PATHS = get_current_raw_paths("exhibitions")
+ARTIST_IMAGE_META_PATHS = get_current_artist_image_meta_paths()
+EXHIBITIONS_IMAGE_META_PATHS = get_current_exhibitions_image_meta_paths()
 
 TARGET_PATHS = [
-    PHASE1_ROOT / "raw/artists_frieze_london_2025.jsonl",
-    PHASE1_ROOT / "raw/artists_liste_2025.jsonl",
-    PHASE1_ROOT / "raw/exhibitions_frieze_london_2025.jsonl",
-    PHASE1_ROOT / "raw/exhibitions_liste_2025.jsonl",
-    PHASE1_ROOT / "derived/artist_works_images_frieze_london.jsonl",
-    PHASE1_ROOT / "derived/artist_works_images_liste.jsonl",
+    ARTISTS_RAW_PATHS["frieze_london"],
+    ARTISTS_RAW_PATHS["liste"],
+    EXHIBITIONS_RAW_PATHS["frieze_london"],
+    EXHIBITIONS_RAW_PATHS["liste"],
+    ARTIST_IMAGE_META_PATHS["frieze_london"],
+    ARTIST_IMAGE_META_PATHS["liste"],
 ]
 OPTIONAL_PATHS = [
-    PHASE1_ROOT / "derived/exhibitions_images_frieze_london_2025.jsonl",
-    PHASE1_ROOT / "derived/exhibitions_images_liste_2025.jsonl",
+    EXHIBITIONS_IMAGE_META_PATHS["frieze_london"],
+    EXHIBITIONS_IMAGE_META_PATHS["liste"],
 ]
 
 
@@ -97,12 +113,12 @@ def run_postflight_gate(
         union = build_required_images_union(
             exhibitions_meta_paths=DEFAULT_EXHIBITIONS_META,
             artist_meta_paths=DEFAULT_ARTIST_META,
-            images_root=DEFAULT_IMAGES_ROOT,
+            images_root=DEFAULT_IMAGE_CACHE_ROOT,
             require_exhibitions=True,
         )
-        missing = compute_missing_required(union["union_required"], images_root=DEFAULT_IMAGES_ROOT)
+        missing = compute_missing_required(union["union_required"], images_root=DEFAULT_IMAGE_CACHE_ROOT)
         missing_count = len(missing)
-        derived_count = count_images_under_root(DEFAULT_IMAGES_ROOT)
+        derived_count = count_images_under_root(DEFAULT_IMAGE_CACHE_ROOT)
         union_count = union["union_required_count"]
 
         checks.append(
@@ -130,7 +146,7 @@ def run_postflight_gate(
         missing = []
         missing_count = 0
         union_count = 0
-        derived_count = count_images_under_root(DEFAULT_IMAGES_ROOT)
+        derived_count = count_images_under_root(DEFAULT_IMAGE_CACHE_ROOT)
 
     status = "PASS" if not hold_reasons else "HOLD"
     payload = {

@@ -17,6 +17,12 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import run_phase1_seed10_artist_image_collect as collect
+from phase2_art_pulse_config import (
+    get_current_raw_paths,
+    get_current_artist_image_meta_paths,
+    get_artist_image_cache_dir,
+    get_image_r2_key,
+)
 from tools.formal_postflight_gate import run_postflight_gate
 from tools.formal_preflight_gate import run_preflight_gate
 from tools.run_task_formalize_03_missing_recovery import evaluate_target, load_targets_like_dryrun
@@ -24,17 +30,14 @@ from tools.run_task_formalize_03_missing_recovery import evaluate_target, load_t
 LOG = ROOT / "data" / "phase1_seed10" / "logs"
 TRIAL_BASE = ROOT / "data" / "phase1_seed10" / "_trial"
 TRASH_BASE = ROOT / "data" / "phase1_seed10" / "_trash"
-FORMAL_RAW = ROOT / "data" / "phase1_seed10" / "raw"
-FORMAL_DERIVED = ROOT / "data" / "phase1_seed10" / "derived"
-FORMAL_IMG = FORMAL_DERIVED / "images" / "artist_works_images"
-
+FORMAL_IMG = ROOT / get_artist_image_cache_dir()
 FORMAL_META = {
-    "frieze_london": FORMAL_DERIVED / "artist_works_images_frieze_london.jsonl",
-    "liste": FORMAL_DERIVED / "artist_works_images_liste.jsonl",
+    fair_slug: ROOT / path
+    for fair_slug, path in get_current_artist_image_meta_paths().items()
 }
 FORMAL_RAW_ARTISTS = {
-    "frieze_london": FORMAL_RAW / "artists_frieze_london_2025.jsonl",
-    "liste": FORMAL_RAW / "artists_liste_2025.jsonl",
+    fair_slug: ROOT / path
+    for fair_slug, path in get_current_raw_paths("artists").items()
 }
 
 OUT_SCOPE_JSON = LOG / "phase1_7_artist_images_repair_scope_task_formalize_03b.json"
@@ -205,7 +208,7 @@ def rewrite_trial_meta_paths_to_formal(meta_path: Path, trial_img_root: Path, fo
             local_paths[i] = str(newp)
             while len(r2_keys) <= i:
                 r2_keys.append("")
-            r2_keys[i] = f"phase1_seed10/derived/images/{rel.as_posix()}"
+            r2_keys[i] = get_image_r2_key(newp)
             changed = True
         row["works_image_local_paths"] = local_paths
         row["works_image_r2_keys"] = r2_keys
@@ -220,10 +223,7 @@ def main() -> int:
     trial_derived = trial_root / "derived"
     trial_logs = trial_root / "logs"
     trial_img = trial_derived / "images" / "artist_works_images"
-    trial_meta = {
-        "frieze_london": trial_derived / "artist_works_images_frieze_london.jsonl",
-        "liste": trial_derived / "artist_works_images_liste.jsonl",
-    }
+    trial_meta = {fair_slug: trial_derived / src.name for fair_slug, src in FORMAL_META.items()}
     trial_raw.mkdir(parents=True, exist_ok=True)
     trial_derived.mkdir(parents=True, exist_ok=True)
     trial_logs.mkdir(parents=True, exist_ok=True)

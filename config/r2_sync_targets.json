@@ -48,22 +48,212 @@
         }
       ]
     },
+    "raw_current_primary": {
+      "description": "Canonical current lane for raw seed10 artifacts.",
+      "enabled_by_default": true,
+      "prune_allowed": true,
+      "targets": [
+        {
+          "local_root": "data/current/raw",
+          "r2_prefix": "data/current/raw",
+          "include_globs": [
+            "**/*"
+          ],
+          "exclude_globs": []
+        }
+      ]
+    },
+    "images_metadata_current": {
+      "description": "Canonical current lane for image metadata artifacts.",
+      "enabled_by_default": true,
+      "prune_allowed": true,
+      "targets": [
+        {
+          "local_root": "data/current/images/metadata",
+          "r2_prefix": "data/current/images/metadata",
+          "include_globs": [
+            "**/*"
+          ],
+          "exclude_globs": []
+        }
+      ]
+    },
+    "images_cache_current": {
+      "description": "Canonical current lane for image cache artifacts.",
+      "enabled_by_default": true,
+      "prune_allowed": true,
+      "targets": [
+        {
+          "local_root": "data/current/images/cache",
+          "r2_prefix": "data/current/images/cache",
+          "include_globs": [
+            "**/*"
+          ],
+          "exclude_globs": []
+        }
+      ]
+    },
+    "artists_vector_current": {
+      "description": "Canonical current lane for artists vector artifacts.",
+      "enabled_by_default": true,
+      "prune_allowed": true,
+      "targets": [
+        {
+          "local_root": "data/current/vector/artists",
+          "r2_prefix": "data/current/vector/artists",
+          "include_globs": [
+            "**/*"
+          ],
+          "exclude_globs": []
+        }
+      ]
+    },
     "phase1_seed10_formal": {
-      "description": "Legacy seed10 lane (fallback assets; not default primary target).",
+      "description": "Legacy seed10 lane excluding current cache family (fallback assets; not default primary target).",
       "enabled_by_default": false,
       "prune_allowed": false,
       "targets": [
         {
-          "local_root": "data/phase1_seed10/raw",
+          "local_root": "data/phase1_seed10/derived",
+          "r2_prefix": "phase1_seed10/derived",
+          "include_globs": [
+            "**/*"
+          ],
+          "exclude_globs": [
+            "images/**"
+          ]
+        }
+      ]
+    },
+    "phase1_seed10_legacy_images_prune": {
+      "description": "Prune-only legacy remote residue for old seed10 image cache structure.",
+      "enabled_by_default": false,
+      "prune_allowed": true,
+      "targets": [
+        {
+          "local_root": "data/phase1_seed10/derived",
+          "r2_prefix": "phase1_seed10/derived",
+          "include_globs": [
+            "images/**"
+          ],
+          "exclude_globs": []
+        }
+      ]
+    },
+    "phase1_seed10_legacy_image_metadata_prune": {
+      "description": "Prune-only legacy remote residue for old seed10 image metadata root files.",
+      "enabled_by_default": false,
+      "prune_allowed": true,
+      "targets": [
+        {
+          "local_root": "data/phase1_seed10/derived",
+          "r2_prefix": "phase1_seed10/derived",
+          "include_globs": [
+            "artist_works_images_*.jsonl",
+            "exhibitions_images_*.jsonl"
+          ],
+          "exclude_globs": []
+        }
+      ]
+    },
+    "phase1_seed10_legacy_vector_prune": {
+      "description": "Prune-only legacy remote residue for old seed10 vector artifacts.",
+      "enabled_by_default": false,
+      "prune_allowed": true,
+      "targets": [
+        {
+          "local_root": "data/phase1_seed10/derived",
+          "r2_prefix": "phase1_seed10/derived",
+          "include_globs": [
+            "vector/**"
+          ],
+          "exclude_globs": []
+        }
+      ]
+    },
+    "phase1_seed10_legacy_request_prune": {
+      "description": "Prune-only legacy remote residue for old seed10 request artifacts.",
+      "enabled_by_default": false,
+      "prune_allowed": true,
+      "targets": [
+        {
+          "local_root": "data/phase1_seed10/derived",
+          "r2_prefix": "phase1_seed10/derived",
+          "include_globs": [
+            "artists_enrichment_requests_*.jsonl"
+          ],
+          "exclude_globs": []
+        }
+      ]
+    },
+    "phase1_seed10_source_legacy_prune": {
+      "description": "Prune-only legacy remote residue for old seed10 source prefix duplicated by current raw.",
+      "enabled_by_default": false,
+      "prune_allowed": true,
+      "targets": [
+        {
+          "local_root": "phase1_seed10/source",
           "r2_prefix": "phase1_seed10/source",
           "include_globs": [
             "**/*"
           ],
           "exclude_globs": []
-        },
+        }
+      ]
+    },
+    "phase1_seed10_derived_manifest_legacy_prune": {
+      "description": "Prune-only legacy remote residue for old seed10 artifact manifest prefix.",
+      "enabled_by_default": false,
+      "prune_allowed": true,
+      "targets": [
         {
-          "local_root": "data/phase1_seed10/derived",
+          "local_root": "phase1_seed10/derived",
           "r2_prefix": "phase1_seed10/derived",
+          "include_globs": [
+            "phase1_seed10_artifact_manifest.json"
+          ],
+          "exclude_globs": []
+        }
+      ]
+    },
+    "tarutani_legacy_vectors_prune": {
+      "description": "Prune-only legacy remote residue for old Tarutani vector prefix.",
+      "enabled_by_default": false,
+      "prune_allowed": true,
+      "targets": [
+        {
+          "local_root": "tarutani/vectors",
+          "r2_prefix": "tarutani/vectors",
+          "include_globs": [
+            "**/*"
+          ],
+          "exclude_globs": []
+        }
+      ]
+    },
+    "tarutani_legacy_logs_prune": {
+      "description": "Prune-only legacy remote residue for old Tarutani logs prefix.",
+      "enabled_by_default": false,
+      "prune_allowed": true,
+      "targets": [
+        {
+          "local_root": "tarutani/logs",
+          "r2_prefix": "tarutani/logs",
+          "include_globs": [
+            "**/*"
+          ],
+          "exclude_globs": []
+        }
+      ]
+    },
+    "tarutani_legacy_derived_prune": {
+      "description": "Prune-only legacy remote residue for old Tarutani derived prefix.",
+      "enabled_by_default": false,
+      "prune_allowed": true,
+      "targets": [
+        {
+          "local_root": "tarutani/derived",
+          "r2_prefix": "tarutani/derived",
           "include_globs": [
             "**/*"
           ],

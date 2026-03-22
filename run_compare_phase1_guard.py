@@ -5,10 +5,20 @@ import argparse
 import json
 import re
 import sys
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from phase1_ledger_contract import (
+    FAILED_FETCH_REQUIRED_FIELDS,
+    GUARD_BASE_REQUIRED_SUMMARY_KEYS,
+    LedgerLoadResult,
+    get_phase1_logs_dir,
+    load_guard_ledger,
+    resolve_guard_default_failed_fetches_path,
+    resolve_guard_default_run_summary_path,
+    resolve_guard_default_visited_pages_path,
+    validate_failed_fetch_schema,
+)
 from phase1_guard_common import (
     DEFAULT_CATEGORY_PROFILE_CONFIG_PATH,
     DEFAULT_GUARD_CATEGORY,
@@ -21,43 +31,11 @@ from phase1_guard_common import (
     write_summary_json,
 )
 
-DEFAULT_LOGS_DIR = Path("data/phase1_seed10/logs")
-DEFAULT_RUN_SUMMARY_TEMPLATE = "run_summary_seed10_{target_year}.json"
-DEFAULT_VISITED_TEMPLATE = "visited_pages_seed10_{target_year}.json"
-DEFAULT_FAILED_TEMPLATE = "failed_fetches_seed10_{target_year}.json"
+DEFAULT_LOGS_DIR = get_phase1_logs_dir()
 OUTPUT_TEMPLATE = "phase1_guard_summary_{target_year}_{timestamp}.json"
 GENERATED_BY = "run_compare_phase1_guard.py"
 
-BASE_REQUIRED_SUMMARY_KEYS = {
-    "target_year",
-    "records_saved_total",
-    "existing_records_total",
-    "new_records_saved_total",
-    "records_total_after_run",
-    "records_saved_by_fair",
-    "failed_fetches_new_in_run",
-    "failed_fetches_total_ledger",
-    "visited_pages_total_ledger",
-    "skipped_total",
-    "skipped_by_reason",
-    "output_files",
-    "failed_fetches_path",
-    "visited_pages_path",
-}
-
 MANIFEST_MIN_KEYS = {"target_year", "generated_at", "files"}
-FAILED_FETCH_REQUIRED_FIELDS = {"raw_url", "reason_code", "attempt_count_or_retry_count", "last_attempt_at_or_last_failed_at"}
-
-
-@dataclass
-class LedgerLoadResult:
-    path: Path
-    exists: bool
-    format: str
-    entries: dict[str, dict[str, Any]]
-    load_error: str | None
-    key_hash_mismatch_count: int
-    missing_hash_field_count: int
 
 
 def parse_args() -> argparse.Namespace:
@@ -129,98 +107,6 @@ def load_json_object(path: Path) -> tuple[dict[str, Any] | None, str | None]:
     if not isinstance(obj, dict):
         return None, f"INVALID_ROOT_TYPE:{type(obj).__name__}"
     return obj, None
-
-
-def normalize_entry_key(entry: dict[str, Any], hash_field: str) -> str | None:
-    value = entry.get(hash_field)
-    return value if isinstance(value, str) and value else None
-
-
-def load_ledger(path: Path, hash_field: str) -> LedgerLoadResult:
-    if not path.exists():
-        return LedgerLoadResult(
-            path=path,
-            exists=False,
-            format="missing",
-            entries={},
-            load_error="MISSING_FILE",
-            key_hash_mismatch_count=0,
-            missing_hash_field_count=0,
-        )
-
-    try:
-        raw = json.loads(path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError as exc:
-        return LedgerLoadResult(
-            path=path,
-            exists=True,
-            format="unknown",
-            entries={},
-            load_error=f"JSON_DECODE_ERROR: {exc}",
-            key_hash_mismatch_count=0,
-            missing_hash_field_count=0,
-        )
-    except OSError as exc:
-        return LedgerLoadResult(
-            path=path,
-            exists=True,
-            format="unknown",
-            entries={},
-            load_error=f"OS_ERROR: {exc}",
-            key_hash_mismatch_count=0,
-            missing_hash_field_count=0,
-        )
-
-    entries: dict[str, dict[str, Any]] = {}
-    key_hash_mismatch_count = 0
-    missing_hash_field_count = 0
-
-    if isinstance(raw, dict):
-        ledger_format = "dict"
-        for key, value in raw.items():
-            if not isinstance(value, dict):
-                missing_hash_field_count += 1
-                continue
-            entry_hash = normalize_entry_key(value, hash_field)
-            if not entry_hash:
-                missing_hash_field_count += 1
-                continue
-            if entry_hash != key:
-                key_hash_mismatch_count += 1
-            entries[key] = value
-    elif isinstance(raw, list):
-        ledger_format = "list"
-        for idx, value in enumerate(raw):
-            if not isinstance(value, dict):
-                missing_hash_field_count += 1
-                continue
-            entry_hash = normalize_entry_key(value, hash_field)
-            if not entry_hash:
-                missing_hash_field_count += 1
-                continue
-            synthetic_key = f"{entry_hash}:{idx}"
-            entries[synthetic_key] = value
-    else:
-        ledger_format = "unknown"
-        return LedgerLoadResult(
-            path=path,
-            exists=True,
-            format=ledger_format,
-            entries={},
-            load_error=f"INVALID_ROOT_TYPE:{type(raw).__name__}",
-            key_hash_mismatch_count=0,
-            missing_hash_field_count=0,
-        )
-
-    return LedgerLoadResult(
-        path=path,
-        exists=True,
-        format=ledger_format,
-        entries=entries,
-        load_error=None,
-        key_hash_mismatch_count=key_hash_mismatch_count,
-        missing_hash_field_count=missing_hash_field_count,
-    )
 
 
 def count_jsonl_records(path: Path) -> tuple[int | None, str | None]:
@@ -309,7 +195,7 @@ def resolve_required_summary_keys(category_profile: dict[str, Any]) -> set[str]:
         if explicit_required:
             return explicit_required
 
-    required = set(BASE_REQUIRED_SUMMARY_KEYS)
+    required = set(GUARD_BASE_REQUIRED_SUMMARY_KEYS)
     drop_keys_raw = category_profile.get("required_summary_keys_drop")
     if isinstance(drop_keys_raw, list):
         for key in drop_keys_raw:
@@ -321,36 +207,6 @@ def resolve_required_summary_keys(category_profile: dict[str, Any]) -> set[str]:
             if isinstance(key, str) and key:
                 required.add(key)
     return required
-
-
-def pick_latest_by_mtime(paths: list[Path]) -> Path | None:
-    if not paths:
-        return None
-    return max(paths, key=lambda p: p.stat().st_mtime if p.exists() else 0.0)
-
-
-def resolve_default_run_summary_path(logs_dir: Path, target_year: int) -> Path:
-    legacy = logs_dir / DEFAULT_RUN_SUMMARY_TEMPLATE.format(target_year=target_year)
-    if legacy.exists():
-        return legacy
-    generic_candidates = sorted(logs_dir.glob(f"run_summary_*_{target_year}.json"))
-    latest = pick_latest_by_mtime(generic_candidates)
-    return latest if latest is not None else legacy
-
-
-def resolve_default_ledger_path(
-    logs_dir: Path,
-    target_year: int,
-    *,
-    legacy_template: str,
-    glob_pattern: str,
-) -> Path:
-    legacy = logs_dir / legacy_template.format(target_year=target_year)
-    if legacy.exists():
-        return legacy
-    candidates = sorted(logs_dir.glob(glob_pattern.format(target_year=target_year)))
-    latest = pick_latest_by_mtime(candidates)
-    return latest if latest is not None else legacy
 
 
 def infer_output_files_from_raw(logs_dir: Path, target_year: int) -> tuple[dict[str, Path], str]:
@@ -441,42 +297,6 @@ def load_manifest_check(path: Path | None, target_year: int) -> dict[str, Any]:
     return result
 
 
-def validate_failed_fetch_schema(entries: dict[str, dict[str, Any]]) -> dict[str, Any]:
-    missing_counts = {
-        "raw_url": 0,
-        "reason_code": 0,
-        "attempt_count_or_retry_count": 0,
-        "last_attempt_at_or_last_failed_at": 0,
-    }
-
-    for entry in entries.values():
-        raw_url = entry.get("raw_url")
-        reason_code = entry.get("reason_code")
-        attempt_count = entry.get("attempt_count")
-        retry_count = entry.get("retry_count")
-        last_attempt = entry.get("last_attempt_at")
-        last_failed = entry.get("last_failed_at")
-
-        if not (isinstance(raw_url, str) and raw_url):
-            missing_counts["raw_url"] += 1
-        if not (isinstance(reason_code, str) and reason_code):
-            missing_counts["reason_code"] += 1
-        attempt_valid = safe_int(attempt_count)
-        retry_valid = safe_int(retry_count)
-        if attempt_valid is None and retry_valid is None:
-            missing_counts["attempt_count_or_retry_count"] += 1
-        if not ((isinstance(last_attempt, str) and last_attempt) or (isinstance(last_failed, str) and last_failed)):
-            missing_counts["last_attempt_at_or_last_failed_at"] += 1
-
-    passed = all(value == 0 for value in missing_counts.values())
-    return {
-        "passed": passed,
-        "entry_count": len(entries),
-        "required_fields": sorted(FAILED_FETCH_REQUIRED_FIELDS),
-        "missing_counts": missing_counts,
-    }
-
-
 def main() -> int:
     args = parse_args()
     started_at = utc_now_iso()
@@ -548,7 +368,7 @@ def main() -> int:
     run_summary_path = (
         Path(run_summary_path_arg)
         if run_summary_path_arg
-        else resolve_default_run_summary_path(logs_dir, args.target_year)
+        else resolve_guard_default_run_summary_path(logs_dir, args.target_year)
     )
     output_path = (
         Path(output_summary_path_arg)
@@ -631,20 +451,10 @@ def main() -> int:
     # Input paths (summary values can be overridden by CLI args).
     visited_path = resolve_path(args.visited_path, summary_obj.get("visited_pages_path"))
     if visited_path is None:
-        visited_path = resolve_default_ledger_path(
-            logs_dir,
-            args.target_year,
-            legacy_template=DEFAULT_VISITED_TEMPLATE,
-            glob_pattern="visited_pages_*_{target_year}.json",
-        )
+        visited_path = resolve_guard_default_visited_pages_path(logs_dir, args.target_year)
     failed_path = resolve_path(args.failed_path, summary_obj.get("failed_fetches_path"))
     if failed_path is None:
-        failed_path = resolve_default_ledger_path(
-            logs_dir,
-            args.target_year,
-            legacy_template=DEFAULT_FAILED_TEMPLATE,
-            glob_pattern="failed_fetches_*_{target_year}.json",
-        )
+        failed_path = resolve_guard_default_failed_fetches_path(logs_dir, args.target_year)
 
     output_files = summary_obj.get("output_files")
     output_file_paths: dict[str, Path] = {}
@@ -714,7 +524,7 @@ def main() -> int:
             missing_hash_field_count=0,
         )
     else:
-        visited_ledger = load_ledger(visited_path, "page_url_hash")
+        visited_ledger = load_guard_ledger(visited_path, hash_field="page_url_hash")
         if visited_ledger.load_error:
             mismatch_fields.append("visited_ledger_load_error")
 
@@ -730,7 +540,7 @@ def main() -> int:
             missing_hash_field_count=0,
         )
     else:
-        failed_ledger = load_ledger(failed_path, "fail_hash")
+        failed_ledger = load_guard_ledger(failed_path, hash_field="fail_hash")
         if failed_ledger.load_error:
             mismatch_fields.append("failed_ledger_load_error")
 

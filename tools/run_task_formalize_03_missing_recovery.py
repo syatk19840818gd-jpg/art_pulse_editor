@@ -15,6 +15,13 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 import run_phase1_seed10_artist_image_collect as collect
+from phase1_ledger_contract import (
+    get_phase1_artist_master_global_path,
+    get_phase1_logs_dir,
+)
+from phase2_art_pulse_config import (
+    resolve_image_local_path,
+)
 
 try:
     import run_phase1_seed10_r2_sync as r2_sync
@@ -22,8 +29,7 @@ except Exception:  # pragma: no cover
     r2_sync = None
 
 
-LOG_DIR = PROJECT_ROOT / "data" / "phase1_seed10" / "logs"
-DERIVED_IMAGES_ROOT = PROJECT_ROOT / "data" / "phase1_seed10" / "derived" / "images"
+LOG_DIR = (PROJECT_ROOT / get_phase1_logs_dir()).resolve()
 TRIAL_ROOT = PROJECT_ROOT / "data" / "phase1_seed10" / "_trial"
 TRASH_ROOT = PROJECT_ROOT / "data" / "phase1_seed10" / "_trash"
 
@@ -102,7 +108,7 @@ def load_targets_like_dryrun() -> list[dict[str, Any]]:
                 filtered.append(row)
         targets = filtered
 
-    artist_master_global = collect.load_artist_master_global(collect.ARTIST_MASTER_GLOBAL_PATH)
+    artist_master_global = collect.load_artist_master_global(get_phase1_artist_master_global_path())
     collect.merge_artist_master_from_works_meta(artist_master_global)
 
     filtered_targets: list[dict[str, Any]] = []
@@ -176,7 +182,7 @@ def evaluate_target(target: dict[str, Any], rows_by_fair: dict[str, list[dict[st
     for i, h in enumerate(meta_hashes):
         row = meta_by_hash.get(h, {})
         local_text = str(row.get("local_path") or "")
-        local_path = collect.resolve_local_cache_path(local_text)
+        local_path = resolve_image_local_path(local_text)
         reason = "OK"
         cached_detail = ""
         if not local_text:

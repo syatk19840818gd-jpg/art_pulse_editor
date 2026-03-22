@@ -7,7 +7,6 @@ import hashlib
 import json
 import os
 import re
-import subprocess
 import sys
 from collections import Counter, defaultdict
 from dataclasses import dataclass
@@ -22,7 +21,30 @@ from tools import skip_policy
 from enrichment_requests_runtime import (
     build_artists_enrichment_requests as build_runtime_artists_enrichment_requests,
 )
-from phase2_art_pulse_config import get_enrichment_runtime_requests_path
+from phase1_ledger_contract import (
+    build_artist_master_entry,
+    clear_failed_fetch,
+    get_phase1_artist_master_global_path,
+    get_phase1_failed_fetches_ledger_path,
+    get_phase1_logs_dir,
+    get_phase1_run_summary_path,
+    get_phase1_visited_pages_ledger_path,
+    load_artist_master_global,
+    load_phase1_failed_fetches_ledger,
+    load_visited_pages_ledger,
+    save_artist_master_global,
+    save_failed_fetches_ledger,
+    save_visited_pages_ledger,
+    update_artist_master_summary,
+    update_failed_fetches_summary,
+    update_visited_pages_summary,
+)
+from phase2_art_pulse_config import (
+    PHASE1_SEED10_ROOT,
+    get_current_raw_dir,
+    get_current_raw_path,
+    get_enrichment_runtime_requests_path,
+)
 from phase1_artist_link_utils import (
     ARTIST_LINK_KEYWORDS,
     build_artist_name_en_from_source_url as shared_build_artist_name_en_from_source_url,
@@ -47,7 +69,6 @@ from phase1_exhibitions_text_utils import (
     normalize_sources,
     should_include_target_year_page,
 )
-from r2_auto_sync import auto_sync_after_job, format_auto_sync_brief
 try:
     from bs4 import BeautifulSoup
 except ModuleNotFoundError:  # pragma: no cover - environment fallback
@@ -107,11 +128,8 @@ CSV_PATHS = {
 }
 SKIPPED_GALLERIES_REGISTRY_PATH = Path("data/gallery_lists/skipped_galleries_registry.csv")
 
-OUTPUT_ROOT = Path("data/phase1_seed10")
-RAW_DIR = OUTPUT_ROOT / "raw"
-LOG_DIR = OUTPUT_ROOT / "logs"
-DERIVED_DIR = OUTPUT_ROOT / "derived"
-ARTIST_MASTER_GLOBAL_PATH = LOG_DIR / "artist_master_global.json"
+OUTPUT_ROOT = PHASE1_SEED10_ROOT
+RAW_DIR = get_current_raw_dir()
 MANUAL_SEED_TEXT_MARKERS = (
     "Artist page seed for",
 )
@@ -968,46 +986,6 @@ def _should_skip_artist_master_duplicate(
     return True, reason
 
 
-def _build_artist_master_entry(
-    *,
-    identity_key: str,
-    artist_name_key: str,
-    artist_name_en: str,
-    source_url: str,
-    fair_slug: str,
-    gallery_name_en: str,
-    seen_at: str,
-) -> dict[str, Any]:
-    return {
-        "artist_identity_key": identity_key,
-        "artist_name_key": str(artist_name_key or "").strip(),
-        "artist_name_en": str(artist_name_en or "").strip(),
-        "first_source_url": str(source_url or "").strip(),
-        "first_fair_slug": str(fair_slug or "").strip(),
-        "first_gallery_name_en": str(gallery_name_en or "").strip(),
-        "first_seen_at": str(seen_at or "").strip(),
-        "updated_at": str(seen_at or "").strip(),
-    }
-
-
-def load_artist_master_global(path: Path) -> dict[str, dict[str, Any]]:
-    payload = read_json(path)
-    if not isinstance(payload, dict):
-        return {}
-    records = payload.get("records")
-    if not isinstance(records, list):
-        return {}
-    out: dict[str, dict[str, Any]] = {}
-    for item in records:
-        if not isinstance(item, dict):
-            continue
-        key = str(item.get("artist_identity_key") or "").strip().lower()
-        if not key:
-            continue
-        out[key] = item
-    return out
-
-
 def merge_artist_master_from_artists_raw(
     master: dict[str, dict[str, Any]],
     *,
@@ -1027,7 +1005,7 @@ def merge_artist_master_from_artists_raw(
             identity_key = build_artist_identity_key(artist_name_key, artist_name_en, source_url)
             if identity_key in master:
                 continue
-            master[identity_key] = _build_artist_master_entry(
+            master[identity_key] = build_artist_master_entry(
                 identity_key=identity_key,
                 artist_name_key=artist_name_key,
                 artist_name_en=artist_name_en,
@@ -1036,16 +1014,6 @@ def merge_artist_master_from_artists_raw(
                 gallery_name_en=str(row.get("gallery_name_en") or ""),
                 seen_at=str(row.get("extracted_at") or ""),
             )
-
-
-def write_artist_master_global(path: Path, master: dict[str, dict[str, Any]]) -> None:
-    payload = {
-        "schema_name": "artist_master_global",
-        "schema_version": "v1",
-        "generated_at": utc_now_iso(),
-        "records": sorted(master.values(), key=lambda x: str(x.get("artist_identity_key") or "")),
-    }
-    write_json(path, payload)
 
 
 def append_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
@@ -1148,40 +1116,12 @@ def append_source_to_existing_record(
 
 
 def run_startup_manifest_min_sync() -> dict[str, Any]:
-    result: dict[str, Any] = {
-        "enabled": STARTUP_MIN_SYNC_ENABLED,
-        "status": "disabled",
+    return {
+        "enabled": False,
+        "status": "manual_sync_only_current_entry_run_r2_sync",
+        "entrypoint": "run_r2_sync.py",
         "steps": [],
     }
-    if not STARTUP_MIN_SYNC_ENABLED:
-        return result
-
-    py_exec = sys.executable
-    dry_cmd = [py_exec, "run_phase1_seed10_r2_sync.py", "--scope", "raw", "--dry-run"]
-    apply_cmd = [py_exec, "run_phase1_seed10_r2_sync.py", "--scope", "raw", "--require-dry-run-log"]
-    for name, cmd in (("dry_run", dry_cmd), ("apply", apply_cmd)):
-        proc = subprocess.run(
-            cmd,
-            check=False,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-        )
-        step = {
-            "name": name,
-            "command": cmd,
-            "exit_code": int(proc.returncode),
-            "stdout_tail": [line for line in (proc.stdout or "").splitlines() if line.strip()][-20:],
-            "stderr_tail": [line for line in (proc.stderr or "").splitlines() if line.strip()][-20:],
-        }
-        result["steps"].append(step)
-        if proc.returncode != 0:
-            result["status"] = f"failed_{name}"
-            return result
-
-    result["status"] = "ok"
-    return result
 
 
 def is_manual_seed_row(row: dict[str, Any]) -> bool:
@@ -1214,67 +1154,6 @@ def build_artists_enrichment_requests(
     )
 
 
-def load_visited_pages_ledger(path: Path) -> dict[str, dict[str, Any]]:
-    raw = read_json(path)
-    ledger: dict[str, dict[str, Any]] = {}
-    entries: list[dict[str, Any]]
-    if isinstance(raw, list):
-        entries = [x for x in raw if isinstance(x, dict)]
-    elif isinstance(raw, dict):
-        entries = [x for x in raw.values() if isinstance(x, dict)]
-    else:
-        entries = []
-
-    for entry in entries:
-        url = entry.get("url") or entry.get("raw_url")
-        page_url_hash = entry.get("page_url_hash")
-        if not isinstance(page_url_hash, str) or not page_url_hash:
-            if isinstance(url, str) and url:
-                page_url_hash = compute_page_url_hash(url)
-            else:
-                continue
-        normalized = dict(entry)
-        normalized["page_url_hash"] = page_url_hash
-        ledger[page_url_hash] = normalized
-    return ledger
-
-
-def load_failed_fetches_ledger(path: Path) -> dict[str, dict[str, Any]]:
-    raw = read_json(path)
-    ledger: dict[str, dict[str, Any]] = {}
-    entries: list[dict[str, Any]]
-    if isinstance(raw, list):
-        entries = [x for x in raw if isinstance(x, dict)]
-    elif isinstance(raw, dict):
-        entries = [x for x in raw.values() if isinstance(x, dict)]
-    else:
-        entries = []
-
-    for entry in entries:
-        raw_url = entry.get("raw_url")
-        fail_hash = entry.get("fail_hash")
-        if not isinstance(fail_hash, str) or not fail_hash:
-            if isinstance(raw_url, str) and raw_url:
-                fail_hash = compute_page_url_hash(raw_url)
-            else:
-                continue
-        normalized = dict(entry)
-        normalized["fail_hash"] = fail_hash
-        if "attempt_count" not in normalized and "retry_count" in normalized:
-            normalized["attempt_count"] = normalized.get("retry_count")
-        if "last_attempt_at" not in normalized and "last_failed_at" in normalized:
-            normalized["last_attempt_at"] = normalized.get("last_failed_at")
-        reason_code = str(normalized.get("reason_code") or "")
-        if reason_code in {"LIST_FETCH_FAILED", "PAGE_FETCH_FAILED", "REQUEST_ERROR"}:
-            status_code = normalized.get("http_status")
-            if isinstance(status_code, int):
-                normalized["reason_code"] = reason_code_from_status(status_code)
-            else:
-                normalized["reason_code"] = reason_code_from_error_text(str(normalized.get("last_error") or ""))
-        ledger[fail_hash] = normalized
-    return ledger
-
-
 def parse_iso_utc(value: str | None) -> datetime | None:
     if not value:
         return None
@@ -1303,11 +1182,6 @@ def should_skip_failed_url(entry: dict[str, Any], now: datetime) -> tuple[bool, 
     if elapsed < FAILURE_RETRY_COOLDOWN_SECONDS:
         return True, "KNOWN_FAILED_URL_COOLDOWN"
     return False, ""
-
-
-def clear_failed_fetch(ledger: dict[str, dict[str, Any]], raw_url: str) -> None:
-    fail_hash = compute_page_url_hash(raw_url)
-    ledger.pop(fail_hash, None)
 
 
 def get_ledger_entry_with_canonical(
@@ -1450,14 +1324,12 @@ def main() -> int:
             trial_root=args.trial_root,
             run_id=str(args.run_id or ""),
         )
-    raw_dir = output_root / "raw"
-    log_dir = output_root / "logs"
-    derived_dir = output_root / "derived"
-    artist_master_global_path = log_dir / "artist_master_global.json"
+    raw_dir = get_current_raw_dir(output_root) if policy_mode == skip_policy.REBUILD_MODE else get_current_raw_dir()
+    log_dir = get_phase1_logs_dir(output_root)
+    artist_master_global_path = get_phase1_artist_master_global_path(logs_dir=log_dir)
 
     raw_dir.mkdir(parents=True, exist_ok=True)
     log_dir.mkdir(parents=True, exist_ok=True)
-    derived_dir.mkdir(parents=True, exist_ok=True)
 
     started_at = utc_now_iso()
     categories = [RAG_CATEGORY] + ([RAG_CATEGORY_ARTISTS] if include_artists_text else [])
@@ -1502,14 +1374,24 @@ def main() -> int:
         )
 
     output_paths_by_fair = {
-        fair_slug: raw_dir / f"exhibitions_{fair_slug}_{TARGET_YEAR}.jsonl"
+        fair_slug: get_current_raw_path(
+            "exhibitions",
+            fair_slug,
+            TARGET_YEAR,
+            root=output_root if policy_mode == skip_policy.REBUILD_MODE else None,
+        )
         for fair_slug in CSV_PATHS
     }
-    visited_pages_path = log_dir / f"visited_pages_seed10_{TARGET_YEAR}.json"
-    failed_fetches_path = log_dir / f"failed_fetches_seed10_{TARGET_YEAR}.json"
+    visited_pages_path = get_phase1_visited_pages_ledger_path("exhibitions", TARGET_YEAR, logs_dir=log_dir)
+    failed_fetches_path = get_phase1_failed_fetches_ledger_path("exhibitions", TARGET_YEAR, logs_dir=log_dir)
 
-    visited_pages_ledger = load_visited_pages_ledger(visited_pages_path)
-    failed_fetches_ledger = load_failed_fetches_ledger(failed_fetches_path)
+    visited_pages_ledger = load_visited_pages_ledger(visited_pages_path, hash_fn=compute_page_url_hash)
+    failed_fetches_ledger = load_phase1_failed_fetches_ledger(
+        failed_fetches_path,
+        hash_fn=compute_page_url_hash,
+        reason_code_from_status=reason_code_from_status,
+        reason_code_from_error_text=reason_code_from_error_text,
+    )
     existing_exhibitions_rows_by_fair: dict[str, list[dict[str, Any]]] = {}
     existing_exhibitions_by_hash_by_fair: dict[str, dict[str, dict[str, Any]]] = {}
     existing_exhibitions_by_source_by_fair: dict[str, dict[str, dict[str, Any]]] = {}
@@ -1544,16 +1426,26 @@ def main() -> int:
 
     # artists_text は既存Exhibitions台帳を壊さないため、専用台帳を使う（最小差分）。
     artists_output_paths_by_fair = {
-        fair_slug: raw_dir / f"artists_{fair_slug}_{TARGET_YEAR}.jsonl"
+        fair_slug: get_current_raw_path(
+            "artists",
+            fair_slug,
+            TARGET_YEAR,
+            root=output_root if policy_mode == skip_policy.REBUILD_MODE else None,
+        )
         for fair_slug in CSV_PATHS
     }
-    artists_visited_pages_path = log_dir / f"visited_pages_artists_seed10_{TARGET_YEAR}.json"
-    artists_failed_fetches_path = log_dir / f"failed_fetches_artists_seed10_{TARGET_YEAR}.json"
+    artists_visited_pages_path = get_phase1_visited_pages_ledger_path("artists", TARGET_YEAR, logs_dir=log_dir)
+    artists_failed_fetches_path = get_phase1_failed_fetches_ledger_path("artists", TARGET_YEAR, logs_dir=log_dir)
     artists_visited_ledger_exists_at_start = artists_visited_pages_path.exists()
     artists_failed_ledger_exists_at_start = artists_failed_fetches_path.exists()
     artist_master_global_exists_at_start = artist_master_global_path.exists()
-    artists_visited_pages_ledger = load_visited_pages_ledger(artists_visited_pages_path)
-    artists_failed_fetches_ledger = load_failed_fetches_ledger(artists_failed_fetches_path)
+    artists_visited_pages_ledger = load_visited_pages_ledger(artists_visited_pages_path, hash_fn=compute_page_url_hash)
+    artists_failed_fetches_ledger = load_phase1_failed_fetches_ledger(
+        artists_failed_fetches_path,
+        hash_fn=compute_page_url_hash,
+        reason_code_from_status=reason_code_from_status,
+        reason_code_from_error_text=reason_code_from_error_text,
+    )
     artists_existing_text_hashes_by_fair = {
         fair_slug: load_existing_text_hashes(output_path)
         for fair_slug, output_path in artists_output_paths_by_fair.items()
@@ -1671,7 +1563,7 @@ def main() -> int:
                 reason_code=list_reason_code,
             )
             continue
-        clear_failed_fetch(failed_fetches_ledger, gallery.exhibitions_url)
+        clear_failed_fetch(failed_fetches_ledger, gallery.exhibitions_url, hash_fn=compute_page_url_hash)
 
         list_page_url = list_result["final_url"]
         candidate_urls = extract_candidate_exhibition_urls(
@@ -1747,8 +1639,8 @@ def main() -> int:
                 continue
 
             source_url = canonicalize_exhibition_url(page_result["final_url"] or page_url)
-            clear_failed_fetch(failed_fetches_ledger, page_url)
-            clear_failed_fetch(failed_fetches_ledger, source_url)
+            clear_failed_fetch(failed_fetches_ledger, page_url, hash_fn=compute_page_url_hash)
+            clear_failed_fetch(failed_fetches_ledger, source_url, hash_fn=compute_page_url_hash)
 
             if _is_listing_like_exhibition_url(source_url) and depth < (MAX_EXHIBITION_LISTING_EXPANSION_DEPTH - 1):
                 expanded_urls = extract_candidate_exhibition_urls(
@@ -1994,7 +1886,7 @@ def main() -> int:
                     category=RAG_CATEGORY_ARTISTS,
                 )
                 continue
-            clear_failed_fetch(artists_failed_fetches_ledger, artists_list_url)
+            clear_failed_fetch(artists_failed_fetches_ledger, artists_list_url, hash_fn=compute_page_url_hash)
 
             list_page_url = list_result["final_url"]
             candidate_urls = extract_candidate_artist_urls(
@@ -2150,10 +2042,10 @@ def main() -> int:
                 artist_name_en = build_artist_name_en_from_source_url(source_url)
                 artist_name_key = build_artist_name_key(artist_name_en, source_url)
                 artist_identity_key = build_artist_identity_key(artist_name_key, artist_name_en, source_url)
-                clear_failed_fetch(artists_failed_fetches_ledger, page_url)
-                clear_failed_fetch(artists_failed_fetches_ledger, canonical_page_url)
-                clear_failed_fetch(artists_failed_fetches_ledger, source_url)
-                clear_failed_fetch(artists_failed_fetches_ledger, canonical_source_url)
+                clear_failed_fetch(artists_failed_fetches_ledger, page_url, hash_fn=compute_page_url_hash)
+                clear_failed_fetch(artists_failed_fetches_ledger, canonical_page_url, hash_fn=compute_page_url_hash)
+                clear_failed_fetch(artists_failed_fetches_ledger, source_url, hash_fn=compute_page_url_hash)
+                clear_failed_fetch(artists_failed_fetches_ledger, canonical_source_url, hash_fn=compute_page_url_hash)
                 text = extract_text(page_result["html"])
                 if not text:
                     artists_failed_fetches_in_run.append(
@@ -2226,7 +2118,7 @@ def main() -> int:
                 artists_records_by_fair[gallery.fair_slug].append(record)
                 existing_master = artist_master_global.get(artist_identity_key)
                 if existing_master is None:
-                    artist_master_global[artist_identity_key] = _build_artist_master_entry(
+                    artist_master_global[artist_identity_key] = build_artist_master_entry(
                         identity_key=artist_identity_key,
                         artist_name_key=artist_name_key,
                         artist_name_en=artist_name_en,
@@ -2270,7 +2162,7 @@ def main() -> int:
             output_path = artists_output_paths_by_fair[fair_slug]
             append_jsonl(output_path, artists_records_by_fair.get(fair_slug, []))
             artists_output_files[fair_slug] = str(output_path)
-        write_artist_master_global(artist_master_global_path, artist_master_global)
+        save_artist_master_global(artist_master_global_path, artist_master_global)
 
     artists_enrichment_requests_path = get_enrichment_runtime_requests_path("artists", TARGET_YEAR)
     artists_enrichment_summary: dict[str, Any] = {
@@ -2290,41 +2182,12 @@ def main() -> int:
         )
 
     # SSOT 4-0-A に合わせ、台帳は hash をキーにした dict で保存する。
-    failed_fetches_for_save = {
-        fail_hash: failed_fetches_ledger[fail_hash]
-        for fail_hash in sorted(failed_fetches_ledger)
-    }
-    visited_pages_for_save = {
-        page_url_hash: visited_pages_ledger[page_url_hash]
-        for page_url_hash in sorted(visited_pages_ledger)
-    }
+    save_failed_fetches_ledger(failed_fetches_path, failed_fetches_ledger)
+    save_visited_pages_ledger(visited_pages_path, visited_pages_ledger)
 
-    write_json(
-        failed_fetches_path,
-        failed_fetches_for_save,
-    )
-    write_json(
-        visited_pages_path,
-        visited_pages_for_save,
-    )
-
-    artists_failed_fetches_for_save = {
-        fail_hash: artists_failed_fetches_ledger[fail_hash]
-        for fail_hash in sorted(artists_failed_fetches_ledger)
-    }
-    artists_visited_pages_for_save = {
-        page_url_hash: artists_visited_pages_ledger[page_url_hash]
-        for page_url_hash in sorted(artists_visited_pages_ledger)
-    }
     if include_artists_text:
-        write_json(
-            artists_failed_fetches_path,
-            artists_failed_fetches_for_save,
-        )
-        write_json(
-            artists_visited_pages_path,
-            artists_visited_pages_for_save,
-        )
+        save_failed_fetches_ledger(artists_failed_fetches_path, artists_failed_fetches_ledger)
+        save_visited_pages_ledger(artists_visited_pages_path, artists_visited_pages_ledger)
 
     completed_at = utc_now_iso()
     existing_records_total = sum(len(existing_text_hashes_by_fair.get(fair_slug, set())) for fair_slug in CSV_PATHS)
@@ -2366,11 +2229,7 @@ def main() -> int:
         "new_records_saved_total": new_records_saved_total,
         "records_total_after_run": records_total_after_run,
         "records_saved_by_fair": {fair_slug: len(records_by_fair.get(fair_slug, [])) for fair_slug in CSV_PATHS},
-        "failed_fetches_new_in_run": len(failed_fetches_in_run),
-        "failed_fetches_total_ledger": len(failed_fetches_ledger),
-        "failed_fetches_reason_counts": dict(Counter(x.get("reason_code", "UNKNOWN") for x in failed_fetches_ledger.values())),
         "exhibitions_feature_counts": dict(exhibitions_feature_counter),
-        "visited_pages_total_ledger": len(visited_pages_ledger),
         "skipped_total": sum(skip_reason_counter.values()),
         "skipped_known_saved_page": skipped_known_saved_page,
         "skipped_out_of_year": skipped_out_of_year,
@@ -2380,8 +2239,6 @@ def main() -> int:
             for fair_slug in CSV_PATHS
         },
         "output_files": output_files,
-        "failed_fetches_path": str(failed_fetches_path),
-        "visited_pages_path": str(visited_pages_path),
         "artists_enabled": include_artists_text,
         "artists_records_saved_total": artists_new_records_saved_total,
         "artists_existing_records_total": artists_existing_records_total,
@@ -2390,12 +2247,6 @@ def main() -> int:
             fair_slug: len(artists_records_by_fair.get(fair_slug, []))
             for fair_slug in CSV_PATHS
         },
-        "artists_failed_fetches_new_in_run": len(artists_failed_fetches_in_run),
-        "artists_failed_fetches_total_ledger": len(artists_failed_fetches_ledger),
-        "artists_failed_fetches_reason_counts": dict(
-            Counter(x.get("reason_code", "UNKNOWN") for x in artists_failed_fetches_ledger.values())
-        ),
-        "artists_visited_pages_total_ledger": len(artists_visited_pages_ledger),
         "artists_skipped_total": sum(artists_skip_reason_counter.values()),
         "artists_skipped_by_reason": dict(artists_skip_reason_counter),
         "artists_list_source_counts": dict(artists_list_source_counter),
@@ -2409,21 +2260,16 @@ def main() -> int:
         ),
         "artists_global_dedupe_scope": "all_fairs_all_galleries",
         "artists_global_dedupe_exhibitions_excluded": True,
-        "artist_master_global_path": str(artist_master_global_path),
         "phase1_7_mode": policy_mode,
         "phase1_7_allow_rebuild": bool(args.allow_rebuild),
         "phase1_7_run_id": str(args.run_id or ""),
         "phase1_7_trial_root": str(output_root),
-        "artist_master_global_record_count": len(artist_master_global),
         "artists_global_dedupe_in_run_seen_count": len(artists_seen_identity_keys_in_run),
         "artists_existing_text_hashes_by_fair": {
             fair_slug: len(artists_existing_text_hashes_by_fair.get(fair_slug, set()))
             for fair_slug in CSV_PATHS
         },
         "artists_output_files": artists_output_files,
-        "artists_failed_fetches_path": str(artists_failed_fetches_path) if include_artists_text else "",
-        "artists_visited_pages_path": str(artists_visited_pages_path) if include_artists_text else "",
-        "artist_master_global_exists_at_start": bool(artist_master_global_exists_at_start) if include_artists_text else False,
         "artists_visited_ledger_exists_at_start": bool(artists_visited_ledger_exists_at_start)
         if include_artists_text
         else False,
@@ -2444,6 +2290,36 @@ def main() -> int:
         "artists_text_success_rate_ge_1_record": 0.0,
         "artists_text_success_rate_ge_1_record_pct": 0.0,
     }
+    update_failed_fetches_summary(
+        summary,
+        path=failed_fetches_path,
+        ledger=failed_fetches_ledger,
+        new_in_run=len(failed_fetches_in_run),
+    )
+    update_visited_pages_summary(
+        summary,
+        path=visited_pages_path,
+        ledger=visited_pages_ledger,
+    )
+    update_failed_fetches_summary(
+        summary,
+        path=artists_failed_fetches_path if include_artists_text else None,
+        ledger=artists_failed_fetches_ledger,
+        new_in_run=len(artists_failed_fetches_in_run),
+        prefix="artists_",
+    )
+    update_visited_pages_summary(
+        summary,
+        path=artists_visited_pages_path if include_artists_text else None,
+        ledger=artists_visited_pages_ledger,
+        prefix="artists_",
+    )
+    update_artist_master_summary(
+        summary,
+        path=artist_master_global_path if include_artists_text else None,
+        master=artist_master_global,
+        exists_at_start=bool(artist_master_global_exists_at_start) if include_artists_text else False,
+    )
 
     exhibitions_fair_breakdown, exhibitions_gallery_breakdown = build_text_category_breakdown(
         category=RAG_CATEGORY,
@@ -2490,7 +2366,7 @@ def main() -> int:
         summary["notes"].append("artists_global_dedupe_exhibitions_excluded=true")
 
     summary.update(artists_enrichment_summary)
-    summary_path = log_dir / f"run_summary_seed10_{TARGET_YEAR}.json"
+    summary_path = get_phase1_run_summary_path(TARGET_YEAR, logs_dir=log_dir)
     write_json(summary_path, summary)
 
     print(
@@ -2569,13 +2445,8 @@ def main() -> int:
         )
         if summary["artists_enrichment_requests_output_path"]:
             print(f"[DONE][artists_enrichment] requests={summary['artists_enrichment_requests_output_path']}")
-    auto_sync_result = {"status": "skipped_by_mode", "target": "phase1_all", "trigger": "run_phase1_seed10.py"}
-    if policy_mode == skip_policy.FILL_MISSING_MODE:
-        auto_sync_result = auto_sync_after_job(
-            target="phase1_all",
-            trigger="run_phase1_seed10.py",
-        )
-    print(format_auto_sync_brief(auto_sync_result))
+    sync_status = "manual_sync_only" if policy_mode == skip_policy.FILL_MISSING_MODE else "skipped_by_mode"
+    print(f"[SYNC] status={sync_status} entrypoint=run_r2_sync.py scope_hint=raw_current_primary")
     print(f"[DONE] summary={summary_path}")
     return 0
 

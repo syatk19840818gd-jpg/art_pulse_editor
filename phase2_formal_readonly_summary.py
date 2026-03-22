@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Iterable, List, Tuple
 
+from phase2_art_pulse_config import resolve_image_local_path
 from phase2_common_readonly import (
     ARTISTS_TEXT_PATHS,
     ARTIST_WORKS_IMAGE_PATHS,
@@ -11,7 +12,7 @@ from phase2_common_readonly import (
     EXHIBITIONS_TEXT_PATHS,
     FAIR_LABEL_TO_SLUG,
     FAIR_SLUG_TO_LABEL,
-    IMAGES_CACHE_DIR,
+    IMAGE_CACHE_ROOT,
     TARUTANI_TEXT_PATH,
     safe_load_jsonl,
 )
@@ -56,11 +57,15 @@ def _count_referenced_image_files(path: Path, list_key: str | None, item_key: st
             if isinstance(vals, list):
                 for v in vals:
                     if isinstance(v, str) and v:
-                        local_paths.append(Path(v))
+                        resolved = resolve_image_local_path(v)
+                        if resolved is not None:
+                            local_paths.append(resolved)
         elif item_key:
             v = row.get(item_key)
             if isinstance(v, str) and v:
-                local_paths.append(Path(v))
+                resolved = resolve_image_local_path(v)
+                if resolved is not None:
+                    local_paths.append(resolved)
     exists_count = 0
     for lp in local_paths:
         try:
@@ -125,7 +130,7 @@ def build_counts(selected_fair: str) -> Dict[str, object]:
 
     tarutani_rows = _count_jsonl_rows(TARUTANI_TEXT_PATH)
     tarutani_non_empty = _count_non_empty_text(TARUTANI_TEXT_PATH)
-    images_cache = _safe_dir_file_count(IMAGES_CACHE_DIR)
+    images_cache = _safe_dir_file_count(IMAGE_CACHE_ROOT)
     all_warnings.extend(tarutani_rows.warnings + tarutani_non_empty.warnings + images_cache.warnings)
 
     total_row = None

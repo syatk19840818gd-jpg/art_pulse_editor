@@ -19,15 +19,18 @@ import unicodedata
 
 from enrichment_batch_common import is_optional_output_enabled
 import run_phase1_seed10_artist_image_collect as artist_img
+from phase2_art_pulse_config import (
+    get_current_raw_dir,
+    get_exhibition_image_cache_dir,
+    get_current_exhibitions_image_meta_path,
+    get_image_r2_key,
+    resolve_image_local_path,
+)
 from phase1_exhibitions_text_utils import should_include_target_year_page
 from tools import skip_policy
 
 PROJECT_ROOT = Path(__file__).resolve().parent
-RAW_DIR = PROJECT_ROOT / "data" / "phase1_seed10" / "raw"
-DERIVED_DIR = PROJECT_ROOT / "data" / "phase1_seed10" / "derived"
 LOGS_DIR = PROJECT_ROOT / "data" / "phase1_seed10" / "logs"
-IMAGE_ROOT_DIR = DERIVED_DIR / "images" / "exhibition_works_images"
-META_FILENAME_TEMPLATE = "exhibitions_images_{fair_slug}_{target_year}.jsonl"
 SKIPPED_GALLERIES_REGISTRY_PATH = PROJECT_ROOT / "data" / "gallery_lists" / "skipped_galleries_registry.csv"
 DEBUG_HTML_DIR_NAME = "debug_exhibitions_listing_html"
 DEBUG_LINKS_DIR_NAME = "debug_exhibitions_listing_links"
@@ -1030,7 +1033,7 @@ def load_existing_image_hashes(
     known_local_path_map: dict[str, set[str]] = {}
     known_r2_key_map: dict[str, set[str]] = {}
     for row in read_jsonl_rows(meta_path):
-        local_path_resolved = artist_img.resolve_local_cache_path(str(row.get("local_path") or ""))
+        local_path_resolved = resolve_image_local_path(str(row.get("local_path") or ""))
         has_local_file = bool(local_path_resolved and local_path_resolved.exists() and local_path_resolved.is_file())
         # Phase1.7 missing-only rule:
         # key-only rows with missing local file are treated as missing-recovery targets.
@@ -1084,10 +1087,13 @@ def main() -> int:
             trial_root=args.trial_root,
             run_id=str(args.run_id or ""),
         )
-    raw_dir = io_root / "raw"
-    derived_dir = io_root / "derived"
+    raw_dir = get_current_raw_dir(io_root) if policy_mode == skip_policy.REBUILD_MODE else PROJECT_ROOT / get_current_raw_dir()
     logs_dir = io_root / "logs"
-    image_root_dir = derived_dir / "images" / "exhibition_works_images"
+    image_root_dir = (
+        get_exhibition_image_cache_dir(io_root).resolve()
+        if policy_mode == skip_policy.REBUILD_MODE
+        else (PROJECT_ROOT / get_exhibition_image_cache_dir()).resolve()
+    )
 
     # SSOT 4-2 / 5-2: exhibition image is fixed to 1 per exhibition.
     if int(args.target_images_per_exhibition) != 1:
@@ -1138,9 +1144,10 @@ def main() -> int:
 
             rows = meta_rows_by_fair.get(fair_slug)
             if rows is None:
-                meta_path = derived_dir / META_FILENAME_TEMPLATE.format(
-                    fair_slug=fair_slug,
-                    target_year=args.target_year,
+                meta_path = get_current_exhibitions_image_meta_path(
+                    fair_slug,
+                    args.target_year,
+                    root=raw_dir.parent,
                 )
                 rows = read_jsonl_rows(meta_path)
                 meta_rows_by_fair[fair_slug] = rows
@@ -1151,7 +1158,7 @@ def main() -> int:
                 row_source_norm = artist_img.normalize_url_for_link_compare(str(row.get("source_url") or ""))
                 if not row_source_norm or row_source_norm != source_norm:
                     continue
-                local_path = artist_img.resolve_local_cache_path(str(row.get("local_path") or ""))
+                local_path = resolve_image_local_path(str(row.get("local_path") or ""))
                 has_local = bool(local_path and local_path.exists() and local_path.is_file())
                 if has_local:
                     valid_existing += 1
@@ -1276,7 +1283,11 @@ def main() -> int:
 
             fair_dir = image_root_dir / str(args.target_year) / fair_token
             fair_dir.mkdir(parents=True, exist_ok=True)
-            meta_path = derived_dir / META_FILENAME_TEMPLATE.format(fair_slug=fair_slug, target_year=args.target_year)
+            meta_path = get_current_exhibitions_image_meta_path(
+                fair_slug,
+                args.target_year,
+                root=raw_dir.parent,
+            )
             (
                 known_url_hashes,
                 known_payload_hashes,
@@ -1549,7 +1560,7 @@ def main() -> int:
                             filename = f"g{gallery_hash8}__{source_hash8}__img_{image_index:02d}.{ext_token}"
                             local_path = fair_dir / filename
                             case_notes.append("path_safe:ultra_compact_filename")
-                    r2_key = artist_img.local_path_to_r2_key(local_path)
+                    r2_key = get_image_r2_key(local_path)
                     semantic_key = build_semantic_key(
                         fair_slug=fair_slug,
                         gallery_name_en=gallery_name_en,

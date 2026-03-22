@@ -6,14 +6,22 @@ import json
 from pathlib import Path
 from typing import Any
 
-DEFAULT_IMAGES_ROOT = Path("data/phase1_seed10/derived/images")
+from phase2_art_pulse_config import (
+    REPO_ROOT,
+    get_current_artist_image_meta_paths,
+    get_current_exhibitions_image_meta_paths,
+    get_image_cache_dir,
+    get_image_cache_rel_path,
+)
+
+DEFAULT_IMAGE_CACHE_ROOT = REPO_ROOT / get_image_cache_dir()
 DEFAULT_EXHIBITIONS_META = [
-    Path("data/phase1_seed10/derived/exhibitions_images_frieze_london_2025.jsonl"),
-    Path("data/phase1_seed10/derived/exhibitions_images_liste_2025.jsonl"),
+    REPO_ROOT / path
+    for path in get_current_exhibitions_image_meta_paths().values()
 ]
 DEFAULT_ARTIST_META = [
-    Path("data/phase1_seed10/derived/artist_works_images_frieze_london.jsonl"),
-    Path("data/phase1_seed10/derived/artist_works_images_liste.jsonl"),
+    REPO_ROOT / path
+    for path in get_current_artist_image_meta_paths().values()
 ]
 
 
@@ -28,32 +36,11 @@ def _read_jsonl(path: Path) -> list[dict[str, Any]]:
     return rows
 
 
-def _normalize_abs(path: Path) -> str:
-    return str(path.resolve()).replace("\\", "/").lower().rstrip("/")
-
-
-def _to_rel_norm(path_str: str, images_root: Path) -> str | None:
-    raw = str(path_str or "").strip()
-    if not raw:
-        return None
-    p = Path(raw)
-    if p.is_absolute():
-        p_abs = p.resolve()
-    else:
-        p_abs = (Path.cwd() / p).resolve()
-    p_norm = _normalize_abs(p_abs)
-    root_norm = _normalize_abs(images_root)
-    prefix = root_norm + "/"
-    if not p_norm.startswith(prefix):
-        return None
-    return p_norm[len(prefix) :]
-
-
 def build_required_images_union(
     *,
     exhibitions_meta_paths: list[Path] | None = None,
     artist_meta_paths: list[Path] | None = None,
-    images_root: Path = DEFAULT_IMAGES_ROOT,
+    images_root: Path = DEFAULT_IMAGE_CACHE_ROOT,
     require_exhibitions: bool = True,
 ) -> dict[str, Any]:
     ex_paths = exhibitions_meta_paths or DEFAULT_EXHIBITIONS_META
@@ -75,7 +62,10 @@ def build_required_images_union(
         rows = _read_jsonl(p)
         ex_rows += len(rows)
         for row in rows:
-            rel = _to_rel_norm(str(row.get("local_path") or ""), images_root)
+            rel = get_image_cache_rel_path(
+                str(row.get("local_path") or ""),
+                images_root=images_root,
+            )
             if rel:
                 exhibitions_required.add(rel)
 
@@ -88,7 +78,10 @@ def build_required_images_union(
             if not isinstance(local_paths, list):
                 continue
             for lp in local_paths:
-                rel = _to_rel_norm(str(lp or ""), images_root)
+                rel = get_image_cache_rel_path(
+                    str(lp or ""),
+                    images_root=images_root,
+                )
                 if rel:
                     artist_required.add(rel)
 
@@ -113,14 +106,14 @@ def build_required_images_union(
     }
 
 
-def count_images_under_root(images_root: Path = DEFAULT_IMAGES_ROOT) -> int:
+def count_images_under_root(images_root: Path = DEFAULT_IMAGE_CACHE_ROOT) -> int:
     if not images_root.exists():
         return 0
     return sum(1 for p in images_root.rglob("*") if p.is_file())
 
 
 def compute_missing_required(
-    union_required: set[str], *, images_root: Path = DEFAULT_IMAGES_ROOT
+    union_required: set[str], *, images_root: Path = DEFAULT_IMAGE_CACHE_ROOT
 ) -> list[str]:
     missing: list[str] = []
     for rel in sorted(union_required):

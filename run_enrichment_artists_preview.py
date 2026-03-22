@@ -14,7 +14,7 @@ from openai import OpenAI
 
 from enrichment_batch_common import extract_response_text_from_body, resolve_runtime_requests_path
 from enrichment_requests_runtime import build_artists_enrichment_requests
-from phase2_art_pulse_config import get_enrichment_runtime_requests_path
+from phase2_art_pulse_config import get_current_raw_paths, get_enrichment_runtime_requests_path
 
 from run_enrichment_exhibitions_preview import (
     ENRICH_BATCH_COMPLETION_WINDOW,
@@ -33,10 +33,7 @@ from run_enrichment_exhibitions_preview import (
 TARGET_YEAR = 2025
 RAG_CATEGORY = "artists_text"
 
-RAW_INPUT_PATHS = {
-    "frieze_london": Path("data/phase1_seed10/raw/artists_frieze_london_2025.jsonl"),
-    "liste": Path("data/phase1_seed10/raw/artists_liste_2025.jsonl"),
-}
+RAW_INPUT_PATHS = get_current_raw_paths("artists", TARGET_YEAR)
 REQUESTS_OUTPUT_PATH = get_enrichment_runtime_requests_path("artists", TARGET_YEAR)
 PREVIEW_OUTPUT_DIR = Path("data/phase1_seed10/derived")
 

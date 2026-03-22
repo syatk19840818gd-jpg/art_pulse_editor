@@ -13,15 +13,12 @@ from dotenv import load_dotenv
 from openai import OpenAI
 
 from enrichment_batch_common import extract_response_text_from_body
-from phase2_art_pulse_config import get_enrichment_runtime_requests_path
+from phase2_art_pulse_config import get_current_raw_paths, get_enrichment_runtime_requests_path
 
 TARGET_YEAR = 2025
 RAG_CATEGORY = "exhibitions_text"
 
-RAW_INPUT_PATHS = {
-    "frieze_london": Path("data/phase1_seed10/raw/exhibitions_frieze_london_2025.jsonl"),
-    "liste": Path("data/phase1_seed10/raw/exhibitions_liste_2025.jsonl"),
-}
+RAW_INPUT_PATHS = get_current_raw_paths("exhibitions", TARGET_YEAR)
 
 REQUESTS_OUTPUT_PATH = get_enrichment_runtime_requests_path("exhibitions", TARGET_YEAR)
 PREVIEW_OUTPUT_DIR = Path("data/phase1_seed10/derived")

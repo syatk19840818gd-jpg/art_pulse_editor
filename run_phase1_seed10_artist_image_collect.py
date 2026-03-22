@@ -20,6 +20,22 @@ from urllib.parse import urljoin, urlparse
 
 import requests
 from PIL import Image, UnidentifiedImageError
+from phase1_ledger_contract import (
+    build_artist_master_entry,
+    clear_failed_fetch,
+    get_phase1_artist_master_global_path,
+    get_phase1_failed_fetches_ledger_path,
+    get_phase1_known_unresolvable_artist_images_path,
+    get_phase1_logs_dir,
+    load_artist_image_failed_fetches_ledger,
+    load_artist_master_global,
+    load_known_unresolvable_source_keys,
+    save_artist_master_global,
+    save_failed_fetches_ledger,
+    update_artist_master_summary,
+    update_failed_fetches_summary,
+    update_known_unresolvable_summary,
+)
 from phase1_artist_link_utils import (
     ARTIST_LINK_KEYWORDS,
     ARTIST_LIST_PATH_PATTERNS,
@@ -28,7 +44,15 @@ from phase1_artist_link_utils import (
     normalize_url_for_link_compare as shared_normalize_url_for_link_compare,
 )
 from requests.adapters import HTTPAdapter
-from r2_auto_sync import auto_sync_after_job, format_auto_sync_brief
+from phase2_art_pulse_config import (
+    PHASE1_SEED10_ROOT,
+    get_current_raw_dir,
+    get_current_artist_image_meta_path,
+    get_current_artist_image_meta_paths,
+    get_artist_image_cache_dir,
+    get_image_r2_key,
+    resolve_image_local_path,
+)
 from tools import skip_policy
 try:
     from playwright.sync_api import (
@@ -72,15 +96,9 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 TRASH_ROOT = PROJECT_ROOT / "_trash"
 SKIPPED_GALLERIES_REGISTRY_PATH = PROJECT_ROOT / "data" / "gallery_lists" / "skipped_galleries_registry.csv"
 
-RAW_DIR = Path("data/phase1_seed10/raw")
-LOG_DIR = Path("data/phase1_seed10/logs")
-DERIVED_DIR = Path("data/phase1_seed10/derived")
-IMAGE_ROOT_DIR = Path("data/phase1_seed10/derived/images/artist_works_images")
-WORKS_META_FILENAME_TEMPLATE = "artist_works_images_{fair_slug}.jsonl"
+RAW_DIR = get_current_raw_dir()
+IMAGE_ROOT_DIR = (PROJECT_ROOT / get_artist_image_cache_dir()).resolve()
 WORKS_IMAGE_RANK_WINDOW = 20
-ARTIST_MASTER_GLOBAL_PATH = LOG_DIR / "artist_master_global.json"
-FAILED_FETCH_LEDGER_FILENAME_TEMPLATE = "failed_fetches_artist_image_collect_{target_year}.json"
-KNOWN_UNRESOLVABLE_ARTIST_IMAGES_PATH = LOG_DIR / "artist_works_images_known_unresolvable.json"
 MANUAL_SEED_TEXT_MARKERS = (
     "Artist page seed for",
 )
@@ -331,55 +349,8 @@ def read_json(path: Path) -> Any | None:
         return None
 
 
-def load_known_unresolvable_source_keys(path: Path) -> set[str]:
-    payload = read_json(path)
-    if not isinstance(payload, dict):
-        return set()
-    items = payload.get("items")
-    if not isinstance(items, list):
-        return set()
-    out: set[str] = set()
-    for item in items:
-        if not isinstance(item, dict):
-            continue
-        source_url = str(item.get("source_url") or "").strip()
-        if not source_url:
-            continue
-        key = skip_policy.normalize_url_key(source_url)
-        if key:
-            out.add(key)
-    return out
-
-
 def compute_page_url_hash(url: str) -> str:
     return hashlib.sha256(normalize_url_for_link_compare(url).encode("utf-8")).hexdigest()
-
-
-def load_failed_fetches_ledger(path: Path) -> dict[str, dict[str, Any]]:
-    payload = read_json(path)
-    if not isinstance(payload, dict):
-        return {}
-    out: dict[str, dict[str, Any]] = {}
-    for key, row in payload.items():
-        if not isinstance(key, str) or not isinstance(row, dict):
-            continue
-        fail_hash = str(row.get("fail_hash") or key)
-        out[fail_hash] = {
-            "fail_hash": fail_hash,
-            "kind": str(row.get("kind") or "page"),
-            "raw_url": str(row.get("raw_url") or ""),
-            "parent_source_url": str(row.get("parent_source_url") or ""),
-            "last_error": str(row.get("last_error") or ""),
-            "http_status": row.get("http_status"),
-            "retry_count": int(row.get("retry_count", 0)),
-            "attempt_count": int(row.get("attempt_count", row.get("retry_count", 0))),
-            "last_attempt_at": str(row.get("last_attempt_at") or row.get("last_failed_at") or ""),
-            "first_failed_at": str(row.get("first_failed_at") or row.get("last_failed_at") or ""),
-            "last_failed_at": str(row.get("last_failed_at") or ""),
-            "reason_code": str(row.get("reason_code") or "REQUEST_ERROR"),
-            "target_year": int(row.get("target_year", TARGET_YEAR_DEFAULT)),
-        }
-    return out
 
 
 def parse_utc_datetime(value: str) -> datetime | None:
@@ -461,10 +432,6 @@ def upsert_failed_fetch(
     }
     ledger[fail_hash] = record
     return record
-
-
-def clear_failed_fetch(ledger: dict[str, dict[str, Any]], raw_url: str) -> None:
-    ledger.pop(compute_page_url_hash(raw_url), None)
 
 
 def payload_hash(payload: bytes) -> str:
@@ -685,15 +652,8 @@ def slugify_token(value: str, fallback: str = "unknown", max_len: int = 80) -> s
     return lowered[:max_len]
 
 
-def fair_slug_to_meta_token(fair_slug: str) -> str:
-    text = (fair_slug or "").strip().lower().replace("-", "_")
-    text = re.sub(r"[^a-z0-9_]+", "_", text).strip("_")
-    return text or "unknown_fair"
-
-
 def works_meta_path_for_fair(fair_slug: str) -> Path:
-    token = fair_slug_to_meta_token(fair_slug)
-    return DERIVED_DIR / WORKS_META_FILENAME_TEMPLATE.format(fair_slug=token)
+    return get_current_artist_image_meta_path(fair_slug, root=RAW_DIR.parent)
 
 
 def build_artist_name_en_from_source_url(source_url: str) -> str:
@@ -719,53 +679,8 @@ def build_artist_identity_key(artist_name_key: str, artist_name_en: str, source_
     return build_artist_name_key(artist_name_en, source_url).lower()
 
 
-def _build_artist_master_entry(
-    *,
-    identity_key: str,
-    artist_name_key: str,
-    artist_name_en: str,
-    source_url: str,
-    fair_slug: str,
-    gallery_name_en: str,
-    seen_at: str,
-) -> dict[str, Any]:
-    return {
-        "artist_identity_key": identity_key,
-        "artist_name_key": str(artist_name_key or "").strip(),
-        "artist_name_en": str(artist_name_en or "").strip(),
-        "first_source_url": str(source_url or "").strip(),
-        "first_fair_slug": str(fair_slug or "").strip(),
-        "first_gallery_name_en": str(gallery_name_en or "").strip(),
-        "first_seen_at": str(seen_at or "").strip(),
-        "updated_at": str(seen_at or "").strip(),
-    }
-
-
-def load_artist_master_global(path: Path) -> dict[str, dict[str, Any]]:
-    if not path.exists():
-        return {}
-    try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-    except Exception:
-        return {}
-    if not isinstance(payload, dict):
-        return {}
-    records = payload.get("records")
-    if not isinstance(records, list):
-        return {}
-    out: dict[str, dict[str, Any]] = {}
-    for item in records:
-        if not isinstance(item, dict):
-            continue
-        key = str(item.get("artist_identity_key") or "").strip().lower()
-        if not key:
-            continue
-        out[key] = item
-    return out
-
-
 def merge_artist_master_from_works_meta(master: dict[str, dict[str, Any]]) -> None:
-    for path in sorted(DERIVED_DIR.glob("artist_works_images_*.jsonl")):
+    for path in get_current_artist_image_meta_paths(root=RAW_DIR.parent).values():
         rows = read_jsonl_rows(path)
         for row in rows:
             if not isinstance(row, dict):
@@ -778,7 +693,7 @@ def merge_artist_master_from_works_meta(master: dict[str, dict[str, Any]]) -> No
             identity_key = build_artist_identity_key(artist_name_key, artist_name_en, source_url)
             if identity_key in master:
                 continue
-            master[identity_key] = _build_artist_master_entry(
+            master[identity_key] = build_artist_master_entry(
                 identity_key=identity_key,
                 artist_name_key=artist_name_key,
                 artist_name_en=artist_name_en,
@@ -789,28 +704,9 @@ def merge_artist_master_from_works_meta(master: dict[str, dict[str, Any]]) -> No
             )
 
 
-def write_artist_master_global(path: Path, master: dict[str, dict[str, Any]]) -> None:
-    records = sorted(master.values(), key=lambda x: str(x.get("artist_identity_key") or ""))
-    payload = {
-        "schema_name": "artist_master_global",
-        "schema_version": "v1",
-        "generated_at": utc_now_iso(),
-        "records": records,
-    }
-    write_json(path, payload)
-
-
 def image_url_hash(url: str) -> str:
     normalized = normalize_image_url_for_dedupe(url)
     return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
-
-
-def local_path_to_r2_key(path: Path) -> str:
-    try:
-        rel = path.resolve().relative_to(Path.cwd().resolve())
-        return rel.as_posix()
-    except ValueError:
-        return path.as_posix()
 
 
 def parse_image_index_from_filename(path: Path) -> int:
@@ -2241,16 +2137,6 @@ def list_existing_artist_images(fair_dir: Path, artist_key: str) -> list[Path]:
     return sorted(files, key=lambda p: (parse_image_index_from_filename(p), p.name))
 
 
-def resolve_local_cache_path(path_text: str) -> Path | None:
-    raw = str(path_text or "").strip()
-    if not raw:
-        return None
-    path = Path(raw)
-    if path.is_absolute():
-        return path
-    return (Path.cwd() / path).resolve()
-
-
 def build_valid_existing_metadata_items(
     existing_meta_hashes: list[str],
     existing_meta_by_hash: dict[str, dict[str, Any]],
@@ -2264,7 +2150,7 @@ def build_valid_existing_metadata_items(
             break
         prev = existing_meta_by_hash.get(url_hash, {})
         local_path_text = str(prev.get("local_path") or "")
-        local_path = resolve_local_cache_path(local_path_text)
+        local_path = resolve_image_local_path(local_path_text)
         if local_path is None or not local_path.exists():
             continue
         local_path_key = str(local_path.resolve())
@@ -2289,7 +2175,7 @@ def build_valid_existing_metadata_items(
                 "hash": url_hash,
                 "caption": shorten_text(str(prev.get("caption") or ""), YEAR_EVIDENCE_TEXT_MAX_LEN),
                 "year": int(prev.get("year") or 0),
-                "r2_key": str(prev.get("r2_key") or local_path_to_r2_key(local_path)),
+                "r2_key": str(prev.get("r2_key") or get_image_r2_key(local_path)),
                 "local_path": str(local_path),
                 "year_source": str(prev.get("year_source") or "none"),
                 "year_confidence": str(prev.get("year_confidence") or "low"),
@@ -2308,7 +2194,7 @@ def analyze_existing_metadata_integrity(
     payload_mismatch_count = 0
     for url_hash in existing_meta_hashes:
         prev = existing_meta_by_hash.get(url_hash, {})
-        local_path = resolve_local_cache_path(str(prev.get("local_path") or ""))
+        local_path = resolve_image_local_path(str(prev.get("local_path") or ""))
         if local_path is None or not local_path.exists():
             missing_local_count += 1
             continue
@@ -2392,7 +2278,7 @@ def build_candidate_evidence(candidate: dict[str, Any]) -> dict[str, Any]:
 
 
 def main() -> int:
-    global RAW_DIR, LOG_DIR, DERIVED_DIR, IMAGE_ROOT_DIR, ARTIST_MASTER_GLOBAL_PATH, TRASH_ROOT
+    global RAW_DIR, IMAGE_ROOT_DIR, TRASH_ROOT
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(errors="backslashreplace")
     if hasattr(sys.stderr, "reconfigure"):
@@ -2403,17 +2289,21 @@ def main() -> int:
         allow_rebuild=bool(args.allow_rebuild),
         run_id=str(args.run_id or ""),
     )
-    io_root = Path("data/phase1_seed10")
+    io_root = PHASE1_SEED10_ROOT
     if policy_mode == skip_policy.REBUILD_MODE:
         io_root = skip_policy.build_trial_root(
             trial_root=args.trial_root,
             run_id=str(args.run_id or ""),
         )
-    RAW_DIR = io_root / "raw"
-    LOG_DIR = io_root / "logs"
-    DERIVED_DIR = io_root / "derived"
-    IMAGE_ROOT_DIR = io_root / "derived" / "images" / "artist_works_images"
-    ARTIST_MASTER_GLOBAL_PATH = LOG_DIR / "artist_master_global.json"
+    RAW_DIR = get_current_raw_dir(io_root) if policy_mode == skip_policy.REBUILD_MODE else get_current_raw_dir()
+    logs_dir = get_phase1_logs_dir(io_root)
+    IMAGE_ROOT_DIR = (
+        get_artist_image_cache_dir(io_root).resolve()
+        if policy_mode == skip_policy.REBUILD_MODE
+        else (PROJECT_ROOT / get_artist_image_cache_dir()).resolve()
+    )
+    artist_master_global_path = get_phase1_artist_master_global_path(logs_dir=logs_dir).resolve()
+    known_unresolvable_path = get_phase1_known_unresolvable_artist_images_path().resolve()
     if policy_mode == skip_policy.REBUILD_MODE:
         TRASH_ROOT = io_root / "_trash"
 
@@ -2426,7 +2316,7 @@ def main() -> int:
     summary_path = (
         Path(args.output_json).resolve()
         if args.output_json
-        else (LOG_DIR / f"phase1_seed10_artist_image_collect_summary_{run_ts}.json").resolve()
+        else (logs_dir / f"phase1_seed10_artist_image_collect_summary_{run_ts}.json").resolve()
     )
 
     summary: dict[str, Any] = {
@@ -2463,16 +2353,10 @@ def main() -> int:
         "skip_registry_gallery_count": 0,
         "skipped_by_registry_count": 0,
         "skipped_by_registry": [],
-        "artist_master_global_path": str(ARTIST_MASTER_GLOBAL_PATH.resolve()),
-        "artist_master_global_record_count": 0,
         "skipped_by_global_artist_dedupe_count": 0,
         "skipped_by_global_artist_dedupe": [],
         "skipped_invalid_artist_seed_count": 0,
         "skipped_invalid_artist_seed": [],
-        "failed_fetches_path": "",
-        "failed_fetches_new_in_run": 0,
-        "failed_fetches_total_ledger": 0,
-        "failed_fetches_reason_counts": {},
         "force_retry_failed": bool(args.force_retry_failed),
         "clear_failed_ledger_scope": str(args.clear_failed_ledger),
         "failure_retry_cooldown_seconds": FAILURE_RETRY_COOLDOWN_SECONDS,
@@ -2481,11 +2365,12 @@ def main() -> int:
         "allow_rebuild": bool(args.allow_rebuild),
         "run_id": str(args.run_id or ""),
         "io_root": str(io_root),
-        "known_unresolvable_registry_path": str(KNOWN_UNRESOLVABLE_ARTIST_IMAGES_PATH.resolve()),
-        "known_unresolvable_registry_count": 0,
         "skipped_known_unresolvable_count": 0,
         "skipped_known_unresolvable": [],
     }
+    update_artist_master_summary(summary, path=artist_master_global_path, master={})
+    update_failed_fetches_summary(summary, path=None, ledger={}, new_in_run=0)
+    update_known_unresolvable_summary(summary, path=known_unresolvable_path, known_source_keys=set())
 
     try:
         dns_probe_ok, dns_probe_error = can_resolve_hostname(DNS_PROBE_HOST)
@@ -2550,9 +2435,9 @@ def main() -> int:
             if summary["skipped_by_registry_count"] > 0:
                 summary["notes"].append(f"auto_skipped_by_registry:{summary['skipped_by_registry_count']}")
 
-        artist_master_global = load_artist_master_global(ARTIST_MASTER_GLOBAL_PATH)
+        artist_master_global = load_artist_master_global(artist_master_global_path)
         merge_artist_master_from_works_meta(artist_master_global)
-        summary["artist_master_global_record_count"] = len(artist_master_global)
+        update_artist_master_summary(summary, path=artist_master_global_path, master=artist_master_global)
         filtered_targets: list[dict[str, Any]] = []
         seen_identity_in_run: set[str] = set()
         for row in targets:
@@ -2603,7 +2488,7 @@ def main() -> int:
             seen_identity_in_run.add(identity_key)
             filtered_targets.append(row)
             if existing is None:
-                artist_master_global[identity_key] = _build_artist_master_entry(
+                artist_master_global[identity_key] = build_artist_master_entry(
                     identity_key=identity_key,
                     artist_name_key=artist_name_key,
                     artist_name_en=artist_name_en,
@@ -2618,13 +2503,21 @@ def main() -> int:
             summary["notes"].append(
                 f"auto_skipped_by_global_artist_dedupe:{summary['skipped_by_global_artist_dedupe_count']}"
             )
-        summary["artist_master_global_record_count"] = len(artist_master_global)
-        write_artist_master_global(ARTIST_MASTER_GLOBAL_PATH.resolve(), artist_master_global)
+        update_artist_master_summary(summary, path=artist_master_global_path, master=artist_master_global)
+        save_artist_master_global(artist_master_global_path, artist_master_global)
 
-        failed_fetches_path = (LOG_DIR / FAILED_FETCH_LEDGER_FILENAME_TEMPLATE.format(target_year=target_year)).resolve()
-        failed_fetches_ledger = load_failed_fetches_ledger(failed_fetches_path)
+        failed_fetches_path = get_phase1_failed_fetches_ledger_path(
+            "artist_image_collect",
+            target_year,
+            logs_dir=logs_dir,
+        ).resolve()
+        failed_fetches_ledger = load_artist_image_failed_fetches_ledger(
+            failed_fetches_path,
+            hash_fn=compute_page_url_hash,
+            default_target_year=target_year,
+        )
         failed_fetches_in_run: list[dict[str, Any]] = []
-        summary["failed_fetches_path"] = str(failed_fetches_path)
+        update_failed_fetches_summary(summary, path=failed_fetches_path, ledger=failed_fetches_ledger, new_in_run=0)
         if args.clear_failed_ledger == "all":
             failed_fetches_ledger.clear()
             summary["notes"].append("failed_fetches_cleared:all")
@@ -2646,7 +2539,7 @@ def main() -> int:
                 failed_fetches_ledger.pop(fail_hash, None)
             summary["notes"].append(f"failed_fetches_cleared:target:{len(clear_keys)}")
 
-        summary["failed_fetches_total_ledger"] = len(failed_fetches_ledger)
+        update_failed_fetches_summary(summary, path=failed_fetches_path, ledger=failed_fetches_ledger, new_in_run=0)
 
         summary["seed_artist_count"] = len(targets)
         summary["max_artists_per_gallery_for_collect"] = MAX_ARTISTS_PER_GALLERY_FOR_COLLECT
@@ -2657,9 +2550,14 @@ def main() -> int:
         known_unresolvable_source_keys: set[str] = set()
         if policy_mode == skip_policy.FILL_MISSING_MODE:
             known_unresolvable_source_keys = load_known_unresolvable_source_keys(
-                KNOWN_UNRESOLVABLE_ARTIST_IMAGES_PATH.resolve()
+                known_unresolvable_path,
+                normalize_url_key=skip_policy.normalize_url_key,
             )
-            summary["known_unresolvable_registry_count"] = len(known_unresolvable_source_keys)
+            update_known_unresolvable_summary(
+                summary,
+                path=known_unresolvable_path,
+                known_source_keys=known_unresolvable_source_keys,
+            )
         if args.dry_run:
             fair_slug_tokens = sorted(
                 {str(row.get("fair_slug") or "").strip() for row in targets if str(row.get("fair_slug") or "").strip()}
@@ -2812,7 +2710,7 @@ def main() -> int:
             dry_output_path = (
                 Path(args.dry_run_output)
                 if str(args.dry_run_output or "").strip()
-                else (LOG_DIR / f"dryrun_{SOURCE_CLI.replace('.py', '')}_{target_year}.json")
+                else (logs_dir / f"dryrun_{SOURCE_CLI.replace('.py', '')}_{target_year}.json")
             )
             if not dry_output_path.is_absolute():
                 dry_output_path = (Path.cwd() / dry_output_path).resolve()
@@ -2822,18 +2720,13 @@ def main() -> int:
 
         if not targets:
             summary["notes"].append(f"no_artist_raw_records_found:artists_*_{target_year}.jsonl")
-            failed_fetches_for_save = {
-                fail_hash: failed_fetches_ledger[fail_hash]
-                for fail_hash in sorted(failed_fetches_ledger)
-            }
-            write_json(failed_fetches_path, failed_fetches_for_save)
-            summary["failed_fetches_new_in_run"] = 0
-            summary["failed_fetches_total_ledger"] = len(failed_fetches_ledger)
-            failed_reason_counts: dict[str, int] = defaultdict(int)
-            for item in failed_fetches_ledger.values():
-                reason_key = str(item.get("reason_code") or "REQUEST_ERROR")
-                failed_reason_counts[reason_key] += 1
-            summary["failed_fetches_reason_counts"] = dict(failed_reason_counts)
+            save_failed_fetches_ledger(failed_fetches_path, failed_fetches_ledger)
+            update_failed_fetches_summary(
+                summary,
+                path=failed_fetches_path,
+                ledger=failed_fetches_ledger,
+                new_in_run=0,
+            )
             write_json(summary_path, summary)
             print(f"[DONE] no targets. summary={summary_path}")
             return 0
@@ -3053,7 +2946,7 @@ def main() -> int:
                     "year": normalize_candidate_year(existing_item.get("year")),
                 }
                 if candidate_violates_works_only(existing_candidate):
-                    local_path = resolve_local_cache_path(str(existing_item.get("local_path") or ""))
+                    local_path = resolve_image_local_path(str(existing_item.get("local_path") or ""))
                     if local_path is not None:
                         rejected_existing_local_paths.add(local_path.resolve())
                     continue
@@ -3061,12 +2954,12 @@ def main() -> int:
                 # nearby captions contain other names on multi-artist pages.
                 if not candidate_matches_artist(existing_candidate, source_url, source_url):
                     if has_foreign_person_name_text(str(existing_item.get("caption") or ""), artist_tokens):
-                        local_path = resolve_local_cache_path(str(existing_item.get("local_path") or ""))
+                        local_path = resolve_image_local_path(str(existing_item.get("local_path") or ""))
                         if local_path is not None:
                             rejected_existing_local_paths.add(local_path.resolve())
                         continue
                     if has_foreign_person_slug(str(existing_item.get("url") or ""), artist_tokens):
-                        local_path = resolve_local_cache_path(str(existing_item.get("local_path") or ""))
+                        local_path = resolve_image_local_path(str(existing_item.get("local_path") or ""))
                         if local_path is not None:
                             rejected_existing_local_paths.add(local_path.resolve())
                         continue
@@ -3161,7 +3054,7 @@ def main() -> int:
                                 error_text=list_error,
                             )
                         else:
-                            clear_failed_fetch(failed_fetches_ledger, source_url)
+                            clear_failed_fetch(failed_fetches_ledger, source_url, hash_fn=compute_page_url_hash)
                             detail_urls_considered = extract_artist_detail_urls(source_url, list_html)
                             if not detail_urls_considered:
                                 case_reason = "no_artist_detail_links_found"
@@ -3200,7 +3093,7 @@ def main() -> int:
                                 error_text=html_error,
                             )
                             continue
-                        clear_failed_fetch(failed_fetches_ledger, detail_url)
+                        clear_failed_fetch(failed_fetches_ledger, detail_url, hash_fn=compute_page_url_hash)
                         any_detail_fetch_ok = True
                         works_urls = extract_works_candidate_urls(detail_url, html)
                         case_notes.append(f"works_page_tried:{len(works_urls)}")
@@ -3234,7 +3127,7 @@ def main() -> int:
                                     error_text=works_error,
                                 )
                                 continue
-                            clear_failed_fetch(failed_fetches_ledger, works_url)
+                            clear_failed_fetch(failed_fetches_ledger, works_url, hash_fn=compute_page_url_hash)
                             works_candidates = extract_image_candidates(works_url, works_html)
                             works_candidates_count += len(works_candidates)
                             if not works_candidates:
@@ -3296,7 +3189,7 @@ def main() -> int:
                                         continue
                                     ok_try, payload_try, ext_try, image_error = fetch_image(session, image_fetch_url)
                                     if ok_try:
-                                        clear_failed_fetch(failed_fetches_ledger, image_fetch_url)
+                                        clear_failed_fetch(failed_fetches_ledger, image_fetch_url, hash_fn=compute_page_url_hash)
                                         ok_image = True
                                         payload = payload_try
                                         ext = ext_try
@@ -3332,7 +3225,7 @@ def main() -> int:
                                         "url": selected_image_url,
                                         "image_url_hash": selected_url_hash,
                                         "local_path": str(file_path),
-                                        "r2_key": local_path_to_r2_key(file_path),
+                                        "r2_key": get_image_r2_key(file_path),
                                         "year": candidate_year,
                                         "year_source": "caption" if candidate_year is not None else "none",
                                         "year_confidence": "high" if candidate_year is not None else "low",
@@ -3406,7 +3299,7 @@ def main() -> int:
                                         continue
                                     ok_try, payload_try, ext_try, image_error = fetch_image(session, image_fetch_url)
                                     if ok_try:
-                                        clear_failed_fetch(failed_fetches_ledger, image_fetch_url)
+                                        clear_failed_fetch(failed_fetches_ledger, image_fetch_url, hash_fn=compute_page_url_hash)
                                         ok_image = True
                                         payload = payload_try
                                         ext = ext_try
@@ -3442,7 +3335,7 @@ def main() -> int:
                                         "url": selected_image_url,
                                         "image_url_hash": selected_url_hash,
                                         "local_path": str(file_path),
-                                        "r2_key": local_path_to_r2_key(file_path),
+                                        "r2_key": get_image_r2_key(file_path),
                                         "year": candidate_year,
                                         "year_source": "caption" if candidate_year is not None else "none",
                                         "year_confidence": "high" if candidate_year is not None else "low",
@@ -3558,7 +3451,7 @@ def main() -> int:
             if metadata_items:
                 kept_local_paths: set[Path] = set()
                 for item in metadata_items:
-                    local_path = resolve_local_cache_path(str(item.get("local_path") or ""))
+                    local_path = resolve_image_local_path(str(item.get("local_path") or ""))
                     if local_path is not None and local_path.exists():
                         kept_local_paths.add(local_path.resolve())
                 current_artist_files = list_existing_artist_images(fair_dir, artist_key)
@@ -3623,7 +3516,7 @@ def main() -> int:
             }
             existing_master_row = artist_master_global.get(artist_identity_key)
             if existing_master_row is None:
-                artist_master_global[artist_identity_key] = _build_artist_master_entry(
+                artist_master_global[artist_identity_key] = build_artist_master_entry(
                     identity_key=artist_identity_key,
                     artist_name_key=artist_name_key,
                     artist_name_en=artist_name_en,
@@ -3746,8 +3639,8 @@ def main() -> int:
             write_jsonl_rows(meta_path, rows)
             written_meta_paths.append(str(meta_path))
         summary["artist_works_metadata_paths"] = sorted(written_meta_paths)
-        write_artist_master_global(ARTIST_MASTER_GLOBAL_PATH.resolve(), artist_master_global)
-        summary["artist_master_global_record_count"] = len(artist_master_global)
+        save_artist_master_global(artist_master_global_path, artist_master_global)
+        update_artist_master_summary(summary, path=artist_master_global_path, master=artist_master_global)
 
         processed = int(summary["processed_artist_count"])
         success_target = int(summary["artists_with_ge_target_images"])
@@ -3769,18 +3662,13 @@ def main() -> int:
         summary["notes"].append("count_mode=effective_images_after_run")
         summary["notes"].append("breakdown_mode=fair_and_gallery")
         summary["generated_at"] = utc_now_iso()
-        failed_fetches_for_save = {
-            fail_hash: failed_fetches_ledger[fail_hash]
-            for fail_hash in sorted(failed_fetches_ledger)
-        }
-        write_json(failed_fetches_path, failed_fetches_for_save)
-        summary["failed_fetches_new_in_run"] = len(failed_fetches_in_run)
-        summary["failed_fetches_total_ledger"] = len(failed_fetches_ledger)
-        failed_reason_counts: dict[str, int] = defaultdict(int)
-        for item in failed_fetches_ledger.values():
-            reason_key = str(item.get("reason_code") or "REQUEST_ERROR")
-            failed_reason_counts[reason_key] += 1
-        summary["failed_fetches_reason_counts"] = dict(failed_reason_counts)
+        save_failed_fetches_ledger(failed_fetches_path, failed_fetches_ledger)
+        update_failed_fetches_summary(
+            summary,
+            path=failed_fetches_path,
+            ledger=failed_fetches_ledger,
+            new_in_run=len(failed_fetches_in_run),
+        )
 
         write_json(summary_path, summary)
         print(
@@ -3804,25 +3692,25 @@ def main() -> int:
                     f"rate={row.get('success_rate_ge_target')} "
                     f"({row.get('success_rate_ge_target_pct')}%)"
                 )
-        auto_sync_result = {"status": "skipped_by_mode", "target": "phase1_derived", "trigger": SOURCE_CLI}
-        if policy_mode == skip_policy.FILL_MISSING_MODE:
-            auto_sync_result = auto_sync_after_job(
-                target="phase1_derived",
-                trigger=SOURCE_CLI,
-            )
-        print(format_auto_sync_brief(auto_sync_result))
+        sync_status = "manual_sync_only" if policy_mode == skip_policy.FILL_MISSING_MODE else "skipped_by_mode"
+        print(
+            "[SYNC] "
+            f"status={sync_status} entrypoint=run_r2_sync.py "
+            "scope_hint=images_metadata_current,images_cache_current"
+        )
         print(f"[DONE] summary={summary_path}")
         return 0
     except Exception as exc:  # noqa: BLE001
         summary["wrapper_exit_code"] = 1
         summary["notes"].append(f"fatal_error:{exc}")
         if "failed_fetches_path" in locals() and "failed_fetches_ledger" in locals():
-            failed_fetches_for_save = {
-                fail_hash: failed_fetches_ledger[fail_hash]
-                for fail_hash in sorted(failed_fetches_ledger)
-            }
-            write_json(failed_fetches_path, failed_fetches_for_save)
-            summary["failed_fetches_total_ledger"] = len(failed_fetches_ledger)
+            save_failed_fetches_ledger(failed_fetches_path, failed_fetches_ledger)
+            update_failed_fetches_summary(
+                summary,
+                path=failed_fetches_path,
+                ledger=failed_fetches_ledger,
+                new_in_run=int(summary.get("failed_fetches_new_in_run", 0) or 0),
+            )
         summary["generated_at"] = utc_now_iso()
         write_json(summary_path, summary)
         print(f"[ERROR] {exc}")

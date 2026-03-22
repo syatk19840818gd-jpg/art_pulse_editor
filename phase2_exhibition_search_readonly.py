@@ -3,9 +3,9 @@ from __future__ import annotations
 import os
 import re
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Dict, List, Tuple
 
+from phase2_art_pulse_config import resolve_image_local_path
 from phase2_common_readonly import (
     EXHIBITIONS_IMAGE_META_PATHS,
     EXHIBITIONS_TEXT_PATHS,
@@ -54,13 +54,11 @@ def _derive_title(row: dict) -> str:
 
 
 def _load_latest_exhibition_enrichment_map() -> Tuple[Dict[str, Dict[str, str]], List[str]]:
-    source_path, source_kind = resolve_current_first_enrichment_output_path("exhibitions")
+    source_path, _source_kind = resolve_current_first_enrichment_output_path("exhibitions")
     if source_path is None:
         return {}, []
 
     rows, warnings = safe_load_jsonl(source_path)
-    if source_kind == "legacy_latest":
-        warnings.append(f"fallback_to_legacy_enrichment_output: {source_path}")
 
     enrichment_by_source: Dict[str, Dict[str, str]] = {}
     for row in rows:
@@ -108,9 +106,9 @@ def load_exhibition_records_readonly() -> ExhibitionSearchData:
                 if source_url not in image_preview_r2_by_source:
                     image_preview_r2_by_source[source_url] = str(row.get("r2_key") or "").strip()
                 if source_url not in image_preview_by_source:
-                    local_path = str(row.get("local_path") or "").strip()
-                    if local_path and Path(local_path).exists():
-                        image_preview_by_source[source_url] = local_path
+                    local_path = resolve_image_local_path(str(row.get("local_path") or ""))
+                    if local_path and local_path.exists():
+                        image_preview_by_source[source_url] = str(local_path)
 
     for fair_slug, text_path in EXHIBITIONS_TEXT_PATHS.items():
         text_rows, text_warnings = safe_load_jsonl(text_path)
@@ -157,7 +155,7 @@ def load_exhibition_records_readonly() -> ExhibitionSearchData:
             "Exhibition rows come from formal raw (exhibitions_*_2025.jsonl). "
             "summary_ja/headline_ja uses current-first enrichment output "
             "(data/current/enrichment/exhibitions_enrichment_apply_output_2025.jsonl), "
-            "with legacy latest fallback only when current is missing. "
+            "with strict current-only resolution. "
             "history is not used as a default query path. "
             "image_count_hint is read-only matched by source_url using formal derived image metadata."
         ),

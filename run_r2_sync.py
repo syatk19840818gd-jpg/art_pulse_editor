@@ -158,6 +158,23 @@ def glob_any(path_value: str, patterns: tuple[str, ...]) -> bool:
     return False
 
 
+def should_include_scope_path(
+    *,
+    rel_path: str,
+    repo_rel_path: str,
+    include_globs: tuple[str, ...],
+    exclude_globs: tuple[str, ...],
+    global_excludes: tuple[str, ...],
+) -> bool:
+    if include_globs and not glob_any(rel_path, include_globs):
+        return False
+    if glob_any(rel_path, exclude_globs):
+        return False
+    if glob_any(repo_rel_path, global_excludes) or glob_any(rel_path, global_excludes):
+        return False
+    return True
+
+
 def load_scope_config(config_path: Path) -> tuple[dict[str, ScopeConfig], tuple[str, ...], dict[str, Any]]:
     raw = read_json(config_path)
     if not isinstance(raw, dict):
@@ -236,11 +253,13 @@ def collect_local_objects(
             repo_rel = to_posix(path)
             rel = path.relative_to(root).as_posix()
 
-            if target.include_globs and not glob_any(rel, target.include_globs):
-                continue
-            if glob_any(rel, target.exclude_globs):
-                continue
-            if glob_any(repo_rel, global_excludes) or glob_any(rel, global_excludes):
+            if not should_include_scope_path(
+                rel_path=rel,
+                repo_rel_path=repo_rel,
+                include_globs=target.include_globs,
+                exclude_globs=target.exclude_globs,
+                global_excludes=global_excludes,
+            ):
                 continue
 
             r2_key = f"{target.r2_prefix}/{rel}".replace("//", "/")
@@ -270,18 +289,36 @@ def collect_local_objects(
     return objects, stats
 
 
-def list_remote_objects(*, client: Any, bucket: str, prefixes: list[str]) -> dict[str, RemoteObject]:
+def list_remote_objects(
+    *,
+    client: Any,
+    bucket: str,
+    scope: ScopeConfig,
+    global_excludes: tuple[str, ...],
+) -> dict[str, RemoteObject]:
     remote: dict[str, RemoteObject] = {}
     paginator = client.get_paginator("list_objects_v2")
 
-    for prefix in sorted(set(prefixes)):
-        clean_prefix = prefix.rstrip("/")
+    for target in scope.targets:
+        clean_prefix = target.r2_prefix.rstrip("/")
         if not clean_prefix:
             continue
         for page in paginator.paginate(Bucket=bucket, Prefix=f"{clean_prefix}/"):
             for obj in page.get("Contents", []):
                 key = str(obj.get("Key", ""))
                 if not key:
+                    continue
+                rel = key[len(clean_prefix) + 1 :] if key.startswith(f"{clean_prefix}/") else ""
+                if not rel:
+                    continue
+                repo_rel = f"{to_posix(target.local_root)}/{rel}"
+                if not should_include_scope_path(
+                    rel_path=rel,
+                    repo_rel_path=repo_rel,
+                    include_globs=target.include_globs,
+                    exclude_globs=target.exclude_globs,
+                    global_excludes=global_excludes,
+                ):
                     continue
                 remote[key] = RemoteObject(
                     key=key,
@@ -420,8 +457,12 @@ def run_plan(
 ) -> tuple[dict[str, Any], list[LocalObject], list[dict[str, Any]], list[dict[str, Any]], str]:
     client, bucket = build_r2_client()
     local_objects, local_stats = collect_local_objects(scope=scope, global_excludes=global_excludes)
-    prefixes = [target.r2_prefix for target in scope.targets]
-    remote_objects = list_remote_objects(client=client, bucket=bucket, prefixes=prefixes)
+    remote_objects = list_remote_objects(
+        client=client,
+        bucket=bucket,
+        scope=scope,
+        global_excludes=global_excludes,
+    )
     unchanged, would_upload, would_prune = build_plan(
         local_objects=local_objects,
         remote_objects=remote_objects,

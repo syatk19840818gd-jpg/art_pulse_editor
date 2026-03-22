@@ -22,7 +22,6 @@
         "started_at": "2026-03-09T10:21:46Z",
         "completed_at": "2026-03-20T03:26:08Z",
         "target_year": 2025,
-        "requests_path": "data\\phase1_seed10\\derived\\exhibitions_enrichment_requests_2025.jsonl",
         "apply_output_path": "data\\history\\enrichment\\exhibitions\\exhibitions_enrichment_apply_output_2025_20260320T032608Z.jsonl",
         "total_targeted": 83,
         "total_applied": 81,
@@ -180,10 +179,9 @@
         "target_year": 2025,
         "rag_category": "artists_text",
         "repair_mode": "canonical_rebuild_from_existing_apply",
-        "requests_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\phase1_seed10\\logs\\artist_text_canonical_execute_20260311T124118Z\\staging\\artists_enrichment_requests_2025_canonical_repair.jsonl",
         "raw_input_paths": {
-          "frieze_london": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\phase1_seed10\\logs\\artist_text_canonical_execute_20260311T124118Z\\staging\\raw\\artists_frieze_london_2025.jsonl",
-          "liste": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\phase1_seed10\\logs\\artist_text_canonical_execute_20260311T124118Z\\staging\\raw\\artists_liste_2025.jsonl"
+          "frieze_london": "data\\phase1_seed10\\raw\\artists_frieze_london_2025.jsonl",
+          "liste": "data\\phase1_seed10\\raw\\artists_liste_2025.jsonl"
         },
         "apply_output_path": "data\\history\\enrichment\\artists\\artists_enrichment_apply_output_2025_20260320T032608Z.jsonl",
         "apply_summary_path": "data\\history\\enrichment\\artists\\artists_enrichment_apply_summary_2025_20260320T032608Z.json",

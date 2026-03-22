@@ -17,6 +17,13 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import run_phase1_seed10_artist_image_collect as collect
+from phase2_art_pulse_config import (
+    get_current_raw_paths,
+    get_current_artist_image_meta_paths,
+    get_artist_image_cache_dir,
+    get_image_r2_key,
+    resolve_image_local_path,
+)
 from tools import skip_policy
 from tools.formal_postflight_gate import run_postflight_gate
 from tools.formal_preflight_gate import run_preflight_gate
@@ -30,17 +37,14 @@ except Exception:
 LOG = ROOT / "data" / "phase1_seed10" / "logs"
 TRIAL_BASE = ROOT / "data" / "phase1_seed10" / "_trial"
 TRASH_BASE = ROOT / "data" / "phase1_seed10" / "_trash"
-FORMAL_RAW = ROOT / "data" / "phase1_seed10" / "raw"
-FORMAL_DERIVED = ROOT / "data" / "phase1_seed10" / "derived"
-FORMAL_IMG_ROOT = FORMAL_DERIVED / "images" / "artist_works_images"
-
+FORMAL_IMG_ROOT = ROOT / get_artist_image_cache_dir()
 FORMAL_META = {
-    "frieze_london": FORMAL_DERIVED / "artist_works_images_frieze_london.jsonl",
-    "liste": FORMAL_DERIVED / "artist_works_images_liste.jsonl",
+    fair_slug: ROOT / path
+    for fair_slug, path in get_current_artist_image_meta_paths().items()
 }
 FORMAL_RAW_ARTISTS = {
-    "frieze_london": FORMAL_RAW / "artists_frieze_london_2025.jsonl",
-    "liste": FORMAL_RAW / "artists_liste_2025.jsonl",
+    fair_slug: ROOT / path
+    for fair_slug, path in get_current_raw_paths("artists").items()
 }
 
 INPUT_DRYRUN = LOG / "dryrun_run_phase1_seed10_artist_image_collect_task_formalize_03b_fix02.json"
@@ -158,7 +162,7 @@ def evaluate_target_reason(
             "payload_hash": str(payloads[j]) if isinstance(payloads, list) and j < len(payloads) else "",
         }
         by_hash[h] = row
-        p = collect.resolve_local_cache_path(row["local_path"])
+        p = resolve_image_local_path(row["local_path"])
         if p and p.exists() and p.is_file():
             local_hash = collect.payload_hash_from_file(p).strip().lower()
             prev_hash = str(row["payload_hash"] or "").strip().lower()
@@ -330,7 +334,7 @@ def patch_trial_row_from_candidate(
     out_ph: list[str] = []
     for i, h in enumerate(hashes):
         raw_local = str(lp[i]) if i < len(lp) else ""
-        local_path = collect.resolve_local_cache_path(raw_local) if raw_local else None
+        local_path = resolve_image_local_path(raw_local) if raw_local else None
         if local_path and local_path.exists() and local_path.is_file():
             fair_safe = collect.slugify_token(fair, fallback="unknown-fair")
             name = local_path.name
@@ -343,7 +347,7 @@ def patch_trial_row_from_candidate(
                 elif "\\_trash\\" in src_text:
                     move_counts["restored_from_trash"] += 1
                 out_lp.append(str(dst))
-                out_r2.append(f"phase1_seed10/derived/images/artist_works_images/2025/{fair_safe}/{name}")
+                out_r2.append(get_image_r2_key(dst))
             else:
                 out_lp.append(str(local_path.resolve()))
                 out_r2.append(str(r2[i]) if i < len(r2) else "")
@@ -400,7 +404,7 @@ def rewrite_trial_meta_paths_to_formal(meta_path: Path, trial_img_root: Path, fo
             local_paths[i] = str(newp)
             while len(r2_keys) <= i:
                 r2_keys.append("")
-            r2_keys[i] = f"phase1_seed10/derived/images/{rel.as_posix()}"
+            r2_keys[i] = get_image_r2_key(newp)
             changed = True
         row["works_image_local_paths"] = local_paths
         row["works_image_r2_keys"] = r2_keys
@@ -419,10 +423,7 @@ def main() -> int:
     trial_logs = trial_root / "logs"
     trial_img = trial_derived / "images" / "artist_works_images"
     trial_img_year = trial_img / "2025"
-    trial_meta = {
-        "frieze_london": trial_derived / "artist_works_images_frieze_london.jsonl",
-        "liste": trial_derived / "artist_works_images_liste.jsonl",
-    }
+    trial_meta = {fair_slug: trial_derived / src.name for fair_slug, src in FORMAL_META.items()}
     trial_raw.mkdir(parents=True, exist_ok=True)
     trial_derived.mkdir(parents=True, exist_ok=True)
     trial_logs.mkdir(parents=True, exist_ok=True)
@@ -504,7 +505,7 @@ def main() -> int:
                     continue
                 if idx_i >= len(local_paths):
                     continue
-                p = collect.resolve_local_cache_path(str(local_paths[idx_i] or ""))
+                p = resolve_image_local_path(str(local_paths[idx_i] or ""))
                 if p and p.exists() and p.is_file():
                     payloads[idx_i] = hashlib.sha256(p.read_bytes()).hexdigest()
                     changed += 1
@@ -565,7 +566,7 @@ def main() -> int:
                 local_paths = row.get("works_image_local_paths") if isinstance(row.get("works_image_local_paths"), list) else []
                 r2_keys = row.get("works_image_r2_keys") if isinstance(row.get("works_image_r2_keys"), list) else []
                 for i, lp in enumerate(local_paths):
-                    p = collect.resolve_local_cache_path(str(lp or ""))
+                    p = resolve_image_local_path(str(lp or ""))
                     if p and p.exists() and p.is_file():
                         continue
                     key_text = str(r2_keys[i]) if i < len(r2_keys) else ""

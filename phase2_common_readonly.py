@@ -8,7 +8,19 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Dict, List, Tuple
 
-from phase2_art_pulse_config import TARGET_YEAR, get_enrichment_current_output_path
+from phase2_art_pulse_config import (
+    CURRENT_IMAGES_METADATA_DIR,
+    CURRENT_IMAGES_METADATA_R2_PREFIX,
+    CURRENT_RAW_DIR,
+    CURRENT_RAW_R2_PREFIX,
+    TARGET_YEAR,
+    get_enrichment_current_output_path,
+    get_current_raw_paths,
+    get_current_artist_image_meta_paths,
+    get_current_exhibitions_image_meta_paths,
+    get_image_cache_dir,
+    get_image_r2_key,
+)
 from phase1_artist_link_utils import (
     build_artist_name_en_from_source_url,
     is_invalid_artist_name,
@@ -29,20 +41,20 @@ FAIR_LABEL_TO_SLUG = {
 FAIR_SLUG_TO_LABEL = {value: key for key, value in FAIR_LABEL_TO_SLUG.items()}
 
 EXHIBITIONS_TEXT_PATHS = {
-    "frieze_london": REPO_ROOT / "data/phase1_seed10/raw/exhibitions_frieze_london_2025.jsonl",
-    "liste": REPO_ROOT / "data/phase1_seed10/raw/exhibitions_liste_2025.jsonl",
+    fair_slug: REPO_ROOT / path
+    for fair_slug, path in get_current_raw_paths("exhibitions").items()
 }
 ARTISTS_TEXT_PATHS = {
-    "frieze_london": REPO_ROOT / "data/phase1_seed10/raw/artists_frieze_london_2025.jsonl",
-    "liste": REPO_ROOT / "data/phase1_seed10/raw/artists_liste_2025.jsonl",
+    fair_slug: REPO_ROOT / path
+    for fair_slug, path in get_current_raw_paths("artists").items()
 }
 EXHIBITIONS_IMAGE_META_PATHS = {
-    "frieze_london": REPO_ROOT / "data/phase1_seed10/derived/exhibitions_images_frieze_london_2025.jsonl",
-    "liste": REPO_ROOT / "data/phase1_seed10/derived/exhibitions_images_liste_2025.jsonl",
+    fair_slug: REPO_ROOT / path
+    for fair_slug, path in get_current_exhibitions_image_meta_paths().items()
 }
 ARTIST_WORKS_IMAGE_PATHS = {
-    "frieze_london": REPO_ROOT / "data/phase1_seed10/derived/artist_works_images_frieze_london.jsonl",
-    "liste": REPO_ROOT / "data/phase1_seed10/derived/artist_works_images_liste.jsonl",
+    fair_slug: REPO_ROOT / path
+    for fair_slug, path in get_current_artist_image_meta_paths().items()
 }
 
 GALLERY_LIST_PATHS = {
@@ -51,26 +63,20 @@ GALLERY_LIST_PATHS = {
 }
 
 TARUTANI_TEXT_PATH = REPO_ROOT / "data/Tarutani_data/tarutani_text.jsonl"
-IMAGES_CACHE_DIR = REPO_ROOT / "data/phase1_seed10/derived/images"
+IMAGE_CACHE_ROOT = REPO_ROOT / get_image_cache_dir()
 
 
 def resolve_current_first_enrichment_output_path(
     category: str, target_year: int = TARGET_YEAR
 ) -> tuple[Path | None, str]:
     current_path = REPO_ROOT / get_enrichment_current_output_path(category, target_year)
-    # current-first contract: try to hydrate local current cache from R2 before legacy fallback.
+    # Strict current-only contract: hydrate only the canonical current lane from R2.
     if not current_path.exists():
         r2_key = _local_path_to_r2_key(current_path)
         if r2_key:
             _download_r2_object_to_local(current_path, r2_key)
     if current_path.exists():
         return current_path, "current"
-
-    legacy_dir = REPO_ROOT / "data/phase1_seed10/derived"
-    pattern = f"{category}_enrichment_apply_output_{target_year}_*.jsonl"
-    legacy_candidates = sorted(legacy_dir.glob(pattern), key=lambda p: p.name, reverse=True)
-    if legacy_candidates:
-        return legacy_candidates[0], "legacy_latest"
     return None, "missing"
 
 
@@ -120,10 +126,15 @@ def _local_path_to_r2_key(path: Path) -> str:
     except Exception:
         rel = path.as_posix()
 
-    if rel.startswith("data/phase1_seed10/raw/"):
-        return "phase1_seed10/source/" + rel[len("data/phase1_seed10/raw/") :]
-    if rel.startswith("data/phase1_seed10/derived/"):
-        return "phase1_seed10/derived/" + rel[len("data/phase1_seed10/derived/") :]
+    current_raw_prefix = CURRENT_RAW_DIR.as_posix().rstrip("/") + "/"
+    if rel.startswith(current_raw_prefix):
+        return CURRENT_RAW_R2_PREFIX + "/" + rel[len(current_raw_prefix) :]
+    current_images_metadata_prefix = CURRENT_IMAGES_METADATA_DIR.as_posix().rstrip("/") + "/"
+    if rel.startswith(current_images_metadata_prefix):
+        return CURRENT_IMAGES_METADATA_R2_PREFIX + "/" + rel[len(current_images_metadata_prefix) :]
+    image_cache_r2_key = get_image_r2_key(path, repo_root=REPO_ROOT)
+    if image_cache_r2_key:
+        return image_cache_r2_key
     if rel.startswith("data/current/enrichment/"):
         return "data/current/enrichment/" + rel[len("data/current/enrichment/") :]
     if rel.startswith("data/history/enrichment/artists/"):

@@ -474,7 +474,7 @@ SSOT_TAG: 01>5-8) Sync Model (R2 primary + current/history + local fallback | fi
   - bulk apply promote requires batch evidence + rerun-guard evidence; evidence-missing runs must not promote to current
 - readers (app/read-only/advisor):
   - current-first
-  - migration period only: fallback to legacy `data/phase1_seed10/derived/*_enrichment_apply_output_2025_*.jsonl` latest glob
+  - legacy fallback, if kept for incident review, is historical-only and does not define canonical storage
 - R2:
   - primary persistent sync target = current
   - history is backup/audit lane (non-default runtime lane)
@@ -483,9 +483,23 @@ SSOT_TAG: 01>5-8) Sync Model (R2 primary + current/history + local fallback | fi
 - do not mix current and history in default query paths.
 - app default readers must not point to history.
 - runtime guarantee: app/read-only must continue to function even if history lane is absent.
-- migration next step:
-  - reorganize existing timestamped artifacts into history (no deletion-first policy)
-  - bootstrap current from latest successful timestamped pair (apply_output + apply_summary) per category/year
+- canonical current storage:
+  - `data/current/raw/*.jsonl`
+  - `data/current/vector/artists/*`
+  - `data/current/images/metadata/*.jsonl`
+  - `data/current/images/cache/**`
+- `data/phase1_seed10/` is not the long-term canonical root; it remains a working / validation / retained-lane legacy parent.
+- retained lane ledgers stay in `data/phase1_seed10/logs/`:
+  - `visited_pages*`
+  - `failed_fetches_seed10_2025.json`
+  - `failed_fetches_artists_seed10_2025.json`
+  - `failed_fetches_artist_image_collect_{year}.json`
+  - `artist_master_global.json`
+- moved ledger exception:
+  - `data/current/ledgers/artist_works_images_known_unresolvable.json`
+- canonical storage closeout note:
+  - raw / artists vector / image metadata / image cache are already rebased to current and must not be described as active `phase1_seed10` canonical roots
+  - future ledger revisit, if any, is a behavior-contract task rather than a default storage-move task
 
 ## TASK285 Closeout Update (Exhibitions Text Controlled Operation)
 - status: COMPLETED
@@ -532,8 +546,17 @@ Index update (2026-03-21):
 - current/history rebaseline: completed (A2-A9)
   - storage scaffold in `data/current/enrichment/` and `data/history/enrichment/{artists,exhibitions}/`
   - writer contract: history timestamp write first, then current fixed-name promotion only when batch evidence + rerun-guard evidence are present for bulk apply
-  - reader contract: current-first + migration-only legacy fallback (history is not default ref)
+  - reader contract: current-first; any remaining legacy fallback is historical-only and not a canonical root
   - R2 contract: current primary lane, history audit lane, guarded upload completed
+- canonical storage steady state:
+  - raw family = `data/current/raw/*.jsonl`
+  - artists vector family = `data/current/vector/artists/*`
+  - image metadata family = `data/current/images/metadata/*.jsonl`
+  - image cache family = `data/current/images/cache/**`
+  - `data/phase1_seed10/` is no longer the long-term canonical root; its main live role is working/validation plus retained ledgers
+- ledger retained lane closeout:
+  - retained = `visited_pages*`, `failed_fetches_seed10_2025.json`, `failed_fetches_artists_seed10_2025.json`, `failed_fetches_artist_image_collect_{year}.json`, `artist_master_global.json`
+  - moved exception = `data/current/ledgers/artist_works_images_known_unresolvable.json`
 - enrichment emergency override:
   - Artists / Exhibitions bulk apply must move to Batch API enforced mode before the next production-style apply
   - direct OpenAI remains allowed only for preview/sample lanes
@@ -559,4 +582,65 @@ Index update (2026-03-21):
 Next (from STATE/NEXT):
 - cleanup lane is completed/fixed; return to main roadmap only by explicit user task
 - do not auto-start Feature 5 and do not reopen cleanup without explicit user instruction
+
+============================================================
+CARD_ID: 24_PROOF_LANE_CLOSEOUT_AND_CURRENT_ONLY_RUNTIME_20260322
+============================================================
+SSOT source:
+- 01 section 5-7 (common storage)
+- 01 section 5-8 (sync model)
+- 01 section 6 (operation rules)
+- 01 section 8 (roadmap / execution guard)
+
+Closeout update (2026-03-22):
+- proof lane status:
+  - cleanup / storage rebase / hygiene / aggressive prune / ledger closeout / R2 sync / old-prefix cleanup / strict current-only hardening / no-API smoke are completed.
+  - the proof criteria fixed in this chat are treated as satisfied for 1) Exhibitions Text, 2) Exhibitions Image, 3) Artist Text, 4) Artist Works Images, and 5) save-path / skip / contract verification.
+- current formal families:
+  - `data/current/raw/*.jsonl`
+  - `data/current/vector/artists/*`
+  - `data/current/images/metadata/*.jsonl`
+  - `data/current/images/cache/**`
+  - `data/current/enrichment/*.jsonl`
+  - `data/history/enrichment/{artists,exhibitions}/*`
+  - `data/runtime/enrichment_requests/{artists,exhibitions}/*`
+  - `data/Tarutani_data/*`
+- R2 formal reflection:
+  - `artists_vector_current`
+  - `raw_current_primary`
+  - `images_metadata_current`
+  - `images_cache_current`
+  - final verify verdict for the four current families is fixed as `would_upload=0 / would_prune=0`.
+- legacy / old-prefix cleanup closeout:
+  - completed legacy prune scopes:
+    - `phase1_seed10_legacy_images_prune`
+    - `phase1_seed10_legacy_image_metadata_prune`
+    - `phase1_seed10_legacy_vector_prune`
+    - `phase1_seed10_legacy_request_prune`
+  - completed old-prefix cleanup scopes:
+    - `phase1_seed10_derived_manifest_legacy_prune`
+    - `phase1_seed10_source_legacy_prune`
+    - `tarutani_legacy_vectors_prune`
+    - `tarutani_legacy_logs_prune`
+    - `tarutani_legacy_derived_prune`
+  - final verify verdict for the above cleanup scopes is fixed as `would_upload=0 / would_prune=0`.
+- top-level interpretation:
+  - `data/` is the formal keep root.
+  - `phase1_seed10/` remains only because `data/phase1_seed10/logs/` is the retained-ledger lane.
+  - old `tarutani/` prefix is cleanup-complete and is not an active runtime family root.
+- strict current-only runtime contract:
+  - 1)/3) text readonly/runtime read paths are strict current-only.
+  - `phase2_common_readonly.py` text enrichment resolver is fixed to strict current-only and no longer falls back to legacy `phase1_seed10/derived`.
+  - `run_phase1_seed10.py` no longer touches legacy `data/phase1_seed10/derived`.
+  - 2)/4) image readonly/runtime read paths remain current image metadata + current image cache only.
+- no-API runtime proof:
+  - 1) Exhibitions Text runtime read succeeded from current raw + current enrichment only.
+  - 3) Artist Text runtime read succeeded from current raw + current enrichment only.
+  - 2) Exhibitions Image / 4) Artist Works Images runtime read succeeded from current image metadata + current image cache only.
+  - rerun skip proof is accepted: existing artifacts stop at local dry-run / skip / no-op and do not advance into API execution.
+  - new-save contract proof is accepted: new raw/image/vector outputs resolve to the current formal lanes.
+- operation note:
+  - cleanup is no longer an active default lane.
+  - return to the main roadmap is allowed.
+  - Feature 5 / Exclusive Advisor must still start only on explicit user instruction.
 

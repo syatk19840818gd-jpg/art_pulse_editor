@@ -14,23 +14,19 @@ import numpy as np
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
-from r2_auto_sync import auto_sync_after_job, format_auto_sync_brief
-
+from phase2_art_pulse_config import get_current_raw_paths
 TARGET_YEAR = 2025
 RAG_CATEGORY = "artists_text"
 
-RAW_INPUT_PATHS = {
-    "frieze_london": Path("data/phase1_seed10/raw/artists_frieze_london_2025.jsonl"),
-    "liste": Path("data/phase1_seed10/raw/artists_liste_2025.jsonl"),
-}
+RAW_INPUT_PATHS = get_current_raw_paths("artists", TARGET_YEAR)
 
-OUTPUT_DIR = Path("data/phase1_seed10/derived/vector")
+OUTPUT_DIR = Path("data/current/vector/artists")
 INDEX_PATH = OUTPUT_DIR / "artists_text_index_2025.npy"
 META_PATH = OUTPUT_DIR / "artists_text_meta_2025.jsonl"
 FAILED_PATH = OUTPUT_DIR / "artists_text_vectorize_failed_2025.jsonl"
 SUMMARY_PATH = OUTPUT_DIR / "artists_text_vectorize_summary_2025.json"
 MANIFEST_PATH = OUTPUT_DIR / "artists_text_artifact_manifest_2025.json"
-MANIFEST_R2_PREFIX = "phase1_seed10/derived/vector"
+MANIFEST_R2_PREFIX = "data/current/vector/artists"
 
 EMBEDDING_MODEL_DEFAULT = "gemini-embedding-001"
 EMBED_TASK_TYPE = "RETRIEVAL_DOCUMENT"
@@ -379,11 +375,7 @@ def main() -> int:
     print(f"[DONE] meta={META_PATH}")
     print(f"[DONE] summary={SUMMARY_PATH}")
     print(f"[DONE] manifest={MANIFEST_PATH}")
-    auto_sync_result = auto_sync_after_job(
-        target="phase1_derived",
-        trigger="run_vectorize_artists_seed10.py",
-    )
-    print(format_auto_sync_brief(auto_sync_result))
+    print("[SYNC] status=manual_sync_only entrypoint=run_r2_sync.py scope_hint=artists_vector_current")
     return 0
 
 

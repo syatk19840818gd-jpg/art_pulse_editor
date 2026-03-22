@@ -4,6 +4,7 @@ import os
 import shutil
 from pathlib import Path
 
+REPO_ROOT = Path(__file__).resolve().parent
 TARGET_YEAR = 2025
 PERSONA_COUNT = 8
 ART_PULSE_TEXT_MIN_CHARS = 1800
@@ -27,12 +28,170 @@ ART_PULSE_SECTION2_MIN_CHARS = 600
 ART_PULSE_SECTION3_MIN_CHARS = 600
 
 DATA_ROOT = Path("data")
+PHASE1_SEED10_ROOT = DATA_ROOT / "phase1_seed10"
+PHASE1_SEED10_DERIVED_DIR = PHASE1_SEED10_ROOT / "derived"
+PHASE1_SEED10_DERIVED_R2_PREFIX = "phase1_seed10/derived"
+IMAGE_CACHE_DIR = DATA_ROOT / "current" / "images" / "cache"
+IMAGE_CACHE_R2_PREFIX = "data/current/images/cache"
+CURRENT_RAW_DIR = DATA_ROOT / "current" / "raw"
+CURRENT_RAW_R2_PREFIX = "data/current/raw"
+CURRENT_IMAGES_METADATA_DIR = DATA_ROOT / "current" / "images" / "metadata"
+CURRENT_IMAGES_METADATA_R2_PREFIX = "data/current/images/metadata"
+SUPPORTED_FAIR_SLUGS = ("frieze_london", "liste")
 ENRICHMENT_CURRENT_DIR = DATA_ROOT / "current" / "enrichment"
 ENRICHMENT_HISTORY_DIR = DATA_ROOT / "history" / "enrichment"
 ENRICHMENT_HISTORY_ARTISTS_DIR = ENRICHMENT_HISTORY_DIR / "artists"
 ENRICHMENT_HISTORY_EXHIBITIONS_DIR = ENRICHMENT_HISTORY_DIR / "exhibitions"
 ENRICHMENT_RUNTIME_REQUESTS_DIR = DATA_ROOT / "runtime" / "enrichment_requests"
 ENRICHMENT_RUNTIME_REQUESTS_REPORTS_DIR = ENRICHMENT_RUNTIME_REQUESTS_DIR / "_reports"
+
+
+def get_phase1_seed10_derived_dir(root: Path | None = None) -> Path:
+    if root is None:
+        return PHASE1_SEED10_DERIVED_DIR
+    return Path(root) / "derived"
+
+
+def get_image_cache_dir(root: Path | None = None) -> Path:
+    if root is None:
+        return IMAGE_CACHE_DIR
+    return Path(root) / "images" / "cache"
+
+
+def get_artist_image_cache_dir(root: Path | None = None) -> Path:
+    return get_image_cache_dir(root) / "artist_works_images"
+
+
+def get_exhibition_image_cache_dir(root: Path | None = None) -> Path:
+    return get_image_cache_dir(root) / "exhibition_works_images"
+
+
+def get_current_images_metadata_dir(root: Path | None = None) -> Path:
+    if root is None:
+        return CURRENT_IMAGES_METADATA_DIR
+    return Path(root) / "images" / "metadata"
+
+
+def get_current_artist_image_meta_path(fair_slug: str, *, root: Path | None = None) -> Path:
+    _validate_supported_fair_slug(fair_slug)
+    return get_current_images_metadata_dir(root) / f"artist_works_images_{fair_slug}.jsonl"
+
+
+def get_current_artist_image_meta_paths(*, root: Path | None = None) -> dict[str, Path]:
+    return {fair_slug: get_current_artist_image_meta_path(fair_slug, root=root) for fair_slug in SUPPORTED_FAIR_SLUGS}
+
+
+def get_current_exhibitions_image_meta_path(
+    fair_slug: str,
+    target_year: int = TARGET_YEAR,
+    *,
+    root: Path | None = None,
+) -> Path:
+    _validate_supported_fair_slug(fair_slug)
+    return get_current_images_metadata_dir(root) / f"exhibitions_images_{fair_slug}_{target_year}.jsonl"
+
+
+def get_current_exhibitions_image_meta_paths(
+    target_year: int = TARGET_YEAR,
+    *,
+    root: Path | None = None,
+) -> dict[str, Path]:
+    return {
+        fair_slug: get_current_exhibitions_image_meta_path(
+            fair_slug,
+            target_year,
+            root=root,
+        )
+        for fair_slug in SUPPORTED_FAIR_SLUGS
+    }
+
+
+def resolve_image_local_path(path_text: str | Path, *, repo_root: Path = REPO_ROOT) -> Path | None:
+    raw = str(path_text or "").strip()
+    if not raw:
+        return None
+    path = Path(raw)
+    if path.is_absolute():
+        return path
+    return (Path(repo_root) / path).resolve()
+
+
+def normalize_image_local_path_text(
+    path_text: str | Path,
+    *,
+    repo_root: Path = REPO_ROOT,
+) -> str:
+    path = resolve_image_local_path(path_text, repo_root=repo_root)
+    return str(path) if path is not None else ""
+
+
+def get_image_cache_rel_path(
+    path_text: str | Path,
+    *,
+    images_root: Path | None = None,
+    repo_root: Path = REPO_ROOT,
+) -> str:
+    path = resolve_image_local_path(path_text, repo_root=repo_root)
+    if path is None:
+        return ""
+    cache_root = _resolve_repo_path(images_root or IMAGE_CACHE_DIR, repo_root=repo_root)
+    try:
+        rel = path.resolve().relative_to(cache_root.resolve())
+    except Exception:
+        return ""
+    return rel.as_posix()
+
+
+def get_image_r2_key(
+    path_text: str | Path,
+    *,
+    images_root: Path | None = None,
+    repo_root: Path = REPO_ROOT,
+) -> str:
+    rel = get_image_cache_rel_path(
+        path_text,
+        images_root=images_root,
+        repo_root=repo_root,
+    )
+    if not rel:
+        return ""
+    return f"{IMAGE_CACHE_R2_PREFIX}/{rel}"
+
+
+def get_current_raw_dir(root: Path | None = None) -> Path:
+    if root is None:
+        return CURRENT_RAW_DIR
+    return Path(root) / "raw"
+
+
+def get_current_raw_path(
+    category: str,
+    fair_slug: str,
+    target_year: int = TARGET_YEAR,
+    *,
+    root: Path | None = None,
+) -> Path:
+    _validate_enrichment_category(category)
+    _validate_supported_fair_slug(fair_slug)
+    return get_current_raw_dir(root) / f"{category}_{fair_slug}_{target_year}.jsonl"
+
+
+def get_current_raw_paths(
+    category: str,
+    target_year: int = TARGET_YEAR,
+    *,
+    root: Path | None = None,
+) -> dict[str, Path]:
+    _validate_enrichment_category(category)
+    return {
+        fair_slug: get_current_raw_path(
+            category,
+            fair_slug,
+            target_year,
+            root=root,
+        )
+        for fair_slug in SUPPORTED_FAIR_SLUGS
+    }
 
 
 def get_enrichment_current_output_path(category: str, target_year: int = TARGET_YEAR) -> Path:
@@ -113,6 +272,18 @@ def promote_history_file_to_current(history_path: Path, current_path: Path) -> N
 def _validate_enrichment_category(category: str) -> None:
     if category not in {"artists", "exhibitions"}:
         raise ValueError(f"Unsupported enrichment category: {category}")
+
+
+def _validate_supported_fair_slug(fair_slug: str) -> None:
+    if fair_slug not in SUPPORTED_FAIR_SLUGS:
+        raise ValueError(f"Unsupported fair slug: {fair_slug}")
+
+
+def _resolve_repo_path(path: Path | str, *, repo_root: Path = REPO_ROOT) -> Path:
+    resolved = Path(path)
+    if resolved.is_absolute():
+        return resolved
+    return (Path(repo_root) / resolved).resolve()
 
 PERSONAS = [
     {

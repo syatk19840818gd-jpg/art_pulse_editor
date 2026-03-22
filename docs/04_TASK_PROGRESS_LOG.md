@@ -5252,3 +5252,72 @@ _trash 運用方針:
   - aggressive prune: completed / fully accepted.
   - stale backup mirror / stale trial payload / stale `_trial` provenance / stale rollback provenance cleanup: completed.
   - main-roadmap return is fixed; cleanup is no longer the top-priority lane, and future cleanup reopening or Feature 5 start requires explicit user instruction.
+
+
+## 2026-03-22 TASK DOC_SYNC_CANONICAL_STORAGE_AND_LEDGER_CLOSEOUT_01
+- scope: docs-only sync of canonical storage rebase, repo/output hygiene steady state, and ledger retained-lane closeout across 01/02/03/04.
+- result:
+  - vector canonical move was reflected as completed: artists vector family now lives in `data/current/vector/artists/*`.
+  - enrichment text pointer cleanup was reflected as completed and no longer treated as an open cleanup lane.
+  - raw contract decouple and raw canonical move were reflected as completed: raw family now lives in `data/current/raw/*.jsonl`.
+  - image metadata contract decouple and canonical move were reflected as completed: image metadata family now lives in `data/current/images/metadata/*.jsonl`.
+  - image cache contract decouple and canonical move were reflected as completed: image cache family now lives in `data/current/images/cache/**`.
+  - ledger contract verify / decouple and single-family decisions were reflected as closed: `artist_works_images_known_unresolvable.json` is the only moved exception and now lives in `data/current/ledgers/artist_works_images_known_unresolvable.json`.
+  - retained lane closeout was fixed as the current policy for `visited_pages*`, `failed_fetches_seed10_2025.json`, `failed_fetches_artists_seed10_2025.json`, `failed_fetches_artist_image_collect_{year}.json`, and `artist_master_global.json`.
+  - `data/phase1_seed10/` was reclassified as a non-canonical long-term root; it remains a working / validation / retained-lane legacy parent rather than the current formal SSOT for raw/vector/image families.
+  - output hygiene steady state was synced as permanent: optional artifacts are opt-in only, default `preview` / `diagnostics` / `report` / `latest` / `diff` / `inventory` remain off, `run_r2_sync.py` plan log remains the essential exception, and `run_phase1_seed10_exhibition_image_collect.py` `summary_latest` remains default-off.
+  - small-delta Text enrichment standard handling was fixed as `existing-artifact diagnosis -> intentional drop -> localized repair -> no-reextraction delta promote`, with `run_text_enrichment_delta_promote.py` as the standard entrypoint and `run_artist_text_canonical_dryrun.py` / `run_artist_text_canonical_execute.py` retained as retired one-off scripts.
+  - final closeout note was synced: repo hygiene cleanup = completed, output hygiene permanent guard = completed, aggressive prune = fully accepted, canonical storage major rebase is now at a stopping point, and normal roadmap return is the active direction.
+- not done:
+  - no code / data / app / config / tools changes in this docs sync.
+  - no additional ledger move is planned by default; any future revisit is a behavior-contract task rather than a storage-move continuation.
+
+## 2026-03-22 TASK PROOF_LANE_FINAL_CLOSEOUT_SYNC_01
+- scope: docs-only sync of the final proof lane closeout across 01/02/03/04 after the guarded R2 apply/prune work, old-prefix cleanup, strict current-only hardening, and no-API smoke verification were all completed in the chat.
+- timeline:
+  - current-family guarded R2 reflection was treated as completed for:
+    - `artists_vector_current`
+    - `raw_current_primary`
+    - `images_metadata_current`
+    - `images_cache_current`
+  - final verify state for the above four scopes was fixed as `would_upload=0 / would_prune=0`.
+  - legacy prune contract was treated as separated/finalized for:
+    - `phase1_seed10_legacy_images_prune`
+    - `phase1_seed10_legacy_image_metadata_prune`
+    - `phase1_seed10_legacy_vector_prune`
+    - `phase1_seed10_legacy_request_prune`
+  - additional old-prefix cleanup was treated as completed for:
+    - `phase1_seed10_derived_manifest_legacy_prune`
+    - `phase1_seed10_source_legacy_prune`
+    - `tarutani_legacy_vectors_prune`
+    - `tarutani_legacy_logs_prune`
+    - `tarutani_legacy_derived_prune`
+  - final verify state for all legacy / old-prefix cleanup scopes was fixed as `would_upload=0 / would_prune=0`.
+  - top-level interpretation was frozen as:
+    - `data/` = formal keep root
+    - `phase1_seed10/` = working / validation / retained-ledger parent only
+    - `tarutani/` old prefix = cleanup-complete
+  - strict current-only hardening was treated as completed:
+    - 1)/3) text lane legacy fallback removal completed
+    - `phase2_common_readonly.py` text enrichment resolver fixed to strict current-only
+    - `run_phase1_seed10.py` legacy `data/phase1_seed10/derived` touch removal completed
+  - no-API smoke was treated as completed:
+    - 1) Exhibitions Text current-only runtime read passed
+    - 3) Artist Text current-only runtime read passed
+    - 2) Exhibitions Image / 4) Artist Works Images current-only runtime read passed
+    - rerun skip proof passed
+    - new-save contract proof to current formal lanes passed
+- result:
+  - proof lane is completed.
+  - cleanup / storage-rebase / strict-hardening / no-API runtime proof are all in accepted closeout state.
+  - items 1-5 are treated as proof-complete under the criteria fixed in this chat.
+  - the project may return to the main roadmap.
+  - Feature 5 / Exclusive Advisor remains explicit-user-instruction-only and must not auto-start.
+- unavoidable runtime artifacts observed in the no-API smoke chat:
+  - retained-lane dry-run summaries only:
+    - `data/phase1_seed10/logs/dryrun_run_phase1_seed10_2025.json`
+    - `data/phase1_seed10/logs/dryrun_run_phase1_seed10_artist_image_collect_2025.json`
+    - `data/phase1_seed10/logs/dryrun_run_phase1_seed10_exhibition_image_collect_2025.json`
+- not done:
+  - no code / data / app / R2 / config change in this docs sync.
+  - no cleanup reopening, no new implementation, and no Feature 5 kickoff in this docs task.

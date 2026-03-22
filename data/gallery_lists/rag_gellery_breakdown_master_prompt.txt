@@ -3,14 +3,14 @@
 TASK_RAG_BREAKDOWN_01 = UPDATE_RAG_GALLERY_BREAKDOWN_XLSX_FROM_FORMAL
 
 目的:
-- rag_gellery_breakdown_master.xlsx を、正式RAG（data/phase1_seed10/raw, derived）を根拠に
+- rag_gellery_breakdown_master.xlsx を、正式RAG（data/current/raw, data/phase1_seed10/derived）を根拠に
   「ギャラリー別の抽出内訳」を上書き更新する
 - フェアはシート分け（frieze-london / liste）を維持
 - ギャラリーが増えたら行追加、既存は上書き
 - 項目名は日本語のまま（シート構造は壊さない）
 
 重要制約:
-- 正式RAG（data/phase1_seed10/raw, derived, derived/images）は read-only（書き換え禁止）
+- 正式RAG（data/current/raw, data/phase1_seed10/derived, data/current/images/cache）は read-only（書き換え禁止）
 - xlsx だけ更新する
 - セル結合や見出し行の改変禁止
 - 一致率(%)はコードで計算して数値を書き込む（Excel関数は使わない）
@@ -27,17 +27,17 @@ TASK_RAG_BREAKDOWN_01 = UPDATE_RAG_GALLERY_BREAKDOWN_XLSX_FROM_FORMAL
     Exhibition画像枚数 / Exhibitionテキスト数 / メモ / 更新日 / run_id
 - 正式RAG:
   - Artist Text:
-    data/phase1_seed10/raw/artists_frieze_london_2025.jsonl
-    data/phase1_seed10/raw/artists_liste_2025.jsonl
+    data/current/raw/artists_frieze_london_2025.jsonl
+    data/current/raw/artists_liste_2025.jsonl
   - Artist Works Images:
-    data/phase1_seed10/derived/artist_works_images_frieze_london.jsonl
-    data/phase1_seed10/derived/artist_works_images_liste.jsonl
+    data/current/images/metadata/artist_works_images_frieze_london.jsonl
+    data/current/images/metadata/artist_works_images_liste.jsonl
   - Exhibitions Text:
-    data/phase1_seed10/raw/exhibitions_frieze_london_2025.jsonl
-    data/phase1_seed10/raw/exhibitions_liste_2025.jsonl
+    data/current/raw/exhibitions_frieze_london_2025.jsonl
+    data/current/raw/exhibitions_liste_2025.jsonl
   - Exhibitions Image metadata:
-    （存在する場合）data/phase1_seed10/derived/exhibitions_images_frieze_london_2025.jsonl
-    （存在する場合）data/phase1_seed10/derived/exhibitions_images_liste_2025.jsonl
+    （存在する場合）data/current/images/metadata/exhibitions_images_frieze_london_2025.jsonl
+    （存在する場合）data/current/images/metadata/exhibitions_images_liste_2025.jsonl
 
 集計定義（必須）:
 - Artists:

@@ -7,7 +7,12 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Dict, List, Tuple
 
-from phase2_art_pulse_config import find_persona, find_persona_angle, get_angle_query_terms
+from phase2_art_pulse_config import (
+    find_persona,
+    find_persona_angle,
+    get_angle_query_terms,
+    normalize_image_local_path_text,
+)
 from phase2_common_readonly import (
     ARTISTS_TEXT_PATHS,
     ARTIST_WORKS_IMAGE_PATHS,
@@ -234,7 +239,7 @@ def _load_fair_bundle_cached(
                 "fair": fair_label,
                 "gallery": row.get("gallery_name_en") or "",
                 "source_url": row.get("source_url") or "",
-                "local_path": row.get("local_path") or "",
+                "local_path": normalize_image_local_path_text(row.get("local_path") or ""),
                 "image_url": row.get("image_url") or "",
                 "r2_key": row.get("r2_key") or "",
             }
@@ -250,7 +255,7 @@ def _load_fair_bundle_cached(
         first_local = ""
         local_paths = row.get("works_image_local_paths")
         if isinstance(local_paths, list) and local_paths:
-            first_local = str(local_paths[0] or "")
+            first_local = normalize_image_local_path_text(local_paths[0] or "")
         first_image_url = ""
         image_urls = row.get("works_image_urls")
         if isinstance(image_urls, list) and image_urls:
