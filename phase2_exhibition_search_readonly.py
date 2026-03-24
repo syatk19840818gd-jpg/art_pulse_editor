@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 import re
 from dataclasses import dataclass
 from typing import Dict, List, Tuple
@@ -249,57 +248,3 @@ def search_exhibitions(
     if keyword_query:
         return apply_exhibition_filters(records, fair_label, keyword_query)[:safe_limit]
     return fair_filtered[:safe_limit]
-
-
-def answer_exhibition_followup(question_text: str, result_row: dict) -> str:
-    question = str(question_text or "").strip()
-    if not question:
-        return ""
-
-    title = str(result_row.get("exhibition_title") or "検索結果").strip()
-    gallery = str(result_row.get("gallery_name") or "").strip()
-    fair = str(result_row.get("fair_label") or "").strip()
-    artists = str(result_row.get("artist_names") or "").strip()
-    summary = str(result_row.get("summary_ja") or "").strip() or "未付与"
-    text = str(result_row.get("text") or "").strip()
-    source_url = str(result_row.get("source_url") or "").strip()
-
-    fallback = (
-        f"質問: {question}\n"
-        f"対象: {title}"
-        f"{f' / {gallery}' if gallery else ''}"
-        f"{f' / {fair}' if fair else ''}\n"
-        f"要約: {summary}\n"
-        f"作家: {artists if artists else '記載なし'}\n"
-        f"根拠: {text[:220] if text else '本文抜粋なし'}\n"
-        f"Source: {source_url if source_url else 'なし'}"
-    )[:500]
-
-    api_key = os.getenv("OPENAI_API_KEY", "").strip()
-    if not api_key:
-        return fallback
-
-    try:
-        from openai import OpenAI
-
-        model = os.getenv("TEXT_MODEL", "gpt-5-mini")
-        client = OpenAI(api_key=api_key)
-        prompt = (
-            "次の質問に日本語で簡潔に回答してください。"
-            "与えられた検索コンテキストは参考情報として使い、必要なら一般知識（内部知識）も最大限活用して構いません。"
-            "人物・用語の意味や背景は、広く知られた事実に基づいて説明してください。"
-            "文脈依存の解釈はコンテキストを優先し、最後に要点を短くまとめてください。\n"
-            f"質問: {question}\n"
-            f"title: {title}\n"
-            f"gallery: {gallery}\n"
-            f"fair: {fair}\n"
-            f"artists: {artists}\n"
-            f"summary: {summary}\n"
-            f"text: {text[:900]}\n"
-            f"source_url: {source_url}"
-        )
-        response = client.responses.create(model=model, input=prompt)
-        answer = str(response.output_text or "").strip()
-        return (answer[:500] if answer else fallback)
-    except Exception:
-        return fallback

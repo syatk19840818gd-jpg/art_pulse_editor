@@ -108,6 +108,21 @@
         }
       ]
     },
+    "current_ledgers_family": {
+      "description": "Canonical current lane for formal current ledgers family.",
+      "enabled_by_default": false,
+      "prune_allowed": true,
+      "targets": [
+        {
+          "local_root": "data/current/ledgers",
+          "r2_prefix": "data/current/ledgers",
+          "include_globs": [
+            "**/*"
+          ],
+          "exclude_globs": []
+        }
+      ]
+    },
     "artist_works_images_vector_current": {
       "description": "Canonical current lane for ArtWork Search vector artifacts.",
       "enabled_by_default": false,

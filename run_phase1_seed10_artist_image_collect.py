@@ -23,9 +23,9 @@ from PIL import Image, UnidentifiedImageError
 from phase1_ledger_contract import (
     build_artist_master_entry,
     clear_failed_fetch,
+    get_current_known_unresolvable_artist_images_path,
     get_phase1_artist_master_global_path,
     get_phase1_failed_fetches_ledger_path,
-    get_phase1_known_unresolvable_artist_images_path,
     get_phase1_logs_dir,
     load_artist_image_failed_fetches_ledger,
     load_artist_master_global,
@@ -2303,7 +2303,7 @@ def main() -> int:
         else (PROJECT_ROOT / get_artist_image_cache_dir()).resolve()
     )
     artist_master_global_path = get_phase1_artist_master_global_path(logs_dir=logs_dir).resolve()
-    known_unresolvable_path = get_phase1_known_unresolvable_artist_images_path().resolve()
+    known_unresolvable_path = get_current_known_unresolvable_artist_images_path().resolve()
     if policy_mode == skip_policy.REBUILD_MODE:
         TRASH_ROOT = io_root / "_trash"
 

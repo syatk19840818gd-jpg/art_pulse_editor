@@ -13,8 +13,8 @@ from phase2_art_pulse_config import DATA_ROOT, PHASE1_SEED10_ROOT
 # - Retained lane (behavior-heavy): visited_pages*, failed_fetches*,
 #   failed_fetches_artist_image_collect_{year}, artist_master_global.json
 #   stay under data/phase1_seed10/logs via PHASE1_LEDGER_DIR.
-# - Single moved exception: artist_works_images_known_unresolvable.json
-#   lives under data/current/ledgers via CURRENT_LEDGER_DIR.
+# - Current ledger family: ledgers that are formally read from current
+#   are placed under data/current/ledgers via CURRENT_LEDGER_DIR.
 PHASE1_LEDGER_DIR = PHASE1_SEED10_ROOT / "logs"
 CURRENT_LEDGER_DIR = DATA_ROOT / "current" / "ledgers"
 RUN_SUMMARY_FILENAME_TEMPLATE = "run_summary_seed10_{target_year}.json"
@@ -142,9 +142,18 @@ def get_current_ledgers_dir() -> Path:
     return CURRENT_LEDGER_DIR
 
 
-def get_phase1_known_unresolvable_artist_images_path() -> Path:
-    # Single-family exception that already moved to current ledgers.
-    return get_current_ledgers_dir() / KNOWN_UNRESOLVABLE_ARTIST_IMAGES_FILENAME
+def get_current_ledger_path(relative_path: str | Path) -> Path:
+    rel_text = str(relative_path or "").strip().replace("\\", "/")
+    if not rel_text:
+        raise ValueError("current_ledger_relative_path_required")
+    rel_parts = Path(rel_text).parts
+    if Path(rel_text).is_absolute() or ".." in rel_parts:
+        raise ValueError(f"invalid_current_ledger_relative_path:{rel_text}")
+    return get_current_ledgers_dir() / rel_text
+
+
+def get_current_known_unresolvable_artist_images_path() -> Path:
+    return get_current_ledger_path(KNOWN_UNRESOLVABLE_ARTIST_IMAGES_FILENAME)
 
 
 def _read_json(path: Path) -> Any | None:
