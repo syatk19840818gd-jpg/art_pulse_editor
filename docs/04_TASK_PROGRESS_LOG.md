@@ -5405,3 +5405,34 @@ _trash 運用方針:
   - optional cleanup note: old cloud/local translation credentials may still exist outside the repo, but they are no longer referenced by the repo implementation.
 - not done:
   - no code / data / app / R2 / config change in this docs closeout.
+
+## 2026-03-24 TASK330_DOC_SYNC_CURRENT_ACCEPTED_FEATURE7_AND_LEDGER_FAMILY_01
+- scope: docs-only sync of 01/02/03/04 to the latest accepted implementation and contract state; no code/data/app/R2/config change.
+- result:
+  - Feature 7 UI current accepted state is synced:
+    - fair select options are aligned with Feature 2/3 (`Frieze London` / `Liste Art Fair Basel` / `Frieze London + Liste Art Fair Basel`).
+    - default fair is `Frieze London + Liste Art Fair Basel`.
+    - card style is aligned with Artist Search (`title=artist_name（artist_name_kana）`, `summary_ja`, one full-width fixed-height image).
+    - count caption uses shared style; old inline `artifact=` / `mode=` / `fair:` labels are removed from normal UI.
+    - query route is fixed as japanese text rewrite-only (`gpt-5-mini`) and no-LLM for english text and image query.
+  - Feature 7 current artifact lane is synced as `data/current/vector/artist_works_images/` (embeddings / search index / id map) with scope-local R2 reflection via `artist_works_images_vector_current`.
+  - Cloud verification note is synced as access-state-only: local browser smoke broadly passed; Cloud anonymous verify-only may be blocked when Cloud app is private.
+  - ledger contract wording is corrected from file-fixed moved-exception wording to family wording:
+    - retained lane main ledgers remain in `data/phase1_seed10/logs/`.
+    - `data/current/ledgers/` is the current ledger family root for ledgers formally read from current.
+    - R2 scope is `current_ledgers_family` (directory-family).
+  - `.gitignore` note is synced as unchanged-by-design:
+    - `data/current/` was already ignored as a directory family.
+    - issue/fix target was R2 file-fixed scope design, not gitignore coverage.
+  - Feature 2/3 cleanup note is synced:
+    - `answer_artist_followup()` / `answer_exhibition_followup()` are removed as unused helper residue.
+    - active Feature 2/3 search routes are unchanged.
+  - roadmap-state synchronization is retained:
+    - Feature 7 stays accepted/close in current scope unless major regression.
+    - return to main roadmap is active.
+    - Feature 5 remains explicit-user-instruction-only.
+    - normal next candidates stay Feature 6 Gallery list or the planned post-pause roadmap lane.
+- not done:
+  - no docs scope expansion beyond the requested synchronization points.
+  - no Cloud setting change.
+  - no Feature 5/6 implementation start.

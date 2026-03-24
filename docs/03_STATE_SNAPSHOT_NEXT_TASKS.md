@@ -13,7 +13,7 @@ STREAMLIT_ENTRYPOINT（固定）
 - Local run: streamlit run app.py
 
 SOURCE_SSOT: 01_PROJECT_SPEC_CURRENT_FULL.docx
-LAST_UPDATED: 2026-03-24 18:32 JST
+LAST_UPDATED: 2026-03-24 22:00 JST
 
 
 ========================
@@ -89,11 +89,15 @@ STATE_SNAPSHOT（現在地）
   - current/history rebaseline phase: completed (A2-A9)
   - Immediate priority: cleanup lane is closed; return to main roadmap only by explicit user task（Feature 5 auto-start はしない）
   - current state note: repo hygiene cleanup / output hygiene permanent guard / aggressive prune are completed and accepted. Feature 4 Advisor remains major-regression-only tiny fix, and normal feature work may resume from the main roadmap when the user explicitly asks for it
-  - Feature 7 note: ArtWork Search is an implemented app feature that reuses existing Artist Works Images only. It is not a new RAG category, keeps OpenCLIP as the retrieval engine, uses `gpt-5-mini` rewrite -> short English search query -> OpenCLIP for japanese text queries, keeps english text / image query as direct OpenCLIP, and is accepted for current scope.
-  - storage note: current-only / no duplicate storage remains fixed. Feature 7 currently uses existing current image metadata + current image cache and writes only OpenCLIP embeddings / search index / id map under `data/current/vector/artist_works_images/`.
+  - Feature 7 note: ArtWork Search is an implemented app feature that reuses existing Artist Works Images only. It is not a new RAG category, keeps OpenCLIP as the retrieval engine, uses `gpt-5-mini` rewrite only for japanese text query, keeps english text and image query as direct OpenCLIP, and is accepted for current scope.
+  - Feature 7 UI note (current accepted): fair select options are `Frieze London` / `Liste Art Fair Basel` / `Frieze London + Liste Art Fair Basel` with default `Frieze London + Liste Art Fair Basel`; card style is aligned to Artist Search (`title=artist_name（artist_name_kana）`, `summary_ja`, one full-width fixed-height image); shared count caption style is used; old inline `artifact=` / `mode=` / `fair:` labels are removed from normal UI.
+  - storage note: current-only / no duplicate storage remains fixed. Feature 7 currently uses existing current image metadata + current image cache and writes only OpenCLIP embeddings / search index / id map under `data/current/vector/artist_works_images/`; this artifact family is reflected in R2 via `artist_works_images_vector_current`.
+  - Cloud verify note: local browser smoke is broadly passed; Cloud anonymous verify-only can be blocked when Cloud app access is private, and this is treated as access state rather than feature regression.
   - Feature 7 closeout note: Google Translation route was not adopted as the final accepted route, and old Google Translation / jp-expansion / weighted-max workaround code is removed from the repo implementation.
   - canonical storage closeout note: `data/current/raw/`, `data/current/vector/artists/`, `data/current/images/metadata/`, and `data/current/images/cache/` are now the canonical persistent lanes for those families. `data/phase1_seed10/` is not the long-term canonical root and mainly remains a working / validation / retained-ledger legacy parent.
-  - ledger retained-lane closeout note: `visited_pages*`, `failed_fetches_seed10_2025.json`, `failed_fetches_artists_seed10_2025.json`, `failed_fetches_artist_image_collect_{year}.json`, and `artist_master_global.json` are retained-lane ledgers in `data/phase1_seed10/logs/`; only `artist_works_images_known_unresolvable.json` moved to `data/current/ledgers/`
+  - ledger retained-lane closeout note: `visited_pages*`, `failed_fetches_seed10_2025.json`, `failed_fetches_artists_seed10_2025.json`, `failed_fetches_artist_image_collect_{year}.json`, and `artist_master_global.json` remain retained-lane ledgers in `data/phase1_seed10/logs/`; `data/current/ledgers/` is the current-ledger family for ledgers formally read from current, and its R2 scope is `current_ledgers_family`.
+  - gitignore note: `.gitignore` remains unchanged (`data/current/` was already directory-family ignored); issue and fix target were R2 scope file-fix design, not gitignore coverage.
+  - Feature 2/3 cleanup note: removed unused follow-up OpenAI helper residues (`answer_artist_followup()` / `answer_exhibition_followup()`); active search routes for Feature 2/3 were unchanged.
   - enrichment requests policy note: runtime-path switch is applied and verify verdict is GO (`data/runtime/enrichment_requests/...` active, `_completed` archive lane, `_reports` migration/retention audit lane); `_reports` is not always-on and keep/delete remains evidence-gated
   - enrichment execution note: URL scope contamination incident and the single artists batch parse failure incident are resolved. For future Text enrichment incidents, the standard first-response is existing-artifact diagnosis + intentional drop + localized repair + no-reextraction delta promote, the standard entrypoint is `run_text_enrichment_delta_promote.py`, and full rerun / full rebuild / re-extraction / batch rerun remain last-resort and user-confirmed only
   - artifact policy note: optional artifact is opt-in only via `ART_PULSE_OUTPUT_ARTIFACTS`; `preview` / `diagnostics` / `report` / `latest` / `diff` / `inventory` are default-off, duplicate mirror storage is prohibited, and new temp / backup / report roots must not be introduced outside `_trash`
@@ -120,6 +124,7 @@ STATE_SNAPSHOT（現在地）
 - Cloudflare R2準備（バケット/キー/接続）：正本ストレージ 完了
 - Streamlit Cloud（GitHub連携＋Secrets）：デプロイできる状態 完了
 - Feature 7 accepted route（`gpt-5-mini` rewrite -> OpenCLIP / english direct OpenCLIP / image direct OpenCLIP）：accepted for current scope
+ - Feature 7 artifact R2 reflection（`artist_works_images_vector_current` scope）：sync済み
 - 最小スモークテスト：ローカル→クラウドまで通す 完了
 - VSCode→Codex拡張インストール＋サインイン済み 完了
 - ギャラリーリスト（全件）作成済み：
@@ -7725,7 +7730,7 @@ TASK A-3A-CLOSE-1 実施結果（2026-02-27 / Adams and Ollman）
 - canonical_current_storage: `data/current/raw` + `data/current/vector/artists` + `data/current/images/metadata` + `data/current/images/cache` are the current canonical persistent roots for those families.
 - phase1_seed10_role: `data/phase1_seed10/` is not the long-term canonical root; it remains a working / validation / retained-lane legacy parent.
 - retained_ledgers: `visited_pages*`, `failed_fetches_seed10_2025.json`, `failed_fetches_artists_seed10_2025.json`, `failed_fetches_artist_image_collect_{year}.json`, and `artist_master_global.json` stay in `data/phase1_seed10/logs/` as retained lane.
-- moved_ledger_exception: `data/current/ledgers/artist_works_images_known_unresolvable.json`
+- current_ledgers_family: `data/current/ledgers/` (formal current-ledger family root; retained lane main ledgers are unchanged in `data/phase1_seed10/logs/`)
 - adoption_rule: scoped replace only (`_trash` backup -> move/rename replace), append is prohibited.
 - images_prune_rule: union required of Exhibitions Image + Artist Works Images is mandatory; `missing_required_count=0` is enforced.
 - guard_rule: preflight/postflight gates are mandatory; `0 rows / sudden drop / required-key missing / required-image missing / required-count mismatch` => HOLD.
@@ -7736,7 +7741,7 @@ TASK A-3A-CLOSE-1 実施結果（2026-02-27 / Adams and Ollman）
 - default_mode: `FILL_MISSING` (all 5 categories); existing keys are skipped and only missing records/files are eligible.
 - rebuild_mode: `REBUILD` requires explicit flags and must write to run_id-isolated trial only (`trial -> gate -> adopt`).
 - image_missing_rule: image key without local file is treated as missing-recovery target (not as already-saved).
-- known_unresolvable_ledger: `data/current/ledgers/artist_works_images_known_unresolvable.json`
+- known_unresolvable_ledger: member of `data/current/ledgers/` current-ledger family (`artist_works_images_known_unresolvable.json`)
 - fill_missing_behavior: entries in ledger are skipped (no-op stability); rebuild may retry.
 - scope: Artist Works Images only (current).
 - ledger_policy_note: other main ledgers remain retained lane in `data/phase1_seed10/logs/`; any future revisit is a behavior-contract task, not a default storage-move task.

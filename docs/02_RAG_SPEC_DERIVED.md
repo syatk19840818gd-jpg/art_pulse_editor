@@ -495,8 +495,10 @@ SSOT_TAG: 01>5-8) Sync Model (R2 primary + current/history + local fallback | fi
   - `failed_fetches_artists_seed10_2025.json`
   - `failed_fetches_artist_image_collect_{year}.json`
   - `artist_master_global.json`
-- moved ledger exception:
-  - `data/current/ledgers/artist_works_images_known_unresolvable.json`
+- current ledgers family:
+  - `data/current/ledgers/` is the current ledger family root for ledgers that are formally read from current.
+  - retained lane main ledgers remain in `data/phase1_seed10/logs/` and are not moved by default.
+  - current-ledger R2 scope is `current_ledgers_family` (`local_root=data/current/ledgers`, `r2_prefix=data/current/ledgers`, `include_globs=["**/*"]`).
 - canonical storage closeout note:
   - raw / artists vector / image metadata / image cache are already rebased to current and must not be described as active `phase1_seed10` canonical roots
   - future ledger revisit, if any, is a behavior-contract task rather than a default storage-move task
@@ -550,7 +552,7 @@ Index update (2026-03-21):
   - `data/phase1_seed10/` is no longer the long-term canonical root; its main live role is working/validation plus retained ledgers
 - ledger retained lane closeout:
   - retained = `visited_pages*`, `failed_fetches_seed10_2025.json`, `failed_fetches_artists_seed10_2025.json`, `failed_fetches_artist_image_collect_{year}.json`, `artist_master_global.json`
-  - moved exception = `data/current/ledgers/artist_works_images_known_unresolvable.json`
+  - current-ledger family = `data/current/ledgers/` (formal current ledger family; not a blanket move of retained lane ledgers)
 - enrichment emergency override:
   - Artists / Exhibitions bulk apply must move to Batch API enforced mode before the next production-style apply
   - direct OpenAI remains allowed only for preview/sample lanes
@@ -691,6 +693,15 @@ Index card:
   - app render passed
   - AppTest text UI path returned `errors=0 / exceptions=0`
   - uploader reset nonce behavior confirmed query-image state discard
+  - Feature 7 UI is aligned with Feature 2/3 style:
+    - fair select options = `Frieze London` / `Liste Art Fair Basel` / `Frieze London + Liste Art Fair Basel`
+    - default fair select = `Frieze London + Liste Art Fair Basel`
+    - title = `artist_name（artist_name_kana）`
+    - `summary_ja` is shown
+    - one image card per result uses full-width fixed-height thumbnail style
+    - count caption follows shared style (`件数: 読込= / ヒット= / frieze= / liste=` and `検索結果: ○件（横スクロールで閲覧 / タップで画像拡大）`)
+    - legacy inline status labels (`artifact=` / `mode=` / `fair:`) are removed from normal UI
+  - Cloud anonymous verify-only can be blocked when the Cloud app is private; treat that state as access configuration, not as a Feature 7 behavior regression.
   - manual browser validation passed for `青い幾何学` / `青い絵画` / `人物` / `植物` / `blue geometric abstraction`
   - additional manual validation passed for `鳥` / `未来的` / `繊細` / `細かい` / `情熱` / `極彩色`
 - closeout:
@@ -723,6 +734,9 @@ Storage contract:
   - id map
 - current implementation path:
   - `data/current/vector/artist_works_images/*`
+- R2 reflection:
+  - Feature 7 current artifacts (`embeddings` / `search index` / `id map`) are reflected via scope `artist_works_images_vector_current`.
+  - reflection is kept scope-local and is not mixed with unrelated families.
 - prohibited:
   - duplicate image store
   - separate ArtWork Search image cache
@@ -747,6 +761,12 @@ Implementation / operation gates:
 - any cost-incurring execution still requires explicit user confirmation first
 - Feature 5 remains explicit-user-instruction-only
 - Feature 7 is a separate implemented-and-accepted app lane and must not be treated as Feature 5 kickoff
+- Feature 2/3 cleanup note:
+  - `answer_artist_followup()` and `answer_exhibition_followup()` are removed as unused functions.
+  - they were not used by the active Feature 2/3 search route; this is dependency residue cleanup, not route behavior change.
+- gitignore note:
+  - `.gitignore` remained unchanged in this lane.
+  - reason: `data/current/` was already ignored by directory-family rule; the issue was file-fixed R2 scope design, not gitignore coverage.
 - current acceptance note:
   - manual browser validation passed and Feature 7 is accepted for current scope
   - japanese text path is `gpt-5-mini` rewrite -> short English search query -> OpenCLIP
