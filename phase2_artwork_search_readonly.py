@@ -25,6 +25,7 @@ from phase2_common_readonly import (
     ARTIST_WORKS_IMAGE_PATHS,
     FAIR_LABEL_TO_SLUG,
     FAIR_SLUG_TO_LABEL,
+    hydrate_path_from_r2,
     safe_load_jsonl,
 )
 
@@ -107,7 +108,7 @@ def _pick_list_value(values: object, idx: int) -> str:
     return str(values[idx] or "").strip()
 
 
-def _load_corpus_records_local_only() -> tuple[List[dict], List[str], dict]:
+def _load_corpus_records_current_first() -> tuple[List[dict], List[str], dict]:
     warnings: List[str] = []
     rows_total = 0
     images_total = 0
@@ -118,7 +119,7 @@ def _load_corpus_records_local_only() -> tuple[List[dict], List[str], dict]:
     best_by_image_id: Dict[str, dict] = {}
 
     for fair_slug, path in ARTIST_WORKS_IMAGE_PATHS.items():
-        image_rows, image_warnings = safe_load_jsonl(path, hydrate_r2=False)
+        image_rows, image_warnings = safe_load_jsonl(path)
         warnings.extend(image_warnings)
         fair_label = FAIR_SLUG_TO_LABEL.get(fair_slug, fair_slug)
         for row in image_rows:
@@ -138,7 +139,10 @@ def _load_corpus_records_local_only() -> tuple[List[dict], List[str], dict]:
 
             for slot_index, local_path_raw in enumerate(local_paths):
                 local_path = normalize_image_local_path_text(local_path_raw or "")
-                if not local_path or not Path(local_path).exists():
+                local_file = Path(local_path) if local_path else None
+                if local_file is not None and not local_file.exists():
+                    hydrate_path_from_r2(local_file)
+                if local_file is None or not local_file.exists():
                     skipped_missing_local_path += 1
                     continue
 
@@ -204,17 +208,8 @@ def _save_id_map(path: Path, records: List[dict]) -> None:
             f.write(json.dumps(row, ensure_ascii=False) + "\n")
 
 
-def _load_id_map(path: Path) -> List[dict]:
-    rows: List[dict] = []
-    if not path.exists():
-        return rows
-    with path.open("r", encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if not line:
-                continue
-            rows.append(json.loads(line))
-    return rows
+def _load_id_map(path: Path) -> tuple[List[dict], List[str]]:
+    return safe_load_jsonl(path)
 
 
 def _normalize_matrix(vectors: np.ndarray) -> np.ndarray:
@@ -409,12 +404,16 @@ def _encode_image_query(image_bytes: bytes) -> np.ndarray:
 
 def _load_existing_state(target_year: int = TARGET_YEAR) -> ArtworkSearchState | None:
     paths = _artifact_paths(target_year)
-    if not all(path.exists() for path in paths.values()):
+    missing_artifacts = [name for name, path in paths.items() if not hydrate_path_from_r2(path)]
+    if missing_artifacts:
         return None
+
+    warnings: List[str] = []
     try:
         embeddings = np.load(paths["embeddings"]).astype(np.float32)
         index_matrix = np.load(paths["index"]).astype(np.float32)
-        records = _load_id_map(paths["id_map"])
+        records, id_map_warnings = _load_id_map(paths["id_map"])
+        warnings.extend(id_map_warnings)
     except Exception:
         return None
     if embeddings.ndim != 2 or index_matrix.ndim != 2 or len(records) != embeddings.shape[0] or embeddings.shape != index_matrix.shape:
@@ -423,7 +422,7 @@ def _load_existing_state(target_year: int = TARGET_YEAR) -> ArtworkSearchState |
         records=records,
         embeddings=embeddings,
         index_matrix=index_matrix,
-        warnings=[],
+        warnings=sorted(set(warnings)),
         artifact_status="loaded",
         corpus_stats={
             "rows_total": 0,
@@ -440,7 +439,7 @@ def _load_existing_state(target_year: int = TARGET_YEAR) -> ArtworkSearchState |
 
 
 def _build_state_from_local_corpus(target_year: int = TARGET_YEAR) -> ArtworkSearchState:
-    records, warnings, corpus_stats = _load_corpus_records_local_only()
+    records, warnings, corpus_stats = _load_corpus_records_current_first()
     if not records:
         return _empty_state(warnings=warnings, artifact_status="empty")
     records, embeddings = _encode_corpus_images(records)

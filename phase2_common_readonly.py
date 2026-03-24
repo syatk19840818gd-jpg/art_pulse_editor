@@ -13,6 +13,7 @@ from phase2_art_pulse_config import (
     CURRENT_IMAGES_METADATA_R2_PREFIX,
     CURRENT_RAW_DIR,
     CURRENT_RAW_R2_PREFIX,
+    CURRENT_VECTOR_DIR,
     TARGET_YEAR,
     get_enrichment_current_output_path,
     get_current_raw_paths,
@@ -71,11 +72,7 @@ def resolve_current_first_enrichment_output_path(
 ) -> tuple[Path | None, str]:
     current_path = REPO_ROOT / get_enrichment_current_output_path(category, target_year)
     # Strict current-only contract: hydrate only the canonical current lane from R2.
-    if not current_path.exists():
-        r2_key = _local_path_to_r2_key(current_path)
-        if r2_key:
-            _download_r2_object_to_local(current_path, r2_key)
-    if current_path.exists():
+    if hydrate_path_from_r2(current_path):
         return current_path, "current"
     return None, "missing"
 
@@ -132,6 +129,9 @@ def _local_path_to_r2_key(path: Path) -> str:
     current_images_metadata_prefix = CURRENT_IMAGES_METADATA_DIR.as_posix().rstrip("/") + "/"
     if rel.startswith(current_images_metadata_prefix):
         return CURRENT_IMAGES_METADATA_R2_PREFIX + "/" + rel[len(current_images_metadata_prefix) :]
+    current_vector_prefix = CURRENT_VECTOR_DIR.as_posix().rstrip("/") + "/"
+    if rel.startswith(current_vector_prefix):
+        return rel
     image_cache_r2_key = get_image_r2_key(path, repo_root=REPO_ROOT)
     if image_cache_r2_key:
         return image_cache_r2_key
@@ -183,13 +183,21 @@ def _download_r2_object_to_local(path: Path, r2_key: str) -> bool:
         return False
 
 
+def hydrate_path_from_r2(path: Path) -> bool:
+    local_path = Path(path)
+    if not local_path.is_absolute():
+        local_path = REPO_ROOT / local_path
+    r2_key = _local_path_to_r2_key(local_path)
+    if r2_key:
+        _download_r2_object_to_local(local_path, r2_key)
+    return local_path.exists()
+
+
 def safe_load_jsonl(path: Path, *, hydrate_r2: bool = True) -> Tuple[List[dict], List[str]]:
     rows: List[dict] = []
     warnings: List[str] = []
     if hydrate_r2:
-        r2_key = _local_path_to_r2_key(path)
-        if r2_key:
-            _download_r2_object_to_local(path, r2_key)
+        hydrate_path_from_r2(path)
     if not path.exists():
         warnings.append(f"missing: {path}")
         return rows, warnings
