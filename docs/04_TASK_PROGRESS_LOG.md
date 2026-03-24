@@ -5436,3 +5436,63 @@ _trash 運用方針:
   - no docs scope expansion beyond the requested synchronization points.
   - no Cloud setting change.
   - no Feature 5/6 implementation start.
+
+## 2026-03-24 TASK331_FEATURE1_TO_7_CROSS_AUDIT_AND_COMMON_HYDRATE_FIX_01
+- scope: cross-audit Feature 1-7 for local-only blockers under the absolute rule (Cloud/GitHub+R2 priority, local debug fallback only), and apply fix only in common layer when needed.
+- result:
+  - Feature 1 / 2 / 3 / 4 / 5 / 6: no local-only blocker found on active routes.
+  - Feature 7: blocker found and fixed via common-first implementation.
+  - common cause was fixed as:
+    - current vector family hydration gap in shared resolver.
+    - Feature 7 local existence gate dependency.
+  - fixed files:
+    - `phase2_common_readonly.py`
+    - `phase2_artwork_search_readonly.py`
+  - fixed approach:
+    - shared hydrate entry is used (`hydrate_path_from_r2(...)`) instead of feature-specific local-file assumptions.
+    - current vector family is included in shared path->R2 mapping.
+    - Feature 7 metadata / cache / vector artifact read path is aligned to common hydrate flow.
+  - guard result:
+    - no feature-specific helper proliferation.
+    - no search/rewrite route redesign.
+    - no duplicate storage family.
+- verification:
+  - `py_compile` passed for updated/related phase2 runtime files.
+  - local smoke route summary remained valid (`feature7 state=loaded` in local check).
+- not done:
+  - no docs update in this task lane itself.
+  - no re-extraction / rebuild / rerun / apply-prune.
+
+## 2026-03-24 TASK332_FEATURE7_SINGLE_WIDE_IMAGE_CONTAIN_TINY_FIX_01
+- scope: UI-only tiny fix for Feature 7 card image cropping under narrow window; no wording/logic/storage changes.
+- result:
+  - Feature 7 single-wide result image rendering is aligned with Feature 2 exhibition image contain style:
+    - `background-image`
+    - `background-size: contain`
+    - `background-position: center center`
+    - `background-repeat: no-repeat`
+  - one-image / full-width / fixed-height layout contract is preserved.
+  - no query route, no rewrite, no hydrate/R2 contract change.
+- verification:
+  - `py_compile app.py` passed.
+  - diff scope is constrained to the Feature 7 single-wide image rendering branch in `app.py`.
+- not done:
+  - no UI wording / caption / search logic change.
+  - no docs update in this task lane itself.
+
+## 2026-03-24 TASK333_DOC_SYNC_POST_TASK330_MISSING_ITEMS_01
+- scope: docs-only sync of 01/02/03/04 for items confirmed after TASK330; fill missing/weak documentation without widening scope.
+- result:
+  - added derived-spec card entries for:
+    - Feature 1-7 cross-audit verdict and common hydrate fix contract.
+    - Feature 7 single-wide contain tiny fix contract.
+  - STATE_SNAPSHOT current notes are reinforced for:
+    - absolute Cloud/GitHub+R2 priority rule.
+    - common-layer fix outcome for Feature 7 blocker.
+    - accepted tiny-fix result for Feature 7 image rendering.
+  - 01 (spec master) addendum is updated with the same current accepted points as contract-level supplement.
+  - this sync intentionally avoids duplicate restatement of already-strong TASK330 content (Feature 7 accepted route, ledger family, gitignore rationale, and Feature 2/3 follow-up residue removal).
+- not done:
+  - no code/data/app/R2/config changes.
+  - no Cloud setting change.
+  - no Feature 5/6 implementation start.

@@ -773,3 +773,64 @@ Implementation / operation gates:
   - english text path is direct OpenCLIP
   - image path is direct OpenCLIP
 
+
+============================================================
+CARD_ID: 27_FEATURE1_TO_7_LOCAL_DEPENDENCY_AUDIT_AND_COMMON_HYDRATE_FIX_20260324
+============================================================
+SSOT source:
+- 01 section 5-8 (sync model: current/history/R2/local fallback)
+- 01 section 6 (operation constitution / no duplicate / no blind rerun)
+- 01 section 8 (phase roadmap guard)
+
+Absolute operation rule (re-confirmed in implementation):
+- Cloud runtime must prioritize GitHub checkout + R2 current families.
+- User PC is treated as potentially offline; local-only existence must not be a runtime precondition.
+- local files are debug/working fallback only and must not become the default source-of-truth dependency.
+
+Cross-feature audit result (Feature 1-7):
+- Feature 1 / 2 / 3 / 4 / 5 / 6: no local-only blocker on the active read path.
+- Feature 7: local-only blocker was found and fixed via common layer.
+
+Common blocker cause:
+- current vector family hydration was not covered by the common path->R2 resolver.
+- Feature 7 had a local existence gate that could skip corpus/state load when local current files were missing.
+
+Adopted fix contract (common-first, no feature-specific helper sprawl):
+- `phase2_common_readonly.py`:
+  - add `hydrate_path_from_r2(...)` as shared hydrate entry.
+  - include `data/current/vector/**` in shared path->R2 mapping.
+  - keep `safe_load_jsonl(...)` and current-first enrichment resolver on the shared hydrate path.
+- `phase2_artwork_search_readonly.py`:
+  - switch Feature 7 metadata / image-cache / vector artifact loading to the shared hydrate path.
+  - remove reliance on file-local-only loading assumptions in the accepted route.
+
+Non-change boundary:
+- no query route redesign.
+- no rewrite policy change (`gpt-5-mini` jp-only rewrite remains fixed).
+- no R2 scope expansion beyond existing current families.
+- no duplicate storage family is introduced.
+
+
+============================================================
+CARD_ID: 28_FEATURE7_SINGLE_WIDE_IMAGE_CONTAIN_TINY_FIX_20260324
+============================================================
+SSOT source:
+- 01 section 2 (Feature 7 UI contract)
+- 01 section 6 (tiny-fix lane / no scope creep)
+
+Accepted tiny-fix summary:
+- scope: UI-only tiny fix for Feature 7 result-card image rendering.
+- issue: narrow-window rendering could crop the Feature 7 single-wide card image.
+- fix: align single-wide rendering with Feature 2 exhibition-card image contract:
+  - `background-image`
+  - `background-size: contain`
+  - `background-position: center center`
+  - `background-repeat: no-repeat`
+- layout contract preserved: one image / full-width / fixed-height card image lane.
+
+Non-change boundary (explicit):
+- no UI wording change.
+- no count-caption change.
+- no card text structure change.
+- no search / rewrite / hydrate / R2 contract change in this tiny-fix lane.
+
