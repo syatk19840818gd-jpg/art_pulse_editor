@@ -996,8 +996,10 @@ def _build_artist_card_html(row: dict, idx: int) -> str:
         safe_img = escape(preview_urls[0], quote=True)
         image_html = (
             f'<a class="exh-search-thumb" href="{safe_img}" target="_blank" rel="noopener noreferrer" '
-            f'title="\u753b\u50cf\u3092\u62e1\u5927\u8868\u793a">'
-            f'<img src="{safe_img}" alt="{title}" loading="lazy" /></a>'
+            f'title="\u753b\u50cf\u3092\u62e1\u5927\u8868\u793a" '
+            f'style="background-image:url(\'{safe_img}\');'
+            'background-size:contain;background-position:center center;'
+            'background-repeat:no-repeat;"></a>'
         )
     elif preview_urls:
         image_html = '<div class="artist-search-thumb-row">' + "".join(
