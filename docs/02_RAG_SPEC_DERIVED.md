@@ -532,17 +532,11 @@ Index update (2026-03-21):
 - phase status:
   - feature 1 Art Pulse: completed
   - feature 2 Exhibition Search: completed
-  - feature 3 Artist Search: incident-closed and stable
-  - feature 4 Advisor:
-    - type1 text-only question lane is completed/locked
-    - type1 image-attached text-question lane is completed/locked
-    - type1 text-only implemented set (derived index): selected/reference entity split, fixed prose helper ban, generic intent focus, same-focus ranking tuning, caption/page-description suppression, fragment guard, grounded enrichment, and OpenAI-path snippet-only suppression when anchor > 0
-    - type1 image-attached implemented set (derived index): transient visual observation via in-memory image payload only, no persist/vectorize/RAG-mix, observation-first answer weighting, asked-mode alignment, display/describe/reference mode salvage, non-reference proper-noun suppression, and grounded reference only as secondary support when needed
-  - advisor type2:
-    - text-only -> image generation lane is accepted
-    - image-attached -> image generation lane is accepted after image-attached smoke success
-    - fixed runtime is `gpt-image-1` / `low` / `auto` / `1 image`
-    - current prompt build keeps medium fidelity and visual-nucleus-first ordering, including the visual nucleus tiny fix
+  - feature 3 Artist Search: stable / almost completed
+  - feature 4 Advisor: completed / accepted for the current scope
+  - feature 5 Exclusive Advisor: not started / explicit user instruction required
+  - feature 6 Gallery list: not started
+  - feature 7 ArtWork Search: current implementation exists / accepted for current scope
 - current/history rebaseline: completed (A2-A9)
   - storage scaffold in `data/current/enrichment/` and `data/history/enrichment/{artists,exhibitions}/`
   - writer contract: history timestamp write first, then current fixed-name promotion only when batch evidence + rerun-guard evidence are present for bulk apply
@@ -566,7 +560,7 @@ Index update (2026-03-21):
     - exhibitions enrichment current output
     - artists enrichment current output
   - evidence refs/source refs are shown from read-only outputs
-  - lane operation note: type1 text-only and image-attached lanes are now tiny-fix-only on regression recurrence; type2 text-only and image-attached -> image generation lanes are accepted for the current scope, and future handling is major-regression-only tiny fix.
+  - lane operation note: Feature 4 Advisor is accepted/completed for the current scope and future handling is major-regression-only tiny fix.
   - follow-up note: Advisor follow-up is session-only, no persistence, keeps reference refresh lightweight via fixed-core + dynamic-refresh rather than full re-grounding, and uses Q-numbering plus initial/follow-up input clear and uploader clear inside session UI only.
 - repo/output hygiene steady state:
   - cleanup lane is completed; steady-state policy is “増えた artifact を後で消す” ではなく “default で増やさない”
@@ -580,8 +574,10 @@ Index update (2026-03-21):
   - full rerun / full rebuild / re-extraction / canonical rebuild / promote rerun are last-resort + user-confirmed only
 
 Next (from STATE/NEXT):
+- docs sync to the current handoff baseline is completed
 - cleanup lane is completed/fixed; return to main roadmap only by explicit user task
 - do not auto-start Feature 5 and do not reopen cleanup without explicit user instruction
+- treat Feature 7 ArtWork Search as a separate implemented-and-accepted app lane; it does not start Feature 5
 
 ============================================================
 CARD_ID: 24_PROOF_LANE_CLOSEOUT_AND_CURRENT_ONLY_RUNTIME_20260322
@@ -643,4 +639,117 @@ Closeout update (2026-03-22):
   - cleanup is no longer an active default lane.
   - return to the main roadmap is allowed.
   - Feature 5 / Exclusive Advisor must still start only on explicit user instruction.
+
+============================================================
+CARD_ID: 25_FEATURE7_ARTWORK_SEARCH_ACCEPTED_ROUTE_AND_MANUAL_VALIDATION_20260324
+============================================================
+SSOT source:
+- 01 section 2 (Feature 7 ArtWork Search)
+- 01 section 3 (RAG category note)
+- 01 section 5-8 / 5-9 (storage + retrieval contract)
+- 01 section 8 (roadmap / execution guard)
+
+Index card:
+- status:
+  - current implementation exists
+  - accepted for current scope
+  - manual browser validation passed
+- feature classification:
+  - Feature 7 ArtWork Search is an implemented app feature
+  - it is not a new RAG category
+  - it reuses the existing Artist Works Images corpus only
+- corpus:
+  - Artist Works Images only
+  - excluded from initial scope: Exhibitions Image / Tarutani / Artist Text / Exhibitions Text
+- query:
+  - japanese text -> `gpt-5-mini` rewrite -> short English search query -> OpenCLIP -> image retrieval
+  - english text -> direct OpenCLIP -> image retrieval
+  - image -> direct OpenCLIP -> image retrieval
+- engine:
+  - OpenCLIP
+  - local execution only
+- dependency:
+  - `torch`
+  - `open-clip-torch`
+- initial scope:
+  - 10-gallery current corpus
+  - query input = text or image
+- retrieval view:
+  - similarity emphasis may include color / shape / composition / overall impression
+  - initial display is a similar-image list plus attached metadata such as artist / gallery / fair / source_url
+- current-family contract:
+  - existing current image metadata + current image cache only
+  - do not describe this feature as a new image corpus or a new image-storage family
+- implementation / acceptance evidence:
+  - minimum readonly module + minimal app UI exist
+  - import success
+  - initial artifact build success
+  - text query success
+  - image query success
+  - fair filter success
+  - second-run artifact load reuse success
+  - app render passed
+  - AppTest text UI path returned `errors=0 / exceptions=0`
+  - uploader reset nonce behavior confirmed query-image state discard
+  - manual browser validation passed for `青い幾何学` / `青い絵画` / `人物` / `植物` / `blue geometric abstraction`
+  - additional manual validation passed for `鳥` / `未来的` / `繊細` / `細かい` / `情熱` / `極彩色`
+- closeout:
+  - Google Translation was evaluated/planned but is not the adopted final route
+  - japanese dictionary-expansion helper is removed
+  - weighted-max merge is removed
+  - Google Translation code / dependency / path are removed from the repo implementation
+- not adopted:
+  - Google Translation route
+  - row text rerank is not adopted because image-level binding is weak and artist/page-level text can easily contaminate image retrieval quality
+- acceptance note:
+  - Feature 7 is accepted for current scope
+  - current scope keeps OpenCLIP, no re-extraction, no duplicate image storage, no re-vectorization redesign, and no row-text rerank
+
+============================================================
+CARD_ID: 26_FEATURE7_ARTWORK_SEARCH_STORAGE_AND_GATE_CONTRACT_20260324
+============================================================
+SSOT source:
+- 01 section 5-8 (storage / sync)
+- 01 section 5-9 (embedding / retrieval)
+- 01 section 8 (roadmap / execution guard)
+
+Storage contract:
+- canonical input:
+  - `data/current/images/metadata/*.jsonl`
+  - `data/current/images/cache/**`
+- new artifact only:
+  - OpenCLIP embeddings
+  - ANN / search index
+  - id map
+- current implementation path:
+  - `data/current/vector/artist_works_images/*`
+- prohibited:
+  - duplicate image store
+  - separate ArtWork Search image cache
+  - Feature 7-only image re-save
+  - re-extraction by default
+- query image handling:
+  - session-only
+  - no save
+  - no R2 upload
+  - no corpus mix
+- query rewrite contract:
+  - japanese text is rewritten by `gpt-5-mini` into one short English search query before OpenCLIP retrieval
+  - english text remains direct OpenCLIP
+  - image remains direct OpenCLIP
+  - keep OpenCLIP itself unchanged
+  - no re-vectorization redesign
+  - no row-text rerank layer
+
+Implementation / operation gates:
+- verify-first was completed before minimum implementation and artifact build
+- do not silently trigger API / re-extraction / rebuild
+- any cost-incurring execution still requires explicit user confirmation first
+- Feature 5 remains explicit-user-instruction-only
+- Feature 7 is a separate implemented-and-accepted app lane and must not be treated as Feature 5 kickoff
+- current acceptance note:
+  - manual browser validation passed and Feature 7 is accepted for current scope
+  - japanese text path is `gpt-5-mini` rewrite -> short English search query -> OpenCLIP
+  - english text path is direct OpenCLIP
+  - image path is direct OpenCLIP
 

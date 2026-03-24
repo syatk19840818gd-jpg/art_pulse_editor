@@ -13,7 +13,7 @@ STREAMLIT_ENTRYPOINT（固定）
 - Local run: streamlit run app.py
 
 SOURCE_SSOT: 01_PROJECT_SPEC_CURRENT_FULL.docx
-LAST_UPDATED: 2026-03-22 11:10 JST
+LAST_UPDATED: 2026-03-24 18:32 JST
 
 
 ========================
@@ -81,18 +81,17 @@ STATE_SNAPSHOT（現在地）
 - Phase 2 app run-state (current baseline):
   - Feature 1 Art Pulse: completed
   - Feature 2 Exhibition Search: completed
-  - Feature 3 Artist Search: Artist Text canonical incident closed (core+residual cleanup completed, residual=0), ready to resume normal roadmap
-  - Feature 4 Advisor:
-    - type1 text-only question lane is completed/locked
-    - type1 image-attached text question lane is completed/locked
-    - type1 text-only lane achieved set: selected/reference split, fixed prose helper ban, generic intent focus, same-focus ranking tuning, caption/page-description suppression, fragment guard, grounded enrichment, and OpenAI-path suppression for `anchor > 0` snippet-only outputs
-    - type1 image-attached lane achieved set: transient visual observation via in-memory image payload only, no persist/vectorize/RAG-mix, observation-first answer weighting, asked-mode alignment, display/describe/reference recovery, and grounded reference only as secondary support when needed
-    - follow-up note: session-only only, no persistence, fixed anchor + compressed memory + latest one-turn context, Q1/Q2 numbering, refreshed references by fixed-core + dynamic-refresh, initial/follow-up input clear plus uploader clear, attachment meta label under Q1 when present, and debug panels hidden by flag
-    - operational note: type1 lanes are tiny-fix-only on regression recurrence
-  - type2 status: text-only -> image generation is accepted; image-attached -> image generation is accepted after smoke success, both on current fixed runtime `gpt-image-1` / `low` / `auto` / `1 image`
+  - Feature 3 Artist Search: stable / almost completed
+  - Feature 4 Advisor: completed / accepted for current scope
+  - Feature 5 Exclusive Advisor: not started / explicit user instruction required
+  - Feature 6 Gallery list: not started
+  - Feature 7 ArtWork Search: current implementation exists / accepted for current scope
   - current/history rebaseline phase: completed (A2-A9)
   - Immediate priority: cleanup lane is closed; return to main roadmap only by explicit user task（Feature 5 auto-start はしない）
   - current state note: repo hygiene cleanup / output hygiene permanent guard / aggressive prune are completed and accepted. Feature 4 Advisor remains major-regression-only tiny fix, and normal feature work may resume from the main roadmap when the user explicitly asks for it
+  - Feature 7 note: ArtWork Search is an implemented app feature that reuses existing Artist Works Images only. It is not a new RAG category, keeps OpenCLIP as the retrieval engine, uses `gpt-5-mini` rewrite -> short English search query -> OpenCLIP for japanese text queries, keeps english text / image query as direct OpenCLIP, and is accepted for current scope.
+  - storage note: current-only / no duplicate storage remains fixed. Feature 7 currently uses existing current image metadata + current image cache and writes only OpenCLIP embeddings / search index / id map under `data/current/vector/artist_works_images/`.
+  - Feature 7 closeout note: Google Translation route was not adopted as the final accepted route, and old Google Translation / jp-expansion / weighted-max workaround code is removed from the repo implementation.
   - canonical storage closeout note: `data/current/raw/`, `data/current/vector/artists/`, `data/current/images/metadata/`, and `data/current/images/cache/` are now the canonical persistent lanes for those families. `data/phase1_seed10/` is not the long-term canonical root and mainly remains a working / validation / retained-ledger legacy parent.
   - ledger retained-lane closeout note: `visited_pages*`, `failed_fetches_seed10_2025.json`, `failed_fetches_artists_seed10_2025.json`, `failed_fetches_artist_image_collect_{year}.json`, and `artist_master_global.json` are retained-lane ledgers in `data/phase1_seed10/logs/`; only `artist_works_images_known_unresolvable.json` moved to `data/current/ledgers/`
   - enrichment requests policy note: runtime-path switch is applied and verify verdict is GO (`data/runtime/enrichment_requests/...` active, `_completed` archive lane, `_reports` migration/retention audit lane); `_reports` is not always-on and keep/delete remains evidence-gated
@@ -103,11 +102,13 @@ STATE_SNAPSHOT（現在地）
 - NOTE: keep this current-goal line updated whenever phase priority changes.
 - Fixed master roadmap alignment (from SSOT 01):
   - 5 RAG categories (Tarutani_Text / Artist Works Images / Artist Text / Exhibitions Image / Exhibitions Text) are established at 10-gallery operational scope
-  - App features status: 1/2 completed, 3 incident-closed (residual=0), 4 Advisor accepted/completed for the current scope (type1 text-only + image-attached completed/locked; type2 text-only + image-attached -> image generation accepted)
+  - App features status: 1 completed / 2 completed / 3 stable-almost-completed / 4 accepted-completed-for-current-scope / 5 not-started-explicit-user-instruction-required / 6 not-started / 7 current-implementation-exists-accepted-for-current-scope
   - Mandatory pre-Advisor phase (current/history canonical rebaseline) is completed and fixed in roadmap
   - Role split: current=day-to-day canonical / history=audit archive / R2=primary persistent sync target for current / local=current fallback
   - app/read-only must read current first
-  - After 4-6 are available, validate operations using 10-gallery RAG only
+  - Feature 7 ArtWork Search is a separate app feature that reuses existing Artist Works Images, does not add a new RAG category, keeps OpenCLIP, and adopts `gpt-5-mini` query rewrite only for japanese text queries
+  - current-only / no duplicate storage remains fixed for future feature work
+  - After the current roadmap lane is resumed, validate operations using 10-gallery RAG only
   - Then expand to initial 2025 scale (~150 galleries)
   - Then extend yearly toward long-term 200+ galleries
 
@@ -118,6 +119,7 @@ STATE_SNAPSHOT（現在地）
 - Gemini API準備（キー）：Text Embeddingが動く状態 完了
 - Cloudflare R2準備（バケット/キー/接続）：正本ストレージ 完了
 - Streamlit Cloud（GitHub連携＋Secrets）：デプロイできる状態 完了
+- Feature 7 accepted route（`gpt-5-mini` rewrite -> OpenCLIP / english direct OpenCLIP / image direct OpenCLIP）：accepted for current scope
 - 最小スモークテスト：ローカル→クラウドまで通す 完了
 - VSCode→Codex拡張インストール＋サインイン済み 完了
 - ギャラリーリスト（全件）作成済み：
@@ -255,6 +257,51 @@ NEXT_TASKS（次回やること）
 ※2026-03-06 同期完了事実: apply-upload成功（phase1_seed10_formal uploaded=88 / tarutani_source uploaded=77）、apply-prune成功（phase1_seed10_formal extra_remote 72->0 / deleted_count=72）、旧入口4本削除済み（詳細は04参照）。
 ※共通スキップ（固定）: `data/gallery_lists/skipped_galleries_registry.csv` に登録されたgalleryは Artists/Exhibitions の text/image 抽出すべてで自動スキップする。
 ※共通同期（固定）: Artists/Exhibitions の text/image/vector/derived すべてに同一の guarded R2同期ルール（dry-run -> guarded apply）を適用する。
+
+[x] 319) DOCS_SYNC_FEATURE7_ARTWORK_SEARCH_SPEC_ADOPTION_01 (done)
+    - scope: sync 01/02/03/04 to the handoff baseline, correct Feature 5/6 drift, and add Feature 7 ArtWork Search as a planned app feature
+    - result: Feature 5 is fixed as not started / explicit user instruction required, Feature 6 is fixed as not started, and Feature 7 is fixed as planned / docs-approved candidate
+    - storage note: Feature 7 reuses existing current image metadata + current image cache only, with no duplicate image storage and no default re-extraction
+
+[x] 320) FEATURE7_ARTWORK_SEARCH_CORPUS_INVENTORY_VERIFY_01 (done)
+    - scope: verify-first inventory of the current 10-gallery Artist Works Images corpus that Feature 7 will reuse
+    - result: 2 metadata files / 10 galleries / 226 rows / 977 image slots were confirmed, with non-empty local image files available in current cache and no re-extraction / no duplicate image save / no API execution / no R2 mutation required
+
+[x] 321) FEATURE7_OPENCLIP_LOCAL_INDEXING_PROTOTYPE_01 (done)
+    - scope: local-only OpenCLIP embedding/index prototype for Feature 7 against existing current image metadata + cache
+    - result: initial local artifact build succeeded and writes OpenCLIP embeddings / search index / id map under `data/current/vector/artist_works_images/`; broader acceptance is still pending
+
+[x] 322) FEATURE7_MINIMAL_READONLY_RETRIEVAL_MODULE_01 (done)
+    - scope: minimal readonly retrieval lane for text -> image and image -> image search using Feature 7 contracts
+    - result: text query / image query / fair filter / second-run load reuse are verified under local-only smoke, and query image remains session-only with no persistence / no corpus mix
+
+[x] 323) FEATURE7_APP_MINIMAL_UI_01 (done)
+    - scope: minimal UI lane for Feature 7 similar-image search and attached metadata display
+    - result: app render passed, ArtWork Search text UI passed under AppTest (`errors=0 / exceptions=0`), and reset nonce behavior confirmed query-image state discard without changing Feature 4 wording
+
+[x] 324) FEATURE7_POST_IMPLEMENTATION_DOCS_SYNC_01 (done)
+    - scope: sync 01/02/03/04 after Feature 7 implementation actually exists
+    - result: current docs now move Feature 7 from planned-only to minimally implemented / smoke verified / not yet accepted, without overstating browser E2E / offline first boot / GPU verification
+
+[x] 325) DOCS_SYNC_FEATURE7_GOOGLE_TRANSLATION_REDESIGN_SETUP_PREP_01 (done / superseded by accepted route)
+    - scope: historical roadmap sync that temporarily recorded Google Translation as the next candidate route for japanese text queries
+    - result: superseded by the later accepted route (`gpt-5-mini` rewrite -> OpenCLIP) and should no longer be read as the current baseline
+
+[x] 326) FEATURE7_TRANSLATION_PATH_IMPLEMENTATION_01 (done)
+    - scope: implement the final japanese text query path without changing corpus storage or image/index contracts
+    - result: japanese text query path is `gpt-5-mini` rewrite -> short English search query -> OpenCLIP, while english text / image query remain direct OpenCLIP
+
+[x] 327) FEATURE7_OLD_JP_EXPANSION_CODE_REMOVAL_01 (done)
+    - scope: remove the temporary japanese dictionary-expansion / weighted-max workaround and the abandoned Google Translation route
+    - result: old jp-expansion / weighted-max merge / Google Translation code and dependency are closed out as removed from the repo implementation
+
+[x] 328) FEATURE7_BROWSER_LEVEL_MANUAL_SMOKE_01 (done)
+    - scope: browser-level manual smoke for upload -> search -> reset on the accepted Feature 7 route
+    - result: manual validation passed for `青い幾何学` / `青い絵画` / `人物` / `植物` / `blue geometric abstraction` and additional good queries; reset also passed with no bad query observed
+
+[x] 329) FEATURE7_POST_ACCEPTANCE_DOCS_CLOSEOUT_01 (done)
+    - scope: close out 01/02/03/04 after Feature 7 acceptance
+    - result: Feature 7 is now recorded as current implementation exists / accepted for current scope, and Feature 7 is no longer a mandatory immediate next task
 
 [x] 318) DIAGNOSE_SINGLE_ARTISTS_BATCH_PARSE_FAILURE_AND_PREPARE_SAFE_RETRY_2025 (resolved)
     - result: the failed row (`request_id=seed10_artists_enrich_336ffd39ede28d95d3a1983d90f7174bb1f0b740fd34b710a968f6fb4ba38f74`, Addis / Tariku Shiferaw - Works) was identified from existing batch artifacts, classified as malformed batch output (`openai_output_not_json` caused by unescaped double quotes), and verified as non-guard
@@ -7697,6 +7744,7 @@ TASK A-3A-CLOSE-1 実施結果（2026-02-27 / Adams and Ollman）
 
 
 ## TASK293_NEXT_14 PHASE2 MILESTONE SNAPSHOT (FEATURES 01-06)
+- 履歴注記（2026-03-24補正）: このブロックは当時の milestone snapshot として保持するが、current baseline としては無効。現行の正しい状態は冒頭 STATE_SNAPSHOT を正とし、Feature 5 = not started / explicit user instruction required、Feature 6 = not started、Feature 7 = current implementation exists / accepted for current scope。
 - 現在地: Phase2 は機能①〜⑥の baseline/minimal implementation を一巡完了（read-only中心、保存処理なし）。
 - ① Art Pulse: read-only overview + draft generation（根拠URL表示）。
 - ② Exhibition Search: read-only listing（fair/keyword絞り込み・詳細表示）。
@@ -7708,6 +7756,7 @@ TASK A-3A-CLOSE-1 実施結果（2026-02-27 / Adams and Ollman）
 - 次の最優先タスク: TASK293_NEXT_15 = PHASE2_MILESTONE_REVIEW_AND_GO_NO_GO_FOR_POLISH_ROUND
 
 ## TASK293_CLOSEOUT_01 PHASE2 POLISH CLOSEOUT SNAPSHOT
+- 履歴注記（2026-03-24補正）: このブロックは当時の closeout snapshot として保持するが、current baseline としては無効。現行の正しい状態は冒頭 STATE_SNAPSHOT を正とし、Feature 5 = not started / explicit user instruction required、Feature 6 = not started、Feature 7 = current implementation exists / accepted for current scope。
 - 現在地: Phase2は機能①〜⑥のbaseline/minimal実装とpolishingを完了し、copy freezeは `COPY_FREEZE_OK`。
 - ① Art Pulse: read-only overview + draft generation（根拠URL表示）。
 - ② Exhibition Search / ③ Artist Search: read-only listing + detail（fair/keyword絞り込み）。
@@ -7768,4 +7817,31 @@ TASK A-3A-CLOSE-1 実施結果（2026-02-27 / Adams and Ollman）
   - 本来ロードマップへ戻ってよい状態。
   - Feature 5 / Exclusive Advisor はユーザー明示時のみ開始する。
   - cleanup 再開や新たな proof lane 拡張は、明示タスクがある場合だけ行う。
+
+## 2026-03-24 DOC_SYNC_FEATURE7_ARTWORK_SEARCH_SPEC_ADOPTION_01
+- current baseline correction:
+  - Feature 1 = completed
+  - Feature 2 = completed
+  - Feature 3 = stable / almost completed
+  - Feature 4 = completed / accepted for current scope
+  - Feature 5 = not started / explicit user instruction required
+  - Feature 6 = not started
+  - Feature 7 = current implementation exists / accepted for current scope
+- Feature 7 adoption note:
+  - ArtWork Search is an implemented app feature, not a new RAG category
+  - corpus is Artist Works Images only
+  - english text query path is direct OpenCLIP
+  - japanese text query path is `gpt-5-mini` rewrite -> short English search query -> OpenCLIP
+  - image query path remains direct OpenCLIP
+  - OpenCLIP itself is kept as the engine target
+  - existing current image metadata + current image cache are reused
+  - no image re-extraction by default
+  - no duplicate image storage
+  - query image is session-only
+  - current implementation writes only embeddings / search index / id map under `data/current/vector/artist_works_images/`
+  - Google Translation route was planned but is not the adopted final route
+  - old japanese dictionary-expansion / weighted-max workaround and Google Translation repo path are removed
+  - manual browser validation passed and Feature 7 is accepted for current scope
+- next task order:
+  - no mandatory Feature 7 closeout task remains; treat it as normal maintenance unless a new regression or scope extension is explicitly requested
 

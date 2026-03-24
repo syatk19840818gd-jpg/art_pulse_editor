@@ -49,6 +49,11 @@ from phase2_artist_search_readonly import (
     load_artist_records_readonly,
     search_artists,
 )
+from phase2_artwork_search_readonly import (
+    ARTWORK_SEARCH_TOP_K_DEFAULT,
+    search_artwork_images_by_image,
+    search_artwork_images_by_text,
+)
 from phase2_exhibition_search_readonly import (
     EXHIBITION_SEARCH_SUMMARY_MAX_CHARS,
     _derive_title,
@@ -783,6 +788,24 @@ def _local_image_path_to_data_uri(path_text: str) -> str:
         return ""
 
 
+def _resolve_cached_or_remote_image_url(r2_key: object = "", local_path: object = "", direct_image_url: object = "") -> str:
+    resolved = _presign_r2_get_url(str(r2_key or "").strip())
+    if not resolved:
+        resolved = _local_image_path_to_data_uri(str(local_path or "").strip())
+    if not resolved:
+        resolved = str(direct_image_url or "").strip()
+    return resolved
+
+
+def _build_standard_search_caption(total_rows: int, hit_rows: int, fair_rows: dict[str, int], total_hits: int) -> str:
+    return (
+        f"件数: 読込={int(total_rows or 0)} / ヒット={int(hit_rows or 0)} / "
+        f"frieze={int(fair_rows.get('frieze_london', 0) or 0)} / "
+        f"liste={int(fair_rows.get('liste', 0) or 0)}  \n"
+        f"検索結果: {int(total_hits or 0)}件（横スクロールで閲覧 / タップで画像拡大）"
+    )
+
+
 def _build_art_pulse_local_image_lookup(overview: dict) -> dict[str, dict[str, dict[str, str]]]:
     by_source: dict[str, dict[str, str]] = {}
     by_image_url: dict[str, dict[str, str]] = {}
@@ -839,10 +862,11 @@ def _render_responsive_image_gallery(images: list[dict], local_lookup: dict[str,
     for item in images:
         source_url = str(item.get("source_url") or "").strip()
         image_ref = _resolve_art_pulse_image_ref(item, local_lookup)
-        r2_url = _presign_r2_get_url(str(image_ref.get("r2_key") or ""))
-        local_path = str(image_ref.get("local_path") or "").strip()
-        direct_image_url = str(image_ref.get("image_url") or "").strip()
-        image_url = r2_url or _local_image_path_to_data_uri(local_path) or direct_image_url
+        image_url = _resolve_cached_or_remote_image_url(
+            image_ref.get("r2_key"),
+            image_ref.get("local_path"),
+            image_ref.get("image_url"),
+        )
         safe_src = escape(source_url, quote=True)
 
         if image_url:
@@ -955,22 +979,27 @@ def _build_artist_card_html(row: dict, idx: int) -> str:
     source_url = str(row.get("source_url") or "").strip()
     safe_src = escape(source_url, quote=True)
     summary = escape(str(row.get("summary_display_ja") or "\u672a\u4ed8\u4e0e"))
+    image_layout = str(row.get("artist_image_layout") or "").strip()
 
     preview_urls: list[str] = []
     preview_candidates = list(row.get("artist_image_preview_candidates") or [])[:ARTIST_SEARCH_THUMB_FROM_ARTIST]
     for candidate in preview_candidates:
-        candidate_r2 = str(candidate.get("r2_key") or "").strip()
-        candidate_local = str(candidate.get("local_path") or "").strip()
-        candidate_url = str(candidate.get("image_url") or "").strip()
-        resolved = _presign_r2_get_url(candidate_r2) if candidate_r2 else ""
-        if not resolved and candidate_local:
-            resolved = _local_image_path_to_data_uri(candidate_local)
-        if not resolved and candidate_url:
-            resolved = candidate_url
+        resolved = _resolve_cached_or_remote_image_url(
+            candidate.get("r2_key"),
+            candidate.get("local_path"),
+            candidate.get("image_url"),
+        )
         if resolved:
             preview_urls.append(resolved)
 
-    if preview_urls:
+    if preview_urls and image_layout == "single_wide":
+        safe_img = escape(preview_urls[0], quote=True)
+        image_html = (
+            f'<a class="exh-search-thumb" href="{safe_img}" target="_blank" rel="noopener noreferrer" '
+            f'title="\u753b\u50cf\u3092\u62e1\u5927\u8868\u793a">'
+            f'<img src="{safe_img}" alt="{title}" loading="lazy" /></a>'
+        )
+    elif preview_urls:
         image_html = '<div class="artist-search-thumb-row">' + "".join(
             (
                 f'<a class="artist-search-thumb" href="{escape(url, quote=True)}" '
@@ -1484,11 +1513,7 @@ def render_exhibition_search() -> None:
     _render_exhibition_result_cards(display_rows)
     if spinner_complete:
         spinner_complete()
-    status_slot.caption(
-        f"件数: 読込={data.total_rows} / ヒット={len(filtered)} / "
-        f"frieze={data.fair_rows.get('frieze_london', 0)} / liste={data.fair_rows.get('liste', 0)}  \n"
-        f"検索結果: {total_hits}件（横スクロールで閲覧 / タップで画像拡大）"
-    )
+    status_slot.caption(_build_standard_search_caption(data.total_rows, len(filtered), data.fair_rows, total_hits))
 
 
 def render_artist_search() -> None:
@@ -1583,10 +1608,180 @@ def render_artist_search() -> None:
     _render_artist_result_cards(display_rows)
     if spinner_complete:
         spinner_complete()
+    status_slot.caption(_build_standard_search_caption(data.total_rows, len(filtered), data.fair_rows, total_hits))
+
+
+def _build_artwork_result_artist_rows(rows: list[dict]) -> list[dict]:
+    try:
+        artist_data = get_artist_search_data()
+        artist_rows = list(artist_data.records)
+    except Exception:
+        artist_rows = []
+
+    artist_by_identity = {
+        str(row.get("artist_identity_key") or "").strip(): row
+        for row in artist_rows
+        if str(row.get("artist_identity_key") or "").strip()
+    }
+    artist_by_source = {
+        str(row.get("source_url") or "").strip(): row
+        for row in artist_rows
+        if str(row.get("source_url") or "").strip()
+    }
+
+    display_rows: list[dict] = []
+    for row in rows:
+        source_url = str(row.get("source_url") or "").strip()
+        identity_key = str(row.get("artist_identity_key") or "").strip()
+        matched_row = dict(artist_by_identity.get(identity_key) or artist_by_source.get(source_url) or {})
+        summary_ja = str(matched_row.get("summary_ja") or "").strip()
+        display_rows.append(
+            {
+                "artist_name": str(matched_row.get("artist_name") or row.get("artist_name_en") or "").strip() or "(artist unknown)",
+                "artist_name_kana": str(matched_row.get("artist_name_kana") or "").strip(),
+                "gallery_name": str(matched_row.get("gallery_name") or row.get("gallery_name_en") or "").strip(),
+                "gallery": str(matched_row.get("gallery_name") or row.get("gallery_name_en") or "").strip(),
+                "fair_label": str(row.get("fair_label") or matched_row.get("fair_label") or "").strip(),
+                "source_url": source_url or str(matched_row.get("source_url") or "").strip(),
+                "summary_ja": summary_ja,
+                "summary_display_ja": build_artist_summary_ja(
+                    {"summary_ja": summary_ja},
+                    max_chars=ARTIST_SEARCH_SUMMARY_MAX_CHARS,
+                ),
+                "artist_image_preview_candidates": [
+                    {
+                        "r2_key": str(row.get("r2_key") or "").strip(),
+                        "local_path": str(row.get("local_path") or "").strip(),
+                        "image_url": str(row.get("image_url") or "").strip(),
+                    }
+                ],
+                "artist_image_layout": "single_wide",
+            }
+        )
+    return display_rows
+
+
+def render_artwork_search() -> None:
+    _render_mode_heading("ArtWork Search")
+    _render_mode_explanation("Artist Works Images の類似検索（text / image）")
+
+    results_key = "artwork_search_results"
+    query_key = "artwork_search_query"
+    text_query_key = "artwork_search_text_query"
+    fair_filter_key = "artwork_search_fair_filter"
+    reset_requested_key = "artwork_search_reset_requested"
+    uploaded_image_nonce_key = "artwork_search_uploaded_image_nonce"
+    spinner_complete = None
+
+    if st.session_state.pop(reset_requested_key, False):
+        current_nonce = int(st.session_state.get(uploaded_image_nonce_key, 0) or 0)
+        st.session_state[text_query_key] = ""
+        st.session_state.pop(results_key, None)
+        st.session_state.pop(query_key, None)
+        st.session_state.pop(f"artwork_search_uploaded_image_{current_nonce}", None)
+        st.session_state[uploaded_image_nonce_key] = current_nonce + 1
+
+    col1, col2 = st.columns([1, 1])
+    fair_filter = col1.selectbox(
+        "フェア選択",
+        FAIR_OPTIONS,
+        index=2,
+        key=fair_filter_key,
+    )
+    text_query = col2.text_input(
+        "text query",
+        value="",
+        placeholder="例 : blue geometric abstraction / warm red sculpture",
+        key=text_query_key,
+    )
+
+    uploader_key = f"artwork_search_uploaded_image_{int(st.session_state.get(uploaded_image_nonce_key, 0) or 0)}"
+    uploaded_image = st.file_uploader(
+        "image query (session-only)",
+        type=["png", "jpg", "jpeg", "webp"],
+        key=uploader_key,
+    )
+    uploaded_image_bytes = uploaded_image.getvalue() if uploaded_image is not None else b""
+    if uploaded_image_bytes:
+        st.caption("query image: session-only")
+        _render_compact_generated_image(uploaded_image_bytes, caption="query image")
+
+    st.caption("text または image query を入れて Search すると、Artist Works Images の top-k を表示します。")
+    search_clicked = st.button("Search", key="artwork_search_button")
+    if st.button("リセット", key="artwork_search_reset_button"):
+        st.session_state[reset_requested_key] = True
+        st.rerun()
+
+    status_slot = st.empty()
+    current_query = {
+        "mode": "image" if uploaded_image_bytes else "text",
+        "fair_filter": fair_filter,
+        "text_query": (text_query or "").strip(),
+        "has_uploaded_image": bool(uploaded_image_bytes),
+    }
+
+    if search_clicked:
+        if not uploaded_image_bytes and not current_query["text_query"]:
+            st.warning("text query または image query を入力してください。")
+            return
+        try:
+            if uploaded_image_bytes:
+                result, spinner_complete = _run_search_with_spinner(
+                    lambda: search_artwork_images_by_image(
+                        uploaded_image_bytes,
+                        fair_filter=fair_filter,
+                        top_k=ARTWORK_SEARCH_TOP_K_DEFAULT,
+                    ),
+                    progress_line=status_slot,
+                )
+            else:
+                result, spinner_complete = _run_search_with_spinner(
+                    lambda: search_artwork_images_by_text(
+                        current_query["text_query"],
+                        fair_filter=fair_filter,
+                        top_k=ARTWORK_SEARCH_TOP_K_DEFAULT,
+                    ),
+                    progress_line=status_slot,
+                )
+            st.session_state[results_key] = result
+            st.session_state[query_key] = current_query
+        except Exception as exc:
+            st.error(f"ArtWork Search エラー: {type(exc).__name__}: {exc}")
+            return
+
+    result = st.session_state.get(results_key)
+    if result is None:
+        if spinner_complete:
+            spinner_complete()
+        return
+
+    warnings = list(result.get("warnings") or [])
+    if warnings:
+        with st.expander("警告（ArtWork Search）", expanded=False):
+            for warning in warnings[:20]:
+                st.write(f"- {warning}")
+
+    rows = list(result.get("rows") or [])
+    if not rows:
+        if spinner_complete:
+            spinner_complete()
+        st.warning("条件に一致する作品画像はありません。")
+        return
+
+    display_rows = _build_artwork_result_artist_rows(rows)
+    _render_artist_result_cards(display_rows)
+    if spinner_complete:
+        spinner_complete()
+
+    corpus_stats = dict(result.get("corpus_stats") or {})
+    fair_counts = dict(corpus_stats.get("available_fair_counts") or {})
     status_slot.caption(
-        f"件数: 読込={data.total_rows} / ヒット={len(filtered)} / "
-        f"frieze={data.fair_rows.get('frieze_london', 0)} / liste={data.fair_rows.get('liste', 0)}  \n"
-        f"検索結果: {total_hits}件（横スクロールで閲覧 / タップで画像拡大）"
+        _build_standard_search_caption(
+            int(corpus_stats.get("images_total", 0) or 0),
+            len(rows),
+            fair_counts,
+            len(rows),
+        )
     )
 
 
@@ -2893,6 +3088,9 @@ def render_phase2_sections() -> None:
 
     with st.container(border=True):
         render_gallery_list()
+
+    with st.container(border=True):
+        render_artwork_search()
 
 
 def main() -> None:

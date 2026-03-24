@@ -37,6 +37,7 @@ CURRENT_RAW_DIR = DATA_ROOT / "current" / "raw"
 CURRENT_RAW_R2_PREFIX = "data/current/raw"
 CURRENT_IMAGES_METADATA_DIR = DATA_ROOT / "current" / "images" / "metadata"
 CURRENT_IMAGES_METADATA_R2_PREFIX = "data/current/images/metadata"
+CURRENT_VECTOR_DIR = DATA_ROOT / "current" / "vector"
 SUPPORTED_FAIR_SLUGS = ("frieze_london", "liste")
 ENRICHMENT_CURRENT_DIR = DATA_ROOT / "current" / "enrichment"
 ENRICHMENT_HISTORY_DIR = DATA_ROOT / "history" / "enrichment"
@@ -72,6 +73,12 @@ def get_current_images_metadata_dir(root: Path | None = None) -> Path:
     return Path(root) / "images" / "metadata"
 
 
+def get_current_vector_dir(root: Path | None = None) -> Path:
+    if root is None:
+        return CURRENT_VECTOR_DIR
+    return Path(root) / "vector"
+
+
 def get_current_artist_image_meta_path(fair_slug: str, *, root: Path | None = None) -> Path:
     _validate_supported_fair_slug(fair_slug)
     return get_current_images_metadata_dir(root) / f"artist_works_images_{fair_slug}.jsonl"
@@ -104,6 +111,34 @@ def get_current_exhibitions_image_meta_paths(
         )
         for fair_slug in SUPPORTED_FAIR_SLUGS
     }
+
+
+def get_current_artist_works_vector_dir(root: Path | None = None) -> Path:
+    return get_current_vector_dir(root) / "artist_works_images"
+
+
+def get_current_artist_works_openclip_embeddings_path(
+    target_year: int = TARGET_YEAR,
+    *,
+    root: Path | None = None,
+) -> Path:
+    return get_current_artist_works_vector_dir(root) / f"artist_works_images_openclip_embeddings_{target_year}.npy"
+
+
+def get_current_artist_works_openclip_index_path(
+    target_year: int = TARGET_YEAR,
+    *,
+    root: Path | None = None,
+) -> Path:
+    return get_current_artist_works_vector_dir(root) / f"artist_works_images_openclip_search_index_{target_year}.npy"
+
+
+def get_current_artist_works_openclip_id_map_path(
+    target_year: int = TARGET_YEAR,
+    *,
+    root: Path | None = None,
+) -> Path:
+    return get_current_artist_works_vector_dir(root) / f"artist_works_images_openclip_id_map_{target_year}.jsonl"
 
 
 def resolve_image_local_path(path_text: str | Path, *, repo_root: Path = REPO_ROOT) -> Path | None:

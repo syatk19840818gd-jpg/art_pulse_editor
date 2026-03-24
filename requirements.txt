@@ -12,3 +12,5 @@ playwright
 boto3
 google-genai
 openai
+torch
+open-clip-torch

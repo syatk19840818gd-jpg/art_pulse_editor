@@ -5321,3 +5321,87 @@ _trash 運用方針:
 - not done:
   - no code / data / app / R2 / config change in this docs sync.
   - no cleanup reopening, no new implementation, and no Feature 5 kickoff in this docs task.
+
+## 2026-03-24 TASK319_DOC_SYNC_FEATURE7_ARTWORK_SEARCH_SPEC_ADOPTION_01
+- scope: docs-only sync to the handoff baseline across 01/02/03/04, with Feature 7 ArtWork Search added as a planned app feature and Feature 5/6 state drift corrected.
+- result:
+  - Feature 7 ArtWork Search is formally recorded as a new planned app feature candidate.
+  - corpus is fixed to Artist Works Images only.
+  - query modes are fixed as text / image.
+  - engine direction is fixed as local OpenCLIP.
+  - Feature 7 is explicitly treated as an app feature that reuses the existing Artist Works Images corpus; it is not a new RAG category.
+  - existing current image metadata + current image cache are fixed as the canonical inputs for Feature 7 reuse.
+  - no image re-extraction is assumed by default.
+  - no duplicate image storage is allowed.
+  - query image is fixed as session-only, with no save / no R2 / no corpus mixing.
+  - current roadmap correction is fixed: Feature 4 Advisor = completed / accepted for current scope; Feature 5 Exclusive Advisor = not started / explicit user instruction required; Feature 6 Gallery list = not started; Feature 7 = planned / docs-approved candidate.
+  - earlier milestone/closeout wording in 03/04 that implied Feature 5 or Feature 6 had already started/completed is superseded by this correction entry and the updated current baseline in 03.
+  - next planned lane after this docs sync is verify-first corpus inventory for Feature 7.
+- not done:
+  - no code implementation.
+  - no index build.
+  - no UI implementation.
+  - no code / data / app / R2 / config change in this docs task.
+
+## 2026-03-24 TASK324_DOC_SYNC_FEATURE7_MINIMUM_IMPLEMENTATION_AND_LOCAL_SMOKE_01
+- scope: docs-only sync of 01/02/03/04 after Feature 7 minimum implementation and local-only smoke verification.
+- result:
+  - Feature 7 ArtWork Search is no longer planned-only in the current baseline; it is now recorded as minimum implementation added / local-only smoke verified / broader acceptance pending.
+  - `requirements.txt` minimum dependency add is recorded: `torch` and `open-clip-torch`.
+  - local-only smoke is recorded as verified for import success, initial artifact build, text query, image query, fair filter, and second-run artifact load reuse.
+  - current implementation artifacts are recorded under `data/current/vector/artist_works_images/` for OpenCLIP embeddings / search index / id map.
+  - corpus build is recorded as successful at 977 records using existing Artist Works Images current metadata + current image cache only.
+  - app render is recorded as passing, ArtWork Search text UI is recorded as `AppTest errors=0 / exceptions=0`, and reset nonce behavior is recorded as the current proof for query-image state discard.
+  - Feature 7 remains explicitly classified as an app feature that reuses existing Artist Works Images; it is not a new RAG category.
+  - no image re-extraction / no duplicate image storage / query-image session-only contracts remain fixed.
+  - current roadmap correction remains fixed: Feature 4 Advisor = completed / accepted for current scope; Feature 5 Exclusive Advisor = not started / explicit user instruction required; Feature 6 Gallery list = not started; Feature 7 = minimally implemented / smoke verified / not yet accepted.
+  - TASK319 planned-only state is superseded for the current Feature 7 status by this entry and the synced current baseline in 01/02/03.
+- not done:
+  - browser-level uploader E2E is not yet verified.
+  - fully offline first boot is not yet verified.
+  - GPU runtime behavior is not yet verified.
+  - therefore Feature 7 is not yet fully accepted.
+  - no code / data / app / R2 / config change is made in this docs sync.
+
+## 2026-03-24 TASK325_DOC_SYNC_FEATURE7_GOOGLE_TRANSLATION_REDESIGN_SETUP_PREP_01
+- scope: docs-only roadmap / decision sync of 01/02/03/04 so Feature 7 pivots japanese text query quality improvement from bilingual dictionary expansion to Google Translation -> English -> OpenCLIP, while recording translation setup as prepared.
+- result:
+  - Feature 7 current implementation is preserved as-is, but the next quality-improvement lane is now fixed as query-side Google Translation for japanese text queries before OpenCLIP retrieval.
+  - english text query remains direct OpenCLIP.
+  - image query remains direct OpenCLIP.
+  - OpenCLIP itself remains the retrieval engine; there is no model-family switch to a multilingual local encoder.
+  - no image re-extraction, no duplicate image storage, and no re-vectorization redesign are introduced by this roadmap pivot.
+  - row text rerank is explicitly not adopted, because image-level binding is weak and artist/page-level text can contaminate image retrieval quality.
+  - the current japanese dictionary-expansion helper and weighted-max merge are reclassified as temporary workaround only and are now recorded as deprecated / remove-target once the translation path is implemented and smoke-verified.
+  - setup readiness is recorded as prepared: existing `art-pulse-editor` Google Cloud project reused, Cloud Translation service account prepared, Streamlit Cloud secrets configured, and local `.streamlit/secrets.toml` configured.
+  - current roadmap/state wording is updated to: current implementation exists / translation redesign planned / translation setup prepared / acceptance pending.
+  - Feature 5 Exclusive Advisor remains not started / explicit user instruction required, and Feature 6 Gallery list remains not started.
+  - TASK324 remains valid as the current implementation + smoke baseline, but its japanese-query workaround direction is superseded for forward roadmap purposes by this entry and the synced current baseline in 01/02/03.
+- not done:
+  - Google Translation path code implementation is not yet reflected.
+  - old jp-expansion workaround code is not yet removed.
+  - browser-level uploader E2E is not yet verified on the translation-path version.
+  - fully offline first boot is not yet verified.
+  - GPU runtime behavior is not yet verified.
+  - therefore Feature 7 is still not yet accepted.
+  - no code / data / app / R2 / config change is made in this docs sync.
+
+## 2026-03-24 TASK329_DOC_CLOSEOUT_FEATURE7_GPT5MINI_REWRITE_ACCEPTED_01
+- scope: docs-only closeout of 01/02/03/04 after Feature 7 acceptance for the final route.
+- result:
+  - final accepted japanese text route is `gpt-5-mini` rewrite -> short English search query -> OpenCLIP.
+  - english text query remains direct OpenCLIP.
+  - image query remains direct OpenCLIP.
+  - OpenCLIP remains the retrieval engine.
+  - no re-extraction, no duplicate image storage, no re-vectorization redesign, and no row text rerank remain fixed.
+  - Google Translation route was planned/attempted in the roadmap stage but is not the adopted final accepted route.
+  - Google Translation code / dependency / repo path are removed from the repo implementation.
+  - old japanese dictionary-expansion helper and weighted-max merge are removed from the repo implementation.
+  - manual browser validation passed for `青い幾何学` / `青い絵画` / `人物` / `植物` / `blue geometric abstraction`, and additional good queries (`鳥` / `未来的` / `繊細` / `細かい` / `情熱` / `極彩色`) also passed with no bad query observed.
+  - reset validation passed.
+  - Feature 7 is accepted for current scope.
+  - Feature 5 Exclusive Advisor remains not started / explicit user instruction required, and Feature 6 Gallery list remains not started.
+  - TASK325 translation-redesign/setup-prepared wording is superseded by this final accepted-route entry and by the synced current baseline in 01/02/03.
+  - optional cleanup note: old cloud/local translation credentials may still exist outside the repo, but they are no longer referenced by the repo implementation.
+- not done:
+  - no code / data / app / R2 / config change in this docs closeout.

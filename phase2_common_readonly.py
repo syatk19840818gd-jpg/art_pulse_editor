@@ -183,12 +183,13 @@ def _download_r2_object_to_local(path: Path, r2_key: str) -> bool:
         return False
 
 
-def safe_load_jsonl(path: Path) -> Tuple[List[dict], List[str]]:
+def safe_load_jsonl(path: Path, *, hydrate_r2: bool = True) -> Tuple[List[dict], List[str]]:
     rows: List[dict] = []
     warnings: List[str] = []
-    r2_key = _local_path_to_r2_key(path)
-    if r2_key:
-        _download_r2_object_to_local(path, r2_key)
+    if hydrate_r2:
+        r2_key = _local_path_to_r2_key(path)
+        if r2_key:
+            _download_r2_object_to_local(path, r2_key)
     if not path.exists():
         warnings.append(f"missing: {path}")
         return rows, warnings
