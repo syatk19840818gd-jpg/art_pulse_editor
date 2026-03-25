@@ -448,13 +448,17 @@ def apply_global_font_styles() -> None:
           overflow-y: auto;
           overflow-x: hidden;
           display: block;
-          max-height: 15.5rem;
+          flex: 1;
+          min-height: 0;
+          max-height: none;
         }
         .advisor-ref-scroll .advisor-ref-artist-card .exh-search-summary {
           overflow-y: auto;
           overflow-x: hidden;
           display: block;
-          max-height: 15.5rem;
+          flex: 1;
+          min-height: 0;
+          max-height: none;
         }
         .artist-search-thumb-row {
           display: grid;
@@ -549,16 +553,20 @@ def apply_global_font_styles() -> None:
           .artist-search-scroll .exh-search-summary {
             display: block;
             -webkit-line-clamp: unset;
-            max-height: 12rem;
             overflow-y: auto;
             overflow-x: hidden;
+            flex: 1;
+            min-height: 0;
+            max-height: none;
           }
           .advisor-ref-scroll .advisor-ref-artist-card .exh-search-summary {
             display: block;
             -webkit-line-clamp: unset;
-            max-height: 12rem;
             overflow-y: auto;
             overflow-x: hidden;
+            flex: 1;
+            min-height: 0;
+            max-height: none;
           }
           .advisor-ref-scroll .exh-search-card {
             flex-basis: 84vw;
