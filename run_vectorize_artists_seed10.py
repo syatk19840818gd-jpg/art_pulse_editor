@@ -14,18 +14,22 @@ import numpy as np
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
-from phase2_art_pulse_config import get_current_raw_paths
+from phase2_art_pulse_config import (
+    get_current_artist_text_vector_artifact_paths,
+    get_current_raw_paths,
+)
 TARGET_YEAR = 2025
 RAG_CATEGORY = "artists_text"
 
 RAW_INPUT_PATHS = get_current_raw_paths("artists", TARGET_YEAR)
 
 OUTPUT_DIR = Path("data/current/vector/artists")
-INDEX_PATH = OUTPUT_DIR / "artists_text_index_2025.npy"
-META_PATH = OUTPUT_DIR / "artists_text_meta_2025.jsonl"
+CURRENT_VECTOR_ARTIFACT_PATHS = get_current_artist_text_vector_artifact_paths(target_year=TARGET_YEAR)
+INDEX_PATH = CURRENT_VECTOR_ARTIFACT_PATHS["index"]
+META_PATH = CURRENT_VECTOR_ARTIFACT_PATHS["meta"]
 FAILED_PATH = OUTPUT_DIR / "artists_text_vectorize_failed_2025.jsonl"
 SUMMARY_PATH = OUTPUT_DIR / "artists_text_vectorize_summary_2025.json"
-MANIFEST_PATH = OUTPUT_DIR / "artists_text_artifact_manifest_2025.json"
+MANIFEST_PATH = CURRENT_VECTOR_ARTIFACT_PATHS["manifest"]
 MANIFEST_R2_PREFIX = "data/current/vector/artists"
 
 EMBEDDING_MODEL_DEFAULT = "gemini-embedding-001"

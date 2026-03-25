@@ -257,7 +257,7 @@ def load_artist_records_readonly() -> ArtistSearchData:
         count_note=(
             "Artist rows use formal raw (artists_*_2025.jsonl). "
             "headline_ja/summary_ja/artist_name_kana uses current-first enrichment output "
-            "(data/current/enrichment/artists_enrichment_apply_output_2025.jsonl), "
+            "(data/current/enrichment/artists_enrichment_apply_output.jsonl), "
             "with strict current-only resolution. "
             "history is not used as a default query path. "
             "works_image_count_hint is matched by source_url against formal artist works-image metadata. "

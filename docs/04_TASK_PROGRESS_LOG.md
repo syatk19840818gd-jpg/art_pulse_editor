@@ -5521,3 +5521,110 @@ _trash 運用方針:
   - not done: no Artist Text rework, no rerun/re-extraction/rebuild/promote.
   - validation: implementation task recorded `py_compile` pass on touched image-writer/related files.
 - overall not done (this docs sync task): no code/data/app/R2/config changes; no rerun / re-extraction / rebuild / promote.
+
+## 2026-03-25 TASK DOC_SYNC_ARTIST_STORAGE_YEARLESS_AND_VERIFY_CANDIDATE_01
+- scope: docs-only sync to reflect current Artist storage/current naming implementation and verify-first findings (no implementation in this task).
+- implementation log 1: shared path/resolver adoption (Feature 3/4/7)
+  - touched files: `phase2_art_pulse_config.py`, `phase2_common_readonly.py`, `phase2_artist_search_readonly.py`, `phase2_artwork_search_readonly.py`
+  - not done: no writer change, no rerun/re-extraction/rebuild/promote.
+  - validation: implementation task recorded `py_compile` pass; verify-first confirmed shared resolver references remain active.
+- implementation log 2: Artist Text first-write-wins writer contract
+  - touched files: `run_phase1_seed10.py` (with `phase1_artist_link_utils.py` reason alignment)
+  - not done: no image-contract extension, no rerun/re-extraction/rebuild/promote.
+  - validation: implementation task recorded `py_compile` pass and contract behavior sync notes were retained.
+- implementation log 3: Artist Works Images same-source yearly diff append-only
+  - touched files: `run_phase1_seed10_artist_image_collect.py`, `tools/skip_policy.py`
+  - not done: no Text contract rework, no rerun/re-extraction/rebuild/promote.
+  - validation: implementation task recorded `py_compile` pass; verify-first reconfirmed same-source diff contract wording consistency.
+- implementation log 4: Artist app-facing current fixed-name yearless migration
+  - scope: app-facing Artist current lane naming alignment only (no provenance-lane flattening).
+  - touched files: `phase2_art_pulse_config.py`, `phase2_common_readonly.py`, `phase2_artist_search_readonly.py`, `phase2_artwork_search_readonly.py`, `run_phase1_seed10.py`, `run_phase1_seed10_artist_image_collect.py`, `run_vectorize_artists_seed10.py`
+  - not done: no rerun/re-extraction/rebuild/promote; no raw/cache/retained-ledger rename.
+  - validation: verify-first confirmed yearless app-facing current files exist and old `_2025` fixed names for those current lanes are absent.
+- implementation log 5: docs sync (this task)
+  - touched files: `docs/01_PROJECT_SPEC_CURRENT_FULL.docx`, `docs/03_STATE_SNAPSHOT_NEXT_TASKS.md`, `docs/04_TASK_PROGRESS_LOG.md`
+  - summary: reflected yearless Artist app-facing current naming + provenance year-scoped split; recorded Feature 3 raw-direct-read as unresolved verify-first candidate (not implemented here).
+  - not done: no code/data/app/R2/config change; no rerun/re-extraction/rebuild/promote; no Feature 3 code fix.
+  - validation: docs-only cross-check against current code paths and current-file existence results.
+
+## 2026-03-25 TASK VERIFY_FIRST_APP_1_2_3_4_7_POST_MIGRATION_01
+- scope: verify-first only for app-wide post-migration runtime viability (Feature 1/2/3/4/7) after Artist current naming migration + shared resolver adoption; no implementation.
+- checked features:
+  - 1) Art Pulse
+  - 2) Exhibition Search
+  - 3) Artist Search
+  - 4) Advisor
+  - 7) ArtWork Search
+- result:
+  - no P0 runtime blocker found in current naming migration state.
+  - shared path/resolver alignment stayed coherent across 1/2/3/4/7.
+  - tiny fix was judged unnecessary at this point.
+- notable note:
+  - raw dependency is not Feature-3-only; it also reaches Feature 1 (direct raw path usage) and Feature 4 (via Feature 3 loader reuse).
+  - this is treated as a non-blocking unresolved design candidate, not as an immediate fix item in this task.
+  - `run_vectorize_artists_seed10.py` keeps `_2025` naming for failed/summary side artifacts; this remains peripheral and non-blocking for current app runtime.
+- not done:
+  - no patch / no implementation change.
+  - no docs-driven behavior rewrite.
+  - no rerun / re-extraction / rebuild / promote.
+  - no R2 sync execution.
+- validation:
+  - `python -m py_compile` for app/runtime and related writer/vectorize files.
+  - import smoke for `app.py`, phase2 read-only modules, and related writer/vectorize modules.
+  - minimal function-level smoke for Feature 1/2/3/4/7 loaders/search context (no heavy browser automation).
+
+## 2026-03-25 TASK VERIFY_FIRST_R2_ARTIST_CURRENT_APPLY_READINESS_01
+- scope: verify-first only for R2 sync readiness after Artist current contract updates (shared resolver + writer contracts + yearless app-facing current migration); no sync execution in this task.
+- touched scopes:
+  - `enrichment_current_primary`
+  - `artists_vector_current`
+  - `artist_works_images_vector_current`
+  - `raw_current_primary`
+  - `images_metadata_current`
+  - `images_cache_current`
+  - `current_ledgers_family`
+- result:
+  - readiness verdict = GO for `apply-upload`.
+  - relevant upload/prune deltas were confirmed in plan output for:
+    - `enrichment_current_primary`
+    - `artists_vector_current`
+    - `artist_works_images_vector_current`
+  - non-target provenance/audit lanes stayed stable in plan (`would_upload=0 / would_prune=0`) for:
+    - `raw_current_primary`
+    - `images_metadata_current`
+    - `images_cache_current`
+    - `current_ledgers_family`
+- not done:
+  - no `apply-upload` execution in this verify task.
+  - no `apply-prune` execution.
+  - no code/data/docs/config change.
+  - no rerun / re-extraction / rebuild / promote.
+- validation / re-plan result:
+  - `run_r2_sync.py plan` was executed per relevant scope and reviewed.
+  - expected migration behavior was confirmed: new yearless Artist current artifacts are upload targets; old `_2025` remote current artifacts appear as prune candidates only.
+
+## 2026-03-25 TASK EXECUTE_R2_APPLY_UPLOAD_ARTIST_CURRENT_01
+- scope: execute `apply-upload` only for the scoped current families that had non-zero upload deltas; keep prune as a separate step.
+- touched scopes:
+  - `enrichment_current_primary`
+  - `artists_vector_current`
+  - `artist_works_images_vector_current`
+- result:
+  - `apply-upload` completed successfully on all three scopes.
+  - upload summary:
+    - `enrichment_current_primary`: uploaded=3 / failed=0
+    - `artists_vector_current`: uploaded=3 / failed=0
+    - `artist_works_images_vector_current`: uploaded=3 / failed=0
+  - yearless Artist app-facing current artifacts are reflected in remote current families.
+  - old `_2025` remote current artifacts remain as prune candidates (expected, pending separate task).
+- not done:
+  - no `apply-prune` execution.
+  - no scope expansion beyond the three upload scopes above.
+  - no code/data/docs/config change.
+  - no rerun / re-extraction / rebuild / promote.
+- validation / re-plan result:
+  - post-apply re-plan converged to `would_upload=0` for:
+    - `enrichment_current_primary` (`would_prune=2`)
+    - `artists_vector_current` (`would_prune=3`)
+    - `artist_works_images_vector_current` (`would_prune=3`)
+  - stable untouched lanes from verify-first remained non-target in this execution (`raw_current_primary`, `images_metadata_current`, `images_cache_current`, `current_ledgers_family`).

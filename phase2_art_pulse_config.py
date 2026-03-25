@@ -147,12 +147,31 @@ def get_current_artist_works_vector_dir(root: Path | None = None) -> Path:
     return get_current_vector_dir(root) / "artist_works_images"
 
 
+def get_current_artist_text_vector_dir(root: Path | None = None) -> Path:
+    return get_current_vector_dir(root) / "artists"
+
+
+def get_current_artist_text_vector_artifact_paths(
+    *,
+    root: Path | None = None,
+    target_year: int = TARGET_YEAR,
+) -> dict[str, Path]:
+    _ = target_year
+    vector_dir = get_current_artist_text_vector_dir(root)
+    return {
+        "index": vector_dir / "artists_text_index.npy",
+        "meta": vector_dir / "artists_text_meta.jsonl",
+        "manifest": vector_dir / "artists_text_artifact_manifest.json",
+    }
+
+
 def get_current_artist_works_openclip_embeddings_path(
     target_year: int = TARGET_YEAR,
     *,
     root: Path | None = None,
 ) -> Path:
-    return get_current_artist_works_vector_dir(root) / f"artist_works_images_openclip_embeddings_{target_year}.npy"
+    _ = target_year
+    return get_current_artist_works_vector_dir(root) / "artist_works_images_openclip_embeddings.npy"
 
 
 def get_current_artist_works_openclip_index_path(
@@ -160,7 +179,8 @@ def get_current_artist_works_openclip_index_path(
     *,
     root: Path | None = None,
 ) -> Path:
-    return get_current_artist_works_vector_dir(root) / f"artist_works_images_openclip_search_index_{target_year}.npy"
+    _ = target_year
+    return get_current_artist_works_vector_dir(root) / "artist_works_images_openclip_search_index.npy"
 
 
 def get_current_artist_works_openclip_id_map_path(
@@ -168,7 +188,8 @@ def get_current_artist_works_openclip_id_map_path(
     *,
     root: Path | None = None,
 ) -> Path:
-    return get_current_artist_works_vector_dir(root) / f"artist_works_images_openclip_id_map_{target_year}.jsonl"
+    _ = target_year
+    return get_current_artist_works_vector_dir(root) / "artist_works_images_openclip_id_map.jsonl"
 
 
 def get_current_artist_works_embeddings_path(
@@ -315,11 +336,15 @@ def get_current_raw_paths(
 
 def get_enrichment_current_output_path(category: str, target_year: int = TARGET_YEAR) -> Path:
     _validate_enrichment_category(category)
+    if category == "artists":
+        return ENRICHMENT_CURRENT_DIR / f"{category}_enrichment_apply_output.jsonl"
     return ENRICHMENT_CURRENT_DIR / f"{category}_enrichment_apply_output_{target_year}.jsonl"
 
 
 def get_enrichment_current_summary_path(category: str, target_year: int = TARGET_YEAR) -> Path:
     _validate_enrichment_category(category)
+    if category == "artists":
+        return ENRICHMENT_CURRENT_DIR / f"{category}_enrichment_apply_summary.json"
     return ENRICHMENT_CURRENT_DIR / f"{category}_enrichment_apply_summary_{target_year}.json"
 
 
