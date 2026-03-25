@@ -209,8 +209,8 @@ def get_artist_master_duplicate_reason(
     existing_source_key = canonical_artist_source_key(existing_first_source_url)
     candidate_source_key = canonical_artist_source_key(candidate_source_url)
     if existing_source_key and candidate_source_key and existing_source_key == candidate_source_key:
-        return "DUPLICATE_ARTIST_GLOBAL_EXISTING_SAME_SOURCE"
-    return "DUPLICATE_ARTIST_GLOBAL_EXISTING"
+        return "ARTIST_TEXT_FROZEN_GLOBAL_EXISTING_SAME_SOURCE"
+    return "ARTIST_TEXT_FROZEN_GLOBAL_EXISTING"
 
 
 def looks_like_artist_listing_url(url: str) -> bool:

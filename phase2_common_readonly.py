@@ -15,10 +15,12 @@ from phase2_art_pulse_config import (
     CURRENT_RAW_R2_PREFIX,
     CURRENT_VECTOR_DIR,
     TARGET_YEAR,
+    get_current_artist_text_paths,
     get_enrichment_current_output_path,
-    get_current_raw_paths,
     get_current_artist_image_meta_paths,
+    get_current_artist_works_artifact_paths as get_current_artist_works_artifact_paths_config,
     get_current_exhibitions_image_meta_paths,
+    get_current_raw_paths,
     get_image_cache_dir,
     get_image_r2_key,
 )
@@ -41,22 +43,48 @@ FAIR_LABEL_TO_SLUG = {
 }
 FAIR_SLUG_TO_LABEL = {value: key for key, value in FAIR_LABEL_TO_SLUG.items()}
 
-EXHIBITIONS_TEXT_PATHS = {
-    fair_slug: REPO_ROOT / path
-    for fair_slug, path in get_current_raw_paths("exhibitions").items()
-}
-ARTISTS_TEXT_PATHS = {
-    fair_slug: REPO_ROOT / path
-    for fair_slug, path in get_current_raw_paths("artists").items()
-}
-EXHIBITIONS_IMAGE_META_PATHS = {
-    fair_slug: REPO_ROOT / path
-    for fair_slug, path in get_current_exhibitions_image_meta_paths().items()
-}
-ARTIST_WORKS_IMAGE_PATHS = {
-    fair_slug: REPO_ROOT / path
-    for fair_slug, path in get_current_artist_image_meta_paths().items()
-}
+
+def _resolve_repo_paths(paths_by_key: Dict[str, Path]) -> Dict[str, Path]:
+    return {
+        key: REPO_ROOT / path
+        for key, path in paths_by_key.items()
+    }
+
+
+def resolve_current_exhibitions_text_paths(
+    target_year: int = TARGET_YEAR,
+) -> Dict[str, Path]:
+    return _resolve_repo_paths(get_current_raw_paths("exhibitions", target_year))
+
+
+def resolve_current_artist_text_paths(
+    target_year: int = TARGET_YEAR,
+) -> Dict[str, Path]:
+    return _resolve_repo_paths(get_current_artist_text_paths(target_year=target_year))
+
+
+def resolve_current_exhibitions_image_meta_paths(
+    target_year: int = TARGET_YEAR,
+) -> Dict[str, Path]:
+    return _resolve_repo_paths(get_current_exhibitions_image_meta_paths(target_year))
+
+
+def resolve_current_artist_works_image_meta_paths() -> Dict[str, Path]:
+    return _resolve_repo_paths(get_current_artist_image_meta_paths())
+
+
+def resolve_current_artist_works_artifact_paths(
+    target_year: int = TARGET_YEAR,
+) -> Dict[str, Path]:
+    return _resolve_repo_paths(
+        get_current_artist_works_artifact_paths_config(target_year=target_year)
+    )
+
+
+EXHIBITIONS_TEXT_PATHS = resolve_current_exhibitions_text_paths()
+ARTISTS_TEXT_PATHS = resolve_current_artist_text_paths()
+EXHIBITIONS_IMAGE_META_PATHS = resolve_current_exhibitions_image_meta_paths()
+ARTIST_WORKS_IMAGE_PATHS = resolve_current_artist_works_image_meta_paths()
 
 GALLERY_LIST_PATHS = {
     "frieze_london": REPO_ROOT / "data/gallery_lists/gallery_list_frieze_london.csv",

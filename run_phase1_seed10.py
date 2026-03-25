@@ -979,6 +979,7 @@ def _should_skip_artist_master_duplicate(
 ) -> tuple[bool, str]:
     if existing_artist is None:
         return False, ""
+    # Artist Text is first-write-wins across all fairs/galleries, including same-source yearly reruns.
     reason = shared_get_artist_master_duplicate_reason(
         existing_first_source_url=str(existing_artist.get("first_source_url") or ""),
         candidate_source_url=candidate_source_url,
@@ -2046,6 +2047,41 @@ def main() -> int:
                 clear_failed_fetch(artists_failed_fetches_ledger, canonical_page_url, hash_fn=compute_page_url_hash)
                 clear_failed_fetch(artists_failed_fetches_ledger, source_url, hash_fn=compute_page_url_hash)
                 clear_failed_fetch(artists_failed_fetches_ledger, canonical_source_url, hash_fn=compute_page_url_hash)
+                existing_artist_after_fetch = artist_master_global.get(artist_identity_key)
+                should_skip_existing_artist, existing_reason = _should_skip_artist_master_duplicate(
+                    existing_artist=existing_artist_after_fetch,
+                    candidate_source_url=source_url,
+                )
+                if should_skip_existing_artist:
+                    upsert_visited_page_with_canonical_alias(
+                        artists_visited_pages_ledger,
+                        url=source_url,
+                        canonical_url=canonical_source_url,
+                        fair_slug=gallery.fair_slug,
+                        gallery_name_en=gallery.gallery_name_en,
+                        decision="skipped",
+                        reason_code=existing_reason,
+                        parent_source_url=list_page_url,
+                        category=RAG_CATEGORY_ARTISTS,
+                    )
+                    artists_skip_reason_counter[existing_reason] += 1
+                    continue
+                if artist_identity_key != artist_identity_key_candidate:
+                    if artist_identity_key in artists_seen_identity_keys_in_run:
+                        upsert_visited_page_with_canonical_alias(
+                            artists_visited_pages_ledger,
+                            url=source_url,
+                            canonical_url=canonical_source_url,
+                            fair_slug=gallery.fair_slug,
+                            gallery_name_en=gallery.gallery_name_en,
+                            decision="skipped",
+                            reason_code="DUPLICATE_ARTIST_GLOBAL_IN_RUN",
+                            parent_source_url=list_page_url,
+                            category=RAG_CATEGORY_ARTISTS,
+                        )
+                        artists_skip_reason_counter["DUPLICATE_ARTIST_GLOBAL_IN_RUN"] += 1
+                        continue
+                    artists_seen_identity_keys_in_run.add(artist_identity_key)
                 text = extract_text(page_result["html"])
                 if not text:
                     artists_failed_fetches_in_run.append(
@@ -2116,8 +2152,7 @@ def main() -> int:
                     "rag_category": RAG_CATEGORY_ARTISTS,
                 }
                 artists_records_by_fair[gallery.fair_slug].append(record)
-                existing_master = artist_master_global.get(artist_identity_key)
-                if existing_master is None:
+                if artist_identity_key not in artist_master_global:
                     artist_master_global[artist_identity_key] = build_artist_master_entry(
                         identity_key=artist_identity_key,
                         artist_name_key=artist_name_key,
@@ -2127,11 +2162,6 @@ def main() -> int:
                         gallery_name_en=gallery.gallery_name_en,
                         seen_at=str(record.get("extracted_at") or ""),
                     )
-                else:
-                    existing_master["artist_name_en"] = artist_name_en
-                    existing_master["artist_name_key"] = artist_name_key
-                    existing_master["updated_at"] = str(record.get("extracted_at") or "")
-                    artist_master_global[artist_identity_key] = existing_master
                 upsert_visited_page_with_canonical_alias(
                     artists_visited_pages_ledger,
                     url=source_url,
@@ -2265,6 +2295,8 @@ def main() -> int:
         "phase1_7_run_id": str(args.run_id or ""),
         "phase1_7_trial_root": str(output_root),
         "artists_global_dedupe_in_run_seen_count": len(artists_seen_identity_keys_in_run),
+        "artists_text_contract": "first_write_wins_global_no_refetch",
+        "artists_text_same_source_yearly_refetch_enabled": False,
         "artists_existing_text_hashes_by_fair": {
             fair_slug: len(artists_existing_text_hashes_by_fair.get(fair_slug, set()))
             for fair_slug in CSV_PATHS
@@ -2276,7 +2308,6 @@ def main() -> int:
         "artists_failed_ledger_exists_at_start": bool(artists_failed_ledger_exists_at_start)
         if include_artists_text
         else False,
-        "artists_same_source_rerun_stopgap_enabled": True,
         "exhibitions_text_fair_breakdown": [],
         "exhibitions_text_gallery_breakdown": [],
         "exhibitions_text_seed_gallery_count": 0,
@@ -2364,6 +2395,7 @@ def main() -> int:
         summary["notes"].append("artists_source_rule=artist_list_url_to_artist_detail_pages_only")
         summary["notes"].append("artists_global_dedupe_scope=all_fairs_all_galleries")
         summary["notes"].append("artists_global_dedupe_exhibitions_excluded=true")
+        summary["notes"].append("artists_text_contract=first_write_wins_global_no_refetch")
 
     summary.update(artists_enrichment_summary)
     summary_path = get_phase1_run_summary_path(TARGET_YEAR, logs_dir=log_dir)

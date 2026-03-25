@@ -6,12 +6,12 @@ from typing import Dict, List, Tuple
 
 from phase2_art_pulse_config import normalize_image_local_path_text
 from phase2_common_readonly import (
-    ARTISTS_TEXT_PATHS,
-    ARTIST_WORKS_IMAGE_PATHS,
     FAIR_LABEL_TO_SLUG,
     FAIR_SLUG_TO_LABEL,
     derive_artist_name,
     normalize_url,
+    resolve_current_artist_text_paths,
+    resolve_current_artist_works_image_meta_paths,
     resolve_current_first_enrichment_output_path,
     safe_load_jsonl,
 )
@@ -104,9 +104,11 @@ def load_artist_records_readonly() -> ArtistSearchData:
     fair_rows: Dict[str, int] = {"frieze_london": 0, "liste": 0}
     enrichment_by_key, enrichment_warnings = _load_latest_artist_enrichment_map()
     warnings.extend(enrichment_warnings)
+    artist_text_paths = resolve_current_artist_text_paths()
+    artist_image_meta_paths = resolve_current_artist_works_image_meta_paths()
 
     image_hint_by_source: Dict[str, dict] = {}
-    for fair_slug, path in ARTIST_WORKS_IMAGE_PATHS.items():
+    for fair_slug, path in artist_image_meta_paths.items():
         image_rows, image_warnings = safe_load_jsonl(path)
         warnings.extend(image_warnings)
         for row in image_rows:
@@ -144,7 +146,7 @@ def load_artist_records_readonly() -> ArtistSearchData:
                     "preview_candidates": preview_candidates,
                 }
 
-    for fair_slug, path in ARTISTS_TEXT_PATHS.items():
+    for fair_slug, path in artist_text_paths.items():
         text_rows, text_warnings = safe_load_jsonl(path)
         warnings.extend(text_warnings)
         fair_rows[fair_slug] = len(text_rows)

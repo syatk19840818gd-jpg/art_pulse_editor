@@ -1,6 +1,6 @@
 # 04_TASK_PROGRESS_LOG.md
 
-最終更新: 2026-03-21 19:17 JST  
+最終更新: 2026-03-25 02:20 JST  
 対象プロジェクト: ART_PULSE_EDITOR（Phase1 seed10 / Guard運用整備）  
 位置づけ: 実装進捗ログ（01=SSOT、02=索引、03=現行運用タスクの補助ログ）
 
@@ -5496,3 +5496,28 @@ _trash 運用方針:
   - no code/data/app/R2/config changes.
   - no Cloud setting change.
   - no Feature 5/6 implementation start.
+
+## 2026-03-25 TASK DOC_SYNC_ARTIST_EXHIBITION_CONTRACT_ADOPTION_01
+- scope: docs-only sync for annual management and Artist update contracts (01 as SSOT, 03/04 minimal sync).
+- 01 updates: ExhibitionRAG year-scoped maintained; Artist app-facing current unified; Artist Text first-write fixed; Artist Works Images same-source yearly diff append-only; `artist_master_global.json` remains single global ledger; old stopgap phrase was replaced with the new contract wording.
+- 03/04 updates: minimal docs sync records only (no roadmap rewrite).
+- not done: no code/data/app/R2/config changes; no rerun / re-extraction / rebuild / promote execution.
+
+## 2026-03-25 TASK DOC_SYNC_ARTIST_CONTRACT_IMPLEMENTATION_STATUS_01
+- scope: docs-only sync for recently completed Artist contract implementations (no new implementation in this task).
+- implementation log 1: Artist app-facing current shared path/resolver adoption
+  - touched files: `phase2_art_pulse_config.py`, `phase2_common_readonly.py`, `phase2_artist_search_readonly.py`, `phase2_artwork_search_readonly.py`
+  - summary: Feature 3/4/7 Artist current reads were consolidated through shared config/common resolver APIs; runtime-safe existing year-suffixed artifact naming remains intentionally retained in this phase.
+  - not done: no writer/data migration/rerun/re-extraction/rebuild/promote.
+  - validation: implementation task recorded `py_compile` pass on touched phase2 files.
+- implementation log 2: Artist Text first-write-wins writer contract formalization
+  - touched files: `run_phase1_seed10.py` (with shared duplicate-reason alignment from `phase1_artist_link_utils.py`)
+  - summary: first-write-wins is enforced across cross-gallery/cross-fair/same-source yearly reruns, with pre-fetch + post-fetch guards; redirect/canonical drift does not permit overwrite; first-source representative values in `artist_master_global.json` remain unchanged once set.
+  - not done: no image-contract extension, no rerun/re-extraction/rebuild/promote.
+  - validation: implementation task recorded `py_compile` pass on touched writer/related files.
+- implementation log 3: Artist Works Images same-source yearly diff append-only formalization
+  - touched files: `run_phase1_seed10_artist_image_collect.py`, `tools/skip_policy.py` (minimal shared helper alignment)
+  - summary: cross-gallery/cross-fair reappearances are skipped; same-source yearly runs only allow unseen diff append (`SAME_SOURCE_YEARLY_DIFF_APPEND_ONLY`); existing images are retained (no full replace/full rebuild behavior).
+  - not done: no Artist Text rework, no rerun/re-extraction/rebuild/promote.
+  - validation: implementation task recorded `py_compile` pass on touched image-writer/related files.
+- overall not done (this docs sync task): no code/data/app/R2/config changes; no rerun / re-extraction / rebuild / promote.

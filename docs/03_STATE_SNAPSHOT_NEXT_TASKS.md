@@ -13,7 +13,7 @@ STREAMLIT_ENTRYPOINT（固定）
 - Local run: streamlit run app.py
 
 SOURCE_SSOT: 01_PROJECT_SPEC_CURRENT_FULL.docx
-LAST_UPDATED: 2026-03-24 22:00 JST
+LAST_UPDATED: 2026-03-25 10:58 JST
 
 
 ========================
@@ -90,6 +90,10 @@ STATE_SNAPSHOT（現在地）
   - Immediate priority: cleanup lane is closed; return to main roadmap only by explicit user task（Feature 5 auto-start はしない）
   - current state note: repo hygiene cleanup / output hygiene permanent guard / aggressive prune are completed and accepted. Feature 4 Advisor remains major-regression-only tiny fix, and normal feature work may resume from the main roadmap when the user explicitly asks for it
   - Feature 7 note: ArtWork Search is an implemented app feature that reuses existing Artist Works Images only. It is not a new RAG category, keeps OpenCLIP as the retrieval engine, uses `gpt-5-mini` rewrite only for japanese text query, keeps english text and image query as direct OpenCLIP, and is accepted for current scope.
+  - Artist current contract sync note (2026-03-25): Feature 3 / 4 / 7 now read Artist current via shared path/resolver APIs (`phase2_art_pulse_config.py` + `phase2_common_readonly.py` + artist/artwork readonly readers); runtime-safe existing year-suffixed artifact naming remains intentionally retained in this phase.
+  - Artist Text writer contract sync note (2026-03-25): first-write-wins is implemented as fixed behavior in `run_phase1_seed10.py` (pre-fetch + post-fetch duplicate guard, no refetch on cross-gallery / cross-fair / same-source yearly rerun, first-source representative not overwritten).
+  - Artist Works Images writer contract sync note (2026-03-25): `run_phase1_seed10_artist_image_collect.py` + `tools/skip_policy.py` now enforce cross-gallery/cross-fair skip and same-source yearly diff append-only (`SAME_SOURCE_YEARLY_DIFF_APPEND_ONLY`) with existing image retention (no full replace).
+  - execution-status note (2026-03-25): this state reflects code implementation alignment only; rerun / re-extraction / rebuild / promote are not executed in this sync.
   - Feature 7 UI note (current accepted): fair select options are `Frieze London` / `Liste Art Fair Basel` / `Frieze London + Liste Art Fair Basel` with default `Frieze London + Liste Art Fair Basel`; card style is aligned to Artist Search (`title=artist_name（artist_name_kana）`, `summary_ja`, one full-width fixed-height image); shared count caption style is used; old inline `artifact=` / `mode=` / `fair:` labels are removed from normal UI.
   - Feature 1-7 cross-audit note (2026-03-24): no local-only blocker on Feature 1-6 active paths; Feature 7 blocker was isolated to common hydrate coverage + local existence gate and was fixed by common-layer updates in `phase2_common_readonly.py` + `phase2_artwork_search_readonly.py` (no feature-specific helper sprawl).
   - absolute-rule note (2026-03-24): Cloud runtime priority remains GitHub + R2 current families, while local files stay debug/working fallback only.
@@ -106,6 +110,7 @@ STATE_SNAPSHOT（現在地）
   - artifact policy note: optional artifact is opt-in only via `ART_PULSE_OUTPUT_ARTIFACTS`; `preview` / `diagnostics` / `report` / `latest` / `diff` / `inventory` are default-off, duplicate mirror storage is prohibited, and new temp / backup / report roots must not be introduced outside `_trash`
   - essential artifact exception note: `run_r2_sync.py` plan log remains always-on because `apply-prune` guard consumes it; `run_phase1_seed10_exhibition_image_collect.py` `summary_latest` is default-off and timestamped summary is the standard output
   - cleanup closure note: `data/backups/` mirror bundle purge, `data/trials/` cleanup, `_trash/ADOPT*` purge, stale `_trial` bundle provenance prune, `FORMAL_CURRENT_POINTER.json` stale rollback provenance prune, `tests/` removal, and root `py` aggressive prune are completed; none remain as open blockers
+  - next-task note (2026-03-25): after this docs sync, keep returning to the main roadmap baseline; do not reopen cleanup/proof lanes without explicit user task.
 - NOTE: keep this current-goal line updated whenever phase priority changes.
 - Fixed master roadmap alignment (from SSOT 01):
   - 5 RAG categories (Tarutani_Text / Artist Works Images / Artist Text / Exhibitions Image / Exhibitions Text) are established at 10-gallery operational scope
@@ -6586,6 +6591,7 @@ CODEX_SNIPPETS（頻出コピペ：ここだけ使えば回る）
 ========================
 CHANGELOG（このファイルの更新履歴）
 - 2026-03-21 JST: TASK DOC_SYNC_REPO_OUTPUT_HYGIENE_CONSTITUTION_01 を反映。repo hygiene cleanup / output hygiene permanent guard / aggressive prune を completed / accepted として同期し、steady-state policy を「増えた artifact を後で消す」ではなく「default で増やさない」に固定。`ART_PULSE_OUTPUT_ARTIFACTS` opt-in、`preview` / `diagnostics` / `report` / `latest` / `diff` / `inventory` default-off、`run_r2_sync.py` plan log essential、`run_phase1_seed10_exhibition_image_collect.py` `summary_latest` default-off、small-delta incident の standard entrypoint=`run_text_enrichment_delta_promote.py`、Feature 5 は main roadmap return だが explicit user task まで auto-start しないことを明記。
+- 2026-03-25 JST: DOCS-ONLY sync (Artist/Exhibition storage-update contract adoption). In SSOT 01, ExhibitionRAG year-scoped management is explicitly retained, Artist app-facing current is unified (non-year-split), Artist Text is first-write-fixed, Artist Works Images allows same-source yearly diff append-only, and artist_master_global.json remains a single global ledger. The old stopgap sentence (same-source rerun append pre-fetch skip) was replaced with the new contract wording. This is specification-only; no code/data/app/R2/config changes and no rerun/re-extraction/rebuild/promote execution.
 - 2026-03-20 JST: TASK DOCS_SYNC_DELTA_PROMOTE_LANE_AS_STANDARD_FIRST_RESPONSE_2025 を反映。URL scope contamination incident と single artists batch parse failure incident を resolved として同期し、Text enrichment の standard first-response を `existing artifacts diagnosis -> intentional drop -> localized repair -> no-reextraction delta promote` に固定。Immediate priority を `A12_PHASE5_EXCLUSIVE_ADVISOR_KICKOFF_01` へ戻し、small-delta incident では full rerun / full rebuild / re-extraction / batch rerun を標準手順にしないことを明記。
 - 2026-03-20 JST: TASK DOCS_ONLY_LOCK_REEXTRACTION_COST_GUARD_RULES_2025 を反映。運用ルールに「無断再抽出禁止」「再抽出・canonical rebuild・promote再実行前のユーザー確認必須」「existing artifacts で診断できる限り再抽出しない」「Artists/Exhibitions の bulk OpenAI 実行は半額 Batch API のみ」を固定。STATE_SNAPSHOT は `DIAGNOSE_SINGLE_ARTISTS_BATCH_PARSE_FAILURE_AND_PREPARE_SAFE_RETRY_2025` を最優先へ更新し、URL scope guard 件は promote 候補だが next step は single parse failure の diagnosis-first であることを明記。
 - 2026-03-05 JST: TASK228 実施。④ Exhibitions Image の completion closure memo を確定し、STATE_SNAPSHOT を `completion closure 完了` へ更新。TASK227結果（`PASS_FOR_CLOSURE` / `CURRENT_FORMAL_STILL_VALID` / Baton再発0 / Athr再出現0 / duplicate 0）を反映。final isolated rerun retry の新規1件は `SAFE_BUT_NOT_NEEDED` として formal 不採用を明記。次タスクを `TASK229（⑤ Exhibitions Text kickoff / spec start）` に更新。
@@ -7852,4 +7858,18 @@ TASK A-3A-CLOSE-1 実施結果（2026-02-27 / Adams and Ollman）
   - manual browser validation passed and Feature 7 is accepted for current scope
 - next task order:
   - no mandatory Feature 7 closeout task remains; treat it as normal maintenance unless a new regression or scope extension is explicitly requested
+
+## 2026-03-25 DOC_SYNC_ARTIST_CONTRACT_IMPLEMENTATION_STATUS_01
+- scope: docs-only implementation-status sync across 01/03/04 for the adopted Artist contracts.
+- current status:
+  - Artist app-facing current shared path/resolver usage is reflected in code (`phase2_art_pulse_config.py`, `phase2_common_readonly.py`, `phase2_artist_search_readonly.py`, `phase2_artwork_search_readonly.py`).
+  - Artist Text writer first-write-wins fixed contract is reflected in code (`run_phase1_seed10.py`): pre-fetch + post-fetch guard, no refetch across cross-gallery / cross-fair / same-source yearly runs, first-source representative unchanged.
+  - Artist Works Images same-source yearly diff append-only contract is reflected in code (`run_phase1_seed10_artist_image_collect.py`, `tools/skip_policy.py`): cross-source skip, same-source diff-only append, existing image retention, no full replace.
+  - ExhibitionRAG year-scoped contract remains unchanged.
+- not done:
+  - no rerun / re-extraction / rebuild / promote in this sync.
+  - no code/data/app/R2/config changes in this docs task.
+- next tasks:
+  - docs sync is complete; return to the main roadmap baseline.
+  - Feature 5 remains explicit-user-instruction-only, and Feature 6 remains not started.
 

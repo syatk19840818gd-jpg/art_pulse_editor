@@ -2241,31 +2241,33 @@ def classify_artist_fill_missing_reason(
     return skip_policy.ARTIST_IMAGE_REASON_COMPLETE
 
 
-def quarantine_orphan_artist_images(
-    files: list[Path],
+def resolve_artist_image_fetch_decision(
     *,
-    fair_slug_safe: str,
-    target_year: int,
-    artist_key: str,
-    run_ts: str,
-) -> int:
-    moved = 0
-    if not files:
-        return moved
-    dst_root = TRASH_ROOT / f"orphan_artist_images_{run_ts}" / str(target_year) / fair_slug_safe / artist_key
-    dst_root.mkdir(parents=True, exist_ok=True)
-    for src in files:
-        if not src.exists() or not src.is_file():
-            continue
-        dst = dst_root / src.name
-        if dst.exists():
-            dst = dst_root / f"{src.stem}__dup{src.suffix}"
-        try:
-            shutil.move(str(src), str(dst))
-            moved += 1
-        except Exception:
-            continue
-    return moved
+    mode: str,
+    has_metadata_row: bool,
+    existing_meta_hashes: list[str],
+    valid_existing_count: int,
+    target_images_per_artist: int,
+    integrity_stats: dict[str, int],
+    same_source_yearly_diff_allowed: bool,
+) -> tuple[bool, str]:
+    reason = classify_artist_fill_missing_reason(
+        has_metadata_row=has_metadata_row,
+        existing_meta_hashes=existing_meta_hashes,
+        valid_existing_count=valid_existing_count,
+        target_images_per_artist=target_images_per_artist,
+        integrity_stats=integrity_stats,
+    )
+    should_fetch, effective_reason = skip_policy.should_fetch_artist_image_in_mode(
+        mode=mode,
+        reason=reason,
+        fill_missing_topup=skip_policy.FILL_MISSING_TOPUP_DEFAULT,
+    )
+    if should_fetch:
+        return True, effective_reason
+    if same_source_yearly_diff_allowed:
+        return True, skip_policy.ARTIST_IMAGE_REASON_SAME_SOURCE_YEARLY_DIFF
+    return False, effective_reason
 
 
 def build_candidate_evidence(candidate: dict[str, Any]) -> dict[str, Any]:
@@ -2459,7 +2461,7 @@ def main() -> int:
             if existing and existing_source and existing_source != current_source:
                 summary["skipped_by_global_artist_dedupe"].append(
                     {
-                        "reason_code": "auto_skipped_by_global_artist_dedupe_existing",
+                        "reason_code": "artist_images_cross_source_global_skip",
                         "artist_identity_key": identity_key,
                         "artist_name_en": artist_name_en,
                         "artist_name_key": artist_name_key,
@@ -2472,6 +2474,7 @@ def main() -> int:
                     }
                 )
                 continue
+            row["same_source_yearly_diff_allowed"] = bool(existing and existing_source and existing_source == current_source)
             if identity_key in seen_identity_in_run:
                 summary["skipped_by_global_artist_dedupe"].append(
                     {
@@ -2547,6 +2550,7 @@ def main() -> int:
         summary["notes"].append("local_image_cache_layout=fair_only_flat_files")
         summary["notes"].append("artist_works_year_sort_rule=desc_unknown_tail")
         summary["notes"].append("artist_dedupe_scope=global_all_fairs_all_galleries")
+        summary["notes"].append("artist_works_update_contract=same_source_yearly_diff_append_only")
         known_unresolvable_source_keys: set[str] = set()
         if policy_mode == skip_policy.FILL_MISSING_MODE:
             known_unresolvable_source_keys = load_known_unresolvable_source_keys(
@@ -2662,17 +2666,14 @@ def main() -> int:
                             "image_url_hash": str(existing_meta_hashes[0] if existing_meta_hashes else ""),
                         }
                     )
-                reason = classify_artist_fill_missing_reason(
+                should_fetch, effective_reason = resolve_artist_image_fetch_decision(
+                    mode=policy_mode,
                     has_metadata_row=isinstance(existing_meta_row, dict),
                     existing_meta_hashes=existing_meta_hashes,
                     valid_existing_count=len(valid_existing),
                     target_images_per_artist=target_images_per_artist,
                     integrity_stats=integrity_stats,
-                )
-                should_fetch, effective_reason = skip_policy.should_fetch_artist_image_in_mode(
-                    mode=policy_mode,
-                    reason=reason,
-                    fill_missing_topup=skip_policy.FILL_MISSING_TOPUP_DEFAULT,
+                    same_source_yearly_diff_allowed=bool(target.get("same_source_yearly_diff_allowed")),
                 )
                 if should_fetch:
                     would_fetch_count += 1
@@ -2853,6 +2854,7 @@ def main() -> int:
             artist_identity_key = str(target.get("artist_identity_key") or "").strip().lower() or build_artist_identity_key(
                 artist_name_key, artist_name_en, source_url
             )
+            same_source_yearly_diff_allowed = bool(target.get("same_source_yearly_diff_allowed"))
             domain = normalize_domain(source_url)
             domain_stats[domain]["target_artist_count"] += 1
 
@@ -3011,6 +3013,7 @@ def main() -> int:
             detail_urls_considered: list[str] = []
             works_urls_tried_all: list[str] = []
             works_year_evidence: list[dict[str, Any]] = []
+            works_year_evidence_hashes: set[str] = set()
             selected_year_evidence: list[dict[str, Any]] = []
             selected_image_hashes: list[str] = []
             current_topn_hashes: list[str] = []
@@ -3027,17 +3030,38 @@ def main() -> int:
                     seen_image_url_identities.add(existing_identity)
             any_known_year_candidate = False
             download_fail_count = 0
+            prev_topn_hashes_set = set(prev_topn_hashes)
+            current_topn_seen_hashes: set[str] = set()
 
             metadata_cover_count = len(valid_existing_metadata_items_for_seen)
-            should_refetch_for_metadata_gap = (
-                saved_count > 0 and metadata_cover_count < min(saved_count, target_images_per_artist)
-            )
-            if should_refetch_for_metadata_gap:
+            metadata_gap_detected = saved_count > 0 and metadata_cover_count < saved_count
+            if metadata_gap_detected:
                 case_notes.append(
-                    f"metadata_refetch_required:cached={saved_count},meta={metadata_cover_count}"
+                    f"metadata_gap_detected:cached={saved_count},meta={metadata_cover_count}"
                 )
+            should_fetch_remote, effective_fetch_reason = resolve_artist_image_fetch_decision(
+                mode=policy_mode,
+                has_metadata_row=isinstance(existing_meta_row, dict),
+                existing_meta_hashes=existing_meta_hashes,
+                valid_existing_count=len(valid_existing_metadata_items_for_seen),
+                target_images_per_artist=target_images_per_artist,
+                integrity_stats=analyze_existing_metadata_integrity(
+                    existing_meta_hashes,
+                    existing_meta_by_hash,
+                ),
+                same_source_yearly_diff_allowed=same_source_yearly_diff_allowed,
+            )
+            append_only_same_source_mode = (
+                effective_fetch_reason == skip_policy.ARTIST_IMAGE_REASON_SAME_SOURCE_YEARLY_DIFF
+            )
+            remote_fetch_limit = (
+                target_images_per_artist
+                if append_only_same_source_mode
+                else max(0, target_images_per_artist - saved_count)
+            )
+            new_saved_count = 0
 
-            if saved_count < target_images_per_artist or should_refetch_for_metadata_gap:
+            if should_fetch_remote and remote_fetch_limit > 0:
                 if looks_like_artist_listing_url(source_url):
                     skip_source_url, skip_source_reason = maybe_skip_failed_url(source_url, case_notes=case_notes)
                     if skip_source_url:
@@ -3063,7 +3087,7 @@ def main() -> int:
                 else:
                     detail_urls_considered = [source_url]
 
-                if detail_urls_considered and saved_count < target_images_per_artist:
+                if detail_urls_considered and new_saved_count < remote_fetch_limit:
                     existing_image_indices: set[int] = set()
                     for existing_path in existing_images:
                         existing_idx = parse_image_index_from_filename(existing_path)
@@ -3076,7 +3100,7 @@ def main() -> int:
                     any_image_candidate_found = False
                     seed_redirected_to_listing = False
                     for detail_url in detail_urls_considered:
-                        if saved_count >= target_images_per_artist:
+                        if new_saved_count >= remote_fetch_limit:
                             break
                         skip_detail_url, _skip_detail_reason = maybe_skip_failed_url(detail_url, case_notes=case_notes)
                         if skip_detail_url:
@@ -3107,7 +3131,7 @@ def main() -> int:
                         works_only_filtered_total = 0
                         lenient_artist_match_used = 0
                         for works_url in works_urls:
-                            if saved_count >= target_images_per_artist:
+                            if new_saved_count >= remote_fetch_limit:
                                 break
                             if works_url not in works_urls_tried_all:
                                 works_urls_tried_all.append(works_url)
@@ -3133,7 +3157,7 @@ def main() -> int:
                             if not works_candidates:
                                 continue
                             for candidate in works_candidates:
-                                if saved_count >= target_images_per_artist:
+                                if new_saved_count >= remote_fetch_limit:
                                     break
                                 image_url = str(candidate.get("url") or "").strip()
                                 if not image_url:
@@ -3145,8 +3169,6 @@ def main() -> int:
                                     artist_mismatch_filtered_total += 1
                                     continue
                                 normalized_candidate_url = normalize_image_url_for_dedupe(image_url)
-                                if normalized_candidate_url and normalized_candidate_url in seen_image_url_identities:
-                                    continue
                                 if normalized_candidate_url and normalized_candidate_url not in works_only_artist_unique_normalized_urls:
                                     works_only_artist_unique_normalized_urls.add(normalized_candidate_url)
                                     if len(works_only_artist_unique_urls_top20) < 20:
@@ -3154,17 +3176,18 @@ def main() -> int:
                                 url_hash = image_url_hash(image_url)
                                 if not url_hash:
                                     continue
-                                if url_hash in seen_image_url_hashes:
-                                    continue
-                                seen_image_url_hashes.add(url_hash)
-                                works_candidates_found = True
-                                any_image_candidate_found = True
                                 candidate_year = normalize_candidate_year(candidate.get("year"))
                                 if candidate_year is not None:
                                     any_known_year_candidate = True
-                                if len(current_topn_hashes) < WORKS_IMAGE_RANK_WINDOW:
+                                if url_hash not in current_topn_seen_hashes and len(current_topn_hashes) < WORKS_IMAGE_RANK_WINDOW:
+                                    current_topn_seen_hashes.add(url_hash)
                                     current_topn_hashes.append(url_hash)
-                                if len(works_year_evidence) < WORKS_IMAGE_RANK_WINDOW:
+                                if (
+                                    len(works_year_evidence) < WORKS_IMAGE_RANK_WINDOW
+                                    and url_hash in current_topn_seen_hashes
+                                    and url_hash not in works_year_evidence_hashes
+                                ):
+                                    works_year_evidence_hashes.add(url_hash)
                                     works_year_evidence.append(
                                         {
                                             "url": image_url,
@@ -3177,6 +3200,18 @@ def main() -> int:
                                             ),
                                         }
                                     )
+                                if normalized_candidate_url and normalized_candidate_url in seen_image_url_identities:
+                                    continue
+                                if url_hash in seen_image_url_hashes:
+                                    continue
+                                if append_only_same_source_mode:
+                                    if candidate_year is not None and existing_max_year_seen > 0 and candidate_year < existing_max_year_seen:
+                                        continue
+                                    if (candidate_year is None or candidate_year <= 0) and url_hash in prev_topn_hashes_set:
+                                        continue
+                                seen_image_url_hashes.add(url_hash)
+                                works_candidates_found = True
+                                any_image_candidate_found = True
                                 ok_image = False
                                 payload = b""
                                 ext = ""
@@ -3237,6 +3272,7 @@ def main() -> int:
                                     }
                                 )
                                 selected_image_hashes.append(selected_url_hash)
+                                new_saved_count += 1
                                 saved_count += 1
                         case_notes.append(f"works_candidates_count:{works_candidates_count}")
                         case_notes.append(f"artist_consistency_filtered:{artist_mismatch_filtered_total}")
@@ -3245,7 +3281,7 @@ def main() -> int:
                             f"works_only_artist_match_unique:{len(works_only_artist_unique_normalized_urls)}"
                         )
 
-                        if saved_count < target_images_per_artist and not works_candidates_found:
+                        if new_saved_count < remote_fetch_limit and not works_candidates_found:
                             case_notes.append("works_not_found_fallback_used")
                             fallback_candidates = extract_image_candidates(detail_url, html)
                             if not fallback_candidates:
@@ -3253,7 +3289,7 @@ def main() -> int:
                                 continue
                             any_image_candidate_found = True
                             for candidate in fallback_candidates:
-                                if saved_count >= target_images_per_artist:
+                                if new_saved_count >= remote_fetch_limit:
                                     break
                                 image_url = str(candidate.get("url") or "").strip()
                                 if not image_url:
@@ -3269,8 +3305,6 @@ def main() -> int:
                                     else:
                                         continue
                                 normalized_candidate_url = normalize_image_url_for_dedupe(image_url)
-                                if normalized_candidate_url and normalized_candidate_url in seen_image_url_identities:
-                                    continue
                                 if normalized_candidate_url and normalized_candidate_url not in works_only_artist_unique_normalized_urls:
                                     works_only_artist_unique_normalized_urls.add(normalized_candidate_url)
                                     if len(works_only_artist_unique_urls_top20) < 20:
@@ -3278,15 +3312,23 @@ def main() -> int:
                                 url_hash = image_url_hash(image_url)
                                 if not url_hash:
                                     continue
-                                if url_hash in seen_image_url_hashes:
-                                    continue
-                                seen_image_url_hashes.add(url_hash)
-                                any_image_candidate_found = True
                                 candidate_year = normalize_candidate_year(candidate.get("year"))
                                 if candidate_year is not None:
                                     any_known_year_candidate = True
-                                if len(current_topn_hashes) < WORKS_IMAGE_RANK_WINDOW:
+                                if url_hash not in current_topn_seen_hashes and len(current_topn_hashes) < WORKS_IMAGE_RANK_WINDOW:
+                                    current_topn_seen_hashes.add(url_hash)
                                     current_topn_hashes.append(url_hash)
+                                if normalized_candidate_url and normalized_candidate_url in seen_image_url_identities:
+                                    continue
+                                if url_hash in seen_image_url_hashes:
+                                    continue
+                                if append_only_same_source_mode:
+                                    if candidate_year is not None and existing_max_year_seen > 0 and candidate_year < existing_max_year_seen:
+                                        continue
+                                    if (candidate_year is None or candidate_year <= 0) and url_hash in prev_topn_hashes_set:
+                                        continue
+                                seen_image_url_hashes.add(url_hash)
+                                any_image_candidate_found = True
                                 ok_image = False
                                 payload = b""
                                 ext = ""
@@ -3347,10 +3389,11 @@ def main() -> int:
                                     }
                                 )
                                 selected_image_hashes.append(selected_url_hash)
+                                new_saved_count += 1
                                 saved_count += 1
                         if lenient_artist_match_used > 0:
                             case_notes.append(f"works404_lenient_artist_match_used:{lenient_artist_match_used}")
-                    if saved_count < target_images_per_artist and not case_reason:
+                    if new_saved_count < remote_fetch_limit and not case_reason:
                         if not any_detail_fetch_ok:
                             if seed_redirected_to_listing:
                                 case_reason = "seed_invalid_redirected_to_listing"
@@ -3366,7 +3409,7 @@ def main() -> int:
                             case_reason = "insufficient_image_candidates_after_download"
 
             metadata_items: list[dict[str, Any]] = []
-            valid_existing_metadata_items = valid_existing_metadata_items_for_seen[:target_images_per_artist]
+            valid_existing_metadata_items = list(valid_existing_metadata_items_for_seen)
 
             if selected_year_evidence:
                 selected_items: list[dict[str, Any]] = []
@@ -3407,69 +3450,46 @@ def main() -> int:
                         }
                     )
 
-                metadata_items = selected_items[:target_images_per_artist]
-                if len(metadata_items) < target_images_per_artist and valid_existing_metadata_items:
-                    for existing_item in valid_existing_metadata_items:
-                        existing_hash = str(existing_item.get("hash") or "")
-                        if not existing_hash:
-                            continue
-                        if existing_hash in selected_hashes:
-                            continue
-                        existing_url = str(existing_item.get("url") or "")
-                        existing_url_identity = normalize_image_url_for_dedupe(existing_url) if existing_url else ""
-                        if existing_url_identity and existing_url_identity in selected_url_identities:
-                            continue
-                        existing_payload_hash = str(existing_item.get("payload_hash") or "").strip().lower()
-                        if existing_payload_hash and existing_payload_hash in selected_payload_hashes:
-                            continue
-                        metadata_items.append(existing_item)
-                        if existing_url_identity:
-                            selected_url_identities.add(existing_url_identity)
-                        if existing_payload_hash:
-                            selected_payload_hashes.add(existing_payload_hash)
-                        if len(metadata_items) >= target_images_per_artist:
-                            break
+                existing_hash_set = {
+                    str(item.get("hash") or "")
+                    for item in valid_existing_metadata_items
+                    if str(item.get("hash") or "")
+                }
+                existing_url_identity_set = {
+                    normalize_image_url_for_dedupe(str(item.get("url") or ""))
+                    for item in valid_existing_metadata_items
+                    if str(item.get("url") or "")
+                }
+                existing_payload_hash_set = {
+                    str(item.get("payload_hash") or "").strip().lower()
+                    for item in valid_existing_metadata_items
+                    if str(item.get("payload_hash") or "").strip().lower()
+                }
+                metadata_items = list(valid_existing_metadata_items)
+                for selected_item in selected_items[:target_images_per_artist]:
+                    selected_hash = str(selected_item.get("hash") or "")
+                    if selected_hash and selected_hash in existing_hash_set:
+                        continue
+                    selected_url = str(selected_item.get("url") or "")
+                    selected_url_identity = normalize_image_url_for_dedupe(selected_url) if selected_url else ""
+                    if selected_url_identity and selected_url_identity in existing_url_identity_set:
+                        continue
+                    selected_payload_hash = str(selected_item.get("payload_hash") or "").strip().lower()
+                    if selected_payload_hash and selected_payload_hash in existing_payload_hash_set:
+                        continue
+                    metadata_items.append(selected_item)
+                    if selected_hash:
+                        existing_hash_set.add(selected_hash)
+                    if selected_url_identity:
+                        existing_url_identity_set.add(selected_url_identity)
+                    if selected_payload_hash:
+                        existing_payload_hash_set.add(selected_payload_hash)
             elif valid_existing_metadata_items:
-                identity_seen: set[str] = set()
-                payload_seen: set[str] = set()
-                for existing_item in valid_existing_metadata_items:
-                    existing_url = str(existing_item.get("url") or "")
-                    existing_url_identity = normalize_image_url_for_dedupe(existing_url) if existing_url else ""
-                    if existing_url_identity and existing_url_identity in identity_seen:
-                        continue
-                    existing_payload_hash = str(existing_item.get("payload_hash") or "").strip().lower()
-                    if existing_payload_hash and existing_payload_hash in payload_seen:
-                        continue
-                    metadata_items.append(existing_item)
-                    if existing_url_identity:
-                        identity_seen.add(existing_url_identity)
-                    if existing_payload_hash:
-                        payload_seen.add(existing_payload_hash)
-                    if len(metadata_items) >= target_images_per_artist:
-                        break
-
-            if metadata_items:
-                kept_local_paths: set[Path] = set()
-                for item in metadata_items:
-                    local_path = resolve_image_local_path(str(item.get("local_path") or ""))
-                    if local_path is not None and local_path.exists():
-                        kept_local_paths.add(local_path.resolve())
-                current_artist_files = list_existing_artist_images(fair_dir, artist_key)
-                orphan_files = [p for p in current_artist_files if p.resolve() not in kept_local_paths]
-                if orphan_files:
-                    moved_orphans = quarantine_orphan_artist_images(
-                        orphan_files,
-                        fair_slug_safe=fair_slug_safe,
-                        target_year=target_year,
-                        artist_key=artist_key,
-                        run_ts=run_ts,
-                    )
-                    if moved_orphans > 0:
-                        case_notes.append(f"orphan_images_quarantined:{moved_orphans}")
+                metadata_items = list(valid_existing_metadata_items)
 
             if metadata_items:
                 saved_count = len(metadata_items)
-                selected_year_evidence = [
+                selected_image_year_evidence = [
                     {
                         "url": str(item.get("url") or ""),
                         "image_url_hash": str(item.get("hash") or ""),
@@ -3478,7 +3498,10 @@ def main() -> int:
                     }
                     for item in metadata_items[:target_images_per_artist]
                 ]
-                selected_image_hashes = [str(item.get("hash") or "") for item in metadata_items]
+                if not selected_year_evidence:
+                    selected_year_evidence = selected_image_year_evidence
+                if not selected_image_hashes:
+                    selected_image_hashes = [str(item.get("hash") or "") for item in metadata_items]
 
             if not current_topn_hashes:
                 current_topn_hashes = prev_topn_hashes
@@ -3525,11 +3548,6 @@ def main() -> int:
                     gallery_name_en=gallery_name_en,
                     seen_at=str(metadata_row.get("extracted_at") or ""),
                 )
-            else:
-                existing_master_row["artist_name_key"] = artist_name_key
-                existing_master_row["artist_name_en"] = artist_name_en
-                existing_master_row["updated_at"] = str(metadata_row.get("extracted_at") or "")
-                artist_master_global[artist_identity_key] = existing_master_row
             if existing_meta_idx is not None and 0 <= existing_meta_idx < len(fair_rows):
                 fair_rows[existing_meta_idx] = metadata_row
             else:

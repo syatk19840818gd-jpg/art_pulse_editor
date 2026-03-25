@@ -16,16 +16,14 @@ from PIL import Image
 
 from phase2_art_pulse_config import (
     TARGET_YEAR,
-    get_current_artist_works_openclip_embeddings_path,
-    get_current_artist_works_openclip_id_map_path,
-    get_current_artist_works_openclip_index_path,
     normalize_image_local_path_text,
 )
 from phase2_common_readonly import (
-    ARTIST_WORKS_IMAGE_PATHS,
     FAIR_LABEL_TO_SLUG,
     FAIR_SLUG_TO_LABEL,
     hydrate_path_from_r2,
+    resolve_current_artist_works_artifact_paths,
+    resolve_current_artist_works_image_meta_paths,
     safe_load_jsonl,
 )
 
@@ -75,11 +73,7 @@ def _empty_state(*, warnings: List[str] | None = None, artifact_status: str = "e
 
 
 def _artifact_paths(target_year: int = TARGET_YEAR) -> dict[str, Path]:
-    return {
-        "embeddings": get_current_artist_works_openclip_embeddings_path(target_year),
-        "index": get_current_artist_works_openclip_index_path(target_year),
-        "id_map": get_current_artist_works_openclip_id_map_path(target_year),
-    }
+    return resolve_current_artist_works_artifact_paths(target_year)
 
 
 def _record_quality(record: dict) -> int:
@@ -118,7 +112,7 @@ def _load_corpus_records_current_first() -> tuple[List[dict], List[str], dict]:
     fair_counts: Dict[str, int] = {"frieze_london": 0, "liste": 0}
     best_by_image_id: Dict[str, dict] = {}
 
-    for fair_slug, path in ARTIST_WORKS_IMAGE_PATHS.items():
+    for fair_slug, path in resolve_current_artist_works_image_meta_paths().items():
         image_rows, image_warnings = safe_load_jsonl(path)
         warnings.extend(image_warnings)
         fair_label = FAIR_SLUG_TO_LABEL.get(fair_slug, fair_slug)

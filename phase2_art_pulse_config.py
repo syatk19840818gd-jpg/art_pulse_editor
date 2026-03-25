@@ -88,6 +88,36 @@ def get_current_artist_image_meta_paths(*, root: Path | None = None) -> dict[str
     return {fair_slug: get_current_artist_image_meta_path(fair_slug, root=root) for fair_slug in SUPPORTED_FAIR_SLUGS}
 
 
+def get_current_artist_text_path(
+    fair_slug: str,
+    *,
+    root: Path | None = None,
+    target_year: int = TARGET_YEAR,
+) -> Path:
+    _validate_supported_fair_slug(fair_slug)
+    return get_current_raw_path(
+        "artists",
+        fair_slug,
+        target_year,
+        root=root,
+    )
+
+
+def get_current_artist_text_paths(
+    *,
+    root: Path | None = None,
+    target_year: int = TARGET_YEAR,
+) -> dict[str, Path]:
+    return {
+        fair_slug: get_current_artist_text_path(
+            fair_slug,
+            root=root,
+            target_year=target_year,
+        )
+        for fair_slug in SUPPORTED_FAIR_SLUGS
+    }
+
+
 def get_current_exhibitions_image_meta_path(
     fair_slug: str,
     target_year: int = TARGET_YEAR,
@@ -139,6 +169,60 @@ def get_current_artist_works_openclip_id_map_path(
     root: Path | None = None,
 ) -> Path:
     return get_current_artist_works_vector_dir(root) / f"artist_works_images_openclip_id_map_{target_year}.jsonl"
+
+
+def get_current_artist_works_embeddings_path(
+    *,
+    root: Path | None = None,
+    target_year: int = TARGET_YEAR,
+) -> Path:
+    return get_current_artist_works_openclip_embeddings_path(
+        target_year,
+        root=root,
+    )
+
+
+def get_current_artist_works_index_path(
+    *,
+    root: Path | None = None,
+    target_year: int = TARGET_YEAR,
+) -> Path:
+    return get_current_artist_works_openclip_index_path(
+        target_year,
+        root=root,
+    )
+
+
+def get_current_artist_works_id_map_path(
+    *,
+    root: Path | None = None,
+    target_year: int = TARGET_YEAR,
+) -> Path:
+    return get_current_artist_works_openclip_id_map_path(
+        target_year,
+        root=root,
+    )
+
+
+def get_current_artist_works_artifact_paths(
+    *,
+    root: Path | None = None,
+    target_year: int = TARGET_YEAR,
+) -> dict[str, Path]:
+    return {
+        "embeddings": get_current_artist_works_embeddings_path(
+            root=root,
+            target_year=target_year,
+        ),
+        "index": get_current_artist_works_index_path(
+            root=root,
+            target_year=target_year,
+        ),
+        "id_map": get_current_artist_works_id_map_path(
+            root=root,
+            target_year=target_year,
+        ),
+    }
 
 
 def resolve_image_local_path(path_text: str | Path, *, repo_root: Path = REPO_ROOT) -> Path | None:
