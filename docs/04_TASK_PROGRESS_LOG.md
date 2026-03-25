@@ -5628,3 +5628,59 @@ _trash 運用方針:
     - `artists_vector_current` (`would_prune=3`)
     - `artist_works_images_vector_current` (`would_prune=3`)
   - stable untouched lanes from verify-first remained non-target in this execution (`raw_current_primary`, `images_metadata_current`, `images_cache_current`, `current_ledgers_family`).
+
+## 2026-03-25 TASK RESUME_AFTER_CAPACITY_STOP_ALL_YEARS_RUNTIME_FOUNDATION_FOR_FEATURE2_3_4_02
+- scope: resume safely from partially edited working tree after model-capacity stop; do not restart design; continue only unfinished portions.
+- pre-resume check:
+  - confirmed working-tree edits existed in `phase2_common_readonly.py`, `phase2_exhibition_search_readonly.py`, `phase2_artist_search_readonly.py`.
+  - read the partial diffs first and continued from that state.
+- implementation:
+  - `phase2_artist_search_readonly.py`
+    - fixed partial syntax break in `derive_artist_name(...)` call.
+    - retained all-years runtime path: yearless artist text meta as primary listing input + all-years raw supplement fallback.
+  - `phase2_advisor_readonly.py`
+    - removed latest-year-only default filtering path from grounded context and follow-up reference patch builders.
+    - switched default behavior to all-years candidate rows (still no year selector UI).
+    - updated `count_note` text to match all-years default behavior.
+  - `phase2_common_readonly.py` / `phase2_exhibition_search_readonly.py`
+    - reused/validated prior partial edits without redesign restart.
+- verification:
+  - `python -m py_compile phase2_artist_search_readonly.py phase2_advisor_readonly.py phase2_exhibition_search_readonly.py phase2_common_readonly.py app.py` (exit 0)
+  - lightweight import smoke for `phase2_common_readonly`, `phase2_exhibition_search_readonly`, `phase2_artist_search_readonly`, `phase2_advisor_readonly` (exit 0)
+- behavior outcome:
+  - Feature 2: Exhibition runtime is all-years by default with no year-selection UI.
+  - Feature 3: Artist runtime is all-years by default with no year-selection UI (aligned to yearless app-facing current contract).
+  - Feature 4: Advisor runtime is all-years by default with no year-selection UI for both Exhibition and Artist evidence lanes.
+  - Feature 1: no UI change in this task (non-regression only).
+  - Feature 7: untouched in this task (non-regression only).
+- not done:
+  - no API execution; no rerun / rebuild / re-extraction / promote; no R2 apply-upload/apply-prune.
+  - no Feature 1 selected-year UI implementation.
+  - no Feature 5/6 implementation start.
+
+## 2026-03-25 TASK IMPLEMENT_FEATURE1_ART_PULSE_SELECTED_YEAR_UI_ONLY_01
+- scope: Feature 1 only (Art Pulse selected-year UI + selected-year runtime path). No spec/runtime change for Feature 2/3/4/7.
+- implementation:
+  - `phase2_common_readonly.py`
+    - added `resolve_current_exhibitions_available_years()` using `resolve_current_exhibitions_text_paths_by_year()` to enumerate dynamic year candidates from current Exhibition family.
+  - `app.py`
+    - added cached `get_art_pulse_available_years()` and replaced Art Pulse fixed year field with selected-year `selectbox`.
+    - latest available year is default (no hardcoded 2025 default).
+    - wired selected year into `build_art_pulse_overview(..., target_year=selected_year)`.
+    - zero-year case is handled by safe warning and generation stop.
+  - `phase2_art_pulse_readonly.py`
+    - `build_art_pulse_overview(...)` now accepts `target_year` (default keeps compatibility).
+    - fair bundle loading now resolves year-scoped Exhibition/Artist text and Exhibition image metadata by selected year.
+    - selection payload and candidate year fields use selected-year context instead of fixed 2025 fallback.
+- verification:
+  - `python -m py_compile app.py phase2_art_pulse_readonly.py phase2_common_readonly.py phase2_exhibition_search_readonly.py phase2_artist_search_readonly.py phase2_advisor_readonly.py phase2_artwork_search_readonly.py` (exit 0)
+  - import smoke for app + related readonly modules (exit 0)
+  - lightweight runtime smoke:
+    - `resolve_current_exhibitions_available_years()` -> dynamic current years list
+    - `build_art_pulse_overview(..., target_year=<selected>)` -> `selection.year=<selected>`
+- behavior outcome:
+  - Feature 1 now runs in selected-year-only mode (no all-years default).
+  - Feature 2/3/4/7 remain unchanged in this task.
+- not done:
+  - no API execution; no rerun/rebuild/re-extraction/promote; no R2 apply-upload/apply-prune.
+  - no Feature 5/6 implementation start.

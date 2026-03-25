@@ -8,19 +8,20 @@ from pathlib import Path
 from typing import Dict, List, Tuple
 
 from phase2_art_pulse_config import (
+    TARGET_YEAR,
     find_persona,
     find_persona_angle,
     get_angle_query_terms,
     normalize_image_local_path_text,
 )
 from phase2_common_readonly import (
-    ARTISTS_TEXT_PATHS,
-    ARTIST_WORKS_IMAGE_PATHS,
-    EXHIBITIONS_IMAGE_META_PATHS,
-    EXHIBITIONS_TEXT_PATHS,
     FAIR_SLUG_TO_LABEL,
     derive_artist_name,
     derive_exhibition_title,
+    resolve_current_artist_text_paths,
+    resolve_current_artist_works_image_meta_paths,
+    resolve_current_exhibitions_image_meta_paths,
+    resolve_current_exhibitions_text_paths,
     resolve_fair_slugs,
     safe_load_jsonl,
 )
@@ -217,6 +218,11 @@ def _round_robin_by_fair(candidates: List[Dict[str, object]], max_count: int) ->
 @lru_cache(maxsize=8)
 def _load_fair_bundle_cached(
     fair_slug: str,
+    target_year: int,
+    exhibitions_text_path: Path,
+    artists_text_path: Path,
+    exhibitions_image_meta_path: Path,
+    artist_works_image_meta_path: Path,
     exhibitions_text_mtime_ns: int,
     artists_text_mtime_ns: int,
     exhibitions_image_mtime_ns: int,
@@ -224,10 +230,19 @@ def _load_fair_bundle_cached(
 ) -> Dict[str, object]:
     del exhibitions_text_mtime_ns, artists_text_mtime_ns, exhibitions_image_mtime_ns, artist_works_image_mtime_ns
 
-    ex_rows, ex_warn = safe_load_jsonl(EXHIBITIONS_TEXT_PATHS[fair_slug])
-    ar_rows, ar_warn = safe_load_jsonl(ARTISTS_TEXT_PATHS[fair_slug])
-    exi_rows, exi_warn = safe_load_jsonl(EXHIBITIONS_IMAGE_META_PATHS[fair_slug])
-    ari_rows, ari_warn = safe_load_jsonl(ARTIST_WORKS_IMAGE_PATHS[fair_slug])
+    ex_rows, ex_warn = safe_load_jsonl(exhibitions_text_path)
+    ar_rows, ar_warn = safe_load_jsonl(artists_text_path)
+    exi_rows, exi_warn = safe_load_jsonl(exhibitions_image_meta_path)
+    ari_rows, ari_warn = safe_load_jsonl(artist_works_image_meta_path)
+
+    # Art Pulse selected-year mode: keep year-scoped rows only.
+    filtered_ari_rows: List[dict] = []
+    for row in ari_rows:
+        row_year = row.get("target_year")
+        if isinstance(row_year, int) and row_year != target_year:
+            continue
+        filtered_ari_rows.append(row)
+    ari_rows = filtered_ari_rows
 
     fair_label = FAIR_SLUG_TO_LABEL[fair_slug]
 
@@ -295,17 +310,35 @@ def _load_fair_bundle_cached(
     }
 
 
-def _load_fair_bundle(fair_slug: str) -> Dict[str, object]:
+def _load_fair_bundle(fair_slug: str, target_year: int) -> Dict[str, object]:
+    exhibitions_text_paths = resolve_current_exhibitions_text_paths(target_year=target_year)
+    artists_text_paths = resolve_current_artist_text_paths(target_year=target_year)
+    exhibitions_image_meta_paths = resolve_current_exhibitions_image_meta_paths(target_year=target_year)
+    artist_works_image_meta_paths = resolve_current_artist_works_image_meta_paths()
+    exhibitions_text_path = exhibitions_text_paths[fair_slug]
+    artists_text_path = artists_text_paths[fair_slug]
+    exhibitions_image_meta_path = exhibitions_image_meta_paths[fair_slug]
+    artist_works_image_meta_path = artist_works_image_meta_paths[fair_slug]
     return _load_fair_bundle_cached(
         fair_slug,
-        _path_mtime_ns(EXHIBITIONS_TEXT_PATHS[fair_slug]),
-        _path_mtime_ns(ARTISTS_TEXT_PATHS[fair_slug]),
-        _path_mtime_ns(EXHIBITIONS_IMAGE_META_PATHS[fair_slug]),
-        _path_mtime_ns(ARTIST_WORKS_IMAGE_PATHS[fair_slug]),
+        target_year,
+        exhibitions_text_path,
+        artists_text_path,
+        exhibitions_image_meta_path,
+        artist_works_image_meta_path,
+        _path_mtime_ns(exhibitions_text_path),
+        _path_mtime_ns(artists_text_path),
+        _path_mtime_ns(exhibitions_image_meta_path),
+        _path_mtime_ns(artist_works_image_meta_path),
     )
 
 
-def build_art_pulse_overview(fair_label: str, reporter_id: str, angle_keys: List[str]) -> Dict[str, object]:
+def build_art_pulse_overview(
+    fair_label: str,
+    reporter_id: str,
+    angle_keys: List[str],
+    target_year: int = TARGET_YEAR,
+) -> Dict[str, object]:
     fair_slugs = resolve_fair_slugs(fair_label)
     warnings: List[str] = []
 
@@ -320,7 +353,7 @@ def build_art_pulse_overview(fair_label: str, reporter_id: str, angle_keys: List
 
     for fair_slug in fair_slugs:
         fair_label_value = FAIR_SLUG_TO_LABEL[fair_slug]
-        bundle = _load_fair_bundle(fair_slug)
+        bundle = _load_fair_bundle(fair_slug, target_year=target_year)
         warnings.extend(list(bundle.get("warnings", []) or []))
 
         ex_rows = list(bundle.get("exhibition_rows", []) or [])
@@ -363,7 +396,7 @@ def build_art_pulse_overview(fair_label: str, reporter_id: str, angle_keys: List
                 "fair": row.get("_fair_label"),
                 "gallery": gallery,
                 "title": derive_exhibition_title(row),
-                "year": row.get("target_year") or 2025,
+                "year": row.get("target_year") or target_year,
                 "source_url": row.get("source_url") or "",
                 "_search_text": " ".join(
                     [
@@ -391,7 +424,7 @@ def build_art_pulse_overview(fair_label: str, reporter_id: str, angle_keys: List
                 "artist": artist_name,
                 "artist_name_en": artist_name,
                 "artist_name_kana": row.get("artist_name_kana") or "",
-                "year": row.get("target_year") or 2025,
+                "year": row.get("target_year") or target_year,
                 "source_url": row.get("source_url") or "",
                 "text_snippet": (str(row.get("text") or "").strip())[:220],
                 "_search_text": " ".join(
@@ -487,7 +520,7 @@ def build_art_pulse_overview(fair_label: str, reporter_id: str, angle_keys: List
     return {
         "selection": {
             "fair_label": fair_label,
-            "year": 2025,
+            "year": target_year,
             "reporter_id": reporter["id"],
             "reporter_label": reporter["label"],
             "angle_keys": normalized_angle_keys,

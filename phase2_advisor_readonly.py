@@ -421,18 +421,6 @@ def _coerce_year(value: object) -> int | None:
     return None
 
 
-def _filter_latest_available_year_rows(rows: List[dict]) -> tuple[List[dict], int | None]:
-    if not rows:
-        return rows, None
-    valid_years = [_coerce_year(r.get("year")) for r in rows]
-    filtered_years = [y for y in valid_years if y is not None]
-    if not filtered_years:
-        return rows, None
-    latest_year = max(filtered_years)
-    filtered_rows = [r for r in rows if _coerce_year(r.get("year")) == latest_year]
-    return filtered_rows, latest_year
-
-
 def _snippet(value: object, limit: int = 88) -> str:
     text = re.sub(r"\s+", " ", str(value or "")).strip()
     if not text:
@@ -750,23 +738,21 @@ def build_advisor_grounded_context(
 
     exhibitions = [r for r in ex_data.records if str(r.get("fair_slug") or "") in fair_slugs]
     artists = [r for r in ar_data.records if str(r.get("fair_slug") or "") in fair_slugs]
-    exhibitions, exhibitions_latest_year = _filter_latest_available_year_rows(exhibitions)
-    artists, artists_latest_year = _filter_latest_available_year_rows(artists)
-
+    exhibition_years = [_coerce_year(r.get("year")) for r in exhibitions]
+    artist_years = [_coerce_year(r.get("year")) for r in artists]
+    exhibitions_latest_year = max((y for y in exhibition_years if y is not None), default=None)
+    artists_latest_year = max((y for y in artist_years if y is not None), default=None)
     available_years = [y for y in [exhibitions_latest_year, artists_latest_year] if y is not None]
     reference_year = max(available_years) if available_years else 2025
     reference_year_display = str(reference_year)
     if exhibitions_latest_year and artists_latest_year and exhibitions_latest_year != artists_latest_year:
         reference_year_display = f"Exhibitions:{exhibitions_latest_year} / Artists:{artists_latest_year}"
-        warnings.append(
-            f"advisor_latest_year_split: exhibitions={exhibitions_latest_year}, artists={artists_latest_year}"
-        )
 
     exhibition_rows: List[dict] = []
     for row in exhibitions:
         row_year = _coerce_year(row.get("year"))
         if row_year is None:
-            row_year = exhibitions_latest_year if exhibitions_latest_year is not None else reference_year
+            row_year = reference_year
         candidate = {
             "kind": "exhibition",
             "fair_slug": str(row.get("fair_slug") or ""),
@@ -804,7 +790,7 @@ def build_advisor_grounded_context(
             continue
         row_year = _coerce_year(row.get("year"))
         if row_year is None:
-            row_year = artists_latest_year if artists_latest_year is not None else reference_year
+            row_year = reference_year
         candidate = {
             "kind": "artist",
             "fair_slug": str(row.get("fair_slug") or ""),
@@ -956,7 +942,7 @@ def build_advisor_grounded_context(
         "warnings": sorted(set(warnings)),
         "count_note": (
             "Advisor grounding reuses current-first read-only loaders from Exhibition Search and Artist Search. "
-            "When year metadata exists, Advisor uses latest available year rows only. "
+            "Advisor keeps year-selection UI disabled and searches across all available years by default. "
             "Broad-query mode uses a lightweight evidence rotation to reduce fixed candidate repetition. "
             "Art Pulse overview is attached as a read-only snapshot. "
             "history is not used as a default query path."
@@ -1025,8 +1011,10 @@ def build_advisor_followup_reference_patch(
     ar_data = load_artist_records_readonly()
     exhibitions = [r for r in ex_data.records if str(r.get("fair_slug") or "") in fair_slugs]
     artists = [r for r in ar_data.records if str(r.get("fair_slug") or "") in fair_slugs]
-    exhibitions, exhibitions_latest_year = _filter_latest_available_year_rows(exhibitions)
-    artists, artists_latest_year = _filter_latest_available_year_rows(artists)
+    exhibition_years = [_coerce_year(r.get("year")) for r in exhibitions]
+    artist_years = [_coerce_year(r.get("year")) for r in artists]
+    exhibitions_latest_year = max((y for y in exhibition_years if y is not None), default=None)
+    artists_latest_year = max((y for y in artist_years if y is not None), default=None)
     available_years = [y for y in [exhibitions_latest_year, artists_latest_year] if y is not None]
     reference_year = max(available_years) if available_years else 2025
 
@@ -1037,7 +1025,7 @@ def build_advisor_followup_reference_patch(
             continue
         row_year = _coerce_year(row.get("year"))
         if row_year is None:
-            row_year = exhibitions_latest_year if exhibitions_latest_year is not None else reference_year
+            row_year = reference_year
         candidate = {
             "kind": "exhibition",
             "fair_slug": str(row.get("fair_slug") or ""),
@@ -1077,7 +1065,7 @@ def build_advisor_followup_reference_patch(
             continue
         row_year = _coerce_year(row.get("year"))
         if row_year is None:
-            row_year = artists_latest_year if artists_latest_year is not None else reference_year
+            row_year = reference_year
         candidate = {
             "kind": "artist",
             "fair_slug": str(row.get("fair_slug") or ""),

@@ -10,7 +10,8 @@ from phase2_common_readonly import (
     FAIR_SLUG_TO_LABEL,
     derive_artist_name,
     normalize_url,
-    resolve_current_artist_text_paths,
+    resolve_current_artist_text_artifact_paths,
+    resolve_current_artist_text_paths_by_year,
     resolve_current_artist_works_image_meta_paths,
     resolve_current_first_enrichment_output_path,
     safe_load_jsonl,
@@ -98,13 +99,52 @@ def _dedup_artist_records(records: List[dict]) -> List[dict]:
     return list(best_by_key.values())
 
 
+def _artist_raw_row_rank(row: dict) -> tuple[int, int, int, int, int]:
+    text = str(row.get("text") or "").strip()
+    year = row.get("target_year")
+    year_value = year if isinstance(year, int) else 0
+    return (
+        1 if text else 0,
+        year_value,
+        len(text),
+        1 if str(row.get("artist_identity_key") or "").strip() else 0,
+        1 if str(row.get("artist_name_key") or "").strip() else 0,
+    )
+
+
+def _load_artist_raw_supplement_by_key() -> tuple[Dict[tuple[str, str, str], dict], List[str]]:
+    raw_by_key: Dict[tuple[str, str, str], dict] = {}
+    warnings: List[str] = []
+    for fair_slug, paths_by_year in resolve_current_artist_text_paths_by_year().items():
+        for discovered_year, path in sorted(paths_by_year.items()):
+            text_rows, text_warnings = safe_load_jsonl(path)
+            warnings.extend(text_warnings)
+            for row in text_rows:
+                source_url = normalize_url(str(row.get("source_url") or ""))
+                text_hash = str(row.get("text_hash") or "").strip()
+                if not source_url or not text_hash:
+                    continue
+                candidate = dict(row)
+                if not isinstance(candidate.get("target_year"), int):
+                    candidate["target_year"] = discovered_year
+                key = (fair_slug, source_url, text_hash)
+                existing = raw_by_key.get(key)
+                if existing is None or _artist_raw_row_rank(candidate) > _artist_raw_row_rank(existing):
+                    raw_by_key[key] = candidate
+    return raw_by_key, warnings
+
+
 def load_artist_records_readonly() -> ArtistSearchData:
     warnings: List[str] = []
     records: List[dict] = []
     fair_rows: Dict[str, int] = {"frieze_london": 0, "liste": 0}
     enrichment_by_key, enrichment_warnings = _load_latest_artist_enrichment_map()
     warnings.extend(enrichment_warnings)
-    artist_text_paths = resolve_current_artist_text_paths()
+    raw_by_key, raw_warnings = _load_artist_raw_supplement_by_key()
+    warnings.extend(raw_warnings)
+    artist_vector_paths = resolve_current_artist_text_artifact_paths()
+    artist_meta_rows, artist_meta_warnings = safe_load_jsonl(artist_vector_paths["meta"])
+    warnings.extend(artist_meta_warnings)
     artist_image_meta_paths = resolve_current_artist_works_image_meta_paths()
 
     image_hint_by_source: Dict[str, dict] = {}
@@ -143,27 +183,82 @@ def load_artist_records_readonly() -> ArtistSearchData:
                 image_hint_by_source[source_url] = {
                     "count": count_hint,
                     "artist_name_en": artist_name_en,
+                    "artist_name_key": str(row.get("artist_name_key") or "").strip(),
+                    "artist_identity_key": str(row.get("artist_identity_key") or "").strip(),
+                    "gallery_name_en": str(row.get("gallery_name_en") or "").strip(),
                     "preview_candidates": preview_candidates,
                 }
 
-    for fair_slug, path in artist_text_paths.items():
-        text_rows, text_warnings = safe_load_jsonl(path)
-        warnings.extend(text_warnings)
-        fair_rows[fair_slug] = len(text_rows)
+    for idx, row in enumerate(artist_meta_rows, start=1):
+        fair_slug = str(row.get("fair_slug") or "").strip()
+        if fair_slug not in {"frieze_london", "liste"}:
+            continue
+        source_url = str(row.get("source_url") or "").strip()
+        if not source_url:
+            continue
+        fair_rows[fair_slug] = fair_rows.get(fair_slug, 0) + 1
+        norm_source = normalize_url(source_url)
+        hint = image_hint_by_source.get(norm_source, {})
+        text_hash = str(row.get("text_hash") or "").strip()
+        raw_row = raw_by_key.get((fair_slug, norm_source, text_hash), {})
+        enrichment = enrichment_by_key.get((norm_source, text_hash), {})
+        if not enrichment and norm_source:
+            enrichment = enrichment_by_key.get((norm_source, ""), {})
+        if not enrichment and text_hash:
+            enrichment = enrichment_by_key.get(("", text_hash), {})
 
-        for idx, row in enumerate(text_rows, start=1):
+        year = row.get("target_year")
+        if not isinstance(year, int):
+            raw_year = raw_row.get("target_year")
+            year = raw_year if isinstance(raw_year, int) else None
+        artist_name = derive_artist_name(
+            source_url,
+            str(raw_row.get("artist_name_en") or "") or str(hint.get("artist_name_en") or ""),
+        )
+        artist_name_kana = (
+            str(raw_row.get("artist_name_kana") or "").strip()
+            or str(enrichment.get("artist_name_kana") or "").strip()
+        )
+        headline_ja = (
+            str(raw_row.get("headline_ja") or "").strip()
+            or str(row.get("headline_ja") or "").strip()
+            or str(enrichment.get("headline_ja") or "").strip()
+        )
+        summary_ja = (
+            str(raw_row.get("summary_ja") or "").strip()
+            or str(enrichment.get("summary_ja") or "").strip()
+        )
+        records.append(
+            {
+                "id": f"{fair_slug}:{idx}",
+                "fair_slug": fair_slug,
+                "fair_label": FAIR_SLUG_TO_LABEL.get(fair_slug, fair_slug),
+                "gallery_name": str(row.get("gallery_name_en") or raw_row.get("gallery_name_en") or hint.get("gallery_name_en") or ""),
+                "artist_name": artist_name,
+                "artist_identity_key": str(raw_row.get("artist_identity_key") or hint.get("artist_identity_key") or "").strip(),
+                "artist_name_key": str(raw_row.get("artist_name_key") or hint.get("artist_name_key") or "").strip(),
+                "year": year if isinstance(year, int) else None,
+                "source_url": source_url,
+                "text": str(raw_row.get("text") or ""),
+                "artist_name_kana": artist_name_kana,
+                "headline_ja": headline_ja,
+                "summary_ja": summary_ja,
+                "summary_display_ja": build_artist_summary_ja({"summary_ja": summary_ja}),
+                "works_image_count_hint": int(hint.get("count", 0) or 0),
+                "artist_image_preview_candidates": list(hint.get("preview_candidates") or [])[:ARTIST_SEARCH_THUMB_FROM_ARTIST],
+            }
+        )
+
+    if not records and raw_by_key:
+        fallback_count_by_fair: Dict[str, int] = {"frieze_london": 0, "liste": 0}
+        for idx, ((fair_slug, norm_source, text_hash), row) in enumerate(raw_by_key.items(), start=1):
             source_url = str(row.get("source_url") or "").strip()
-            norm_source = normalize_url(source_url)
             hint = image_hint_by_source.get(norm_source, {})
-            text_hash = str(row.get("text_hash") or "").strip()
             enrichment = enrichment_by_key.get((norm_source, text_hash), {})
             if not enrichment and norm_source:
                 enrichment = enrichment_by_key.get((norm_source, ""), {})
             if not enrichment and text_hash:
                 enrichment = enrichment_by_key.get(("", text_hash), {})
-
-            year = row.get("target_year")
-            year_value = year if isinstance(year, int) else None
             artist_name = derive_artist_name(
                 source_url,
                 str(row.get("artist_name_en") or "") or str(hint.get("artist_name_en") or ""),
@@ -171,17 +266,16 @@ def load_artist_records_readonly() -> ArtistSearchData:
             artist_name_kana = str(row.get("artist_name_kana") or "").strip() or str(enrichment.get("artist_name_kana") or "").strip()
             headline_ja = str(row.get("headline_ja") or "").strip() or str(enrichment.get("headline_ja") or "").strip()
             summary_ja = str(row.get("summary_ja") or "").strip() or str(enrichment.get("summary_ja") or "").strip()
-
             records.append(
                 {
-                    "id": f"{fair_slug}:{idx}",
+                    "id": f"{fair_slug}:raw-fallback:{idx}",
                     "fair_slug": fair_slug,
                     "fair_label": FAIR_SLUG_TO_LABEL.get(fair_slug, fair_slug),
-                    "gallery_name": str(row.get("gallery_name_en") or ""),
+                    "gallery_name": str(row.get("gallery_name_en") or hint.get("gallery_name_en") or ""),
                     "artist_name": artist_name,
-                    "artist_identity_key": str(row.get("artist_identity_key") or "").strip(),
-                    "artist_name_key": str(row.get("artist_name_key") or "").strip(),
-                    "year": year_value,
+                    "artist_identity_key": str(row.get("artist_identity_key") or hint.get("artist_identity_key") or "").strip(),
+                    "artist_name_key": str(row.get("artist_name_key") or hint.get("artist_name_key") or "").strip(),
+                    "year": row.get("target_year") if isinstance(row.get("target_year"), int) else None,
                     "source_url": source_url,
                     "text": str(row.get("text") or ""),
                     "artist_name_kana": artist_name_kana,
@@ -192,6 +286,11 @@ def load_artist_records_readonly() -> ArtistSearchData:
                     "artist_image_preview_candidates": list(hint.get("preview_candidates") or [])[:ARTIST_SEARCH_THUMB_FROM_ARTIST],
                 }
             )
+            fallback_count_by_fair[fair_slug] = fallback_count_by_fair.get(fair_slug, 0) + 1
+        fair_rows = fallback_count_by_fair
+        warnings.append(
+            "artists_text_vector_meta_missing_or_empty: fallback to all-years raw current family for artist search listing"
+        )
 
     if not records:
         fallback_rows, fallback_warnings = _load_latest_artist_enrichment_rows()
@@ -255,13 +354,15 @@ def load_artist_records_readonly() -> ArtistSearchData:
         total_rows=len(records),
         fair_rows=fair_rows,
         count_note=(
-            "Artist rows use formal raw (artists_*_2025.jsonl). "
+            "Artist rows use the yearless app-facing current artist text meta "
+            "(data/current/vector/artists/artists_text_meta.jsonl) as the primary listing input. "
             "headline_ja/summary_ja/artist_name_kana uses current-first enrichment output "
             "(data/current/enrichment/artists_enrichment_apply_output.jsonl), "
             "with strict current-only resolution. "
+            "When available, all-years raw current files supplement text/year/identity metadata without pinning runtime to a fixed year. "
             "history is not used as a default query path. "
             "works_image_count_hint is matched by source_url against formal artist works-image metadata. "
-            "If raw rows are unavailable, listing falls back to enrichment rows."
+            "If artist text meta is unavailable, listing falls back to all-years raw current rows, then to enrichment rows."
         ),
     )
 

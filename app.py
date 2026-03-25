@@ -16,6 +16,7 @@ except Exception:
 from phase2_art_pulse_config import PERSONAS
 from phase2_art_pulse_draft import generate_art_pulse_draft
 from phase2_art_pulse_readonly import build_art_pulse_overview
+from phase2_common_readonly import resolve_current_exhibitions_available_years
 from phase2_advisor_draft import (
     ADVISOR_TEXT_MAX_CHARS,
     _build_visual_observation_digest,
@@ -1067,6 +1068,11 @@ def get_exhibition_search_data():
 
 
 @st.cache_data(show_spinner=False)
+def get_art_pulse_available_years() -> list[int]:
+    return resolve_current_exhibitions_available_years()
+
+
+@st.cache_data(show_spinner=False)
 def get_artist_search_data():
     return load_artist_records_readonly()
 
@@ -1322,6 +1328,7 @@ def render_art_pulse() -> None:
     _render_mode_heading("Art Pulse")
     _render_mode_explanation("アート編集記者が「現代アートの今（Now）」を取材し、記事を執筆する")
 
+    available_years = get_art_pulse_available_years()
     col1, col2 = st.columns([1, 1])
     fair_mode = col1.selectbox(
         "フェア選択",
@@ -1329,7 +1336,18 @@ def render_art_pulse() -> None:
         index=2,
         key="artpulse_fair",
     )
-    col2.text_input("対象年", value="2025（固定）", disabled=True, key="artpulse_year")
+    selected_year: int | None = None
+    if available_years:
+        selected_year = int(
+            col2.selectbox(
+                "対象年",
+                options=available_years,
+                index=0,
+                key="artpulse_selected_year",
+            )
+        )
+    else:
+        col2.text_input("対象年", value="利用可能な年がありません", disabled=True, key="artpulse_selected_year_empty")
 
     reporter = st.selectbox(
         "担当記者（8人）",
@@ -1363,6 +1381,9 @@ def render_art_pulse() -> None:
         st.rerun()
 
     if run:
+        if selected_year is None:
+            st.warning("Art Pulse で参照可能なExhibition年データが見つかりません。")
+            return
         progress_line = st.empty()
         waiting_line = st.empty()
         waiting_line.caption("担当記者が執筆中...数分おまちください。")
@@ -1395,6 +1416,7 @@ def render_art_pulse() -> None:
                 fair_label=fair_mode,
                 reporter_id=reporter["id"],
                 angle_keys=angle_keys,
+                target_year=selected_year,
             )
             _on_progress(20)
             draft = generate_art_pulse_draft(

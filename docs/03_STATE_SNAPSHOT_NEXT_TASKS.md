@@ -13,7 +13,7 @@ STREAMLIT_ENTRYPOINT（固定）
 - Local run: streamlit run app.py
 
 SOURCE_SSOT: 01_PROJECT_SPEC_CURRENT_FULL.docx
-LAST_UPDATED: 2026-03-25 15:02 JST
+LAST_UPDATED: 2026-03-25 16:05 JST
 
 
 ========================
@@ -7883,4 +7883,48 @@ TASK A-3A-CLOSE-1 実施結果（2026-02-27 / Adams and Ollman）
 - next tasks:
   - docs sync is complete; return to the main roadmap baseline.
   - Feature 5 remains explicit-user-instruction-only, and Feature 6 remains not started.
+
+## 2026-03-25 TASK RESUME_AFTER_CAPACITY_STOP_ALL_YEARS_RUNTIME_FOUNDATION_FOR_FEATURE2_3_4_02
+- scope: resumed from existing working tree after capacity stop; continued only unfinished implementation for Feature 2/3/4 all-years runtime foundation.
+- implementation status:
+  - `phase2_common_readonly.py`: kept the newly added shared all-years resolvers for year-scoped Exhibition current families and yearless Artist text artifact paths (no redesign restart).
+  - `phase2_exhibition_search_readonly.py`: kept/validated all-years aggregation path (`resolve_current_exhibitions_*_paths_by_year`) so Feature 2 remains year-selectionなし + 全年対象.
+  - `phase2_artist_search_readonly.py`: fixed partial syntax break and completed yearless app-facing Artist text meta primary path with all-years raw supplement fallback for Feature 3.
+  - `phase2_advisor_readonly.py`: removed latest-year-only default filtering and switched Feature 4 context/reference build to all-years rows from Feature 2/3 loaders.
+- behavior result:
+  - Feature 2: year-selection UIなしのまま ExhibitionRAG 全年対象.
+  - Feature 3: year-selection UIなしのまま ArtistRAG 全年対象（yearless current artifact 契約準拠）.
+  - Feature 4: year-selection UIなしのまま Exhibition+Artist とも全年対象（latest-year-only 既定挙動を除去）.
+  - Feature 1: UI未変更・既存挙動維持（非回帰）。
+  - Feature 7: 未変更（非回帰）。
+- validation:
+  - `python -m py_compile phase2_artist_search_readonly.py phase2_advisor_readonly.py phase2_exhibition_search_readonly.py phase2_common_readonly.py app.py` (pass)
+  - lightweight import smoke for `phase2_common_readonly`, `phase2_exhibition_search_readonly`, `phase2_artist_search_readonly`, `phase2_advisor_readonly` (pass)
+- not done:
+  - no API execution, no rerun/rebuild/re-extraction/promote, no R2 apply-upload/apply-prune in this task.
+  - no Feature 1 year selector UI implementation.
+  - no Feature 5/6 implementation start.
+- next priority:
+  - implement only Feature 1 selected-year UI + selected-year pass-through on top of the shared reader foundation (separate task).
+
+## 2026-03-25 TASK IMPLEMENT_FEATURE1_ART_PULSE_SELECTED_YEAR_UI_ONLY_01
+- scope: implement Feature 1 only; add selected-year UI and selected-year runtime path for Art Pulse while keeping Feature 2/3/4/7 behavior unchanged.
+- implementation status:
+  - `app.py`: replaced Art Pulse fixed year text with a year selectbox fed by dynamic years from current Exhibition family.
+  - `phase2_common_readonly.py`: added `resolve_current_exhibitions_available_years()` to expose dynamic year candidates from current Exhibition raw family.
+  - `phase2_art_pulse_readonly.py`: added `target_year` input to `build_art_pulse_overview(...)` and wired selected-year through fair bundle loading (year-scoped Exhibition/Artist text and Exhibition image metadata paths).
+- behavior result:
+  - Feature 1 now uses selected-year only (no all-years cross search by default).
+  - year options are dynamic (no hardcoded 2025 list); latest available year is the default when multiple years exist.
+  - if only one year exists, UI shows that single year (current state remains effectively unchanged).
+  - if zero available years are detected, Art Pulse generation is blocked with a safe warning.
+  - Feature 2/3/4/7 routes remain unchanged in this task.
+- validation:
+  - `python -m py_compile app.py phase2_art_pulse_readonly.py phase2_common_readonly.py phase2_exhibition_search_readonly.py phase2_artist_search_readonly.py phase2_advisor_readonly.py phase2_artwork_search_readonly.py` (pass)
+  - import smoke for app + related phase2 readonly modules (pass)
+  - lightweight runtime smoke:
+    - `resolve_current_exhibitions_available_years()` returns dynamic current Exhibition years.
+    - `build_art_pulse_overview(..., target_year=<selected>)` sets `selection.year=<selected>`.
+- docs/spec note:
+  - no 01/02 update required in this task; implementation aligns with SSOT direction that Feature 1 is year-selectable and ExhibitionRAG remains year-scoped.
 

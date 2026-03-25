@@ -15,6 +15,7 @@ from phase2_art_pulse_config import (
     CURRENT_RAW_R2_PREFIX,
     CURRENT_VECTOR_DIR,
     TARGET_YEAR,
+    get_current_artist_text_vector_artifact_paths as get_current_artist_text_vector_artifact_paths_config,
     get_current_artist_text_paths,
     get_enrichment_current_output_path,
     get_current_artist_image_meta_paths,
@@ -42,6 +43,15 @@ FAIR_LABEL_TO_SLUG = {
     "Liste Art Fair Basel": "liste",
 }
 FAIR_SLUG_TO_LABEL = {value: key for key, value in FAIR_LABEL_TO_SLUG.items()}
+CURRENT_RAW_FILE_RE = re.compile(
+    r"^(?P<category>artists|exhibitions)_(?P<fair_slug>[a-z0-9_]+)_(?P<year>\d{4})\.jsonl$"
+)
+CURRENT_EXHIBITIONS_IMAGE_META_FILE_RE = re.compile(
+    r"^exhibitions_images_(?P<fair_slug>[a-z0-9_]+)_(?P<year>\d{4})\.jsonl$"
+)
+CURRENT_EXHIBITIONS_ENRICHMENT_FILE_RE = re.compile(
+    r"^exhibitions_enrichment_apply_output_(?P<year>\d{4})\.jsonl$"
+)
 
 
 def _resolve_repo_paths(paths_by_key: Dict[str, Path]) -> Dict[str, Path]:
@@ -78,6 +88,14 @@ def resolve_current_artist_works_artifact_paths(
 ) -> Dict[str, Path]:
     return _resolve_repo_paths(
         get_current_artist_works_artifact_paths_config(target_year=target_year)
+    )
+
+
+def resolve_current_artist_text_artifact_paths(
+    target_year: int = TARGET_YEAR,
+) -> Dict[str, Path]:
+    return _resolve_repo_paths(
+        get_current_artist_text_vector_artifact_paths_config(target_year=target_year)
     )
 
 
@@ -143,6 +161,121 @@ def _get_r2_runtime() -> tuple[object | None, str]:
         return client, bucket
     except Exception:
         return None, ""
+
+
+@lru_cache(maxsize=16)
+def _list_r2_keys_with_prefix(prefix: str) -> Tuple[str, ...]:
+    client, bucket = _get_r2_runtime()
+    if client is None or not bucket:
+        return ()
+
+    keys: List[str] = []
+    continuation_token = ""
+    normalized_prefix = prefix.rstrip("/") + "/"
+    while True:
+        kwargs = {
+            "Bucket": bucket,
+            "Prefix": normalized_prefix,
+        }
+        if continuation_token:
+            kwargs["ContinuationToken"] = continuation_token
+        try:
+            response = client.list_objects_v2(**kwargs)
+        except Exception:
+            return tuple(keys)
+        for item in list(response.get("Contents") or []):
+            key = str(item.get("Key") or "").strip()
+            if key and not key.endswith("/"):
+                keys.append(key)
+        if not response.get("IsTruncated"):
+            return tuple(keys)
+        continuation_token = str(response.get("NextContinuationToken") or "").strip()
+        if not continuation_token:
+            return tuple(keys)
+
+
+def _collect_current_family_paths(
+    local_dir: Path,
+    r2_prefix: str,
+    filename_re: re.Pattern[str],
+) -> Dict[str, Path]:
+    matched: Dict[str, Path] = {}
+    local_root = REPO_ROOT / local_dir
+    if local_root.exists():
+        for path in local_root.iterdir():
+            if path.is_file() and filename_re.fullmatch(path.name):
+                matched[path.name] = path
+
+    for r2_key in _list_r2_keys_with_prefix(r2_prefix):
+        name = Path(r2_key).name
+        if not filename_re.fullmatch(name) or name in matched:
+            continue
+        matched[name] = REPO_ROOT / Path(r2_key)
+    return matched
+
+
+def _resolve_current_raw_paths_by_year(category: str) -> Dict[str, Dict[int, Path]]:
+    grouped: Dict[str, Dict[int, Path]] = {}
+    for name, path in _collect_current_family_paths(
+        CURRENT_RAW_DIR,
+        CURRENT_RAW_R2_PREFIX,
+        CURRENT_RAW_FILE_RE,
+    ).items():
+        match = CURRENT_RAW_FILE_RE.fullmatch(name)
+        if match is None or match.group("category") != category:
+            continue
+        fair_slug = str(match.group("fair_slug"))
+        year = int(match.group("year"))
+        grouped.setdefault(fair_slug, {})[year] = path
+    return grouped
+
+
+def resolve_current_exhibitions_text_paths_by_year() -> Dict[str, Dict[int, Path]]:
+    return _resolve_current_raw_paths_by_year("exhibitions")
+
+
+def resolve_current_artist_text_paths_by_year() -> Dict[str, Dict[int, Path]]:
+    return _resolve_current_raw_paths_by_year("artists")
+
+
+def resolve_current_exhibitions_available_years() -> List[int]:
+    years = {
+        year
+        for paths_by_year in resolve_current_exhibitions_text_paths_by_year().values()
+        for year in paths_by_year.keys()
+    }
+    return sorted(years, reverse=True)
+
+
+def resolve_current_exhibitions_image_meta_paths_by_year() -> Dict[str, Dict[int, Path]]:
+    grouped: Dict[str, Dict[int, Path]] = {}
+    for name, path in _collect_current_family_paths(
+        CURRENT_IMAGES_METADATA_DIR,
+        CURRENT_IMAGES_METADATA_R2_PREFIX,
+        CURRENT_EXHIBITIONS_IMAGE_META_FILE_RE,
+    ).items():
+        match = CURRENT_EXHIBITIONS_IMAGE_META_FILE_RE.fullmatch(name)
+        if match is None:
+            continue
+        fair_slug = str(match.group("fair_slug"))
+        year = int(match.group("year"))
+        grouped.setdefault(fair_slug, {})[year] = path
+    return grouped
+
+
+def resolve_current_exhibitions_enrichment_output_paths_by_year() -> Dict[int, Path]:
+    grouped: Dict[int, Path] = {}
+    for name, path in _collect_current_family_paths(
+        Path("data/current/enrichment"),
+        "data/current/enrichment",
+        CURRENT_EXHIBITIONS_ENRICHMENT_FILE_RE,
+    ).items():
+        match = CURRENT_EXHIBITIONS_ENRICHMENT_FILE_RE.fullmatch(name)
+        if match is None:
+            continue
+        year = int(match.group("year"))
+        grouped[year] = path
+    return grouped
 
 
 def _local_path_to_r2_key(path: Path) -> str:
