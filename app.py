@@ -2200,7 +2200,7 @@ def _run_advisor_followup_turn(base_payload: dict, memory_summary: str, turns: l
 def render_advisor() -> None:
     _render_mode_heading("Advisor")
     _render_mode_explanation(
-        "最前線のアートを知り尽くした「AIアドバイザー」"
+        "最前線のアート事情を知り尽くした「AIアドバイザー」"
     )
     reset_requested_key = "advisor_reset_requested"
     question_clear_input_key = "advisor_question_clear_input_requested"
@@ -2489,7 +2489,7 @@ def render_advisor() -> None:
         "追加質問",
         key="advisor_followup_input",
         label_visibility="collapsed",
-        placeholder="例: さっきの方向で、もう少し素材の選び方だけ絞って教えてください。",
+        placeholder="例: 他に素材の選び方はありますか？",
     )
     followup_run = st.button("質問する", key="advisor_followup_run")
     followup_status_slot = st.empty()
