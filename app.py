@@ -1334,12 +1334,12 @@ def _render_compact_generated_image(image_source, caption: str = "AI generated")
 
 def render_art_pulse() -> None:
     _render_mode_heading("Art Pulse")
-    _render_mode_explanation("アート編集記者が「現代アートの今（Now）」を取材し、記事を執筆する")
+    _render_mode_explanation("8名の記者が「世界トップのアートフェア」を取材し、記事を執筆する")
 
     available_years = get_art_pulse_available_years()
     col1, col2 = st.columns([1, 1])
     fair_mode = col1.selectbox(
-        "フェア選択",
+        "取材範囲",
         FAIR_OPTIONS,
         index=2,
         key="artpulse_fair",
@@ -1455,7 +1455,7 @@ def render_art_pulse() -> None:
 
 def render_exhibition_search() -> None:
     _render_mode_heading("Exhibition Search")
-    _render_mode_explanation("トップギャラリーの展示検索（キーワード入力）")
+    _render_mode_explanation("トップギャラリーの「展示」検索")
     try:
         data = get_exhibition_search_data()
     except Exception as exc:
@@ -1475,7 +1475,7 @@ def render_exhibition_search() -> None:
 
     col1, col2 = st.columns([1, 1])
     fair_mode = col1.selectbox(
-        "フェア選択",
+        "対象範囲",
         FAIR_OPTIONS,
         index=2,
         key="exh_fair_filter",
@@ -1550,7 +1550,7 @@ def render_exhibition_search() -> None:
 
 def render_artist_search() -> None:
     _render_mode_heading("Artist Search")
-    _render_mode_explanation("トップギャラリーの作家検索（キーワード入力）")
+    _render_mode_explanation("トップギャラリーの「作家」検索")
 
     try:
         data = get_artist_search_data()
@@ -1571,7 +1571,7 @@ def render_artist_search() -> None:
 
     col1, col2 = st.columns([1, 1])
     fair_mode = col1.selectbox(
-        "フェア選択",
+        "対象範囲",
         FAIR_OPTIONS,
         index=2,
         key="artist_fair_filter",
@@ -1694,8 +1694,8 @@ def _build_artwork_result_artist_rows(rows: list[dict]) -> list[dict]:
 
 
 def render_artwork_search() -> None:
-    _render_mode_heading("ArtWork Search")
-    _render_mode_explanation("Artist Works Images の類似検索（text / image）")
+    _render_mode_heading("Art Work Search")
+    _render_mode_explanation("トップアーティストの「作品」検索")
 
     results_key = "artwork_search_results"
     query_key = "artwork_search_query"
@@ -1715,21 +1715,21 @@ def render_artwork_search() -> None:
 
     col1, col2 = st.columns([1, 1])
     fair_filter = col1.selectbox(
-        "フェア選択",
+        "対象範囲",
         FAIR_OPTIONS,
         index=2,
         key=fair_filter_key,
     )
     text_query = col2.text_input(
-        "text query",
+        "キーワードで類似検索（英語可）",
         value="",
-        placeholder="例 : blue geometric abstraction / warm red sculpture",
+        placeholder="例 : 幾何学 / 赤い抽象画 / 人物 / Flour など",
         key=text_query_key,
     )
 
     uploader_key = f"artwork_search_uploaded_image_{int(st.session_state.get(uploaded_image_nonce_key, 0) or 0)}"
     uploaded_image = st.file_uploader(
-        "image query (session-only)",
+        "画像添付で類似検索",
         type=["png", "jpg", "jpeg", "webp"],
         key=uploader_key,
     )
@@ -1738,7 +1738,7 @@ def render_artwork_search() -> None:
         st.caption("query image: session-only")
         _render_compact_generated_image(uploaded_image_bytes, caption="query image")
 
-    st.caption("text または image query を入れて Search すると、Artist Works Images の top-k を表示します。")
+    st.caption("キーワード or 画像で類似する「作品」を表示します。")
     search_clicked = st.button("Search", key="artwork_search_button")
     if st.button("リセット", key="artwork_search_reset_button"):
         st.session_state[reset_requested_key] = True
@@ -2200,7 +2200,7 @@ def _run_advisor_followup_turn(base_payload: dict, memory_summary: str, turns: l
 def render_advisor() -> None:
     _render_mode_heading("Advisor")
     _render_mode_explanation(
-        "ギャラリーを知り尽くすアート編集長によるアドバイス"
+        "最前線のアートを知り尽くした「AIアドバイザー」"
     )
     reset_requested_key = "advisor_reset_requested"
     question_clear_input_key = "advisor_question_clear_input_requested"
@@ -2246,7 +2246,7 @@ def render_advisor() -> None:
 
     col1, col2 = st.columns([3, 2])
     fair_mode = col1.selectbox(
-        "フェア選択",
+        "知識範囲",
         FAIR_OPTIONS,
         index=2,
         key="advisor_fair_filter",
@@ -2268,7 +2268,7 @@ def render_advisor() -> None:
     effective_fair = str(fair_mode or FAIR_OPTIONS[0])
     uploader_key = f"advisor_uploaded_image_{int(st.session_state.get(uploaded_image_nonce_key, 0) or 0)}"
     uploaded_image = st.file_uploader(
-        "画像添付（テキスト+画像添付で質問可）",
+        "画像添付（任意 / テキスト+画像添付で質問可）",
         type=["png", "jpg", "jpeg", "webp"],
         key=uploader_key,
     )
@@ -2700,7 +2700,7 @@ def render_exclusive_advisor() -> None:
 
     col1, col2 = st.columns([1, 1])
     fair_mode = col1.selectbox(
-        "フェア選択",
+        "対象範囲",
         FAIR_OPTIONS,
         index=2,
         key="exclusive_fair_filter",
