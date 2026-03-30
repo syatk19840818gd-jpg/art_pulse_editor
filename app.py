@@ -33,7 +33,7 @@ from phase2_advisor_readonly import (
     build_advisor_grounded_context,
 )
 from phase2_advisor_type2_execute import run_type2_gated_image_generation
-from phase2_gallery_list_readonly import apply_gallery_list_filters, load_gallery_list_records_readonly
+from phase2_gallery_list_readonly import load_gallery_list_records_readonly
 from phase2_artist_search_readonly import (
     ARTIST_SEARCH_SUMMARY_MAX_CHARS,
     ARTIST_SEARCH_THUMB_FROM_ARTIST,
@@ -2683,8 +2683,8 @@ def render_advisor() -> None:
 
 
 def render_gallery_list() -> None:
-    _render_mode_heading("⑥ Gallery list（登録ギャラリー一覧 / 読み取り専用）")
-    _render_mode_explanation("CSV正本を読み取り専用で表示します（編集・追加・削除・保存なし）。")
+    _render_mode_heading("Gallery list")
+    _render_mode_explanation("取材ギャラリーリスト（知識のベース）")
 
     try:
         data = get_gallery_list_data()
@@ -2692,74 +2692,117 @@ def render_gallery_list() -> None:
         st.error(f"Gallery list 読み込みエラー: {type(exc).__name__}: {exc}")
         return
 
-    col1, col2 = st.columns([1, 2])
-    fair_mode = col1.selectbox(
-        "フェア切替",
-        FAIR_OPTIONS,
-        index=2,
-        key="gallery_list_fair_filter",
-    )
-    keyword = col2.text_input(
-        "ギャラリー名キーワード",
-        value="",
-        placeholder="例: Athr / Adams and Ollman / A+ Works of Art",
-        key="gallery_list_keyword",
-    )
+    total_count = int(getattr(data, "total_rows", 0) or 0)
+    frieze_rows = [row for row in data.records if row.get("fair_slug") == "frieze_london"]
+    liste_rows = [row for row in data.records if row.get("fair_slug") == "liste"]
+    frieze_count = int(getattr(data, "fair_rows", {}).get("frieze_london", len(frieze_rows)) or 0)
+    liste_count = int(getattr(data, "fair_rows", {}).get("liste", len(liste_rows)) or 0)
 
-    effective_fair = fair_mode
-    filtered = apply_gallery_list_filters(data.records, effective_fair, keyword)
+    def _split_gallery_name(value: str) -> tuple[str, str]:
+        text = str(value or "").strip()
+        for open_paren, close_paren in (("（", "）"), ("(", ")")):
+            left = text.find(open_paren)
+            right = text.rfind(close_paren)
+            if left > 0 and right > left:
+                return text[:left].strip(), text[left + 1 : right].strip()
+        return text, ""
 
-    m1, m2, m3, m4, m5 = st.columns(5)
-    m1.metric("総件数", data.total_rows)
-    m2.metric("Frieze", data.fair_rows.get("frieze_london", 0))
-    m3.metric("Liste", data.fair_rows.get("liste", 0))
-    m4.metric("fallback件数", data.artists_fallback_rows)
-    m5.metric("警告件数", len(data.warnings))
-    st.write(
-        {
-            "表示件数": len(filtered),
-            "artists_url入力あり行": getattr(data, "artists_raw_rows", 0),
-            "artists_url空行": getattr(data, "artists_empty_rows", 0),
-            "警告サマリ": getattr(data, "warning_counts", {}),
+    def _sort_key(row: dict) -> str:
+        en_name, _ = _split_gallery_name(str(row.get("gallery_name") or ""))
+        return en_name.casefold()
+
+    frieze_rows.sort(key=_sort_key)
+    liste_rows.sort(key=_sort_key)
+
+    def _render_list_items(rows: list[dict]) -> str:
+        items: list[str] = []
+        for row in rows:
+            gallery_name = str(row.get("gallery_name") or "").strip()
+            en_name, kana_info = _split_gallery_name(gallery_name)
+            exhibitions_url = str(row.get("exhibitions_url") or "").strip()
+            linked_name = (
+                f'<a href="{escape(exhibitions_url, quote=True)}" target="_blank" rel="noopener noreferrer">{escape(en_name)}</a>'
+                if exhibitions_url
+                else escape(en_name)
+            )
+            label = f"{linked_name}（{escape(kana_info)}）" if kana_info else linked_name
+            items.append(f"<li>{label}</li>")
+        return "".join(items)
+
+    st.markdown(
+        """
+        <style>
+        .ap-gallery-kb-meta {
+          margin-top: -0.2rem;
+          margin-bottom: 0.8rem;
+          color: #8b8f99;
+          font-size: 0.78rem;
+          font-weight: 400;
+          letter-spacing: 0.01em;
         }
-    )
-    st.caption("列互換: 3列はそのまま / 2列は artists_url に exhibitions_url を使用（表示専用）。")
-
-    if data.warnings:
-        with st.expander("警告（Gallery list）", expanded=False):
-            for warning in data.warnings[:30]:
-                st.write(f"- {warning}")
-
-    if not filtered:
-        st.warning("条件に一致するギャラリーはありません。")
-        return
-
-    view_rows = [
-        {
-            "fair": row.get("fair_label"),
-            "gallery_name": row.get("gallery_name"),
-            "exhibitions_url": row.get("exhibitions_url_display", row.get("exhibitions_url")),
-            "artists_url": row.get("artists_url_display", row.get("artists_url")),
-            "artists_mode": row.get("artists_url_mode_label", row.get("artists_url_mode")),
-            "exhibitions_link": row.get("exhibitions_url"),
-            "artists_link": row.get("artists_url"),
+        .ap-gallery-kb-grid {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+          gap: 2rem;
+          margin-top: 0.2rem;
         }
-        for row in filtered
-    ]
-    st.dataframe(
-        view_rows,
-        use_container_width=True,
-        hide_index=True,
-        height=360,
-        column_config={
-            "fair": st.column_config.TextColumn("fair", width="small"),
-            "gallery_name": st.column_config.TextColumn("gallery_name", width="medium"),
-            "exhibitions_url": st.column_config.TextColumn("exhibitions_url", width="large"),
-            "artists_url": st.column_config.TextColumn("artists_url", width="large"),
-            "artists_mode": st.column_config.TextColumn("artists_url種別", width="small"),
-            "exhibitions_link": st.column_config.LinkColumn("Exhibitions URL", display_text="開く"),
-            "artists_link": st.column_config.LinkColumn("Artists URL", display_text="開く"),
-        },
+        .ap-gallery-kb-col h4 {
+          margin: 0 0 0.4rem 0;
+          font-size: 1.4rem;
+          font-weight: 500;
+          color: #23262f;
+        }
+        .ap-gallery-kb-col ol {
+          margin: 0;
+          padding-left: 1.6rem;
+        }
+        .ap-gallery-kb-col li {
+          margin: 0;
+          padding: 0.06rem 0;
+          line-height: 1.24;
+          font-size: 1.2rem;
+          color: #2f3440;
+        }
+        .ap-gallery-kb-col a {
+          color: #3f58a8;
+          text-decoration: underline;
+        }
+        @media (max-width: 900px) {
+          .ap-gallery-kb-grid {
+            grid-template-columns: minmax(0, 1fr);
+            gap: 1.2rem;
+          }
+          .ap-gallery-kb-col h4 {
+            font-size: 1.2rem;
+          }
+          .ap-gallery-kb-col li {
+            font-size: 0.95rem;
+            line-height: 1.32;
+          }
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    st.markdown(
+        f'<div class="ap-gallery-kb-meta">総ギャラリー数/{total_count}　Frieze/{frieze_count}　Liste/{liste_count}</div>',
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        (
+            '<div class="ap-gallery-kb-grid">'
+            '<section class="ap-gallery-kb-col">'
+            "<h4>- Frieze London -</h4>"
+            f"<ol>{_render_list_items(frieze_rows)}</ol>"
+            "</section>"
+            '<section class="ap-gallery-kb-col">'
+            "<h4>- Liste Art Fair Basel -</h4>"
+            f"<ol>{_render_list_items(liste_rows)}</ol>"
+            "</section>"
+            "</div>"
+        ),
+        unsafe_allow_html=True,
     )
 
 
