@@ -13,11 +13,11 @@ STATE_SNAPSHOT
 - Feature 2 Exhibition Search: completed
 - Feature 3 Artist Search: stable / accepted for current scope
 - Feature 4 Advisor: completed / accepted baseline
-- Feature 6 Gallery list: current implementation exists
+- Feature 6 Gallery list: active read-only feature / verify-first completed
 - Feature 7 ArtWork Search: current implementation exists / accepted for current scope
 - current/history rebaseline lane: completed
 - cleanup lane: closed
-- immediate priority: explicit user taskベースで main roadmap を進める
+- immediate priority: proceed main roadmap by explicit user task only
 
 ACTIVE DATA / RETRIEVAL FAMILIES
 - Artist Works Images
@@ -26,22 +26,23 @@ ACTIVE DATA / RETRIEVAL FAMILIES
 - Exhibitions Text
 
 CURRENT OPERATING RULES
-- app runtime は current-first を維持する
-- shared/common は feature-specific logic で汚さない
-- fetch / enrichment / vectorize / sync は family 分離を崩さない
-- Feature 7 は独立 feature のまま維持する
-- R2 apply / prune は explicit task のみで実施する
+- app runtime keeps current-first behavior
+- shared/common remains feature-neutral
+- fetch / enrichment / vectorize / sync keeps family separation
+- Feature 7 remains an independent feature (not absorbed into Advisor)
+- R2 apply / prune is executed only as explicit task
 
 NEXT_TASKS
-- [ ] Feature 3 / Feature 4 / Feature 7 の current-only runtime を verify-first で継続監視する
-- [ ] Gallery list の read-only quality を必要時に微修正する
-- [ ] current/history family の prune candidates は explicit task 時のみ整理する
+- [x] R2 remote residue prune by narrow scopes completed (post-check: narrow/broad `would_prune=0`)
+- [x] Feature 6 Gallery list read-only quality verify-first completed (no issue found)
+- [x] Feature 3 / Feature 4 / Feature 7 current-only runtime verify-first completed (no regression found)
+- [ ] Continue main roadmap in explicit-user-task mode (cleanup lane remains closed)
 
 REMOVAL SYNC NOTE (2026-03-30)
-- 廃止済みの artist-specific advisor lane と、その専用 text corpus / config / vector / UI route / docs 記述は baseline から除外済みです。
-- 今後の handoff では、現行構成を Feature 1 / 2 / 3 / 4 / 6 / 7 だけで扱います。
+- Retired artist-specific advisor lane and dedicated text corpus / config / vector / UI route / docs are excluded from baseline.
+- Ongoing handoff and task planning treat active baseline as Feature 1 / 2 / 3 / 4 / 6 / 7 only.
 
 HANDOFF MEMO
-- 仕様確認は 01 を最優先にする
-- 実装判断の近道は 02 を参照する
-- 進捗と next task はこの 03 を更新する
+- Read source-of-truth from 01 first.
+- Use 02 as derived operating contract.
+- Keep progress and next-task sync in this 03.

@@ -1,15 +1,15 @@
 # 04_TASK_PROGRESS_LOG
 
-最終更新: 2026-03-30 JST
-対象プロジェクト: ART_PULSE_EDITOR
+Last updated: 2026-03-30 JST
+Project: ART_PULSE_EDITOR
 
-## 0. 位置づけ
+## 0. Document roles
+- 01 is source-of-truth.
+- 02 is the derived operating contract.
+- 03 is current state and next tasks.
+- 04 is implementation/progress log.
 
-- 01 が正本です。
-- 02 は索引、03 は current snapshot、04 は実装ログの要約です。
-
-## 1. 現行ベースライン
-
+## 1. Current baseline
 - Feature 1 Art Pulse: completed
 - Feature 2 Exhibition Search: completed
 - Feature 3 Artist Search: stable
@@ -17,21 +17,26 @@
 - Feature 6 Gallery list: active read-only feature
 - Feature 7 ArtWork Search: active feature
 
-## 2. 2026-03-30 の整理
+## 2. 2026-03-30 baseline cleanup/removal sync
+- Removed retired advisor lane UI / route / import / session state from app.
+- Removed retired advisor readonly / draft / type2 files.
+- Removed retired text corpus / vector / config / sync-log / import / enrichment / vectorize artifacts.
+- Synced docs 01 / 02 / 03 / 04 to current baseline.
 
-- app から retired advisor lane の UI / route / import / session state を削除
-- 専用 readonly / draft / type2 実装ファイルを削除
-- 専用 text corpus, vector, config, sync log, import / enrichment / vectorize scripts を削除
-- docs 01 / 02 / 03 / 04 を現行構成へ同期
-
-## 3. 維持したもの
-
+## 3. What remains preserved
 - Feature 4 Advisor accepted baseline
-- Feature 2 / 3 / 7 の read path
+- Feature 2 / 3 / 7 read paths
 - current-first storage contract
-- shared/common の既存責務
+- shared/common generic structure
 
-## 4. 今後のログ方針
+## 4. Next-task policy
+- Keep retired lane excluded from baseline.
+- Keep task logs aligned only to Feature 1 / 2 / 3 / 4 / 6 / 7 baseline.
 
-- 廃止済み lane の再開は前提にしない
-- 新しい task log は Feature 1 / 2 / 3 / 4 / 6 / 7 の現行構成だけを前提に書く
+## 5. 2026-03-30 closeout sync (this chat)
+- R2 remote residue prune completed using narrow legacy scopes only.
+- Post-check completed: narrow scopes and broad current scopes both `would_prune=0` for the pruned residues.
+- Feature 6 Gallery list verify-first completed: read-only quality OK, no fix required.
+- Feature 3 / 4 / 7 current-only runtime verify-first completed: no regression found.
+- Feature 7 independent-feature contract remains intact (not absorbed into Advisor).
+- No additional tiny-fix task is required at this point.
