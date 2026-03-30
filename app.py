@@ -83,7 +83,24 @@ def apply_global_font_styles() -> None:
           background-color: #f5f7fb !important;
           color: #111111 !important;
         }
-        .stApp, .stApp * {
+        .stApp,
+        .stApp div,
+        .stApp span,
+        .stApp p,
+        .stApp a,
+        .stApp li,
+        .stApp label,
+        .stApp button,
+        .stApp input,
+        .stApp textarea,
+        .stApp select,
+        .stApp option,
+        .stApp h1,
+        .stApp h2,
+        .stApp h3,
+        .stApp h4,
+        .stApp h5,
+        .stApp h6 {
           font-family: var(--font-latin), var(--font-cjk) !important;
         }
         /* Keep expander toggle icons rendered with Material icon fonts. */
@@ -98,6 +115,61 @@ def apply_global_font_styles() -> None:
         /* Hide heading anchor/link icons globally. */
         .stApp [data-testid="stHeaderActionElements"] {
           display: none !important;
+        }
+        .stApp [data-testid="stButton"] > button[data-testid="stBaseButton-tertiary"] {
+          width: 100% !important;
+          justify-content: center !important;
+          align-items: center !important;
+          background: transparent !important;
+          border: none !important;
+          box-shadow: none !important;
+          padding: 0.26rem 0 !important;
+          margin: 0.46rem 0 !important;
+          min-height: auto !important;
+          border-radius: 0 !important;
+          color: #111111 !important;
+          font-size: clamp(2rem, 2.6vw, 2.9rem) !important;
+          font-weight: 800 !important;
+          line-height: 1.16 !important;
+          letter-spacing: -0.01em !important;
+          text-align: center !important;
+        }
+        .stApp [data-testid="stButton"] > button[data-testid="stBaseButton-tertiary"] > div,
+        .stApp [data-testid="stButton"] > button[data-testid="stBaseButton-tertiary"] > div > span {
+          justify-content: center !important;
+          align-items: center !important;
+          width: 100% !important;
+          text-align: center !important;
+        }
+        .stApp [data-testid="stButton"] > button[data-testid="stBaseButton-tertiary"] [data-testid="stMarkdownContainer"],
+        .stApp [data-testid="stButton"] > button[data-testid="stBaseButton-tertiary"] [data-testid="stMarkdownContainer"] p {
+          margin: 0 !important;
+          font-size: inherit !important;
+          font-weight: inherit !important;
+          line-height: inherit !important;
+          color: inherit !important;
+          text-align: center !important;
+        }
+        .stApp [data-testid="stButton"] > button[data-testid="stBaseButton-tertiary"]:hover,
+        .stApp [data-testid="stButton"] > button[data-testid="stBaseButton-tertiary"]:focus,
+        .stApp [data-testid="stButton"] > button[data-testid="stBaseButton-tertiary"]:focus-visible,
+        .stApp [data-testid="stButton"] > button[data-testid="stBaseButton-tertiary"]:active {
+          background: transparent !important;
+          border: none !important;
+          box-shadow: none !important;
+          color: #111111 !important;
+        }
+        .ap-top-nav-list-spacer {
+          height: clamp(0.8rem, 1.8vw, 1.6rem);
+        }
+        .ap-top-nav-open-gap {
+          height: 1rem;
+        }
+        @media (max-width: 900px) {
+          .stApp [data-testid="stButton"] > button[data-testid="stBaseButton-tertiary"] {
+            padding: 0.22rem 0 !important;
+            font-size: clamp(1.35rem, 4.2vw, 1.95rem) !important;
+          }
         }
         .stApp {
           --background-color: #f5f7fb !important;
@@ -119,17 +191,17 @@ def apply_global_font_styles() -> None:
         .stApp .block-container {
           max-width: min(1680px, 96vw) !important;
           width: 100% !important;
-          padding-top: 0.8rem !important;
+          padding-top: 1.0rem !important;
           padding-left: clamp(0.75rem, 2vw, 2.25rem) !important;
           padding-right: clamp(0.75rem, 2vw, 2.25rem) !important;
         }
         .stApp [data-testid="stHeadingWithActionElements"] h1 {
-          font-size: 50px !important;
+          font-size: clamp(4rem, 5.2vw, 4.9rem) !important;
           width: 100%;
           text-align: center !important;
-          margin-top: 0 !important;
-          margin-bottom: 1 rem !important;
-          line-height: 2.2 !important;
+          margin-top: 0.45rem !important;
+          margin-bottom: clamp(1.3rem, 2.4vw, 2.2rem) !important;
+          line-height: 1.08 !important;
         }
         @media (max-width: 900px) {
           .stApp [data-testid="stMainBlockContainer"],
@@ -137,6 +209,11 @@ def apply_global_font_styles() -> None:
             max-width: 100vw !important;
             padding-left: 0.55rem !important;
             padding-right: 0.55rem !important;
+          }
+          .stApp [data-testid="stHeadingWithActionElements"] h1 {
+            font-size: clamp(2.7rem, 8.4vw, 3.25rem) !important;
+            margin-top: 0.2rem !important;
+            margin-bottom: 1.1rem !important;
           }
         }
         .stApp [data-testid="stVerticalBlockBorderWrapper"] {
@@ -2807,40 +2884,28 @@ def render_gallery_list() -> None:
 
 
 def render_phase2_sections() -> None:
-    tabs = st.tabs(
-        [
-            "Art Pulse",
-            "Advisor",
-            "Art Work Search",
-            "Artist Search",
-            "Exhibition Search",
-            "Gallery list",
-        ]
-    )
+    sections = [
+        ("Art Pulse", "art_pulse", render_art_pulse),
+        ("Advisor", "advisor", render_advisor),
+        ("Art Work Search", "artwork_search", render_artwork_search),
+        ("Artist Search", "artist_search", render_artist_search),
+        ("Exhibition Search", "exhibition_search", render_exhibition_search),
+        ("Gallery list", "gallery_list", render_gallery_list),
+    ]
+    open_key = "top_level_open_section"
+    current_open = str(st.session_state.get(open_key) or "")
 
-    with tabs[0]:
-        with st.container(border=True):
-            render_art_pulse()
+    st.markdown('<div class="ap-top-nav-list-spacer"></div>', unsafe_allow_html=True)
 
-    with tabs[1]:
-        with st.container(border=True):
-            render_advisor()
+    for label, slug, renderer in sections:
+        if st.button(label, key=f"top_level_section_button_{slug}", use_container_width=True, type="tertiary"):
+            st.session_state[open_key] = "" if current_open == slug else slug
+            st.rerun()
 
-    with tabs[2]:
-        with st.container(border=True):
-            render_artwork_search()
-
-    with tabs[3]:
-        with st.container(border=True):
-            render_artist_search()
-
-    with tabs[4]:
-        with st.container(border=True):
-            render_exhibition_search()
-
-    with tabs[5]:
-        with st.container(border=True):
-            render_gallery_list()
+        if str(st.session_state.get(open_key) or "") == slug:
+            with st.container(border=True):
+                renderer()
+            st.markdown('<div class="ap-top-nav-open-gap"></div>', unsafe_allow_html=True)
 
 
 def main() -> None:
