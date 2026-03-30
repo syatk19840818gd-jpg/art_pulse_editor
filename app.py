@@ -1446,7 +1446,7 @@ def render_art_pulse() -> None:
 
 def render_exhibition_search() -> None:
     _render_mode_heading("Exhibition Search")
-    _render_mode_explanation("トップギャラリーの「展示」検索")
+    _render_mode_explanation("全ギャラリーの「展示」検索")
     try:
         data = get_exhibition_search_data()
     except Exception as exc:
@@ -1541,7 +1541,7 @@ def render_exhibition_search() -> None:
 
 def render_artist_search() -> None:
     _render_mode_heading("Artist Search")
-    _render_mode_explanation("トップギャラリーの「作家」検索")
+    _render_mode_explanation("全ギャラリーの「作家」検索")
 
     try:
         data = get_artist_search_data()
@@ -1686,7 +1686,7 @@ def _build_artwork_result_artist_rows(rows: list[dict]) -> list[dict]:
 
 def render_artwork_search() -> None:
     _render_mode_heading("Art Work Search")
-    _render_mode_explanation("トップアーティストの「作品」検索")
+    _render_mode_explanation("全アーティストの「作品」検索")
 
     results_key = "artwork_search_results"
     query_key = "artwork_search_query"
@@ -2807,23 +2807,40 @@ def render_gallery_list() -> None:
 
 
 def render_phase2_sections() -> None:
-    with st.container(border=True):
-        render_art_pulse()
+    tabs = st.tabs(
+        [
+            "Art Pulse",
+            "Advisor",
+            "Art Work Search",
+            "Artist Search",
+            "Exhibition Search",
+            "Gallery list",
+        ]
+    )
 
-    with st.container(border=True):
-        render_exhibition_search()
+    with tabs[0]:
+        with st.container(border=True):
+            render_art_pulse()
 
-    with st.container(border=True):
-        render_artist_search()
+    with tabs[1]:
+        with st.container(border=True):
+            render_advisor()
 
-    with st.container(border=True):
-        render_advisor()
+    with tabs[2]:
+        with st.container(border=True):
+            render_artwork_search()
 
-    with st.container(border=True):
-        render_gallery_list()
+    with tabs[3]:
+        with st.container(border=True):
+            render_artist_search()
 
-    with st.container(border=True):
-        render_artwork_search()
+    with tabs[4]:
+        with st.container(border=True):
+            render_exhibition_search()
+
+    with tabs[5]:
+        with st.container(border=True):
+            render_gallery_list()
 
 
 def main() -> None:
