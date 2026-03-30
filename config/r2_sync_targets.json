@@ -108,6 +108,23 @@
         }
       ]
     },
+    "artists_vector_legacy_2025_prune": {
+      "description": "Prune-only remote residue for pre-canonical _2025 artist vector filenames under current prefix.",
+      "enabled_by_default": false,
+      "prune_allowed": true,
+      "targets": [
+        {
+          "local_root": "data/current/vector/artists",
+          "r2_prefix": "data/current/vector/artists",
+          "include_globs": [
+            "artists_text_artifact_manifest_2025.json",
+            "artists_text_index_2025.npy",
+            "artists_text_meta_2025.jsonl"
+          ],
+          "exclude_globs": []
+        }
+      ]
+    },
     "current_ledgers_family": {
       "description": "Canonical current lane for formal current ledgers family.",
       "enabled_by_default": false,
@@ -133,6 +150,39 @@
           "r2_prefix": "data/current/vector/artist_works_images",
           "include_globs": [
             "**/*"
+          ],
+          "exclude_globs": []
+        }
+      ]
+    },
+    "artwork_vector_legacy_2025_prune": {
+      "description": "Prune-only remote residue for pre-canonical _2025 artwork vector filenames under current prefix.",
+      "enabled_by_default": false,
+      "prune_allowed": true,
+      "targets": [
+        {
+          "local_root": "data/current/vector/artist_works_images",
+          "r2_prefix": "data/current/vector/artist_works_images",
+          "include_globs": [
+            "artist_works_images_openclip_embeddings_2025.npy",
+            "artist_works_images_openclip_id_map_2025.jsonl",
+            "artist_works_images_openclip_search_index_2025.npy"
+          ],
+          "exclude_globs": []
+        }
+      ]
+    },
+    "artists_enrich_legacy_2025_prune": {
+      "description": "Prune-only remote residue for pre-canonical _2025 artist enrichment filenames under current prefix.",
+      "enabled_by_default": false,
+      "prune_allowed": true,
+      "targets": [
+        {
+          "local_root": "data/current/enrichment",
+          "r2_prefix": "data/current/enrichment",
+          "include_globs": [
+            "artists_enrichment_apply_output_2025.jsonl",
+            "artists_enrichment_apply_summary_2025.json"
           ],
           "exclude_globs": []
         }
