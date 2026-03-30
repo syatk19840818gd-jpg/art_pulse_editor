@@ -15,21 +15,6 @@
       "last_dry_run_summary_path": "data/phase1_seed10/logs/phase1_seed10_r2_sync_derived_20260301T164457Z.json",
       "last_apply_summary_path": "data/phase1_seed10/logs/phase1_seed10_r2_sync_derived_20260301T164746Z.json"
     },
-    "tarutani_all": {
-      "prune": {
-        "fingerprint": "",
-        "stable_hits": 0,
-        "candidate_count": 0,
-        "last_seen_at": "2026-02-27T17:51:12Z"
-      },
-      "last_trigger": "smoke_auto_sync",
-      "last_run_at": "2026-02-27T17:51:12Z",
-      "last_status": "ok",
-      "last_delete_policy": "no_prune_candidates",
-      "last_prune_candidates_count": 0,
-      "last_dry_run_summary_path": "data/Tarutani_data/logs/tarutani_r2_sync_all_20260227T175059Z.json",
-      "last_apply_summary_path": "data/Tarutani_data/logs/tarutani_r2_sync_all_20260227T175112Z.json"
-    },
     "phase1_all": {
       "prune": {
         "fingerprint": "",

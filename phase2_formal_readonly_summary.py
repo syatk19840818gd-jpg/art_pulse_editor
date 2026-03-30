@@ -13,7 +13,6 @@ from phase2_common_readonly import (
     FAIR_LABEL_TO_SLUG,
     FAIR_SLUG_TO_LABEL,
     IMAGE_CACHE_ROOT,
-    TARUTANI_TEXT_PATH,
     safe_load_jsonl,
 )
 
@@ -128,10 +127,8 @@ def build_counts(selected_fair: str) -> Dict[str, object]:
             }
         )
 
-    tarutani_rows = _count_jsonl_rows(TARUTANI_TEXT_PATH)
-    tarutani_non_empty = _count_non_empty_text(TARUTANI_TEXT_PATH)
     images_cache = _safe_dir_file_count(IMAGE_CACHE_ROOT)
-    all_warnings.extend(tarutani_rows.warnings + tarutani_non_empty.warnings + images_cache.warnings)
+    all_warnings.extend(images_cache.warnings)
 
     total_row = None
     if len(breakdown_rows) > 1:
@@ -148,8 +145,6 @@ def build_counts(selected_fair: str) -> Dict[str, object]:
     return {
         "breakdown_rows": breakdown_rows,
         "total_row": total_row,
-        "tarutani_total_rows": tarutani_rows.rows,
-        "tarutani_non_empty_text_rows": tarutani_non_empty.rows,
         "images_cache_file_count": images_cache.rows,
         "warnings": sorted(set(all_warnings)),
         "count_note": (

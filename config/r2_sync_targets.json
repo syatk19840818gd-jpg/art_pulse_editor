@@ -246,66 +246,6 @@
         }
       ]
     },
-    "tarutani_legacy_vectors_prune": {
-      "description": "Prune-only legacy remote residue for old Tarutani vector prefix.",
-      "enabled_by_default": false,
-      "prune_allowed": true,
-      "targets": [
-        {
-          "local_root": "tarutani/vectors",
-          "r2_prefix": "tarutani/vectors",
-          "include_globs": [
-            "**/*"
-          ],
-          "exclude_globs": []
-        }
-      ]
-    },
-    "tarutani_legacy_logs_prune": {
-      "description": "Prune-only legacy remote residue for old Tarutani logs prefix.",
-      "enabled_by_default": false,
-      "prune_allowed": true,
-      "targets": [
-        {
-          "local_root": "tarutani/logs",
-          "r2_prefix": "tarutani/logs",
-          "include_globs": [
-            "**/*"
-          ],
-          "exclude_globs": []
-        }
-      ]
-    },
-    "tarutani_legacy_derived_prune": {
-      "description": "Prune-only legacy remote residue for old Tarutani derived prefix.",
-      "enabled_by_default": false,
-      "prune_allowed": true,
-      "targets": [
-        {
-          "local_root": "tarutani/derived",
-          "r2_prefix": "tarutani/derived",
-          "include_globs": [
-            "**/*"
-          ],
-          "exclude_globs": []
-        }
-      ]
-    },
-    "tarutani_source": {
-      "description": "Tarutani source tree mirror.",
-      "enabled_by_default": true,
-      "prune_allowed": true,
-      "targets": [
-        {
-          "local_root": "data/Tarutani_data",
-          "r2_prefix": "data/Tarutani_data",
-          "include_globs": [
-            "**/*"
-          ],
-          "exclude_globs": []
-        }
-      ]
-    },
     "gallery_lists": {
       "description": "Gallery list assets (csv/xlsx/prompts).",
       "enabled_by_default": false,

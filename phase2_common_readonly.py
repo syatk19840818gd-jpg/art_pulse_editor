@@ -109,7 +109,6 @@ GALLERY_LIST_PATHS = {
     "liste": REPO_ROOT / "data/gallery_lists/gallery_list_liste.csv",
 }
 
-TARUTANI_TEXT_PATH = REPO_ROOT / "data/Tarutani_data/tarutani_text.jsonl"
 IMAGE_CACHE_ROOT = REPO_ROOT / get_image_cache_dir()
 
 
@@ -302,8 +301,6 @@ def _local_path_to_r2_key(path: Path) -> str:
         return "data/history/enrichment/artists/" + rel[len("data/history/enrichment/artists/") :]
     if rel.startswith("data/history/enrichment/exhibitions/"):
         return "data/history/enrichment/exhibitions/" + rel[len("data/history/enrichment/exhibitions/") :]
-    if rel.startswith("data/Tarutani_data/"):
-        return rel
     if rel.startswith("data/gallery_lists/"):
         return rel
     if rel.startswith("docs/"):

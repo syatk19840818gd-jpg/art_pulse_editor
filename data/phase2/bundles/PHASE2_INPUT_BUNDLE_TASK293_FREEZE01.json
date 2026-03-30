@@ -27,10 +27,6 @@
       "sha256": "77d9973aa2ca255a09a627d4e4bb40ac90e47fb0e4e4aadd5862feebd6bbfd2d"
     }
   ],
-  "tarutani_text_truth": {
-    "path": "data\\Tarutani_data\\tarutani_text.jsonl",
-    "sha256": "5bd2c810b894818a7e08a60f1574c19da81405b650960ade5a985dd91f83b1dc"
-  },
   "gallery_lists": {
     "frieze_london": {
       "path": "data\\gallery_lists\\gallery_list_frieze_london.csv",
