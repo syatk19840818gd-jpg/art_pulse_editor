@@ -77,11 +77,26 @@ def apply_global_font_styles() -> None:
         :root {
           --font-latin: "DIN 2014", "DIN Alternate", "DIN Next LT Pro", "DINPro", "DIN";
           --font-cjk: "Yu Gothic", "YuGothic", "游ゴシック", "Meiryo", sans-serif;
+          --font-display: "Aptos Display", "Palatino Linotype", "Book Antiqua", "Yu Mincho", "YuMincho", serif;
+          --ap-bg: #eef0f3;
+          --ap-bg-soft: #f6f7f9;
+          --ap-surface-strong: #ffffff;
+          --ap-border: rgba(34, 40, 48, 0.16);
+          --ap-border-strong: rgba(34, 40, 48, 0.26);
+          --ap-text: #17191c;
+          --ap-text-soft: #27303a;
+          --ap-muted: #66707b;
+          --ap-muted-soft: #8b939b;
+          --ap-link: #4a6278;
+          --ap-shadow-soft: 0 18px 44px rgba(22, 28, 33, 0.06);
+          --ap-shadow-card: 0 12px 30px rgba(22, 28, 33, 0.045);
+          --ap-radius-xl: 24px;
+          --ap-radius-md: 14px;
           color-scheme: light;
         }
         html, body {
-          background-color: #f5f7fb !important;
-          color: #111111 !important;
+          background: var(--ap-bg) !important;
+          color: var(--ap-text) !important;
         }
         .stApp,
         .stApp div,
@@ -103,6 +118,14 @@ def apply_global_font_styles() -> None:
         .stApp h6 {
           font-family: var(--font-latin), var(--font-cjk) !important;
         }
+        .stApp h1,
+        .stApp h2,
+        .stApp h3,
+        .stApp h4,
+        .stApp h5,
+        .stApp h6 {
+          color: var(--ap-text) !important;
+        }
         /* Keep expander toggle icons rendered with Material icon fonts. */
         .stApp [data-testid="stExpanderToggleIcon"],
         .stApp [data-testid="stExpanderToggleIcon"] *,
@@ -116,23 +139,47 @@ def apply_global_font_styles() -> None:
         .stApp [data-testid="stHeaderActionElements"] {
           display: none !important;
         }
+        .ap-section-heading {
+          margin: 0.05rem 0 0.28rem 0;
+        }
+        .ap-section-title {
+          margin: 0;
+          font-family: var(--font-display) !important;
+          font-weight: 500;
+          line-height: 1.22;
+          letter-spacing: 0.015em;
+          color: var(--ap-text);
+        }
+        .ap-section-explanation {
+          margin: 0 0 1.15rem 0;
+          color: var(--ap-text-soft);
+          font-weight: 500;
+          line-height: 1.72;
+          letter-spacing: 0.01em;
+        }
         .stApp [data-testid="stButton"] > button[data-testid="stBaseButton-tertiary"] {
           width: 100% !important;
           justify-content: center !important;
           align-items: center !important;
-          background: transparent !important;
+          background: var(--ap-bg) !important;
           border: none !important;
+          border-bottom: 1px solid var(--ap-border) !important;
           box-shadow: none !important;
-          padding: 0.26rem 0 !important;
-          margin: 0.46rem 0 !important;
+          padding: clamp(0.95rem, 1.7vw, 1.18rem) 0.2rem !important;
+          margin: 0 !important;
           min-height: auto !important;
           border-radius: 0 !important;
-          color: #111111 !important;
-          font-size: clamp(2rem, 2.6vw, 2.9rem) !important;
-          font-weight: 800 !important;
-          line-height: 1.16 !important;
-          letter-spacing: -0.01em !important;
+          color: var(--ap-text) !important;
+          font-family: var(--font-display) !important;
+          font-size: clamp(1.52rem, 2.15vw, 2.2rem) !important;
+          font-weight: 500 !important;
+          line-height: 1.2 !important;
+          letter-spacing: 0.02em !important;
           text-align: center !important;
+          transition:
+            color 0.18s ease,
+            border-color 0.18s ease,
+            transform 0.18s ease !important;
         }
         .stApp [data-testid="stButton"] > button[data-testid="stBaseButton-tertiary"] > div,
         .stApp [data-testid="stButton"] > button[data-testid="stBaseButton-tertiary"] > div > span {
@@ -154,93 +201,101 @@ def apply_global_font_styles() -> None:
         .stApp [data-testid="stButton"] > button[data-testid="stBaseButton-tertiary"]:focus,
         .stApp [data-testid="stButton"] > button[data-testid="stBaseButton-tertiary"]:focus-visible,
         .stApp [data-testid="stButton"] > button[data-testid="stBaseButton-tertiary"]:active {
-          background: transparent !important;
+          background: var(--ap-bg) !important;
           border: none !important;
+          border-bottom: 1px solid var(--ap-border-strong) !important;
           box-shadow: none !important;
-          color: #111111 !important;
+          color: #314456 !important;
+          transform: translateY(-1px);
         }
         .ap-top-nav-list-spacer {
-          height: clamp(0.8rem, 1.8vw, 1.6rem);
+          height: clamp(0.6rem, 1.6vw, 1.15rem);
         }
         .ap-top-nav-open-gap {
-          height: 1rem;
+          height: clamp(1rem, 2vw, 1.35rem);
         }
         .about-panel {
-          max-width: 1040px;
+          max-width: 1160px;
           margin: 0 auto;
-          padding: clamp(0.25rem, 0.8vw, 0.5rem) 0;
+          padding: clamp(0.2rem, 0.7vw, 0.4rem) 0 0 0;
         }
         .about-hero {
-          padding: clamp(0.4rem, 1vw, 0.8rem) 0 1.15rem 0;
-          border-bottom: 1px solid #e3e7ef;
-          margin-bottom: 1.15rem;
+          padding: 0 0 1.55rem 0;
+          border-bottom: 1px solid var(--ap-border);
+          margin-bottom: 1.5rem;
         }
         .about-eyebrow {
           margin: 0 0 0.4rem 0;
-          font-size: 0.86rem;
-          font-weight: 700;
+          font-size: 0.82rem;
+          font-weight: 600;
           letter-spacing: 0.08em;
           text-transform: uppercase;
-          color: #5f6b7a;
+          color: var(--ap-muted);
         }
         .about-title {
           margin: 0 0 0.7rem 0;
-          font-size: clamp(1.9rem, 3.2vw, 2.7rem);
-          line-height: 1.18;
-          font-weight: 800;
-          color: #111111;
+          font-family: var(--font-display) !important;
+          font-size: clamp(2rem, 3vw, 2.7rem);
+          line-height: 1.24;
+          font-weight: 500;
+          letter-spacing: 0.01em;
+          color: var(--ap-text);
         }
         .about-lead {
           margin: 0;
-          font-size: clamp(1rem, 1.4vw, 1.12rem);
-          line-height: 1.9;
-          color: #2b3442;
-          max-width: 58rem;
+          font-size: clamp(1rem, 1.25vw, 1.08rem);
+          line-height: 1.92;
+          color: var(--ap-text-soft);
+          max-width: 62rem;
         }
         .about-section {
-          margin-top: 1.35rem;
+          margin-top: 1.55rem;
         }
         .about-section-title {
-          margin: 0 0 0.8rem 0;
-          font-size: 1.08rem;
+          margin: 0 0 0.95rem 0;
+          font-size: 1.02rem;
           line-height: 1.35;
-          font-weight: 800;
-          color: #111111;
+          font-weight: 600;
+          color: var(--ap-text-soft);
+          letter-spacing: 0.02em;
         }
         .about-fair-list {
           display: grid;
-          gap: 0.7rem;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 1rem;
           margin: 0;
         }
         .about-fair-item,
         .about-feature-card {
-          background: #f8fafd;
-          border: 1px solid #e1e6ef;
-          border-radius: 12px;
+          background: var(--ap-surface-strong);
+          border: 1px solid var(--ap-border);
+          border-radius: var(--ap-radius-md);
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
         }
         .about-fair-item {
-          padding: 0.85rem 1rem;
+          padding: 1rem 1.05rem;
         }
         .about-fair-name {
           margin: 0 0 0.2rem 0;
           font-size: 1rem;
           line-height: 1.45;
-          font-weight: 800;
-          color: #111111;
+          font-weight: 600;
+          color: var(--ap-text);
         }
         .about-fair-desc {
           margin: 0;
-          font-size: 0.97rem;
-          line-height: 1.72;
-          color: #334155;
+          font-size: 0.96rem;
+          line-height: 1.74;
+          color: var(--ap-text-soft);
         }
         .about-feature-list {
           display: grid;
-          gap: 0.8rem;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 1rem;
           margin-top: 0.2rem;
         }
         .about-feature-card {
-          padding: 0.95rem 1rem;
+          padding: 1rem 1.05rem;
         }
         .about-feature-head {
           display: flex;
@@ -250,37 +305,89 @@ def apply_global_font_styles() -> None:
           flex-wrap: wrap;
         }
         .about-feature-no {
-          font-size: 0.92rem;
+          font-family: var(--font-display) !important;
+          font-size: 0.95rem;
           line-height: 1;
-          font-weight: 800;
-          color: #6b7280;
+          font-weight: 500;
+          color: var(--ap-muted);
           letter-spacing: 0.06em;
         }
         .about-feature-name {
-          font-size: 1.08rem;
+          font-size: 1.04rem;
           line-height: 1.35;
-          font-weight: 800;
-          color: #111111;
+          font-weight: 600;
+          color: var(--ap-text);
         }
         .about-feature-body {
           margin: 0;
-          font-size: 0.98rem;
-          line-height: 1.82;
-          color: #2f3a49;
+          font-size: 0.96rem;
+          line-height: 1.8;
+          color: var(--ap-text-soft);
+        }
+        .ap-gallery-kb-meta {
+          margin-top: 0.05rem;
+          margin-bottom: 0.95rem;
+          color: var(--ap-muted);
+          font-size: 0.82rem;
+          font-weight: 500;
+          letter-spacing: 0.02em;
+        }
+        .ap-gallery-kb-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 1rem;
+          margin-top: 0.2rem;
+        }
+        .ap-gallery-kb-col {
+          background: var(--ap-surface-strong);
+          border: 1px solid var(--ap-border);
+          border-radius: var(--ap-radius-md);
+          padding: 1rem 1.05rem 1.1rem;
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+        }
+        .ap-gallery-kb-col h4 {
+          margin: 0 0 0.85rem 0;
+          font-family: var(--font-display) !important;
+          font-size: 1.18rem;
+          font-weight: 500;
+          line-height: 1.32;
+          color: var(--ap-text);
+        }
+        .ap-gallery-kb-col ol {
+          margin: 0;
+          padding-left: 1.25rem;
+        }
+        .ap-gallery-kb-col li {
+          margin: 0;
+          padding: 0.16rem 0;
+          line-height: 1.54;
+          font-size: 0.97rem;
+          color: var(--ap-text-soft);
+        }
+        .ap-gallery-kb-col a {
+          color: var(--ap-link) !important;
+          text-decoration: none;
+          border-bottom: 1px solid rgba(74, 98, 120, 0.24);
         }
         @media (max-width: 900px) {
           .stApp [data-testid="stButton"] > button[data-testid="stBaseButton-tertiary"] {
-            padding: 0.22rem 0 !important;
-            font-size: clamp(1.35rem, 4.2vw, 1.95rem) !important;
+            padding: 0.82rem 0.15rem !important;
+            font-size: clamp(1.28rem, 4.3vw, 1.72rem) !important;
           }
           .about-hero {
-            padding-bottom: 1rem;
-            margin-bottom: 1rem;
+            padding-bottom: 1.15rem;
+            margin-bottom: 1.15rem;
+          }
+          .about-fair-list,
+          .about-feature-list,
+          .ap-gallery-kb-grid {
+            grid-template-columns: minmax(0, 1fr);
           }
           .about-fair-item,
-          .about-feature-card {
-            padding-left: 0.85rem;
-            padding-right: 0.85rem;
+          .about-feature-card,
+          .ap-gallery-kb-col {
+            padding-left: 0.9rem;
+            padding-right: 0.9rem;
           }
           .about-feature-head {
             gap: 0.45rem;
@@ -288,67 +395,82 @@ def apply_global_font_styles() -> None:
           }
         }
         .stApp {
-          --background-color: #f5f7fb !important;
-          --secondary-background-color: #ffffff !important;
-          --text-color: #111111 !important;
-          --primary-color: #0f62fe !important;
-          background-color: #f5f7fb !important;
-          color: #111111 !important;
+          --background-color: var(--ap-bg) !important;
+          --secondary-background-color: var(--ap-surface-strong) !important;
+          --text-color: var(--ap-text) !important;
+          --primary-color: #32495c !important;
+          background: var(--ap-bg) !important;
+          background-color: var(--ap-bg) !important;
+          color: var(--ap-text) !important;
         }
+        .stApp header,
         .stApp [data-testid="stAppViewContainer"],
         .stApp [data-testid="stMain"],
         .stApp [data-testid="stMainBlockContainer"],
+        .stApp .block-container,
+        .stApp [data-testid="stHeader"],
+        .stApp [data-testid="stToolbar"],
         .stApp [data-testid="stSidebar"] {
-          background-color: #f5f7fb !important;
-          color: #111111 !important;
+          background: var(--ap-bg) !important;
+          background-color: var(--ap-bg) !important;
+          color: var(--ap-text) !important;
         }
-        /* Layout: PC は広く、モバイルは画面幅に追従 */
         .stApp [data-testid="stMainBlockContainer"],
         .stApp .block-container {
-          max-width: min(1680px, 96vw) !important;
+          max-width: min(1540px, 94vw) !important;
           width: 100% !important;
-          padding-top: 1.0rem !important;
-          padding-left: clamp(0.75rem, 2vw, 2.25rem) !important;
-          padding-right: clamp(0.75rem, 2vw, 2.25rem) !important;
+          padding-top: clamp(1.1rem, 2.3vw, 2.35rem) !important;
+          padding-bottom: 2.4rem !important;
+          padding-left: clamp(0.95rem, 2.2vw, 2.75rem) !important;
+          padding-right: clamp(0.95rem, 2.2vw, 2.75rem) !important;
+        }
+        .stApp [data-testid="stHeadingWithActionElements"] {
+          position: relative;
+          margin-bottom: clamp(1.1rem, 2vw, 1.9rem) !important;
+        }
+        .stApp [data-testid="stHeadingWithActionElements"]::after {
+          content: "";
+          display: block;
+          width: min(180px, 28vw);
+          height: 1px;
+          margin: 1rem auto 0;
+          background: var(--ap-border-strong);
         }
         .stApp [data-testid="stHeadingWithActionElements"] h1 {
-          font-size: clamp(4rem, 5.2vw, 4.9rem) !important;
+          font-family: var(--font-display) !important;
+          font-size: clamp(3.5rem, 5vw, 4.85rem) !important;
           width: 100%;
           text-align: center !important;
-          margin-top: 0.45rem !important;
-          margin-bottom: clamp(1.3rem, 2.4vw, 2.2rem) !important;
-          line-height: 1.08 !important;
-        }
-        @media (max-width: 900px) {
-          .stApp [data-testid="stMainBlockContainer"],
-          .stApp .block-container {
-            max-width: 100vw !important;
-            padding-left: 0.55rem !important;
-            padding-right: 0.55rem !important;
-          }
-          .stApp [data-testid="stHeadingWithActionElements"] h1 {
-            font-size: clamp(2.7rem, 8.4vw, 3.25rem) !important;
-            margin-top: 0.2rem !important;
-            margin-bottom: 1.1rem !important;
-          }
+          margin: 0.5rem 0 0 !important;
+          line-height: 1.04 !important;
+          letter-spacing: 0.015em !important;
+          font-weight: 500 !important;
+          color: var(--ap-text) !important;
         }
         .stApp [data-testid="stVerticalBlockBorderWrapper"] {
-          background-color: #ffffff !important;
-          border: 1px solid #d9dbe2 !important;
-          border-radius: 12px !important;
+          background: var(--ap-surface-strong) !important;
+          border: 1px solid var(--ap-border) !important;
+          border-radius: calc(var(--ap-radius-xl) + 2px) !important;
+          box-shadow: var(--ap-shadow-soft) !important;
+          overflow: hidden !important;
+          padding: clamp(1.15rem, 2vw, 1.65rem) !important;
+        }
+        .stApp [data-testid="stVerticalBlockBorderWrapper"] > div[data-testid="stVerticalBlock"] {
+          gap: 0.3rem !important;
         }
         .advisor-toggle-spacer {
-          height: 2.1rem;
+          height: 1.9rem;
         }
         .advisor-generated-image-wrap {
           display: flex;
           justify-content: center;
-          margin: 0.25rem 0 0.35rem 0;
+          margin: 0.35rem 0 0.45rem 0;
         }
         .advisor-generated-image-link {
           display: block;
           width: min(100%, 560px);
           text-decoration: none;
+          border-bottom: none !important;
         }
         .advisor-generated-image-link img {
           display: block;
@@ -356,9 +478,10 @@ def apply_global_font_styles() -> None:
           height: auto;
           max-height: 68vh;
           object-fit: contain;
-          border-radius: 10px;
-          border: 1px solid #d9dbe2;
-          background: #f6f8fb;
+          border-radius: 14px;
+          border: 1px solid var(--ap-border);
+          background: var(--ap-bg-soft);
+          box-shadow: var(--ap-shadow-card);
         }
         .stApp [data-testid="stMarkdownContainer"],
         .stApp [data-testid="stCaptionContainer"],
@@ -367,101 +490,223 @@ def apply_global_font_styles() -> None:
         .stApp p,
         .stApp label,
         .stApp li {
-          color: #111111 !important;
+          color: var(--ap-text) !important;
+        }
+        .stApp p,
+        .stApp li {
+          line-height: 1.72 !important;
+        }
+        .stApp strong {
+          font-weight: 650 !important;
+        }
+        .stApp [data-testid="stMarkdownContainer"] h3,
+        .stApp [data-testid="stMarkdownContainer"] h4,
+        .stApp [data-testid="stMarkdownContainer"] h5 {
+          font-family: var(--font-display) !important;
+          font-weight: 500 !important;
+          line-height: 1.32 !important;
+          letter-spacing: 0.01em !important;
+          color: var(--ap-text) !important;
+        }
+        .stApp [data-testid="stMarkdownContainer"] h3 {
+          font-size: clamp(1.45rem, 2vw, 1.9rem) !important;
+          margin: 1rem 0 0.7rem 0 !important;
+        }
+        .stApp [data-testid="stMarkdownContainer"] h4 {
+          font-size: clamp(1.16rem, 1.6vw, 1.45rem) !important;
+          margin: 0.9rem 0 0.55rem 0 !important;
+        }
+        .stApp [data-testid="stCaptionContainer"],
+        .stApp [data-testid="stCaptionContainer"] p {
+          color: var(--ap-muted) !important;
+          font-size: 0.88rem !important;
+          line-height: 1.55 !important;
+          letter-spacing: 0.01em !important;
+        }
+        .stApp [data-testid="stWidgetLabel"] p,
+        .stApp [data-testid="stWidgetLabel"] span,
+        .stApp label[data-testid="stWidgetLabel"] {
+          color: var(--ap-text-soft) !important;
+          font-size: 0.92rem !important;
+          font-weight: 600 !important;
+          letter-spacing: 0.02em !important;
         }
         .stApp a {
-          color: #0a66c2 !important;
+          color: var(--ap-link) !important;
+          text-decoration: none !important;
+          border-bottom: 1px solid rgba(74, 98, 120, 0.24);
+          transition: border-color 0.18s ease, color 0.18s ease;
+        }
+        .stApp a:hover {
+          color: #314456 !important;
+          border-bottom-color: rgba(74, 98, 120, 0.52);
         }
         .stApp input,
         .stApp textarea,
         .stApp div[data-baseweb="select"] > div,
         .stApp div[data-baseweb="tag"] {
-          background-color: #ffffff !important;
-          color: #111111 !important;
-          border-color: #cfcfcf !important;
+          background-color: rgba(255, 255, 255, 0.94) !important;
+          color: var(--ap-text) !important;
+          border-color: var(--ap-border) !important;
         }
         .stApp input::placeholder,
         .stApp textarea::placeholder {
-          color: #6b7280 !important;
+          color: var(--ap-muted-soft) !important;
           opacity: 1 !important;
         }
         .stApp [data-testid="stTextInputRootElement"],
         .stApp [data-testid="stTextAreaRootElement"],
-        .stApp [data-testid="stSelectbox"] > div {
-          color: #111111 !important;
-        }
-        .stApp [data-testid="stButton"] > button {
-          background-color: #f3f4f6 !important;
-          color: #111111 !important;
-          border: 1px solid #cfcfcf !important;
-        }
-        .stApp [data-testid="stButton"] > button:disabled {
-          background-color: #f3f4f6 !important;
-          color: #6b7280 !important;
-          opacity: 1 !important;
-          border-color: #d5d8df !important;
-        }
+        .stApp [data-testid="stSelectbox"] > div,
         .stApp [data-testid="stFileUploaderDropzone"] {
-          background-color: #f8fafc !important;
-          color: #111111 !important;
-          border: 1px solid #d5d8df !important;
+          color: var(--ap-text) !important;
+          border-radius: var(--ap-radius-md) !important;
+          border: 1px solid var(--ap-border) !important;
+          background: rgba(255, 255, 255, 0.94) !important;
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82) !important;
+          transition:
+            background 0.18s ease,
+            border-color 0.18s ease,
+            box-shadow 0.18s ease !important;
         }
-        .stApp section[data-testid="stFileUploader"] button {
-          background-color: #f3f4f6 !important;
-          color: #111111 !important;
-          border: 1px solid #cfcfcf !important;
+        .stApp [data-testid="stTextInputRootElement"]:focus-within,
+        .stApp [data-testid="stTextAreaRootElement"]:focus-within,
+        .stApp div[data-baseweb="select"]:focus-within > div,
+        .stApp [data-testid="stFileUploaderDropzone"]:focus-within {
+          background: #ffffff !important;
+          border-color: var(--ap-border-strong) !important;
+          box-shadow: 0 0 0 4px rgba(74, 98, 120, 0.08) !important;
         }
+        .stApp [data-testid="stTextInputRootElement"] input,
+        .stApp [data-testid="stTextAreaRootElement"] textarea,
+        .stApp div[data-baseweb="select"] input,
+        .stApp div[data-baseweb="select"] span {
+          font-size: 0.97rem !important;
+          line-height: 1.55 !important;
+        }
+        .stApp [data-testid="stButton"] > button:not([data-testid="stBaseButton-tertiary"]),
+        .stApp section[data-testid="stFileUploader"] button,
         .stApp [data-testid="stFileUploaderDropzone"] [data-baseweb="button"],
         .stApp [data-testid="stFileUploaderDropzone"] button {
-          background-color: #f3f4f6 !important;
-          color: #111111 !important;
-          border: 1px solid #cfcfcf !important;
+          background: #ffffff !important;
+          color: var(--ap-text) !important;
+          border: 1px solid var(--ap-border-strong) !important;
+          border-radius: 999px !important;
+          min-height: 2.8rem !important;
+          padding: 0.5rem 1.1rem !important;
+          box-shadow: 0 6px 14px rgba(22, 28, 33, 0.04) !important;
+          font-size: 0.95rem !important;
+          font-weight: 600 !important;
+          letter-spacing: 0.02em !important;
+          transition:
+            background 0.18s ease,
+            border-color 0.18s ease,
+            box-shadow 0.18s ease,
+            transform 0.18s ease !important;
+        }
+        .stApp [data-testid="stButton"] > button:not([data-testid="stBaseButton-tertiary"]):hover,
+        .stApp [data-testid="stButton"] > button:not([data-testid="stBaseButton-tertiary"]):focus-visible,
+        .stApp section[data-testid="stFileUploader"] button:hover,
+        .stApp [data-testid="stFileUploaderDropzone"] [data-baseweb="button"]:hover,
+        .stApp [data-testid="stFileUploaderDropzone"] button:hover {
+          background: #f8f9fb !important;
+          border-color: rgba(60, 68, 77, 0.28) !important;
+          box-shadow: 0 10px 18px rgba(22, 28, 33, 0.06) !important;
+          transform: translateY(-1px);
+        }
+        .stApp [data-testid="stButton"] > button {
+          outline: none !important;
+        }
+        .stApp [data-testid="stButton"] > button:disabled,
+        .stApp section[data-testid="stFileUploader"] button:disabled,
+        .stApp [data-testid="stFileUploaderDropzone"] button:disabled {
+          background: #f1f2f5 !important;
+          color: var(--ap-muted-soft) !important;
+          opacity: 1 !important;
+          box-shadow: none !important;
+          border-color: var(--ap-border) !important;
+        }
+        .stApp [data-testid="stFileUploaderDropzone"] {
+          padding: 1rem 1.1rem !important;
+          background: #ffffff !important;
+        }
+        .stApp [data-testid="stFileUploaderDropzone"] [data-testid="stMarkdownContainer"] p,
+        .stApp [data-testid="stFileUploaderDropzoneInstructions"] span {
+          color: var(--ap-muted) !important;
+        }
+        .stApp [data-baseweb="checkbox"] label {
+          color: var(--ap-text-soft) !important;
+          font-size: 0.92rem !important;
+        }
+        .stApp [data-baseweb="checkbox"] [role="checkbox"] {
+          border-radius: 6px !important;
+          border-color: var(--ap-border-strong) !important;
         }
         .stApp [data-testid="stDataFrame"] {
+          border: 1px solid var(--ap-border) !important;
+          border-radius: var(--ap-radius-md) !important;
+          overflow: hidden !important;
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
           --gdg-bg-cell: #ffffff;
-          --gdg-bg-cell-medium: #f9fafb;
-          --gdg-bg-header: #f1f3f7;
-          --gdg-bg-header-hovered: #e9edf5;
-          --gdg-bg-bubble: #f8fafc;
-          --gdg-bg-bubble-selected: #e8eefc;
-          --gdg-bg-search-result: #fff7d6;
-          --gdg-border-color: #d4d7de;
-          --gdg-horizontal-border-color: #e2e6ee;
-          --gdg-drilldown-border: #d4d7de;
-          --gdg-link-color: #0a66c2;
-          --gdg-text-dark: #111111;
-          --gdg-text-medium: #374151;
-          --gdg-text-light: #6b7280;
-          --gdg-text-bubble: #111111;
+          --gdg-bg-cell-medium: #f6f7fa;
+          --gdg-bg-header: #eef1f5;
+          --gdg-bg-header-hovered: #e4e8ed;
+          --gdg-bg-bubble: #f7f8fb;
+          --gdg-bg-bubble-selected: #edf1f6;
+          --gdg-bg-search-result: #e7edf6;
+          --gdg-border-color: rgba(34, 40, 48, 0.16);
+          --gdg-horizontal-border-color: rgba(34, 40, 48, 0.12);
+          --gdg-drilldown-border: rgba(34, 40, 48, 0.16);
+          --gdg-link-color: #4a6278;
+          --gdg-text-dark: #17191c;
+          --gdg-text-medium: #3d4650;
+          --gdg-text-light: #66707b;
+          --gdg-text-bubble: #17191c;
         }
         .stApp [data-testid="stDataFrame"] canvas {
           background-color: #ffffff !important;
         }
+        .stApp [data-testid="stExpander"] {
+          border: 1px solid var(--ap-border) !important;
+          border-radius: var(--ap-radius-md) !important;
+          background: var(--ap-surface-strong) !important;
+          box-shadow: none !important;
+        }
+        .stApp [data-testid="stAlert"] {
+          border: 1px solid var(--ap-border) !important;
+          border-radius: var(--ap-radius-md) !important;
+          background: var(--ap-surface-strong) !important;
+          color: var(--ap-text) !important;
+          box-shadow: none !important;
+        }
         .stApp [data-testid="stJson"],
         .stApp [data-testid="stJson"] * {
           background-color: #ffffff !important;
-          color: #111111 !important;
+          color: var(--ap-text) !important;
         }
         .stApp [data-testid="stCodeBlock"],
         .stApp [data-testid="stCodeBlock"] * {
           background-color: #ffffff !important;
-          color: #111111 !important;
+          color: var(--ap-text) !important;
         }
         .stApp pre, .stApp code {
-          background-color: #f8fafc !important;
-          color: #111111 !important;
+          background-color: var(--ap-bg-soft) !important;
+          color: var(--ap-text) !important;
         }
-        /* Art Pulse image gallery: PC横並び / モバイル自動追従 */
         .ap-gallery {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-          gap: 0.9rem;
-          margin: 0.4rem 0 1.1rem 0;
+          gap: 1rem;
+          margin: 0.75rem 0 1.15rem 0;
         }
         .ap-gallery-item {
           display: flex;
           flex-direction: column;
-          gap: 0.35rem;
+          gap: 0.55rem;
+          padding: 0.75rem;
+          border: 1px solid var(--ap-border);
+          border-radius: var(--ap-radius-md);
+          background: var(--ap-surface-strong);
+          box-shadow: var(--ap-shadow-card);
         }
         .ap-gallery-thumb {
           display: flex;
@@ -470,9 +715,10 @@ def apply_global_font_styles() -> None:
           width: 100%;
           height: 260px;
           overflow: hidden;
-          border-radius: 10px;
-          border: 1px solid #d9dbe2;
-          background: #f4f6fb;
+          border-radius: 12px;
+          border: 1px solid var(--ap-border);
+          background: var(--ap-bg-soft);
+          border-bottom: none !important;
         }
         .ap-gallery-thumb img {
           width: auto;
@@ -488,19 +734,19 @@ def apply_global_font_styles() -> None:
           justify-content: center;
           width: 100%;
           height: 260px;
-          border-radius: 10px;
-          border: 1px solid #d9dbe2;
-          background: #f4f6fb;
-          color: #5f6b7a;
+          border-radius: 12px;
+          border: 1px solid var(--ap-border);
+          background: var(--ap-bg-soft);
+          color: var(--ap-muted);
           font-size: 0.86rem;
           line-height: 1.45;
           text-align: center;
           padding: 0.8rem;
         }
         .ap-gallery-source {
-          font-size: 0.83rem;
-          line-height: 1.25;
-          color: #374151;
+          font-size: 0.81rem;
+          line-height: 1.45;
+          color: var(--ap-muted);
           word-break: break-word;
         }
         @media (max-width: 900px) {
@@ -520,19 +766,21 @@ def apply_global_font_styles() -> None:
           margin: 0.4rem 0 0.9rem 0;
         }
         .exh-search-card {
-          border: 1px solid #d9dbe2;
-          border-radius: 10px;
-          background: #ffffff;
-          padding: 0.65rem;
+          border: 1px solid var(--ap-border);
+          border-radius: var(--ap-radius-md);
+          background: var(--ap-surface-strong);
+          padding: 0.95rem;
           display: flex;
           flex-direction: column;
-          gap: 0.5rem;
+          gap: 0.72rem;
+          box-shadow: var(--ap-shadow-card);
         }
         .exh-search-title {
-          font-size: 0.98rem;
-          line-height: 1.4;
-          font-weight: 700;
-          color: #111111;
+          font-family: var(--font-display) !important;
+          font-size: 1.04rem;
+          line-height: 1.42;
+          font-weight: 500;
+          color: var(--ap-text);
           margin: 0;
         }
         .exh-search-thumb {
@@ -542,9 +790,9 @@ def apply_global_font_styles() -> None:
           width: 100%;
           min-height: 240px;
           max-height: 240px;
-          border-radius: 8px;
-          border: 1px solid #d9dbe2;
-          background: #f6f8fb;
+          border-radius: 12px;
+          border: 1px solid var(--ap-border);
+          background: var(--ap-bg-soft);
           overflow: hidden;
           position: relative;
         }
@@ -556,7 +804,7 @@ def apply_global_font_styles() -> None:
           object-fit: contain !important;
           object-position: center center !important;
           display: block;
-          background: #f6f8fb;
+          background: var(--ap-bg-soft);
         }
         .exh-search-fallback {
           display: flex;
@@ -565,26 +813,26 @@ def apply_global_font_styles() -> None:
           width: 100%;
           min-height: 240px;
           max-height: 240px;
-          border-radius: 8px;
-          border: 1px solid #d9dbe2;
-          color: #5f6b7a;
+          border-radius: 12px;
+          border: 1px solid var(--ap-border);
+          color: var(--ap-muted);
           font-size: 0.88rem;
           line-height: 1.45;
           text-align: center;
-          background: #f6f8fb;
+          background: var(--ap-bg-soft);
           padding: 0.8rem;
         }
         .exh-search-source {
-          font-size: 0.82rem;
-          line-height: 1.3;
-          color: #374151;
+          font-size: 0.81rem;
+          line-height: 1.42;
+          color: var(--ap-muted);
           word-break: break-word;
           margin: 0;
         }
         .exh-search-summary {
-          font-size: 0.94rem;
-          line-height: 1.55;
-          color: #111111;
+          font-size: 0.95rem;
+          line-height: 1.72;
+          color: var(--ap-text-soft);
           margin: 0;
           max-height: 15.5rem;
           overflow-y: auto;
@@ -596,11 +844,11 @@ def apply_global_font_styles() -> None:
         .exh-results-scroll {
           display: flex;
           align-items: flex-start;
-          gap: 1rem;
+          gap: 1.05rem;
           overflow-x: auto;
           overflow-y: hidden;
-          margin: 0.4rem 0 0.35rem 0;
-          padding-bottom: 0.35rem;
+          margin: 0.75rem 0 0.15rem 0;
+          padding-bottom: 0.55rem;
           overscroll-behavior-x: contain;
           -webkit-overflow-scrolling: touch;
           scroll-behavior: smooth;
@@ -608,23 +856,38 @@ def apply_global_font_styles() -> None:
         .advisor-ref-scroll {
           display: flex;
           align-items: flex-start;
-          gap: 1rem;
+          gap: 1.05rem;
           overflow-x: auto;
           overflow-y: hidden;
-          margin: 0.4rem 0 0.35rem 0;
-          padding-bottom: 0.35rem;
+          margin: 0.75rem 0 0.15rem 0;
+          padding-bottom: 0.55rem;
           overscroll-behavior-x: contain;
           -webkit-overflow-scrolling: touch;
           scroll-behavior: smooth;
         }
+        .artist-search-scroll::-webkit-scrollbar,
+        .exh-results-scroll::-webkit-scrollbar,
+        .advisor-ref-scroll::-webkit-scrollbar {
+          height: 6px;
+        }
+        .artist-search-scroll::-webkit-scrollbar-thumb,
+        .exh-results-scroll::-webkit-scrollbar-thumb,
+        .advisor-ref-scroll::-webkit-scrollbar-thumb,
+        .exh-search-summary::-webkit-scrollbar-thumb {
+          background: rgba(102, 112, 123, 0.36);
+          border-radius: 999px;
+        }
+        .exh-search-summary::-webkit-scrollbar {
+          width: 6px;
+        }
         .artist-search-scroll .exh-search-card,
         .exh-results-scroll .exh-search-card {
-          flex: 0 0 clamp(300px, 26vw, 460px);
+          flex: 0 0 clamp(310px, 26vw, 430px);
           height: 590px;
           overflow: hidden;
         }
         .advisor-ref-scroll .exh-search-card {
-          flex: 0 0 clamp(300px, 26vw, 460px);
+          flex: 0 0 clamp(310px, 26vw, 430px);
           height: 590px;
           overflow: hidden;
         }
@@ -654,18 +917,19 @@ def apply_global_font_styles() -> None:
           width: 100%;
           min-height: 140px;
           max-height: 140px;
-          border-radius: 8px;
-          border: 1px solid #d9dbe2;
-          background: #f6f8fb;
+          border-radius: 10px;
+          border: 1px solid var(--ap-border);
+          background: var(--ap-bg-soft);
           overflow: hidden;
           position: relative;
+          border-bottom: none !important;
         }
         .artist-search-thumb img {
           width: 100%;
           height: 100%;
           object-fit: contain;
           display: block;
-          background: #f6f8fb;
+          background: var(--ap-bg-soft);
         }
         .artist-search-scroll .exh-search-fallback {
           min-height: 140px;
@@ -679,17 +943,17 @@ def apply_global_font_styles() -> None:
           display: inline-flex;
           align-items: center;
           gap: 0.5rem;
-          font-size: 0.95rem;
-          line-height: 1.4;
-          color: rgba(49, 51, 63, 0.6);
-          margin-top: 0.15rem;
-          margin-bottom: 0.15rem;
+          font-size: 0.93rem;
+          line-height: 1.45;
+          color: var(--ap-muted);
+          margin-top: 0.2rem;
+          margin-bottom: 0.2rem;
         }
         .ap-progress-spinner {
           width: 0.95rem;
           height: 0.95rem;
-          border: 2px solid rgba(49, 51, 63, 0.25);
-          border-top-color: rgba(49, 51, 63, 0.6);
+          border: 2px solid rgba(74, 98, 120, 0.18);
+          border-top-color: rgba(74, 98, 120, 0.52);
           border-radius: 50%;
           animation: ap-spin 0.9s linear infinite;
           flex: 0 0 auto;
@@ -698,6 +962,19 @@ def apply_global_font_styles() -> None:
           to { transform: rotate(360deg); }
         }
         @media (max-width: 900px) {
+          .stApp [data-testid="stMainBlockContainer"],
+          .stApp .block-container {
+            max-width: 100vw !important;
+            padding-left: 0.65rem !important;
+            padding-right: 0.65rem !important;
+          }
+          .stApp [data-testid="stHeadingWithActionElements"] h1 {
+            font-size: clamp(2.75rem, 8.2vw, 3.35rem) !important;
+          }
+          .stApp [data-testid="stVerticalBlockBorderWrapper"] {
+            padding: 1rem !important;
+            border-radius: 18px !important;
+          }
           .exh-search-grid {
             grid-template-columns: 1fr;
             gap: 0.8rem;
@@ -776,8 +1053,9 @@ def render_header() -> None:
 def _render_mode_heading(text: str) -> None:
     st.markdown(
         (
-            f'<h3 style="margin:0.15rem 0 0.6rem 0; '
-            f'font-size:{MODE_HEADING_FONT_SIZE_PX}px; font-weight:700;">{text}</h3>'
+            '<div class="ap-section-heading">'
+            f'<h3 class="ap-section-title" style="font-size:{MODE_HEADING_FONT_SIZE_PX}px;">{text}</h3>'
+            "</div>"
         ),
         unsafe_allow_html=True,
     )
@@ -786,8 +1064,7 @@ def _render_mode_heading(text: str) -> None:
 def _render_mode_explanation(text: str) -> None:
     st.markdown(
         (
-            f'<p style="margin:0.1rem 0 0.7rem 0; color:#111111; font-weight:550; '
-            f'font-size:{EXPLANATION_OF_MODES_FONT_SIZE_PX}px;">{text}</p>'
+            f'<p class="ap-section-explanation" style="font-size:{EXPLANATION_OF_MODES_FONT_SIZE_PX}px;">{text}</p>'
         ),
         unsafe_allow_html=True,
     )
@@ -2921,62 +3198,6 @@ def render_gallery_list() -> None:
             label = f"{linked_name}（{escape(kana_info)}）" if kana_info else linked_name
             items.append(f"<li>{label}</li>")
         return "".join(items)
-
-    st.markdown(
-        """
-        <style>
-        .ap-gallery-kb-meta {
-          margin-top: -0.2rem;
-          margin-bottom: 0.8rem;
-          color: #8b8f99;
-          font-size: 0.78rem;
-          font-weight: 400;
-          letter-spacing: 0.01em;
-        }
-        .ap-gallery-kb-grid {
-          display: grid;
-          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-          gap: 2rem;
-          margin-top: 0.2rem;
-        }
-        .ap-gallery-kb-col h4 {
-          margin: 0 0 0.4rem 0;
-          font-size: 1.4rem;
-          font-weight: 500;
-          color: #23262f;
-        }
-        .ap-gallery-kb-col ol {
-          margin: 0;
-          padding-left: 1.6rem;
-        }
-        .ap-gallery-kb-col li {
-          margin: 0;
-          padding: 0.06rem 0;
-          line-height: 1.24;
-          font-size: 1.2rem;
-          color: #2f3440;
-        }
-        .ap-gallery-kb-col a {
-          color: #3f58a8;
-          text-decoration: underline;
-        }
-        @media (max-width: 900px) {
-          .ap-gallery-kb-grid {
-            grid-template-columns: minmax(0, 1fr);
-            gap: 1.2rem;
-          }
-          .ap-gallery-kb-col h4 {
-            font-size: 1.2rem;
-          }
-          .ap-gallery-kb-col li {
-            font-size: 0.95rem;
-            line-height: 1.32;
-          }
-        }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
 
     st.markdown(
         f'<div class="ap-gallery-kb-meta">総ギャラリー数/{total_count}　Frieze/{frieze_count}　Liste/{liste_count}</div>',
