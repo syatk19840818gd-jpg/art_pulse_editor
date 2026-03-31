@@ -13,13 +13,15 @@ from urllib.parse import urlparse
 
 import requests
 
+from phase1_ledger_contract import get_phase1_logs_dir
+
 SOURCE_CLI = "run_phase1_network_preflight.py"
 SEARCH_CSVS = [
     Path("data/gallery_lists/gallery_list_frieze_london.csv"),
     Path("data/gallery_lists/gallery_list_liste.csv"),
 ]
 PROFILE_JSON = Path("config/phase1_network_preflight_profile.json")
-LOG_DIR = Path("data/phase1_seed10/logs")
+LOG_DIR = get_phase1_logs_dir()
 DEFAULT_TIMEOUT = 8
 DEFAULT_SAMPLE_SIZE = 20
 DEFAULT_DNS_THRESHOLD = 0.8

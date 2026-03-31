@@ -1,5 +1,5 @@
 02_RAG_SPEC_DERIVED
-版: 2026-03-30 JST
+版: 2026-03-31 JST
 参照正本: `docs/01_PROJECT_SPEC_CURRENT_FULL.docx`
 
 目的
@@ -51,8 +51,13 @@ CARD 05: app feature baseline
 
 CARD 06: storage and sync
 - R2 remote mutation は guarded flow でのみ扱う。
-- local cleanup や docs sync は remote apply と切り離して扱う。
-- prune は plan / review / apply を分ける。
+- R2 の本契約は current-only mirror とし、`data/current` 全体を 1 scope で扱う。
+- R2 log canonical path は `logs/r2_sync/` とし、plan / apply / post-check / listing / run log はこの 1 レーンに統一する。旧 `data/r2_auto_sync/` レーンは retired とする。
+- `data/history` は R2 sync 対象外とし、GitHub 側の保持に寄せる。R2 上の history residue cleanup は 2026-03-31 に完了済み。
+- apply は `sync` 1 回で current scope の upload + delete を反映し、例外は current 外の明示 scope に限定する。
+- `phase1_seed10` は R2 mainline 契約外の legacy residue とし、2026-03-31 の実R2 listing で確認された hidden `.bak` object 1 件を削除して remote residue cleanup を完了した。`phase1_seed10` は R2 にも GitHub にも保持せず、必要なら local-only に限定する。
+- 新規 RAG 生成物は `data/current/...` だけを正規出力先とし、`data/phase1_seed10/...` への新規書き込みは read fallback を除いて禁止する。
+- local legacy logs / preview helpers は残りうるが、default R2 sync 本流には含めない。継続利用する場合も canonical output は `data/current/...` に固定し、preview / request report / legacy logs / trial artifacts は `data/runtime/...` の中立 path に寄せる。
 
 CARD 07: output hygiene
 - raw heading / source-like label / metadata leak を通常回答へ出さない。

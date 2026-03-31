@@ -13,7 +13,11 @@ from dotenv import load_dotenv
 from openai import OpenAI
 
 from enrichment_batch_common import extract_response_text_from_body
-from phase2_art_pulse_config import get_current_raw_paths, get_enrichment_runtime_requests_path
+from phase2_art_pulse_config import (
+    get_current_raw_paths,
+    get_enrichment_preview_dir,
+    get_enrichment_runtime_requests_path,
+)
 
 TARGET_YEAR = 2025
 RAG_CATEGORY = "exhibitions_text"
@@ -21,7 +25,7 @@ RAG_CATEGORY = "exhibitions_text"
 RAW_INPUT_PATHS = get_current_raw_paths("exhibitions", TARGET_YEAR)
 
 REQUESTS_OUTPUT_PATH = get_enrichment_runtime_requests_path("exhibitions", TARGET_YEAR)
-PREVIEW_OUTPUT_DIR = Path("data/phase1_seed10/derived")
+PREVIEW_OUTPUT_DIR = get_enrichment_preview_dir("exhibitions")
 
 ENRICH_TEXT_MODEL = os.getenv("ENRICH_TEXT_MODEL", "gpt-5-mini")
 ENRICH_USE_OPENAI_BATCH = os.getenv("ENRICH_USE_OPENAI_BATCH", "1")

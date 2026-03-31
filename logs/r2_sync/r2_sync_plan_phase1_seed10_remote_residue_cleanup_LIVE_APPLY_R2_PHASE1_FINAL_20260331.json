@@ -1,0 +1,51 @@
+{
+  "artifact_kind": "r2_sync_plan",
+  "schema_version": "v2",
+  "generated_at": "2026-03-31T02:07:23Z",
+  "command": "sync",
+  "scope": "phase1_seed10_remote_residue_cleanup",
+  "description": "One-time cleanup for legacy R2 phase1_seed10 residue. Remote prefix must converge to empty; uploads are forbidden.",
+  "enabled_by_default": false,
+  "sync_mode": "prune_only",
+  "uploads_enabled": false,
+  "deletes_enabled": true,
+  "run_id": "LIVE_APPLY_R2_PHASE1_FINAL_20260331",
+  "bucket_env_key": "R2_BUCKET",
+  "bucket": "art-pulse-editor",
+  "local_stats": {
+    "roots_missing": [
+      "_r2_cleanup/phase1_seed10_remote_empty"
+    ],
+    "local_count": 0,
+    "local_total_size_bytes": 0
+  },
+  "remote_scanned_count": 1,
+  "unchanged_count": 0,
+  "would_upload_count": 0,
+  "would_delete_count": 1,
+  "would_prune_count": 1,
+  "scope_hash": "be27c97b2a950b8b653f2fb736a8aa54f1a12c6322275e935fe390b6f3af90af",
+  "input_fingerprint": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "code_fingerprint": "3fc037b168e9176c5e17bc7bd95d283096cb53c4bccd2ba43df4dc59171f792b",
+  "prune_candidates_fingerprint": "b116ff69be2d9c964e212915c48f77890c0e227fc8ca271ac6067501524b3c67",
+  "targets": [
+    {
+      "local_root": "_r2_cleanup/phase1_seed10_remote_empty",
+      "r2_prefix": "phase1_seed10",
+      "include_globs": [
+        "**/*"
+      ],
+      "exclude_globs": [],
+      "ignore_global_excludes": true
+    }
+  ],
+  "would_upload": [],
+  "would_prune": [
+    {
+      "r2_key": "phase1_seed10/logs/failed_fetches_artists_seed10_2025.json.bak_20260301_134210",
+      "reason": "REMOTE_ONLY_NOT_IN_LOCAL_SCOPE",
+      "size_bytes": 1373,
+      "etag": "77a97020c76ffeede06b44925464d02d"
+    }
+  ]
+}

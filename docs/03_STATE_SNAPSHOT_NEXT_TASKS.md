@@ -1,6 +1,6 @@
 03_STATE_SNAPSHOT_NEXT_TASKS
 PROJECT_SLUG: ART_PULSE_EDITOR
-LAST_UPDATED: 2026-03-30 JST
+LAST_UPDATED: 2026-03-31 JST
 
 DOC_PATHS
 - SSOT_01: `./docs/01_PROJECT_SPEC_CURRENT_FULL.docx`
@@ -30,10 +30,23 @@ CURRENT OPERATING RULES
 - shared/common remains feature-neutral
 - fetch / enrichment / vectorize / sync keeps family separation
 - Feature 7 remains an independent feature (not absorbed into Advisor)
-- R2 apply / prune is executed only as explicit task
+- R2 default sync contract is current-only mirror: `data/current` -> `data/current`
+- R2 log canonical path is `logs/r2_sync/`; retired `data/r2_auto_sync/` lane must not be recreated
+- one `sync` run reflects additions and deletions for current in the same scope
+- `data/history` is excluded from R2 sync and is retained on GitHub side only
+- `phase1_seed10` is retired from R2 and GitHub; keep it local-only only when a manual legacy helper still needs it
+- new RAG outputs must write to `data/current/...` only
+- preview / request report / legacy logs / trial artifacts use `data/runtime/...` neutral lanes, not `data/phase1_seed10/...`
+- legacy local `phase1_seed10` helpers may remain on disk, but remote `phase1_seed10` is not part of the default sync mainline and new writes must not revive that path
 
 NEXT_TASKS
-- [x] R2 remote residue prune by narrow scopes completed (post-check: narrow/broad `would_prune=0`)
+- [x] R2 current-only mirror contract finalized in `run_r2_sync.py` / `config/r2_sync_targets.json`
+- [x] R2 log lane unified to `logs/r2_sync/` and retired `data/r2_auto_sync/`
+- [x] `data/history` removed from R2 sync targets
+- [x] history remote residue cleanup applied live on R2 and post-check confirmed `would_prune=0`
+- [x] `phase1_seed10` remote residue cleanup applied live on R2; final actual listing confirmed hidden `.bak` residue removed and prefix now empty
+- [x] local `phase1_seed10` write paths retired; canonical RAG outputs remain `data/current/...` and local-only helper artifacts now use neutral runtime paths
+- [x] Tarutani_data remote residue cleanup applied live on R2 and post-check confirmed `would_prune=0`
 - [x] Feature 6 Gallery list read-only quality verify-first completed (no issue found)
 - [x] Feature 3 / Feature 4 / Feature 7 current-only runtime verify-first completed (no regression found)
 - [ ] Continue main roadmap in explicit-user-task mode (cleanup lane remains closed)

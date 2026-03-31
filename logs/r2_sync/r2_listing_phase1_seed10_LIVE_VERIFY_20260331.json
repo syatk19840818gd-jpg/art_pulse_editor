@@ -1,0 +1,25 @@
+{
+  "artifact_kind": "r2_listing",
+  "generated_at": "2026-03-31T02:07:05Z",
+  "bucket": "art-pulse-editor",
+  "prefix": "phase1_seed10",
+  "object_count": 1,
+  "objects": [
+    {
+      "key": "phase1_seed10/logs/failed_fetches_artists_seed10_2025.json.bak_20260301_134210",
+      "size": 1373
+    }
+  ],
+  "placeholder_heads": [
+    {
+      "key": "phase1_seed10",
+      "exists": false,
+      "code": "404"
+    },
+    {
+      "key": "phase1_seed10/",
+      "exists": false,
+      "code": "404"
+    }
+  ]
+}

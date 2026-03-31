@@ -25,8 +25,15 @@ R2_ALIAS = {
 }
 
 DEFAULT_CONFIG = Path("config/r2_sync_targets.json")
-DEFAULT_LOG_DIR = Path("data/phase1_seed10/logs")
-COMMANDS = {"plan", "apply-upload", "apply-prune"}
+# Canonical location for active R2 sync artifacts. Retired auto-sync logs/state
+# must not recreate a parallel lane under data/r2_auto_sync.
+DEFAULT_LOG_DIR = Path("logs/r2_sync")
+SYNC_MODE_MIRROR = "mirror"
+SYNC_MODE_UPLOAD_ONLY = "upload_only"
+SYNC_MODE_PRUNE_ONLY = "prune_only"
+SYNC_MODES = {SYNC_MODE_MIRROR, SYNC_MODE_UPLOAD_ONLY, SYNC_MODE_PRUNE_ONLY}
+LEGACY_APPLY_COMMANDS = {"apply-upload", "apply-prune"}
+COMMANDS = {"plan", "sync", *LEGACY_APPLY_COMMANDS}
 
 
 @dataclass(frozen=True)
@@ -35,6 +42,7 @@ class ScopeTarget:
     r2_prefix: str
     include_globs: tuple[str, ...]
     exclude_globs: tuple[str, ...]
+    ignore_global_excludes: bool
 
 
 @dataclass(frozen=True)
@@ -42,8 +50,16 @@ class ScopeConfig:
     name: str
     description: str
     enabled_by_default: bool
-    prune_allowed: bool
+    sync_mode: str
     targets: tuple[ScopeTarget, ...]
+
+    @property
+    def uploads_enabled(self) -> bool:
+        return self.sync_mode in {SYNC_MODE_MIRROR, SYNC_MODE_UPLOAD_ONLY}
+
+    @property
+    def deletes_enabled(self) -> bool:
+        return self.sync_mode in {SYNC_MODE_MIRROR, SYNC_MODE_PRUNE_ONLY}
 
 
 @dataclass(frozen=True)
@@ -61,6 +77,16 @@ class RemoteObject:
     key: str
     size_bytes: int
     etag: str
+
+
+@dataclass(frozen=True)
+class PlannedScopeRun:
+    scope: ScopeConfig
+    scope_run_id: str
+    plan_payload: dict[str, Any]
+    local_objects: list[LocalObject]
+    would_upload: list[dict[str, Any]]
+    would_prune: list[dict[str, Any]]
 
 
 def utc_now_iso() -> str:
@@ -205,6 +231,7 @@ def load_scope_config(config_path: Path) -> tuple[dict[str, ScopeConfig], tuple[
             r2_prefix = str(row.get("r2_prefix", "")).strip().strip("/")
             include_globs = tuple(str(x) for x in row.get("include_globs", ["**/*"]))
             exclude_globs = tuple(str(x) for x in row.get("exclude_globs", []))
+            ignore_global_excludes = bool(row.get("ignore_global_excludes", False))
             if not local_root.as_posix():
                 raise RuntimeError(f"local_root missing in scope={scope_name}")
             if not r2_prefix:
@@ -215,14 +242,22 @@ def load_scope_config(config_path: Path) -> tuple[dict[str, ScopeConfig], tuple[
                     r2_prefix=r2_prefix,
                     include_globs=include_globs,
                     exclude_globs=exclude_globs,
+                    ignore_global_excludes=ignore_global_excludes,
                 )
             )
+
+        raw_sync_mode = str(scope_obj.get("sync_mode", "")).strip().lower()
+        if not raw_sync_mode:
+            raw_sync_mode = SYNC_MODE_MIRROR if bool(scope_obj.get("prune_allowed", True)) else SYNC_MODE_UPLOAD_ONLY
+        if raw_sync_mode not in SYNC_MODES:
+            valid_modes = ", ".join(sorted(SYNC_MODES))
+            raise RuntimeError(f"invalid_sync_mode:{scope_name}:{raw_sync_mode} valid=[{valid_modes}]")
 
         scopes[scope_name] = ScopeConfig(
             name=scope_name,
             description=str(scope_obj.get("description", "")).strip(),
             enabled_by_default=bool(scope_obj.get("enabled_by_default", True)),
-            prune_allowed=bool(scope_obj.get("prune_allowed", True)),
+            sync_mode=raw_sync_mode,
             targets=tuple(targets),
         )
 
@@ -258,7 +293,7 @@ def collect_local_objects(
                 repo_rel_path=repo_rel,
                 include_globs=target.include_globs,
                 exclude_globs=target.exclude_globs,
-                global_excludes=global_excludes,
+                global_excludes=() if target.ignore_global_excludes else global_excludes,
             ):
                 continue
 
@@ -317,7 +352,7 @@ def list_remote_objects(
                     repo_rel_path=repo_rel,
                     include_globs=target.include_globs,
                     exclude_globs=target.exclude_globs,
-                    global_excludes=global_excludes,
+                    global_excludes=() if target.ignore_global_excludes else global_excludes,
                 ):
                     continue
                 remote[key] = RemoteObject(
@@ -389,13 +424,16 @@ def fingerprint_scope(scope: ScopeConfig, global_excludes: tuple[str, ...]) -> s
     payload = {
         "scope": scope.name,
         "enabled_by_default": scope.enabled_by_default,
-        "prune_allowed": scope.prune_allowed,
+        "sync_mode": scope.sync_mode,
+        "uploads_enabled": scope.uploads_enabled,
+        "deletes_enabled": scope.deletes_enabled,
         "targets": [
             {
                 "local_root": to_posix(target.local_root),
                 "r2_prefix": target.r2_prefix,
                 "include_globs": list(target.include_globs),
                 "exclude_globs": list(target.exclude_globs),
+                "ignore_global_excludes": target.ignore_global_excludes,
             }
             for target in scope.targets
         ],
@@ -425,16 +463,6 @@ def fingerprint_prune_candidates(candidates: list[dict[str, Any]]) -> str:
     return sha256_text("\n".join(sorted(lines)))
 
 
-def resolve_latest_plan_log(log_dir: Path, scope_name: str, exclude_path: Path | None = None) -> Path | None:
-    pattern = f"r2_sync_plan_{scope_name}_*.json"
-    candidates = sorted(log_dir.glob(pattern))
-    if exclude_path is not None:
-        candidates = [path for path in candidates if path.resolve() != exclude_path.resolve()]
-    if not candidates:
-        return None
-    return candidates[-1]
-
-
 def validate_apply_flag(args: argparse.Namespace) -> None:
     if not getattr(args, "apply", False):
         raise RuntimeError("apply_requires_flag: use --apply to execute write/delete operations")
@@ -444,6 +472,54 @@ def validate_apply_flag(args: argparse.Namespace) -> None:
 
 def append_operation_log(path: Path, payload: dict[str, Any]) -> None:
     write_json(path, payload)
+
+
+def resolve_requested_scopes(command: str, scopes: dict[str, ScopeConfig], requested: list[str]) -> list[str]:
+    requested_scopes = list(dict.fromkeys([str(s).strip() for s in requested if str(s).strip()]))
+    if requested_scopes:
+        return requested_scopes
+
+    if command in {"plan", "sync"}:
+        enabled_scopes = [scope_name for scope_name, scope_cfg in scopes.items() if scope_cfg.enabled_by_default]
+        if enabled_scopes:
+            return enabled_scopes
+        raise RuntimeError("no_enabled_by_default_scopes_defined")
+
+    raise RuntimeError(f"{command}_requires_scope_explicit: use --scope <name>")
+
+
+def build_review_line(scope_run: PlannedScopeRun) -> str:
+    roots_missing = scope_run.plan_payload.get("local_stats", {}).get("roots_missing", [])
+    return (
+        "[REVIEW] "
+        f"scope={scope_run.scope.name} mode={scope_run.scope.sync_mode} "
+        f"would_upload={len(scope_run.would_upload)} would_delete={len(scope_run.would_prune)} "
+        f"roots_missing={len(roots_missing)} log={scope_run.plan_payload['plan_log_path']}"
+    )
+
+
+def validate_sync_scope(scope_run: PlannedScopeRun, max_delete: int, confirm_mirror: bool) -> list[str]:
+    errors: list[str] = []
+    scope = scope_run.scope
+
+    if scope.sync_mode == SYNC_MODE_PRUNE_ONLY and scope_run.would_upload:
+        errors.append(
+            f"scope={scope.name} prune_only_scope_has_upload_candidates={len(scope_run.would_upload)}"
+        )
+
+    if scope.deletes_enabled and scope_run.would_prune:
+        if not confirm_mirror:
+            errors.append(
+                f"scope={scope.name} delete_candidates_present={len(scope_run.would_prune)} "
+                "missing --confirm-mirror/--confirm-prune"
+            )
+        if len(scope_run.would_prune) > max_delete:
+            errors.append(
+                f"scope={scope.name} max_delete_exceeded "
+                f"candidates={len(scope_run.would_prune)} max_delete={max_delete}"
+            )
+
+    return errors
 
 
 def run_plan(
@@ -475,13 +551,15 @@ def run_plan(
 
     payload = {
         "artifact_kind": "r2_sync_plan",
-        "schema_version": "v1",
+        "schema_version": "v2",
         "generated_at": utc_now_iso(),
         "command": command,
         "scope": scope.name,
         "description": scope.description,
         "enabled_by_default": scope.enabled_by_default,
-        "prune_allowed": scope.prune_allowed,
+        "sync_mode": scope.sync_mode,
+        "uploads_enabled": scope.uploads_enabled,
+        "deletes_enabled": scope.deletes_enabled,
         "run_id": run_id,
         "bucket_env_key": "R2_BUCKET",
         "bucket": bucket,
@@ -489,6 +567,7 @@ def run_plan(
         "remote_scanned_count": len(remote_objects),
         "unchanged_count": len(unchanged),
         "would_upload_count": len(would_upload),
+        "would_delete_count": len(would_prune),
         "would_prune_count": len(would_prune),
         "scope_hash": scope_hash,
         "input_fingerprint": input_fingerprint,
@@ -500,6 +579,7 @@ def run_plan(
                 "r2_prefix": target.r2_prefix,
                 "include_globs": list(target.include_globs),
                 "exclude_globs": list(target.exclude_globs),
+                "ignore_global_excludes": target.ignore_global_excludes,
             }
             for target in scope.targets
         ],
@@ -610,7 +690,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
             "Unified R2 sync CLI. Default command is plan (dry-run). "
-            "Write/delete operations require explicit safety flags."
+            "Remote mutation happens only through `sync --apply`, which keeps uploads and deletes in one run."
         )
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -622,7 +702,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             default=[],
             help=(
                 "Scope name defined in config/r2_sync_targets.json. "
-                "Repeatable. For plan, omitted means enabled_by_default scopes."
+                "Repeatable. For plan/sync, omitted means enabled_by_default scopes."
             ),
         )
         common_parser.add_argument(
@@ -635,31 +715,46 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             "--log-dir",
             type=Path,
             default=DEFAULT_LOG_DIR,
-            help=f"Plan/apply log directory (default: {DEFAULT_LOG_DIR.as_posix()})",
+            help=f"Canonical R2 sync log directory (default: {DEFAULT_LOG_DIR.as_posix()})",
         )
-        common_parser.add_argument("--run-id", default="", help="Run identifier. Required for apply commands.")
+        common_parser.add_argument("--run-id", default="", help="Run identifier. Required for sync apply.")
 
     p_plan = subparsers.add_parser("plan", help="Build sync plan only (default command).")
     add_common(p_plan)
 
-    p_upload = subparsers.add_parser("apply-upload", help="Apply uploads only (no prune).")
-    add_common(p_upload)
-    p_upload.add_argument("--apply", action="store_true", help="Required confirmation flag for write operation.")
-
-    p_prune = subparsers.add_parser("apply-prune", help="Apply R2 prune only (delete remote-only objects).")
-    add_common(p_prune)
-    p_prune.add_argument("--apply", action="store_true", help="Required confirmation flag for delete operation.")
-    p_prune.add_argument(
-        "--confirm-prune",
-        action="store_true",
-        help="Second confirmation flag required for delete operation.",
+    p_sync = subparsers.add_parser(
+        "sync",
+        help="Apply unified sync. Mirror scopes upload and delete in the same run; exceptions come from config.",
     )
-    p_prune.add_argument(
+    add_common(p_sync)
+    p_sync.add_argument("--apply", action="store_true", help="Required confirmation flag for remote mutation.")
+    p_sync.add_argument(
+        "--confirm-mirror",
+        "--confirm-prune",
+        dest="confirm_mirror",
+        action="store_true",
+        help="Second confirmation flag required when sync may delete remote objects.",
+    )
+    p_sync.add_argument(
+        "--max-delete",
         "--max-prune",
+        dest="max_delete",
         type=int,
         required=True,
-        help="Maximum allowed prune candidates. Command aborts when exceeded.",
+        help="Maximum allowed remote-only objects per scope. Sync aborts before apply when exceeded.",
     )
+
+    p_upload = subparsers.add_parser(
+        "apply-upload",
+        help="Legacy command retired. Use sync --apply so uploads and deletes stay under one contract.",
+    )
+    add_common(p_upload)
+
+    p_prune = subparsers.add_parser(
+        "apply-prune",
+        help="Legacy command retired. Use sync --apply so uploads and deletes stay under one contract.",
+    )
+    add_common(p_prune)
 
     return parser.parse_args(argv)
 
@@ -669,17 +764,14 @@ def main() -> int:
     command = str(args.command)
     run_id = str(args.run_id or "").strip() or f"{command}_{utc_timestamp_compact()}"
 
+    if command in LEGACY_APPLY_COMMANDS:
+        raise RuntimeError(
+            f"{command}_retired: separated upload/prune apply is no longer supported. "
+            "Use `sync --apply --max-delete <N>` so one run reflects both additions and deletions."
+        )
+
     scopes, global_excludes, _raw_config = load_scope_config(args.config)
-    requested_scopes = list(dict.fromkeys([str(s).strip() for s in (args.scope or []) if str(s).strip()]))
-    if not requested_scopes:
-        if command == "plan":
-            requested_scopes = [
-                scope_name for scope_name, scope_cfg in scopes.items() if scope_cfg.enabled_by_default
-            ]
-            if not requested_scopes:
-                raise RuntimeError("no_enabled_by_default_scopes_defined")
-        else:
-            raise RuntimeError(f"{command}_requires_scope_explicit: use --scope <name>")
+    requested_scopes = resolve_requested_scopes(command, scopes, list(args.scope or []))
 
     unknown_scopes = [scope_name for scope_name in requested_scopes if scope_name not in scopes]
     if unknown_scopes:
@@ -706,159 +798,184 @@ def main() -> int:
             )
         return 0
 
-    if len(requested_scopes) != 1:
-        raise RuntimeError(f"{command}_requires_single_scope")
-    scope = scopes[requested_scopes[0]]
-
-    plan_payload, local_objects, would_upload, would_prune, prune_fp = run_plan(
-        scope=scope,
-        global_excludes=global_excludes,
-        config_path=args.config,
-        log_dir=args.log_dir,
-        run_id=run_id,
-        command=command,
-    )
-
-    print(
-        "[PLAN] "
-        f"scope={scope.name} run_id={run_id} "
-        f"would_upload={len(would_upload)} would_prune={len(would_prune)} "
-        f"log={plan_payload['plan_log_path']}"
-    )
+    if command != "sync":
+        raise RuntimeError(f"unsupported_command:{command}")
 
     validate_apply_flag(args)
+    if int(args.max_delete) < 0:
+        raise RuntimeError("--max-delete/--max-prune must be >= 0")
 
-    client, bucket = build_r2_client()
-    local_by_key = {row.r2_key: row for row in local_objects}
+    planned_scopes: list[PlannedScopeRun] = []
+    blocking_errors: list[str] = []
 
-    if command == "apply-upload":
-        uploaded, failed = apply_upload(
-            client=client,
-            bucket=bucket,
-            local_by_key=local_by_key,
-            would_upload=would_upload,
-        )
-        payload = {
-            "artifact_kind": "r2_sync_apply_upload",
-            "schema_version": "v1",
-            "generated_at": utc_now_iso(),
-            "scope": scope.name,
-            "run_id": run_id,
-            "bucket": bucket,
-            "plan_log_path": plan_payload["plan_log_path"],
-            "would_upload_count": len(would_upload),
-            "uploaded_count": len(uploaded),
-            "failed_count": len(failed),
-            "uploaded": uploaded,
-            "failed": failed,
-        }
-        log_path = args.log_dir / f"r2_sync_apply_upload_{scope.name}_{run_id}.json"
-        append_operation_log(log_path, payload)
-        print(
-            "[APPLY-UPLOAD] "
-            f"scope={scope.name} run_id={run_id} uploaded={len(uploaded)} failed={len(failed)} "
-            f"log={log_path.as_posix()}"
-        )
-        return 0 if not failed else 2
-
-    if command == "apply-prune":
-        if not scope.prune_allowed:
-            raise RuntimeError(
-                f"prune_forbidden_for_scope:{scope.name}. "
-                "This scope is GitHub source-of-truth; prune is disabled. "
-                "Use apply-upload only when explicitly needed."
-            )
-        if not bool(args.confirm_prune):
-            raise RuntimeError("apply-prune requires --confirm-prune")
-        if int(args.max_prune) < 0:
-            raise RuntimeError("--max-prune must be >= 0")
-        if len(would_prune) > int(args.max_prune):
-            raise RuntimeError(
-                f"max_prune_exceeded: candidates={len(would_prune)} max_prune={int(args.max_prune)}"
-            )
-
-        current_plan_path = Path(str(plan_payload["plan_log_path"]))
-        previous_plan_path = resolve_latest_plan_log(
+    for scope_name in requested_scopes:
+        scope = scopes[scope_name]
+        scope_run_id = run_id if len(requested_scopes) == 1 else f"{run_id}_{scope_name}"
+        plan_payload, local_objects, would_upload, would_prune, _prune_fp = run_plan(
+            scope=scope,
+            global_excludes=global_excludes,
+            config_path=args.config,
             log_dir=args.log_dir,
-            scope_name=scope.name,
-            exclude_path=current_plan_path,
+            run_id=scope_run_id,
+            command=command,
         )
-        stability = {
-            "required_runs": 2,
-            "ok": False,
-            "reason": "",
-            "previous_plan_log": previous_plan_path.as_posix() if previous_plan_path else "",
-            "previous_prune_candidates_fingerprint": "",
-            "current_prune_candidates_fingerprint": prune_fp,
-            "current_prune_candidates_count": len(would_prune),
-        }
-
-        if len(would_prune) == 0:
-            stability["ok"] = True
-            stability["reason"] = "no_prune_candidates"
-        elif previous_plan_path is None:
-            stability["ok"] = False
-            stability["reason"] = "previous_plan_log_not_found"
-        else:
-            previous_payload = read_json(previous_plan_path)
-            prev_scope = str(previous_payload.get("scope", ""))
-            prev_fp = str(previous_payload.get("prune_candidates_fingerprint", ""))
-            stability["previous_prune_candidates_fingerprint"] = prev_fp
-            if prev_scope != scope.name:
-                stability["ok"] = False
-                stability["reason"] = f"previous_scope_mismatch:{prev_scope}"
-            elif prev_fp != prune_fp:
-                stability["ok"] = False
-                stability["reason"] = "prune_candidates_not_stable_two_runs"
-            else:
-                stability["ok"] = True
-                stability["reason"] = "ok"
-
-        if not stability["ok"]:
-            payload = {
-                "artifact_kind": "r2_sync_apply_prune_blocked",
-                "schema_version": "v1",
-                "generated_at": utc_now_iso(),
-                "scope": scope.name,
-                "run_id": run_id,
-                "plan_log_path": plan_payload["plan_log_path"],
-                "stability": stability,
-                "would_prune_count": len(would_prune),
-            }
-            log_path = args.log_dir / f"r2_sync_apply_prune_{scope.name}_{run_id}.json"
-            append_operation_log(log_path, payload)
-            raise RuntimeError(f"prune_blocked:{stability['reason']} log={log_path.as_posix()}")
-
-        deleted, failed = apply_prune(
-            client=client,
-            bucket=bucket,
+        planned_scope = PlannedScopeRun(
+            scope=scope,
+            scope_run_id=scope_run_id,
+            plan_payload=plan_payload,
+            local_objects=local_objects,
+            would_upload=would_upload,
             would_prune=would_prune,
         )
+        planned_scopes.append(planned_scope)
+        print(build_review_line(planned_scope))
+        blocking_errors.extend(
+            validate_sync_scope(
+                planned_scope,
+                max_delete=int(args.max_delete),
+                confirm_mirror=bool(args.confirm_mirror),
+            )
+        )
+
+    run_log_path = args.log_dir / f"r2_sync_run_{run_id}.json"
+    if blocking_errors:
         payload = {
-            "artifact_kind": "r2_sync_apply_prune",
-            "schema_version": "v1",
+            "artifact_kind": "r2_sync_run_blocked",
+            "schema_version": "v2",
+            "generated_at": utc_now_iso(),
+            "command": command,
+            "run_id": run_id,
+            "scope_count": len(planned_scopes),
+            "errors": blocking_errors,
+            "scopes": [
+                {
+                    "scope": row.scope.name,
+                    "sync_mode": row.scope.sync_mode,
+                    "plan_log_path": row.plan_payload["plan_log_path"],
+                    "local_roots_missing": list(row.plan_payload.get("local_stats", {}).get("roots_missing", [])),
+                    "would_upload_count": len(row.would_upload),
+                    "would_delete_count": len(row.would_prune),
+                }
+                for row in planned_scopes
+            ],
+        }
+        append_operation_log(run_log_path, payload)
+        raise RuntimeError(f"sync_blocked:{' | '.join(blocking_errors)} log={run_log_path.as_posix()}")
+
+    client, bucket = build_r2_client()
+    run_results: list[dict[str, Any]] = []
+    exit_code = 0
+
+    for scope_run in planned_scopes:
+        scope = scope_run.scope
+        local_by_key = {row.r2_key: row for row in scope_run.local_objects}
+        uploaded: list[dict[str, Any]] = []
+        upload_failed: list[dict[str, Any]] = []
+        deleted: list[dict[str, Any]] = []
+        delete_failed: list[dict[str, Any]] = []
+        delete_policy = ""
+
+        if scope.uploads_enabled:
+            uploaded, upload_failed = apply_upload(
+                client=client,
+                bucket=bucket,
+                local_by_key=local_by_key,
+                would_upload=scope_run.would_upload,
+            )
+
+        if scope.deletes_enabled:
+            if scope.sync_mode == SYNC_MODE_MIRROR and upload_failed:
+                delete_policy = "skipped_due_upload_failures"
+            elif scope_run.would_prune:
+                deleted, delete_failed = apply_prune(
+                    client=client,
+                    bucket=bucket,
+                    would_prune=scope_run.would_prune,
+                )
+                delete_policy = "mirror_apply" if scope.sync_mode == SYNC_MODE_MIRROR else "prune_only_apply"
+            else:
+                delete_policy = "no_delete_candidates"
+        else:
+            delete_policy = "delete_opt_out_upload_only"
+
+        failed_count = len(upload_failed) + len(delete_failed)
+        if failed_count:
+            exit_code = 2
+
+        payload = {
+            "artifact_kind": "r2_sync_apply",
+            "schema_version": "v2",
             "generated_at": utc_now_iso(),
             "scope": scope.name,
-            "run_id": run_id,
+            "run_id": scope_run.scope_run_id,
             "bucket": bucket,
-            "plan_log_path": plan_payload["plan_log_path"],
-            "stability": stability,
-            "would_prune_count": len(would_prune),
+            "sync_mode": scope.sync_mode,
+            "plan_log_path": scope_run.plan_payload["plan_log_path"],
+            "local_roots_missing": list(scope_run.plan_payload.get("local_stats", {}).get("roots_missing", [])),
+            "would_upload_count": len(scope_run.would_upload),
+            "would_delete_count": len(scope_run.would_prune),
+            "would_prune_count": len(scope_run.would_prune),
+            "uploaded_count": len(uploaded),
+            "upload_failed_count": len(upload_failed),
             "deleted_count": len(deleted),
-            "failed_count": len(failed),
+            "delete_failed_count": len(delete_failed),
+            "delete_policy": delete_policy,
+            "uploaded": uploaded,
+            "upload_failed": upload_failed,
             "deleted": deleted,
-            "failed": failed,
+            "delete_failed": delete_failed,
         }
-        log_path = args.log_dir / f"r2_sync_apply_prune_{scope.name}_{run_id}.json"
-        append_operation_log(log_path, payload)
+        scope_log_path = args.log_dir / f"r2_sync_apply_{scope.name}_{scope_run.scope_run_id}.json"
+        append_operation_log(scope_log_path, payload)
         print(
-            "[APPLY-PRUNE] "
-            f"scope={scope.name} run_id={run_id} deleted={len(deleted)} failed={len(failed)} "
-            f"log={log_path.as_posix()}"
+            "[SYNC] "
+            f"scope={scope.name} mode={scope.sync_mode} run_id={scope_run.scope_run_id} "
+            f"uploaded={len(uploaded)} deleted={len(deleted)} "
+            f"upload_failed={len(upload_failed)} delete_failed={len(delete_failed)} "
+            f"delete_policy={delete_policy} log={scope_log_path.as_posix()}"
         )
-        return 0 if not failed else 2
 
-    raise RuntimeError(f"unsupported_command:{command}")
+        run_results.append(
+            {
+                "scope": scope.name,
+                "sync_mode": scope.sync_mode,
+                "plan_log_path": scope_run.plan_payload["plan_log_path"],
+                "apply_log_path": scope_log_path.as_posix(),
+                "local_roots_missing": list(scope_run.plan_payload.get("local_stats", {}).get("roots_missing", [])),
+                "would_upload_count": len(scope_run.would_upload),
+                "would_delete_count": len(scope_run.would_prune),
+                "uploaded_count": len(uploaded),
+                "deleted_count": len(deleted),
+                "upload_failed_count": len(upload_failed),
+                "delete_failed_count": len(delete_failed),
+                "delete_policy": delete_policy,
+            }
+        )
+
+    run_payload = {
+        "artifact_kind": "r2_sync_run",
+        "schema_version": "v2",
+        "generated_at": utc_now_iso(),
+        "command": command,
+        "run_id": run_id,
+        "bucket": bucket,
+        "scope_count": len(run_results),
+        "uploaded_count": sum(int(row["uploaded_count"]) for row in run_results),
+        "deleted_count": sum(int(row["deleted_count"]) for row in run_results),
+        "upload_failed_count": sum(int(row["upload_failed_count"]) for row in run_results),
+        "delete_failed_count": sum(int(row["delete_failed_count"]) for row in run_results),
+        "scopes": run_results,
+    }
+    append_operation_log(run_log_path, run_payload)
+    print(
+        "[RUN] "
+        f"run_id={run_id} scopes={len(run_results)} "
+        f"uploaded={run_payload['uploaded_count']} deleted={run_payload['deleted_count']} "
+        f"upload_failed={run_payload['upload_failed_count']} "
+        f"delete_failed={run_payload['delete_failed_count']} "
+        f"log={run_log_path.as_posix()}"
+    )
+    return exit_code
 
 
 if __name__ == "__main__":

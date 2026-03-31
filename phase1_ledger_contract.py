@@ -7,15 +7,15 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
 
-from phase2_art_pulse_config import DATA_ROOT, PHASE1_SEED10_ROOT
+from phase2_art_pulse_config import DATA_ROOT, get_phase1_legacy_logs_dir
 
 # Ledger lane policy (2026-03 closeout):
 # - Retained lane (behavior-heavy): visited_pages*, failed_fetches*,
 #   failed_fetches_artist_image_collect_{year}, artist_master_global.json
-#   stay under data/phase1_seed10/logs via PHASE1_LEDGER_DIR.
+#   stay under the local-only legacy logs lane via PHASE1_LEDGER_DIR.
 # - Current ledger family: ledgers that are formally read from current
 #   are placed under data/current/ledgers via CURRENT_LEDGER_DIR.
-PHASE1_LEDGER_DIR = PHASE1_SEED10_ROOT / "logs"
+PHASE1_LEDGER_DIR = get_phase1_legacy_logs_dir()
 CURRENT_LEDGER_DIR = DATA_ROOT / "current" / "ledgers"
 RUN_SUMMARY_FILENAME_TEMPLATE = "run_summary_seed10_{target_year}.json"
 VISITED_PAGES_FILENAME_TEMPLATES = {

@@ -20,6 +20,7 @@ import unicodedata
 from enrichment_batch_common import is_optional_output_enabled
 import run_phase1_seed10_artist_image_collect as artist_img
 from phase2_art_pulse_config import (
+    PHASE1_SEED10_ROOT,
     get_current_raw_dir,
     get_exhibition_image_cache_dir,
     get_current_exhibitions_image_meta_path,
@@ -30,7 +31,7 @@ from phase1_exhibitions_text_utils import should_include_target_year_page
 from tools import skip_policy
 
 PROJECT_ROOT = Path(__file__).resolve().parent
-LOGS_DIR = PROJECT_ROOT / "data" / "phase1_seed10" / "logs"
+LOGS_DIR = (PROJECT_ROOT / PHASE1_SEED10_ROOT / "logs").resolve()
 SKIPPED_GALLERIES_REGISTRY_PATH = PROJECT_ROOT / "data" / "gallery_lists" / "skipped_galleries_registry.csv"
 DEBUG_HTML_DIR_NAME = "debug_exhibitions_listing_html"
 DEBUG_LINKS_DIR_NAME = "debug_exhibitions_listing_links"
@@ -1081,7 +1082,7 @@ def main() -> int:
         allow_rebuild=bool(args.allow_rebuild),
         run_id=str(args.run_id or ""),
     )
-    io_root = PROJECT_ROOT / "data" / "phase1_seed10"
+    io_root = (PROJECT_ROOT / PHASE1_SEED10_ROOT).resolve()
     if policy_mode == skip_policy.REBUILD_MODE:
         io_root = skip_policy.build_trial_root(
             trial_root=args.trial_root,

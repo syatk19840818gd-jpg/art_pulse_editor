@@ -20,6 +20,8 @@ from phase1_ledger_contract import (
     get_phase1_logs_dir,
 )
 from phase2_art_pulse_config import (
+    get_phase1_legacy_trash_root,
+    get_phase1_legacy_trial_root,
     resolve_image_local_path,
 )
 
@@ -30,8 +32,8 @@ except Exception:  # pragma: no cover
 
 
 LOG_DIR = (PROJECT_ROOT / get_phase1_logs_dir()).resolve()
-TRIAL_ROOT = PROJECT_ROOT / "data" / "phase1_seed10" / "_trial"
-TRASH_ROOT = PROJECT_ROOT / "data" / "phase1_seed10" / "_trash"
+TRIAL_ROOT = (PROJECT_ROOT / get_phase1_legacy_trial_root()).resolve()
+TRASH_ROOT = (PROJECT_ROOT / get_phase1_legacy_trash_root()).resolve()
 
 INPUT_DRYRUN_PATH = LOG_DIR / "dryrun_run_phase1_seed10_artist_image_collect_task_confirm_01.json"
 OUTPUT_DRYRUN_PATH = LOG_DIR / "dryrun_run_phase1_seed10_artist_image_collect_task_formalize_03.json"

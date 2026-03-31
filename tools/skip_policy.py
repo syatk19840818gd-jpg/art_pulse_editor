@@ -4,9 +4,11 @@ import re
 from pathlib import Path
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
+from phase2_art_pulse_config import get_phase1_legacy_trial_root
+
 FILL_MISSING_MODE = "fill_missing"
 REBUILD_MODE = "rebuild"
-DEFAULT_TRIAL_ROOT = Path("data/phase1_seed10/_trial")
+DEFAULT_TRIAL_ROOT = get_phase1_legacy_trial_root()
 FILL_MISSING_TOPUP_DEFAULT = False
 
 ARTIST_IMAGE_REASON_NO_METADATA_ROW = "NO_METADATA_ROW"

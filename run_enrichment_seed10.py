@@ -8,17 +8,20 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from phase2_art_pulse_config import get_current_raw_paths
-from r2_auto_sync import auto_sync_after_job, format_auto_sync_brief
+from enrichment_batch_common import build_requests_runtime_report_path
+from phase2_art_pulse_config import get_current_raw_paths, get_enrichment_runtime_requests_path
 
 TARGET_YEAR = 2025
 RAG_CATEGORY = "exhibitions_text"
 
 RAW_INPUT_PATHS = get_current_raw_paths("exhibitions", TARGET_YEAR)
 
-ENRICHMENT_OUTPUT_DIR = Path("data/phase1_seed10/enrichment")
-ENRICHMENT_REQUESTS_PATH = ENRICHMENT_OUTPUT_DIR / "enrichment_requests_seed10_2025.jsonl"
-ENRICHMENT_SUMMARY_PATH = ENRICHMENT_OUTPUT_DIR / "enrichment_summary_seed10_2025.json"
+ENRICHMENT_REQUESTS_PATH = get_enrichment_runtime_requests_path("exhibitions", TARGET_YEAR)
+ENRICHMENT_SUMMARY_PATH = build_requests_runtime_report_path(
+    "exhibitions",
+    action="seed10_summary",
+    target_year=TARGET_YEAR,
+)
 
 
 @dataclass
@@ -74,7 +77,7 @@ def append_unique(items: list[str], item: str) -> None:
 def main() -> int:
     started_at = utc_now_iso()
     print(f"[START] Post-fetch enrichment seed10 at {started_at}")
-    ENRICHMENT_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    ENRICHMENT_REQUESTS_PATH.parent.mkdir(parents=True, exist_ok=True)
 
     for fair_slug, raw_path in RAW_INPUT_PATHS.items():
         if not raw_path.exists():
@@ -175,11 +178,7 @@ def main() -> int:
     )
     print(f"[DONE] requests={ENRICHMENT_REQUESTS_PATH}")
     print(f"[DONE] summary={ENRICHMENT_SUMMARY_PATH}")
-    auto_sync_result = auto_sync_after_job(
-        target="phase1_derived",
-        trigger="run_enrichment_seed10.py",
-    )
-    print(format_auto_sync_brief(auto_sync_result))
+    print("[SYNC] explicit_current_mirror_only; no automatic R2 sync is triggered by this helper")
     return 0
 
 

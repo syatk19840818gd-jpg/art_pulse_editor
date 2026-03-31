@@ -22,14 +22,18 @@ from phase2_art_pulse_config import (
     get_current_artist_image_meta_paths,
     get_artist_image_cache_dir,
     get_image_r2_key,
+    get_phase1_legacy_logs_dir,
+    get_phase1_legacy_trial_root,
+    get_phase1_legacy_trash_root,
 )
 from tools.formal_postflight_gate import run_postflight_gate
 from tools.formal_preflight_gate import run_preflight_gate
 from tools.run_task_formalize_03_missing_recovery import evaluate_target, load_targets_like_dryrun
 
-LOG = ROOT / "data" / "phase1_seed10" / "logs"
-TRIAL_BASE = ROOT / "data" / "phase1_seed10" / "_trial"
-TRASH_BASE = ROOT / "data" / "phase1_seed10" / "_trash"
+LOG = (ROOT / get_phase1_legacy_logs_dir()).resolve()
+TRIAL_BASE = (ROOT / get_phase1_legacy_trial_root()).resolve()
+TRASH_BASE = (ROOT / get_phase1_legacy_trash_root()).resolve()
+TRIAL_BASE_REL = get_phase1_legacy_trial_root().as_posix()
 FORMAL_IMG = ROOT / get_artist_image_cache_dir()
 FORMAL_META = {
     fair_slug: ROOT / path
@@ -336,7 +340,7 @@ def main() -> int:
             "--run-id",
             run_id,
             "--trial-root",
-            "data/phase1_seed10/_trial",
+            TRIAL_BASE_REL,
             "--dry-run",
             "--dry-run-output",
             str(dry_local),
@@ -362,7 +366,7 @@ def main() -> int:
                 "--run-id",
                 run_id,
                 "--trial-root",
-                "data/phase1_seed10/_trial",
+                TRIAL_BASE_REL,
                 "--output-json",
                 str(web_summary),
             ],
@@ -384,7 +388,7 @@ def main() -> int:
             "--run-id",
             run_id,
             "--trial-root",
-            "data/phase1_seed10/_trial",
+            TRIAL_BASE_REL,
             "--dry-run",
             "--dry-run-output",
             str(dry_web),

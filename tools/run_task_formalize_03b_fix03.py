@@ -22,6 +22,9 @@ from phase2_art_pulse_config import (
     get_current_artist_image_meta_paths,
     get_artist_image_cache_dir,
     get_image_r2_key,
+    get_phase1_legacy_logs_dir,
+    get_phase1_legacy_trial_root,
+    get_phase1_legacy_trash_root,
     resolve_image_local_path,
 )
 from tools import skip_policy
@@ -34,9 +37,10 @@ try:
 except Exception:
     r2_sync = None
 
-LOG = ROOT / "data" / "phase1_seed10" / "logs"
-TRIAL_BASE = ROOT / "data" / "phase1_seed10" / "_trial"
-TRASH_BASE = ROOT / "data" / "phase1_seed10" / "_trash"
+LOG = (ROOT / get_phase1_legacy_logs_dir()).resolve()
+TRIAL_BASE = (ROOT / get_phase1_legacy_trial_root()).resolve()
+TRASH_BASE = (ROOT / get_phase1_legacy_trash_root()).resolve()
+TRIAL_BASE_REL = get_phase1_legacy_trial_root().as_posix()
 FORMAL_IMG_ROOT = ROOT / get_artist_image_cache_dir()
 FORMAL_META = {
     fair_slug: ROOT / path
@@ -617,7 +621,7 @@ def main() -> int:
                 "--run-id",
                 run_id,
                 "--trial-root",
-                "data/phase1_seed10/_trial",
+                TRIAL_BASE_REL,
                 "--output-json",
                 str(web_summary_path),
             ],
@@ -652,7 +656,7 @@ def main() -> int:
             "--run-id",
             run_id,
             "--trial-root",
-            "data/phase1_seed10/_trial",
+            TRIAL_BASE_REL,
             "--dry-run",
             "--dry-run-output",
             str(trial_dryrun_path),

@@ -28,8 +28,11 @@ ART_PULSE_SECTION2_MIN_CHARS = 600
 ART_PULSE_SECTION3_MIN_CHARS = 600
 
 DATA_ROOT = Path("data")
-PHASE1_SEED10_ROOT = DATA_ROOT / "phase1_seed10"
+LEGACY_PHASE1_LOCAL_ROOT = DATA_ROOT / "runtime" / "legacy_phase1"
+# Deprecated name kept as a compatibility alias for local-only legacy helpers.
+PHASE1_SEED10_ROOT = LEGACY_PHASE1_LOCAL_ROOT
 PHASE1_SEED10_DERIVED_DIR = PHASE1_SEED10_ROOT / "derived"
+# Deprecated remote prefix constant; new outputs must not revive phase1_seed10 as an R2 lane.
 PHASE1_SEED10_DERIVED_R2_PREFIX = "phase1_seed10/derived"
 IMAGE_CACHE_DIR = DATA_ROOT / "current" / "images" / "cache"
 IMAGE_CACHE_R2_PREFIX = "data/current/images/cache"
@@ -45,12 +48,36 @@ ENRICHMENT_HISTORY_ARTISTS_DIR = ENRICHMENT_HISTORY_DIR / "artists"
 ENRICHMENT_HISTORY_EXHIBITIONS_DIR = ENRICHMENT_HISTORY_DIR / "exhibitions"
 ENRICHMENT_RUNTIME_REQUESTS_DIR = DATA_ROOT / "runtime" / "enrichment_requests"
 ENRICHMENT_RUNTIME_REQUESTS_REPORTS_DIR = ENRICHMENT_RUNTIME_REQUESTS_DIR / "_reports"
+ENRICHMENT_RUNTIME_PREVIEWS_DIR = ENRICHMENT_RUNTIME_REQUESTS_REPORTS_DIR / "previews"
 
 
 def get_phase1_seed10_derived_dir(root: Path | None = None) -> Path:
     if root is None:
         return PHASE1_SEED10_DERIVED_DIR
     return Path(root) / "derived"
+
+
+def get_phase1_legacy_root(root: Path | None = None) -> Path:
+    if root is None:
+        return LEGACY_PHASE1_LOCAL_ROOT
+    return Path(root)
+
+
+def get_phase1_legacy_logs_dir(root: Path | None = None) -> Path:
+    return get_phase1_legacy_root(root) / "logs"
+
+
+def get_phase1_legacy_trial_root(root: Path | None = None) -> Path:
+    return get_phase1_legacy_root(root) / "_trial"
+
+
+def get_phase1_legacy_trash_root(root: Path | None = None) -> Path:
+    return get_phase1_legacy_root(root) / "_trash"
+
+
+def get_enrichment_preview_dir(category: str) -> Path:
+    _validate_enrichment_category(category)
+    return ENRICHMENT_RUNTIME_PREVIEWS_DIR / category
 
 
 def get_image_cache_dir(root: Path | None = None) -> Path:

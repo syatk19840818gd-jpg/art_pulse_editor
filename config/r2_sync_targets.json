@@ -1,5 +1,5 @@
 {
-  "version": "v1",
+  "version": "v3",
   "global_exclude_globs": [
     "**/__pycache__/**",
     "**/*.pyc",
@@ -10,14 +10,14 @@
     "**/Thumbs.db"
   ],
   "scopes": {
-    "enrichment_current_primary": {
-      "description": "Primary sync lane for current enrichment canonical artifacts.",
+    "current_root_mirror": {
+      "description": "Primary and only default R2 mirror contract. data/current is the source-of-truth for all current families.",
       "enabled_by_default": true,
-      "prune_allowed": true,
+      "sync_mode": "mirror",
       "targets": [
         {
-          "local_root": "data/current/enrichment",
-          "r2_prefix": "data/current/enrichment",
+          "local_root": "data/current",
+          "r2_prefix": "data/current",
           "include_globs": [
             "**/*"
           ],
@@ -25,22 +25,15 @@
         }
       ]
     },
-    "enrichment_history_audit": {
-      "description": "Secondary audit/backup lane for enrichment history artifacts.",
-      "enabled_by_default": true,
-      "prune_allowed": false,
+    "tarutani_data_retired_mirror": {
+      "description": "Explicit retired Tarutani_data cleanup. Deleted local root remains source-of-truth and the remote prefix must converge to empty.",
+      "enabled_by_default": false,
+      "sync_mode": "mirror",
       "targets": [
         {
-          "local_root": "data/history/enrichment/artists",
-          "r2_prefix": "data/history/enrichment/artists",
-          "include_globs": [
-            "**/*"
-          ],
-          "exclude_globs": []
-        },
-        {
-          "local_root": "data/history/enrichment/exhibitions",
-          "r2_prefix": "data/history/enrichment/exhibitions",
+          "local_root": "data/Tarutani_data",
+          "r2_prefix": "data/Tarutani_data",
+          "ignore_global_excludes": true,
           "include_globs": [
             "**/*"
           ],
@@ -48,14 +41,15 @@
         }
       ]
     },
-    "raw_current_primary": {
-      "description": "Canonical current lane for raw seed10 artifacts.",
-      "enabled_by_default": true,
-      "prune_allowed": true,
+    "tarutani_legacy_derived_prune": {
+      "description": "Explicit retired Tarutani legacy derived cleanup. Remote prefix must converge to empty; uploads are forbidden.",
+      "enabled_by_default": false,
+      "sync_mode": "prune_only",
       "targets": [
         {
-          "local_root": "data/current/raw",
-          "r2_prefix": "data/current/raw",
+          "local_root": "tarutani/derived",
+          "r2_prefix": "tarutani/derived",
+          "ignore_global_excludes": true,
           "include_globs": [
             "**/*"
           ],
@@ -63,14 +57,15 @@
         }
       ]
     },
-    "images_metadata_current": {
-      "description": "Canonical current lane for image metadata artifacts.",
-      "enabled_by_default": true,
-      "prune_allowed": true,
+    "tarutani_legacy_logs_prune": {
+      "description": "Explicit retired Tarutani legacy logs cleanup. Remote prefix must converge to empty; uploads are forbidden.",
+      "enabled_by_default": false,
+      "sync_mode": "prune_only",
       "targets": [
         {
-          "local_root": "data/current/images/metadata",
-          "r2_prefix": "data/current/images/metadata",
+          "local_root": "tarutani/logs",
+          "r2_prefix": "tarutani/logs",
+          "ignore_global_excludes": true,
           "include_globs": [
             "**/*"
           ],
@@ -78,14 +73,15 @@
         }
       ]
     },
-    "images_cache_current": {
-      "description": "Canonical current lane for image cache artifacts.",
-      "enabled_by_default": true,
-      "prune_allowed": true,
+    "tarutani_legacy_vectors_prune": {
+      "description": "Explicit retired Tarutani legacy vectors cleanup. Remote prefix must converge to empty; uploads are forbidden.",
+      "enabled_by_default": false,
+      "sync_mode": "prune_only",
       "targets": [
         {
-          "local_root": "data/current/images/cache",
-          "r2_prefix": "data/current/images/cache",
+          "local_root": "tarutani/vectors",
+          "r2_prefix": "tarutani/vectors",
+          "ignore_global_excludes": true,
           "include_globs": [
             "**/*"
           ],
@@ -93,14 +89,15 @@
         }
       ]
     },
-    "artists_vector_current": {
-      "description": "Canonical current lane for artists vector artifacts.",
-      "enabled_by_default": true,
-      "prune_allowed": true,
+    "history_remote_residue_cleanup": {
+      "description": "One-time cleanup for R2 history residue. Remote prefix must converge to empty; uploads are forbidden.",
+      "enabled_by_default": false,
+      "sync_mode": "prune_only",
       "targets": [
         {
-          "local_root": "data/current/vector/artists",
-          "r2_prefix": "data/current/vector/artists",
+          "local_root": "_r2_cleanup/history_remote_empty",
+          "r2_prefix": "data/history",
+          "ignore_global_excludes": true,
           "include_globs": [
             "**/*"
           ],
@@ -108,198 +105,26 @@
         }
       ]
     },
-    "artists_vector_legacy_2025_prune": {
-      "description": "Prune-only remote residue for pre-canonical _2025 artist vector filenames under current prefix.",
+    "phase1_seed10_remote_residue_cleanup": {
+      "description": "One-time cleanup for legacy R2 phase1_seed10 residue. Remote prefix must converge to empty; uploads are forbidden.",
       "enabled_by_default": false,
-      "prune_allowed": true,
+      "sync_mode": "prune_only",
       "targets": [
         {
-          "local_root": "data/current/vector/artists",
-          "r2_prefix": "data/current/vector/artists",
-          "include_globs": [
-            "artists_text_artifact_manifest_2025.json",
-            "artists_text_index_2025.npy",
-            "artists_text_meta_2025.jsonl"
-          ],
-          "exclude_globs": []
-        }
-      ]
-    },
-    "current_ledgers_family": {
-      "description": "Canonical current lane for formal current ledgers family.",
-      "enabled_by_default": false,
-      "prune_allowed": true,
-      "targets": [
-        {
-          "local_root": "data/current/ledgers",
-          "r2_prefix": "data/current/ledgers",
+          "local_root": "_r2_cleanup/phase1_seed10_remote_empty",
+          "r2_prefix": "phase1_seed10",
+          "ignore_global_excludes": true,
           "include_globs": [
             "**/*"
-          ],
-          "exclude_globs": []
-        }
-      ]
-    },
-    "artist_works_images_vector_current": {
-      "description": "Canonical current lane for ArtWork Search vector artifacts.",
-      "enabled_by_default": false,
-      "prune_allowed": true,
-      "targets": [
-        {
-          "local_root": "data/current/vector/artist_works_images",
-          "r2_prefix": "data/current/vector/artist_works_images",
-          "include_globs": [
-            "**/*"
-          ],
-          "exclude_globs": []
-        }
-      ]
-    },
-    "artwork_vector_legacy_2025_prune": {
-      "description": "Prune-only remote residue for pre-canonical _2025 artwork vector filenames under current prefix.",
-      "enabled_by_default": false,
-      "prune_allowed": true,
-      "targets": [
-        {
-          "local_root": "data/current/vector/artist_works_images",
-          "r2_prefix": "data/current/vector/artist_works_images",
-          "include_globs": [
-            "artist_works_images_openclip_embeddings_2025.npy",
-            "artist_works_images_openclip_id_map_2025.jsonl",
-            "artist_works_images_openclip_search_index_2025.npy"
-          ],
-          "exclude_globs": []
-        }
-      ]
-    },
-    "artists_enrich_legacy_2025_prune": {
-      "description": "Prune-only remote residue for pre-canonical _2025 artist enrichment filenames under current prefix.",
-      "enabled_by_default": false,
-      "prune_allowed": true,
-      "targets": [
-        {
-          "local_root": "data/current/enrichment",
-          "r2_prefix": "data/current/enrichment",
-          "include_globs": [
-            "artists_enrichment_apply_output_2025.jsonl",
-            "artists_enrichment_apply_summary_2025.json"
-          ],
-          "exclude_globs": []
-        }
-      ]
-    },
-    "phase1_seed10_formal": {
-      "description": "Legacy seed10 lane excluding current cache family (fallback assets; not default primary target).",
-      "enabled_by_default": false,
-      "prune_allowed": false,
-      "targets": [
-        {
-          "local_root": "data/phase1_seed10/derived",
-          "r2_prefix": "phase1_seed10/derived",
-          "include_globs": [
-            "**/*"
-          ],
-          "exclude_globs": [
-            "images/**"
-          ]
-        }
-      ]
-    },
-    "phase1_seed10_legacy_images_prune": {
-      "description": "Prune-only legacy remote residue for old seed10 image cache structure.",
-      "enabled_by_default": false,
-      "prune_allowed": true,
-      "targets": [
-        {
-          "local_root": "data/phase1_seed10/derived",
-          "r2_prefix": "phase1_seed10/derived",
-          "include_globs": [
-            "images/**"
-          ],
-          "exclude_globs": []
-        }
-      ]
-    },
-    "phase1_seed10_legacy_image_metadata_prune": {
-      "description": "Prune-only legacy remote residue for old seed10 image metadata root files.",
-      "enabled_by_default": false,
-      "prune_allowed": true,
-      "targets": [
-        {
-          "local_root": "data/phase1_seed10/derived",
-          "r2_prefix": "phase1_seed10/derived",
-          "include_globs": [
-            "artist_works_images_*.jsonl",
-            "exhibitions_images_*.jsonl"
-          ],
-          "exclude_globs": []
-        }
-      ]
-    },
-    "phase1_seed10_legacy_vector_prune": {
-      "description": "Prune-only legacy remote residue for old seed10 vector artifacts.",
-      "enabled_by_default": false,
-      "prune_allowed": true,
-      "targets": [
-        {
-          "local_root": "data/phase1_seed10/derived",
-          "r2_prefix": "phase1_seed10/derived",
-          "include_globs": [
-            "vector/**"
-          ],
-          "exclude_globs": []
-        }
-      ]
-    },
-    "phase1_seed10_legacy_request_prune": {
-      "description": "Prune-only legacy remote residue for old seed10 request artifacts.",
-      "enabled_by_default": false,
-      "prune_allowed": true,
-      "targets": [
-        {
-          "local_root": "data/phase1_seed10/derived",
-          "r2_prefix": "phase1_seed10/derived",
-          "include_globs": [
-            "artists_enrichment_requests_*.jsonl"
-          ],
-          "exclude_globs": []
-        }
-      ]
-    },
-    "phase1_seed10_source_legacy_prune": {
-      "description": "Prune-only legacy remote residue for old seed10 source prefix duplicated by current raw.",
-      "enabled_by_default": false,
-      "prune_allowed": true,
-      "targets": [
-        {
-          "local_root": "phase1_seed10/source",
-          "r2_prefix": "phase1_seed10/source",
-          "include_globs": [
-            "**/*"
-          ],
-          "exclude_globs": []
-        }
-      ]
-    },
-    "phase1_seed10_derived_manifest_legacy_prune": {
-      "description": "Prune-only legacy remote residue for old seed10 artifact manifest prefix.",
-      "enabled_by_default": false,
-      "prune_allowed": true,
-      "targets": [
-        {
-          "local_root": "phase1_seed10/derived",
-          "r2_prefix": "phase1_seed10/derived",
-          "include_globs": [
-            "phase1_seed10_artifact_manifest.json"
           ],
           "exclude_globs": []
         }
       ]
     },
     "gallery_lists": {
-      "description": "Gallery list assets (csv/xlsx/prompts).",
+      "description": "Gallery list assets remain optional and upload-only outside the current mirror contract.",
       "enabled_by_default": false,
-      "prune_allowed": false,
+      "sync_mode": "upload_only",
       "targets": [
         {
           "local_root": "data/gallery_lists",
@@ -312,9 +137,9 @@
       ]
     },
     "docs": {
-      "description": "Project docs (optional scope).",
+      "description": "Project docs remain optional outside the current mirror contract.",
       "enabled_by_default": false,
-      "prune_allowed": true,
+      "sync_mode": "mirror",
       "targets": [
         {
           "local_root": "docs",

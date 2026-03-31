@@ -1,6 +1,6 @@
 # 04_TASK_PROGRESS_LOG
 
-Last updated: 2026-03-30 JST
+Last updated: 2026-03-31 JST
 Project: ART_PULSE_EDITOR
 
 ## 0. Document roles
@@ -40,3 +40,45 @@ Project: ART_PULSE_EDITOR
 - Feature 3 / 4 / 7 current-only runtime verify-first completed: no regression found.
 - Feature 7 independent-feature contract remains intact (not absorbed into Advisor).
 - No additional tiny-fix task is required at this point.
+
+## 6. 2026-03-31 R2 current-only mirror finalization
+- `config/r2_sync_targets.json` was simplified so the only default R2 mainline is `current_root_mirror` (`data/current` -> `data/current`).
+- `data/history` was removed from R2 sync targets and is now treated as GitHub-side retention only.
+- `run_r2_sync.py` keeps remote mutation behind `sync --apply`, and one sync run now reflects upload + delete together for the current mirror contract.
+- Live plan confirmed `current_root_mirror` had `would_upload=0` and `would_prune=0`, while `tarutani_data_retired_mirror` had `would_prune=93`.
+- Live apply deleted 93 objects from `data/Tarutani_data` on R2 with zero failures.
+- Live post-check confirmed `current_root_mirror` and all Tarutani cleanup scopes at `would_prune=0`.
+
+## 7. 2026-03-31 final remote residue cleanup
+- Verify-first confirmed the current R2 mainline remained `data/current` only, and `phase1_seed10` was no longer present in active R2 sync targets.
+- Verify-first found no active runtime or default sync dependency on remote `phase1_seed10`; remaining references are local legacy helpers / logs outside the default R2 mirror contract.
+- Live plan for `history_remote_residue_cleanup` reported `would_prune=20`.
+- Live plan for `phase1_seed10_remote_residue_cleanup` reported `would_prune=601`.
+- Live apply deleted 20 objects from `data/history` and 601 objects from `phase1_seed10` on R2 with zero failures.
+- Live post-check confirmed `current_root_mirror`, `history_remote_residue_cleanup`, and `phase1_seed10_remote_residue_cleanup` all at `would_prune=0`.
+
+## 8. 2026-03-31 phase1_seed10 final retire-and-cleanup
+- Actual R2 listing, not the previous post-check summary, was treated as source-of-truth for `phase1_seed10`.
+- That listing found one remaining real object: `phase1_seed10/logs/failed_fetches_artists_seed10_2025.json.bak_20260301_134210`.
+- `phase1_seed10` / `phase1_seed10/` placeholder keys were both absent; the visible folder came from the remaining real object, not a folder marker.
+- Root cause: cleanup scopes still inherited global exclude `**/*.bak*`, so the prior cleanup plan/post-check did not see the leftover `.bak` object.
+- `run_r2_sync.py` and `config/r2_sync_targets.json` were updated so explicit retired/cleanup scopes can ignore global excludes and fully converge remote prefixes to empty.
+- Live re-plan then reported `would_prune=1` for `phase1_seed10_remote_residue_cleanup`.
+- Live apply deleted that final object with zero failures.
+- Final actual R2 listing returned `object_count=0`, and `head_object` for both `phase1_seed10` and `phase1_seed10/` returned 404.
+- Final storage policy: `phase1_seed10` is not kept on R2 and is not promoted to GitHub retention; if any legacy helper still needs it, keep it local-only.
+
+## 9. 2026-03-31 local phase1_seed10 path retirement
+- Verified `data/phase1_seed10/...` references across config, preview scripts, enrichment helpers, collect scripts, and formalize/recovery helpers.
+- Canonical RAG outputs were already shared-helper based and stayed on `data/current/...`; no active canonical output path is allowed to write under `data/phase1_seed10/...`.
+- `phase2_art_pulse_config.py` now points the deprecated local legacy root alias at `data/runtime/legacy_phase1`, so leftover helper imports no longer recreate writes under `data/phase1_seed10/...`.
+- Preview outputs moved to `data/runtime/enrichment_requests/_reports/previews/...`.
+- Runtime request/request-summary artifacts from `run_enrichment_seed10.py` moved off the legacy lane to `data/runtime/enrichment_requests/...` and `_reports/...`, and the old automatic R2 sync hook was removed from that helper.
+- Legacy-only logs / trial / trash helpers now resolve to neutral runtime paths instead of `data/phase1_seed10/...`.
+- Repo-wide code search after the change found no remaining Python write path under `data/phase1_seed10/...`; the only direct path reference left is the `app.py` read fallback for old remote keys.
+
+## 10. 2026-03-31 R2 log lane unification
+- Verify-first confirmed active `run_r2_sync.py` already wrote plan / apply / listing / run logs to `logs/r2_sync/`.
+- `data/r2_auto_sync/` contained only retired auto-sync residue: historical summary logs and an unused `auto_sync_state.json` for the old `phase1_*` auto-sync flow.
+- `run_r2_sync.py` now labels `logs/r2_sync/` as the canonical R2 sync log directory.
+- Retired `data/r2_auto_sync/` was removed so R2 logs/state no longer live in a parallel lane.
