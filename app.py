@@ -165,10 +165,126 @@ def apply_global_font_styles() -> None:
         .ap-top-nav-open-gap {
           height: 1rem;
         }
+        .about-panel {
+          max-width: 1040px;
+          margin: 0 auto;
+          padding: clamp(0.25rem, 0.8vw, 0.5rem) 0;
+        }
+        .about-hero {
+          padding: clamp(0.4rem, 1vw, 0.8rem) 0 1.15rem 0;
+          border-bottom: 1px solid #e3e7ef;
+          margin-bottom: 1.15rem;
+        }
+        .about-eyebrow {
+          margin: 0 0 0.4rem 0;
+          font-size: 0.86rem;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: #5f6b7a;
+        }
+        .about-title {
+          margin: 0 0 0.7rem 0;
+          font-size: clamp(1.9rem, 3.2vw, 2.7rem);
+          line-height: 1.18;
+          font-weight: 800;
+          color: #111111;
+        }
+        .about-lead {
+          margin: 0;
+          font-size: clamp(1rem, 1.4vw, 1.12rem);
+          line-height: 1.9;
+          color: #2b3442;
+          max-width: 58rem;
+        }
+        .about-section {
+          margin-top: 1.35rem;
+        }
+        .about-section-title {
+          margin: 0 0 0.8rem 0;
+          font-size: 1.08rem;
+          line-height: 1.35;
+          font-weight: 800;
+          color: #111111;
+        }
+        .about-fair-list {
+          display: grid;
+          gap: 0.7rem;
+          margin: 0;
+        }
+        .about-fair-item,
+        .about-feature-card {
+          background: #f8fafd;
+          border: 1px solid #e1e6ef;
+          border-radius: 12px;
+        }
+        .about-fair-item {
+          padding: 0.85rem 1rem;
+        }
+        .about-fair-name {
+          margin: 0 0 0.2rem 0;
+          font-size: 1rem;
+          line-height: 1.45;
+          font-weight: 800;
+          color: #111111;
+        }
+        .about-fair-desc {
+          margin: 0;
+          font-size: 0.97rem;
+          line-height: 1.72;
+          color: #334155;
+        }
+        .about-feature-list {
+          display: grid;
+          gap: 0.8rem;
+          margin-top: 0.2rem;
+        }
+        .about-feature-card {
+          padding: 0.95rem 1rem;
+        }
+        .about-feature-head {
+          display: flex;
+          align-items: baseline;
+          gap: 0.7rem;
+          margin-bottom: 0.45rem;
+          flex-wrap: wrap;
+        }
+        .about-feature-no {
+          font-size: 0.92rem;
+          line-height: 1;
+          font-weight: 800;
+          color: #6b7280;
+          letter-spacing: 0.06em;
+        }
+        .about-feature-name {
+          font-size: 1.08rem;
+          line-height: 1.35;
+          font-weight: 800;
+          color: #111111;
+        }
+        .about-feature-body {
+          margin: 0;
+          font-size: 0.98rem;
+          line-height: 1.82;
+          color: #2f3a49;
+        }
         @media (max-width: 900px) {
           .stApp [data-testid="stButton"] > button[data-testid="stBaseButton-tertiary"] {
             padding: 0.22rem 0 !important;
             font-size: clamp(1.35rem, 4.2vw, 1.95rem) !important;
+          }
+          .about-hero {
+            padding-bottom: 1rem;
+            margin-bottom: 1rem;
+          }
+          .about-fair-item,
+          .about-feature-card {
+            padding-left: 0.85rem;
+            padding-right: 0.85rem;
+          }
+          .about-feature-head {
+            gap: 0.45rem;
+            margin-bottom: 0.38rem;
           }
         }
         .stApp {
@@ -2331,7 +2447,7 @@ def render_advisor() -> None:
         "相談内容",
         height=140,
         key="advisor_question_text",
-        placeholder="例: 素材の選び方を教えて。",
+        placeholder="例 : 素材の選び方を教えて。",
     )
     effective_fair = str(fair_mode or FAIR_OPTIONS[0])
     uploader_key = f"advisor_uploaded_image_{int(st.session_state.get(uploaded_image_nonce_key, 0) or 0)}"
@@ -2557,7 +2673,7 @@ def render_advisor() -> None:
         "追加質問",
         key="advisor_followup_input",
         label_visibility="collapsed",
-        placeholder="例: 他に素材の選び方はありますか？",
+        placeholder="例 : 他に素材の選び方はありますか？",
     )
     followup_run = st.button("質問する", key="advisor_followup_run")
     followup_status_slot = st.empty()
@@ -2883,6 +2999,86 @@ def render_gallery_list() -> None:
     )
 
 
+def render_about() -> None:
+    _render_mode_heading("About")
+    st.markdown(
+        """
+        <div class="about-panel">
+          <section class="about-hero">
+            <h4 class="about-title">【Art Pulse Editor】（アート・パルス・エディター）について</h4>
+            <p class="about-lead">
+              世界トップ級の現代アートフェアに出展するギャラリー情報をRAGとして参照する、現代アート特化型AIアプリです。<br>
+              RAG知識をベースに、<strong>「トレンド抽出」</strong>、<strong>「制作アドバイス」</strong>、<strong>「全ギャラリー横断検索」</strong>、<strong>「日本語での整理・要約」</strong> などの機能を、1つにまとめています。
+            </p>
+          </section>
+
+          <section class="about-section">
+            <h5 class="about-section-title">対象アートフェア（RAG対象範囲）</h5>
+            <div class="about-fair-list">
+              <div class="about-fair-item">
+                <p class="about-fair-name">Frieze London</p>
+                <p class="about-fair-desc">国際的な「巨匠・中堅中心」の現代アートフェア</p>
+              </div>
+              <div class="about-fair-item">
+                <p class="about-fair-name">Liste Art Fair Basel</p>
+                <p class="about-fair-desc">国際的な「若手中心」の現代アートフェア</p>
+              </div>
+            </div>
+          </section>
+
+          <section class="about-section">
+            <h5 class="about-section-title">アプリ機能について</h5>
+            <div class="about-feature-list">
+              <div class="about-feature-card">
+                <div class="about-feature-head">
+                  <span class="about-feature-no">01</span>
+                  <span class="about-feature-name">Art Pulse</span>
+                </div>
+                <p class="about-feature-body">性格や嗜好が異なる8名のAI記者が、アートフェアを独自に取材し、記事を執筆する機能。</p>
+              </div>
+              <div class="about-feature-card">
+                <div class="about-feature-head">
+                  <span class="about-feature-no">02</span>
+                  <span class="about-feature-name">Advisor</span>
+                </div>
+                <p class="about-feature-body">全ギャラリーのRAG知識をもとにした「AIアートアドバイザー」が、アートに関するアドバイスを行う機能。<br>テキスト質問だけでなく、画像添付付き質問や画像生成にも対応。</p>
+              </div>
+              <div class="about-feature-card">
+                <div class="about-feature-head">
+                  <span class="about-feature-no">03</span>
+                  <span class="about-feature-name">Art Work Search</span>
+                </div>
+                <p class="about-feature-body">登録されている「アートワーク」を、テキスト入力や画像添付で類似検索する機能。<br><strong>入力例：</strong>幾何学 / 赤い抽象画 / 人物 / Flower など</p>
+              </div>
+              <div class="about-feature-card">
+                <div class="about-feature-head">
+                  <span class="about-feature-no">04</span>
+                  <span class="about-feature-name">Artist Search</span>
+                </div>
+                <p class="about-feature-body">登録されている「アーティスト」を、テキスト入力で検索する機能。<br><strong>入力例：</strong>ジャンル / テーマ / アーティスト名 など</p>
+              </div>
+              <div class="about-feature-card">
+                <div class="about-feature-head">
+                  <span class="about-feature-no">05</span>
+                  <span class="about-feature-name">Exhibition Search</span>
+                </div>
+                <p class="about-feature-body">登録されている「エキシビション」を、テキスト入力で検索する機能。<br><strong>入力例：</strong>テーマ / ジャンル / アーティスト名 など</p>
+              </div>
+              <div class="about-feature-card">
+                <div class="about-feature-head">
+                  <span class="about-feature-no">06</span>
+                  <span class="about-feature-name">Gallery list</span>
+                </div>
+                <p class="about-feature-body">登録されている「ギャラリー」の一覧を表示する機能。<br>全RAGの根拠となるギャラリー情報を確認できます。</p>
+              </div>
+            </div>
+          </section>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 def render_phase2_sections() -> None:
     sections = [
         ("Art Pulse", "art_pulse", render_art_pulse),
@@ -2891,6 +3087,7 @@ def render_phase2_sections() -> None:
         ("Artist Search", "artist_search", render_artist_search),
         ("Exhibition Search", "exhibition_search", render_exhibition_search),
         ("Gallery list", "gallery_list", render_gallery_list),
+        ("About", "about", render_about),
     ]
     open_key = "top_level_open_section"
     current_open = str(st.session_state.get(open_key) or "")
