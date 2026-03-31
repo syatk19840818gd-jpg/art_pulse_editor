@@ -68,8 +68,11 @@ def build_artists_enrichment_requests(
 
             headline_ja = str(row.get("headline_ja") or "").strip()
             summary_ja = str(row.get("summary_ja") or "").strip()
+            artist_name_kana = str(row.get("artist_name_kana") or "").strip()
 
             needs_fields: list[str] = []
+            if not artist_name_kana:
+                needs_fields.append("artist_name_kana")
             if not headline_ja:
                 needs_fields.append("headline_ja")
             if not summary_ja:

@@ -9,6 +9,7 @@ DOC_PATHS
 - LOG_04: `./docs/04_TASK_PROGRESS_LOG.md`
 
 STATE_SNAPSHOT
+- Phase status: Phase 2 completed (user decision), Phase 3 gallery expansion is the next main stage
 - Feature 1 Art Pulse: completed
 - Feature 2 Exhibition Search: completed
 - Feature 3 Artist Search: stable / accepted for current scope
@@ -17,7 +18,7 @@ STATE_SNAPSHOT
 - Feature 7 ArtWork Search: current implementation exists / accepted for current scope
 - current/history rebaseline lane: completed
 - cleanup lane: closed
-- immediate priority: proceed main roadmap by explicit user task only
+- immediate priority: Phase 3 gallery expansion by explicit user task only
 
 ACTIVE DATA / RETRIEVAL FAMILIES
 - Artist Works Images
@@ -38,17 +39,26 @@ CURRENT OPERATING RULES
 - new RAG outputs must write to `data/current/...` only
 - preview / request report / legacy logs / trial artifacts use `data/runtime/...` neutral lanes, not `data/phase1_seed10/...`
 - legacy local `phase1_seed10` helpers may remain on disk, but remote `phase1_seed10` is not part of the default sync mainline and new writes must not revive that path
+- cleanup lane remains closed during Phase 3 expansion
+
+PHASE 3 OPERATING POLICY (FIXED)
+- Selection block is fixed at 10 galleries.
+- Each 10-gallery block is always split as Frieze 5 + Liste 5.
+- Selection order follows the provided CSV order (top-down alphabetical order).
+- After every 10 galleries, `rag_gellery_breakdown_master.xlsx` must be updated.
+- Human review of extraction rates is mandatory after every 10-gallery block.
+- Standard progression target is up to 20 galleries per cycle.
+- 30 galleries is not a standard operating target at this stage.
+- The second 10-gallery block may start only after review of the previous 10-gallery block.
+- 20 galleries is a two-block reviewed progression target, not a single unchecked bulk run.
+- Expansion goal is stable repeatable operations with balanced speed and safety.
 
 NEXT_TASKS
-- [x] R2 current-only mirror contract finalized in `run_r2_sync.py` / `config/r2_sync_targets.json`
-- [x] R2 log lane unified to `logs/r2_sync/` and retired `data/r2_auto_sync/`
-- [x] `data/history` removed from R2 sync targets
-- [x] history remote residue cleanup applied live on R2 and post-check confirmed `would_prune=0`
-- [x] `phase1_seed10` remote residue cleanup applied live on R2; final actual listing confirmed hidden `.bak` residue removed and prefix now empty
-- [x] local `phase1_seed10` write paths retired; canonical RAG outputs remain `data/current/...` and local-only helper artifacts now use neutral runtime paths
-- [x] Tarutani_data remote residue cleanup applied live on R2 and post-check confirmed `would_prune=0`
-- [x] Feature 6 Gallery list read-only quality verify-first completed (no issue found)
-- [x] Feature 3 / Feature 4 / Feature 7 current-only runtime verify-first completed (no regression found)
+- [ ] Finalize the next 10-gallery block scope (Frieze 5 + Liste 5 in CSV top-down order).
+- [ ] Run the next 10-gallery block under the fixed Phase 3 operating order.
+- [ ] Update `rag_gellery_breakdown_master.xlsx` immediately after the block.
+- [ ] Perform mandatory human review of extraction rates after the block update.
+- [ ] Decide whether to proceed to the next 10 galleries within the same cycle.
 - [ ] Continue main roadmap in explicit-user-task mode (cleanup lane remains closed)
 
 REMOVAL SYNC NOTE (2026-03-30)

@@ -9,20 +9,19 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
-from dotenv import load_dotenv
-from openai import OpenAI
-
-from enrichment_batch_common import extract_response_text_from_body, resolve_runtime_requests_path
+from enrichment_batch_common import extract_response_text_from_body, is_truthy_flag, resolve_runtime_requests_path
 from enrichment_requests_runtime import build_artists_enrichment_requests
+from model_routing import (
+    ARTISTS_ENRICHMENT_FIELD_MODELS,
+    get_enrichment_model_fingerprint,
+)
 from phase2_art_pulse_config import (
     get_current_raw_paths,
     get_enrichment_preview_dir,
     get_enrichment_runtime_requests_path,
 )
-
 from run_enrichment_exhibitions_preview import (
     ENRICH_BATCH_COMPLETION_WINDOW,
-    ENRICH_TEXT_MODEL,
     ENRICH_USE_OPENAI_BATCH,
     MAX_TEXT_CHARS_FOR_PROMPT,
     extract_json_object,
@@ -111,7 +110,7 @@ def infer_artist_name_en(row: dict[str, Any]) -> str:
         cleaned = normalize_whitespace(line)
         if not cleaned:
             continue
-        cleaned = re.sub(r"\s*[|｜]\s*.*$", "", cleaned).strip()
+        cleaned = re.sub(r"\s*[|・].*$", "", cleaned).strip()
         if cleaned:
             return cleaned
 
@@ -165,28 +164,6 @@ def select_preview_samples(request_rows: list[dict[str, Any]], max_samples: int)
     return selected[:max_samples]
 
 
-def build_summary_fallback(text: str, artist_name_en: str) -> str:
-    cleaned = strip_cookie_noise(text or "")
-    cleaned = re.sub(r"https?://\S+", "", cleaned)
-    cleaned = re.sub(r"\s+", " ", cleaned).strip()
-    excerpt = cleaned[:240]
-    summary = (
-        f"{artist_name_en}の紹介文から、作風・主題・素材と技法、見せ方の軸を整理した要約です。"
-        "本文では制作背景と作品傾向が並行して述べられており、造形上の特徴と文脈の両面が確認できます。"
-    )
-    if excerpt:
-        summary += f"記述には「{excerpt}」のような情報が含まれ、表現の位置づけを把握できます。"
-    return sanitize_summary(summary)
-
-
-def generate_fallback_preview(row: dict[str, Any]) -> tuple[str, str, str]:
-    artist_name_en = infer_artist_name_en(row)
-    headline = sanitize_headline(f"{artist_name_en}の表現と制作背景")
-    summary = build_summary_fallback(str(row.get("text") or ""), artist_name_en)
-    artist_name_kana = sanitize_artist_name_kana(str(row.get("artist_name_kana") or ""))
-    return headline, summary, artist_name_kana
-
-
 def build_openai_request_body(model: str, row: dict[str, Any]) -> dict[str, Any]:
     artist_name_en = infer_artist_name_en(row)
     source_urls = row.get("source_urls")
@@ -204,13 +181,11 @@ def build_openai_request_body(model: str, row: dict[str, Any]) -> dict[str, Any]
                     {
                         "type": "input_text",
                         "text": (
-                            "あなたはArtists TextのPost-fetch Enrichment担当です。"
-                            "JSONのみを返してください。"
-                            "headline_jaは56字以内の日本語短見出し。"
-                            "summary_jaは日本語500字以内。Artist Searchカード本文としてそのまま読める文体にする。"
-                            "artist_name_kanaはカタカナ表記。"
-                            "summary_jaでは作風、主題、素材、見せ方、特徴、位置づけを優先し、根拠の薄い推測を追加しない。"
-                            "作家名の反復、URL、cookie等のノイズ的メタ情報は入れない。"
+                            "You are generating enrichment JSON for artist pages."
+                            "Return JSON only."
+                            "headline_ja must be Japanese under 56 chars."
+                            "summary_ja must be Japanese under 500 chars."
+                            "artist_name_kana must be Katakana."
                         ),
                     }
                 ],
@@ -226,7 +201,7 @@ def build_openai_request_body(model: str, row: dict[str, Any]) -> dict[str, Any]
                             f"artist_name_en: {artist_name_en}\n"
                             f"source_url: {source_url}\n"
                             f"text:\n{prompt_text}\n\n"
-                            "返却形式(JSON): "
+                            "Return JSON: "
                             "{\"headline_ja\":\"...\",\"summary_ja\":\"...\",\"artist_name_kana\":\"...\"}"
                         ),
                     }
@@ -253,15 +228,6 @@ def parse_openai_response_body(body: dict[str, Any]) -> tuple[str, str, str]:
     return headline, summary, artist_name_kana
 
 
-def generate_preview_with_openai(client: OpenAI, model: str, row: dict[str, Any]) -> tuple[str, str, str]:
-    response = client.responses.create(**build_openai_request_body(model, row))
-    if hasattr(response, "model_dump"):
-        body = response.model_dump(mode="json")
-    else:
-        body = {"output_text": getattr(response, "output_text", "")}
-    return parse_openai_response_body(body)
-
-
 def build_warnings(*, summary_ja: str, artist_name_en: str, artist_name_kana: str) -> list[str]:
     warnings: list[str] = []
     summary = summary_ja or ""
@@ -280,18 +246,52 @@ def build_warnings(*, summary_ja: str, artist_name_en: str, artist_name_kana: st
     return warnings
 
 
-def make_preview_rows(sample_rows: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], dict[str, int]]:
-    load_dotenv()
-    api_key = os.getenv("OPENAI_API_KEY", "").strip()
-    model = os.getenv("ENRICH_TEXT_MODEL", ENRICH_TEXT_MODEL).strip() or ENRICH_TEXT_MODEL
-    use_batch = os.getenv("ENRICH_USE_OPENAI_BATCH", ENRICH_USE_OPENAI_BATCH).strip() or ENRICH_USE_OPENAI_BATCH
-    completion_window = (
-        os.getenv("ENRICH_BATCH_COMPLETION_WINDOW", ENRICH_BATCH_COMPLETION_WINDOW).strip()
-        or ENRICH_BATCH_COMPLETION_WINDOW
-    )
+def _build_raw_row_index() -> dict[tuple[str, str, str], dict[str, Any]]:
+    index: dict[tuple[str, str, str], dict[str, Any]] = {}
+    for fair_slug, raw_path in RAW_INPUT_PATHS.items():
+        for row in read_jsonl(raw_path):
+            text_hash = str(row.get("text_hash") or "").strip()
+            source_url = str(row.get("source_url") or "").strip()
+            if not text_hash:
+                continue
+            index[(fair_slug, text_hash, source_url)] = row
+            if (fair_slug, text_hash, "") not in index:
+                index[(fair_slug, text_hash, "")] = row
+    return index
 
-    client = OpenAI(api_key=api_key) if api_key else None
-    stats = {"openai_ok": 0, "fallback": 0, "warnings": 0}
+
+def _resolve_batch_preview_values(
+    *,
+    request_row: dict[str, Any],
+    raw_row_index: dict[tuple[str, str, str], dict[str, Any]],
+) -> tuple[str, str, str, dict[str, Any]]:
+    fair_slug = str(request_row.get("fair_slug") or "").strip()
+    text_hash = str(request_row.get("text_hash") or "").strip()
+    source_url = str(request_row.get("source_url") or "").strip()
+    raw_row = raw_row_index.get((fair_slug, text_hash, source_url)) or raw_row_index.get((fair_slug, text_hash, ""))
+    if raw_row is None:
+        raise RuntimeError(f"preview_source_row_not_found:{fair_slug}:{text_hash}")
+
+    enrich_mode = str(raw_row.get("enrich_mode") or "").strip()
+    if enrich_mode != "openai_batch_apply":
+        raise RuntimeError(f"preview_batch_enforcement_violation:enrich_mode={enrich_mode or 'missing'}")
+
+    headline = sanitize_headline(str(raw_row.get("headline_ja") or ""))
+    summary = sanitize_summary(str(raw_row.get("summary_ja") or ""))
+    artist_name_kana = sanitize_artist_name_kana(str(raw_row.get("artist_name_kana") or ""))
+    if not headline or not summary or not artist_name_kana:
+        raise RuntimeError("preview_batch_enforcement_violation:missing_batch_outputs")
+    return headline, summary, artist_name_kana, raw_row
+
+
+def make_preview_rows(sample_rows: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], dict[str, int]]:
+    use_batch = os.getenv("ENRICH_USE_OPENAI_BATCH", ENRICH_USE_OPENAI_BATCH).strip() or ENRICH_USE_OPENAI_BATCH
+    if not is_truthy_flag(use_batch):
+        raise RuntimeError("preview_batch_enforcement_violation:batch_flag_disabled")
+
+    raw_row_index = _build_raw_row_index()
+    model_fingerprint = get_enrichment_model_fingerprint("artists")
+    stats = {"batch_snapshot_ok": 0, "warnings": 0}
     preview_rows: list[dict[str, Any]] = []
 
     for row in sample_rows:
@@ -301,20 +301,10 @@ def make_preview_rows(sample_rows: list[dict[str, Any]]) -> tuple[list[dict[str,
         if isinstance(source_urls, list) and source_urls:
             source_url = str(source_urls[0] or "").strip()
         source_url = source_url or str(row.get("source_url") or "").strip()
-
-        method = "fallback"
-        note = "openai_key_missing"
-        try:
-            if client is None:
-                raise RuntimeError("openai_client_unavailable")
-            headline_ja, summary_ja, artist_name_kana = generate_preview_with_openai(client, model, row)
-            method = "openai_direct_preview"
-            note = ""
-            stats["openai_ok"] += 1
-        except Exception as exc:
-            headline_ja, summary_ja, artist_name_kana = generate_fallback_preview(row)
-            note = str(exc)
-            stats["fallback"] += 1
+        headline_ja, summary_ja, artist_name_kana, raw_row = _resolve_batch_preview_values(
+            request_row=row,
+            raw_row_index=raw_row_index,
+        )
 
         warnings = build_warnings(
             summary_ja=summary_ja,
@@ -322,6 +312,7 @@ def make_preview_rows(sample_rows: list[dict[str, Any]]) -> tuple[list[dict[str,
             artist_name_kana=artist_name_kana,
         )
         stats["warnings"] += len(warnings)
+        stats["batch_snapshot_ok"] += 1
 
         preview_rows.append(
             {
@@ -340,21 +331,22 @@ def make_preview_rows(sample_rows: list[dict[str, Any]]) -> tuple[list[dict[str,
                 "summary_ja_chars": len(summary_ja),
                 "artist_name_kana_chars": len(artist_name_kana),
                 "warnings": warnings,
-                "enrich_status": "preview_generated",
-                "enrich_model": model,
-                "enrich_mode": "sample_preview",
-                "api_mode": method,
-                "execution_mode": "sample_preview",
-                "batch_required": False,
-                "batch_used": False,
+                "enrich_status": "preview_generated_from_batch_output",
+                "enrich_model": model_fingerprint,
+                "enrich_models_by_field": dict(ARTISTS_ENRICHMENT_FIELD_MODELS),
+                "enrich_mode": "openai_batch_apply",
+                "api_mode": "openai_batch_apply_snapshot",
+                "execution_mode": "sample_preview_batch_snapshot",
+                "batch_required": True,
+                "batch_used": True,
                 "enrich_use_openai_batch": use_batch,
-                "enrich_completion_window": completion_window,
-                "enrich_prompt_version": ENRICH_PROMPT_VERSION,
+                "enrich_completion_window": str(raw_row.get("enrich_completion_window") or ENRICH_BATCH_COMPLETION_WINDOW),
+                "enrich_prompt_version": str(raw_row.get("enrich_prompt_version") or ENRICH_PROMPT_VERSION),
                 "enrich_input_text_hash": row.get("text_hash"),
                 "enrich_input_chars": int(row.get("text_length") or 0),
                 "enrich_generated_at": utc_now_iso(),
-                "enrich_notes": note,
-                "enrich_generation_method": method,
+                "enrich_notes": "",
+                "enrich_generation_method": "batch_snapshot",
             }
         )
 
@@ -408,7 +400,7 @@ def main() -> int:
     safe_print(f"[DONE] preview={preview_path} samples={len(preview_rows)}")
     safe_print(
         "[DONE] preview_stats="
-        f"openai_ok={preview_stats['openai_ok']} fallback={preview_stats['fallback']} warnings={preview_stats['warnings']}"
+        f"batch_snapshot_ok={preview_stats['batch_snapshot_ok']} warnings={preview_stats['warnings']}"
     )
 
     for i, row in enumerate(preview_rows, start=1):

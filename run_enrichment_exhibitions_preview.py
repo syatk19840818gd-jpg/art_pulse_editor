@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 from __future__ import annotations
 
 import json
@@ -9,10 +9,15 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from dotenv import load_dotenv
-from openai import OpenAI
-
-from enrichment_batch_common import extract_response_text_from_body
+from enrichment_batch_common import extract_response_text_from_body, is_truthy_flag
+from model_routing import (
+    ENRICH_BATCH_COMPLETION_WINDOW_DEFAULT,
+    ENRICH_USE_OPENAI_BATCH_DEFAULT,
+    EXHIBITIONS_ENRICHMENT_BATCH_FIELDS,
+    EXHIBITIONS_ENRICHMENT_FIELD_MODELS,
+    GENERATION_MODEL,
+    get_enrichment_model_fingerprint,
+)
 from phase2_art_pulse_config import (
     get_current_raw_paths,
     get_enrichment_preview_dir,
@@ -23,13 +28,13 @@ TARGET_YEAR = 2025
 RAG_CATEGORY = "exhibitions_text"
 
 RAW_INPUT_PATHS = get_current_raw_paths("exhibitions", TARGET_YEAR)
-
 REQUESTS_OUTPUT_PATH = get_enrichment_runtime_requests_path("exhibitions", TARGET_YEAR)
 PREVIEW_OUTPUT_DIR = get_enrichment_preview_dir("exhibitions")
 
-ENRICH_TEXT_MODEL = os.getenv("ENRICH_TEXT_MODEL", "gpt-5-mini")
-ENRICH_USE_OPENAI_BATCH = os.getenv("ENRICH_USE_OPENAI_BATCH", "1")
-ENRICH_BATCH_COMPLETION_WINDOW = os.getenv("ENRICH_BATCH_COMPLETION_WINDOW", "24h")
+# Kept for compatibility with imports from apply scripts.
+ENRICH_TEXT_MODEL = GENERATION_MODEL
+ENRICH_USE_OPENAI_BATCH = ENRICH_USE_OPENAI_BATCH_DEFAULT
+ENRICH_BATCH_COMPLETION_WINDOW = ENRICH_BATCH_COMPLETION_WINDOW_DEFAULT
 ENRICH_PROMPT_VERSION = "exh_preview_v1"
 
 HEADLINE_MAX_CHARS = 50
@@ -269,12 +274,10 @@ def build_openai_request_body(model: str, row: dict[str, Any]) -> dict[str, Any]
                     {
                         "type": "input_text",
                         "text": (
-                            "あなたはExhibitions TextのPost-fetch Enrichment担当です。"
-                            "JSONのみを返してください。"
-                            "headline_jaは50字以内の日本語短見出し。タイトル直訳は禁止。"
-                            "summary_jaは500字以内の日本語要約。"
-                            "展示タイトル・作家名・ギャラリー名・会期・都市名・URLの反復は原則禁止。"
-                            "主題、空間構成、素材感、体験、見どころを優先し、推測は追加しない。"
+                            "You are generating enrichment JSON for exhibitions."
+                            "Return JSON only."
+                            "headline_ja must be concise Japanese under 50 chars."
+                            "summary_ja must be Japanese under 500 chars."
                         ),
                     }
                 ],
@@ -291,7 +294,7 @@ def build_openai_request_body(model: str, row: dict[str, Any]) -> dict[str, Any]
                             f"source_url: {row.get('source_url','')}\n"
                             f"participating_artists: {row.get('participating_artists','')}\n"
                             f"text:\n{prompt_text}\n\n"
-                            "返却形式(JSON): {\"headline_ja\":\"...\",\"summary_ja\":\"...\"}"
+                            "Return JSON: {\"headline_ja\":\"...\",\"summary_ja\":\"...\"}"
                         ),
                     }
                 ],
@@ -311,40 +314,6 @@ def parse_openai_response_body(body: dict[str, Any]) -> tuple[str, str]:
         raise RuntimeError("empty_headline")
     if not summary:
         raise RuntimeError("empty_summary")
-    return headline, summary
-
-
-def generate_preview_with_openai(client: OpenAI, model: str, row: dict[str, Any]) -> tuple[str, str]:
-    response = client.responses.create(**build_openai_request_body(model, row))
-    if hasattr(response, "model_dump"):
-        body = response.model_dump(mode="json")
-    else:
-        body = {"output_text": getattr(response, "output_text", "")}
-    return parse_openai_response_body(body)
-
-
-def generate_fallback_preview(row: dict[str, Any]) -> tuple[str, str]:
-    title = str(row.get("exhibition_title") or "展示").strip()
-    gallery = str(row.get("gallery_name") or "ギャラリー").strip()
-    text = strip_cookie_noise(str(row.get("text") or ""))
-    title_for_headline = re.sub(r"\s*[-|｜].*$", "", title).strip()
-    headline = sanitize_headline(title_for_headline) or "展示の見どころ"
-
-    core = text
-    if title and core.startswith(title):
-        core = core[len(title):].strip()
-    if gallery:
-        core = core.replace(gallery, "")
-    core = normalize_whitespace(core)
-
-    summary = (
-        "本展示は、作品同士の関係や空間の使い方を通じて、テーマを段階的に体験させる構成が特徴です。"
-        "素材の選択や配置のリズムが鑑賞の導線をつくり、視覚情報だけでなく身体感覚にも働きかけます。"
-    )
-    if core:
-        summary += f"本文では「{core[:220]}」といった記述があり、展示の意図や見どころを読み取れます。"
-
-    summary = sanitize_summary(summary)
     return headline, summary
 
 
@@ -383,34 +352,61 @@ def build_warnings(*, summary_ja: str, row: dict[str, Any]) -> list[str]:
     return warnings
 
 
-def make_preview_rows(sample_rows: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], dict[str, int]]:
-    load_dotenv()
-    api_key = os.getenv("OPENAI_API_KEY", "").strip()
-    model = os.getenv("ENRICH_TEXT_MODEL", ENRICH_TEXT_MODEL).strip() or ENRICH_TEXT_MODEL
-    use_batch = os.getenv("ENRICH_USE_OPENAI_BATCH", ENRICH_USE_OPENAI_BATCH).strip() or ENRICH_USE_OPENAI_BATCH
-    completion_window = os.getenv("ENRICH_BATCH_COMPLETION_WINDOW", ENRICH_BATCH_COMPLETION_WINDOW).strip() or ENRICH_BATCH_COMPLETION_WINDOW
+def _build_raw_row_index() -> dict[tuple[str, str, str], dict[str, Any]]:
+    index: dict[tuple[str, str, str], dict[str, Any]] = {}
+    for fair_slug, raw_path in RAW_INPUT_PATHS.items():
+        for row in read_jsonl(raw_path):
+            text_hash = str(row.get("text_hash") or "").strip()
+            source_url = str(row.get("source_url") or "").strip()
+            if not text_hash:
+                continue
+            index[(fair_slug, text_hash, source_url)] = row
+            if (fair_slug, text_hash, "") not in index:
+                index[(fair_slug, text_hash, "")] = row
+    return index
 
-    client = OpenAI(api_key=api_key) if api_key else None
-    stats = {"openai_ok": 0, "fallback": 0, "warnings": 0}
+
+def _resolve_batch_preview_values(
+    *,
+    request_row: dict[str, Any],
+    raw_row_index: dict[tuple[str, str, str], dict[str, Any]],
+) -> tuple[str, str, dict[str, Any]]:
+    fair_slug = str(request_row.get("fair_slug") or "").strip()
+    text_hash = str(request_row.get("text_hash") or "").strip()
+    source_url = str(request_row.get("source_url") or "").strip()
+    raw_row = raw_row_index.get((fair_slug, text_hash, source_url)) or raw_row_index.get((fair_slug, text_hash, ""))
+    if raw_row is None:
+        raise RuntimeError(f"preview_source_row_not_found:{fair_slug}:{text_hash}")
+
+    enrich_mode = str(raw_row.get("enrich_mode") or "").strip()
+    if enrich_mode != "openai_batch_apply":
+        raise RuntimeError(f"preview_batch_enforcement_violation:enrich_mode={enrich_mode or 'missing'}")
+
+    headline = sanitize_headline(str(raw_row.get("headline_ja") or ""))
+    summary = sanitize_summary(str(raw_row.get("summary_ja") or ""))
+    if not headline or not summary:
+        raise RuntimeError("preview_batch_enforcement_violation:missing_batch_outputs")
+    return headline, summary, raw_row
+
+
+def make_preview_rows(sample_rows: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], dict[str, int]]:
+    use_batch = os.getenv("ENRICH_USE_OPENAI_BATCH", ENRICH_USE_OPENAI_BATCH).strip() or ENRICH_USE_OPENAI_BATCH
+    if not is_truthy_flag(use_batch):
+        raise RuntimeError("preview_batch_enforcement_violation:batch_flag_disabled")
+
+    raw_row_index = _build_raw_row_index()
+    model_fingerprint = get_enrichment_model_fingerprint("exhibitions")
+    stats = {"batch_snapshot_ok": 0, "warnings": 0}
     preview_rows: list[dict[str, Any]] = []
 
     for row in sample_rows:
-        method = "fallback"
-        note = "openai_key_missing"
-        try:
-            if client is None:
-                raise RuntimeError("openai_client_unavailable")
-            headline_ja, summary_ja = generate_preview_with_openai(client, model, row)
-            method = "openai_direct_preview"
-            note = ""
-            stats["openai_ok"] += 1
-        except Exception as exc:
-            headline_ja, summary_ja = generate_fallback_preview(row)
-            note = str(exc)
-            stats["fallback"] += 1
-
+        headline_ja, summary_ja, raw_row = _resolve_batch_preview_values(
+            request_row=row,
+            raw_row_index=raw_row_index,
+        )
         warnings = build_warnings(summary_ja=summary_ja, row=row)
         stats["warnings"] += len(warnings)
+        stats["batch_snapshot_ok"] += 1
 
         preview_rows.append(
             {
@@ -426,23 +422,24 @@ def make_preview_rows(sample_rows: list[dict[str, Any]]) -> tuple[list[dict[str,
                 "headline_ja_chars": len(headline_ja),
                 "summary_ja_chars": len(summary_ja),
                 "warnings": warnings,
-                "enrich_status": "preview_generated",
-                "enrich_model": model,
-                "enrich_mode": "sample_preview",
-                "api_mode": method,
-                "execution_mode": "sample_preview",
-                "batch_required": False,
-                "batch_used": False,
+                "enrich_status": "preview_generated_from_batch_output",
+                "enrich_model": model_fingerprint,
+                "enrich_models_by_field": dict(EXHIBITIONS_ENRICHMENT_FIELD_MODELS),
+                "enrich_mode": "openai_batch_apply",
+                "api_mode": "openai_batch_apply_snapshot",
+                "execution_mode": "sample_preview_batch_snapshot",
+                "batch_required": True,
+                "batch_used": True,
                 "enrich_use_openai_batch": use_batch,
-                "enrich_completion_window": completion_window,
-                "enrich_prompt_version": ENRICH_PROMPT_VERSION,
+                "enrich_completion_window": str(raw_row.get("enrich_completion_window") or ENRICH_BATCH_COMPLETION_WINDOW),
+                "enrich_prompt_version": str(raw_row.get("enrich_prompt_version") or ENRICH_PROMPT_VERSION),
                 "enrich_input_text_hash": row.get("text_hash"),
                 "enrich_input_chars": int(row.get("text_length") or 0),
                 "enrich_summary_chars": len(summary_ja),
                 "enrich_headline_chars": len(headline_ja),
                 "enrich_generated_at": utc_now_iso(),
-                "enrich_notes": note,
-                "enrich_generation_method": method,
+                "enrich_notes": "",
+                "enrich_generation_method": "batch_snapshot",
             }
         )
 
@@ -467,7 +464,7 @@ def main() -> int:
     print(f"[DONE] preview={preview_path} samples={len(preview_rows)}")
     print(
         "[DONE] preview_stats="
-        f"openai_ok={preview_stats['openai_ok']} fallback={preview_stats['fallback']} warnings={preview_stats['warnings']}"
+        f"batch_snapshot_ok={preview_stats['batch_snapshot_ok']} warnings={preview_stats['warnings']}"
     )
     print(
         "[DONE] request_counters="

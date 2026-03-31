@@ -25,6 +25,7 @@ TRUTHY_VALUES = {"1", "true", "yes", "on"}
 TERMINAL_BATCH_STATUSES = {"completed", "failed", "expired", "cancelled"}
 ALLOWED_PROMOTE_RERUN_GUARD_VERDICTS = {"new_run", "resume_existing_batch"}
 OPTIONAL_OUTPUT_ARTIFACTS_ENV = "ART_PULSE_OUTPUT_ARTIFACTS"
+ENRICHMENT_BATCH_CUSTOM_ID_DELIMITER = "::field::"
 OPTIONAL_OUTPUT_ARTIFACT_ALIASES = {
     "all": "all",
     "preview": "preview",
@@ -119,6 +120,18 @@ def sha256_file(path: Path) -> str:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def build_enrichment_field_custom_id(request_id: str, field_name: str) -> str:
+    rid = str(request_id or "").strip()
+    field = str(field_name or "").strip()
+    if not rid:
+        raise ValueError("request_id_empty")
+    if not field:
+        raise ValueError("field_name_empty")
+    if ENRICHMENT_BATCH_CUSTOM_ID_DELIMITER in rid:
+        raise ValueError("request_id_contains_reserved_delimiter")
+    return f"{rid}{ENRICHMENT_BATCH_CUSTOM_ID_DELIMITER}{field}"
 
 
 def to_plain_dict(obj: Any) -> dict[str, Any]:

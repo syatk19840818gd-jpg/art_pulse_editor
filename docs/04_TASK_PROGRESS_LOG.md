@@ -32,6 +32,7 @@ Project: ART_PULSE_EDITOR
 ## 4. Next-task policy
 - Keep retired lane excluded from baseline.
 - Keep task logs aligned only to Feature 1 / 2 / 3 / 4 / 6 / 7 baseline.
+- Proceed the main roadmap by explicit user task.
 
 ## 5. 2026-03-30 closeout sync (this chat)
 - R2 remote residue prune completed using narrow legacy scopes only.
@@ -82,3 +83,21 @@ Project: ART_PULSE_EDITOR
 - `data/r2_auto_sync/` contained only retired auto-sync residue: historical summary logs and an unused `auto_sync_state.json` for the old `phase1_*` auto-sync flow.
 - `run_r2_sync.py` now labels `logs/r2_sync/` as the canonical R2 sync log directory.
 - Retired `data/r2_auto_sync/` was removed so R2 logs/state no longer live in a parallel lane.
+
+## 11. 2026-03-31 phase transition decision (Phase 2 closeout -> Phase 3)
+- User decision is recorded as final for this project cycle: Phase 2 is closed/completed.
+- Next roadmap stage is fixed as Phase 3: gallery expansion.
+- Expansion operations keep the current contracts unchanged: current-only runtime, family separation, guarded sync, and fetch-enrichment separation.
+- Cleanup lane remains closed; roadmap progress continues in explicit-user-task mode.
+- Note for later verification: live enrichment batch smoke can be run as an optional follow-up check, but it is not a blocker for the Phase 2 to Phase 3 transition decision.
+
+## 12. 2026-03-31 Phase 3 operating policy clarification
+- Phase 3 does not use unchecked multi-wave execution.
+- The formal review checkpoint remains every 10 galleries.
+- Each selection block is fixed at 10 galleries with split `Frieze 5 + Liste 5`.
+- Selection order follows the provided CSV order (top-down alphabetical order).
+- `rag_gellery_breakdown_master.xlsx` update plus human review of extraction rates is required after each 10-gallery block.
+- Standard speed target is up to 20 galleries per cycle.
+- 30 galleries is not treated as the standard operating target at this time.
+- The cycle target is achieved only by reviewed 10-gallery blocks; the second 10 starts only after review of the first 10.
+- This policy is adopted to balance speed and operational safety while keeping explicit-user-task execution.

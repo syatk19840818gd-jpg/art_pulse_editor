@@ -17,6 +17,7 @@ from openai import OpenAI
 from enrichment_batch_common import (
     TERMINAL_BATCH_STATUSES,
     acquire_process_lock,
+    build_enrichment_field_custom_id,
     build_batch_request_line,
     build_bulk_artifact_paths,
     build_bulk_contract_fields,
@@ -40,13 +41,18 @@ from enrichment_batch_common import (
     write_json,
     write_jsonl,
 )
+from model_routing import (
+    ARTISTS_ENRICHMENT_BATCH_FIELDS,
+    ARTISTS_ENRICHMENT_FIELD_MODELS,
+    ENRICH_USE_OPENAI_BATCH_DEFAULT,
+    get_artists_enrichment_model,
+    get_enrichment_model_fingerprint,
+)
 from phase2_art_pulse_config import promote_history_file_to_current
 from run_enrichment_artists_preview import (
     ARTIST_NAME_KANA_MAX_CHARS,
     ENRICH_BATCH_COMPLETION_WINDOW,
     ENRICH_PROMPT_VERSION,
-    ENRICH_TEXT_MODEL,
-    ENRICH_USE_OPENAI_BATCH,
     HEADLINE_MAX_CHARS,
     RAG_CATEGORY,
     RAW_INPUT_PATHS,
@@ -352,8 +358,11 @@ def main() -> int:
 
     load_dotenv()
     api_key = os.getenv("OPENAI_API_KEY", "").strip()
-    model = os.getenv("ENRICH_TEXT_MODEL", ENRICH_TEXT_MODEL).strip() or ENRICH_TEXT_MODEL
-    use_batch = os.getenv("ENRICH_USE_OPENAI_BATCH", ENRICH_USE_OPENAI_BATCH).strip() or ENRICH_USE_OPENAI_BATCH
+    enrich_model_fingerprint = get_enrichment_model_fingerprint("artists")
+    use_batch = (
+        os.getenv("ENRICH_USE_OPENAI_BATCH", ENRICH_USE_OPENAI_BATCH_DEFAULT).strip()
+        or ENRICH_USE_OPENAI_BATCH_DEFAULT
+    )
     completion_window = (
         os.getenv("ENRICH_BATCH_COMPLETION_WINDOW", ENRICH_BATCH_COMPLETION_WINDOW).strip()
         or ENRICH_BATCH_COMPLETION_WINDOW
@@ -533,12 +542,16 @@ def main() -> int:
         requests_path=REQUESTS_PATH,
         input_bundle_hash=input_bundle_hash,
         prompt_version=ENRICH_PROMPT_VERSION,
-        model=model,
+        model=enrich_model_fingerprint,
         target_year=TARGET_YEAR,
     )
     probe_paths = build_bulk_artifact_paths("artists", stamp=utc_now_compact(), target_year=TARGET_YEAR, guard_key=guard_key)
     prereq = validate_bulk_batch_prerequisites(api_key=api_key, use_batch=use_batch, target_rows=target_rows)
-    target_request_ids = [str(task["custom_id"]) for task in pending_tasks]
+    target_request_ids = [
+        build_enrichment_field_custom_id(str(task["custom_id"]), field_name)
+        for task in pending_tasks
+        for field_name in ARTISTS_ENRICHMENT_BATCH_FIELDS
+    ]
 
     if args.preflight_only:
         payload = {
@@ -554,6 +567,8 @@ def main() -> int:
             "target_rows": target_rows,
             "total_requests": len(request_rows),
             "target_request_ids_count": len(target_request_ids),
+            "enrich_model": enrich_model_fingerprint,
+            "enrich_models_by_field": dict(ARTISTS_ENRICHMENT_FIELD_MODELS),
             "prereq": prereq,
         }
         safe_print(payload)
@@ -594,7 +609,8 @@ def main() -> int:
             "target_request_ids_count": 0,
             "target_request_ids": [],
             "counters": dict(counters),
-            "enrich_model": model,
+            "enrich_model": enrich_model_fingerprint,
+            "enrich_models_by_field": dict(ARTISTS_ENRICHMENT_FIELD_MODELS),
             "enrich_use_openai_batch": use_batch,
             "enrich_completion_window": completion_window,
             "enrich_prompt_version": ENRICH_PROMPT_VERSION,
@@ -618,7 +634,8 @@ def main() -> int:
             "batch_status": "not_submitted",
             "requests_path": str(REQUESTS_PATH),
             "target_request_ids": [],
-            "enrich_model": model,
+            "enrich_model": enrich_model_fingerprint,
+            "enrich_models_by_field": dict(ARTISTS_ENRICHMENT_FIELD_MODELS),
             "enrich_prompt_version": ENRICH_PROMPT_VERSION,
             "enrich_completion_window": completion_window,
             "openai_client_available": bool(api_key),
@@ -683,12 +700,16 @@ def main() -> int:
         if rerun_guard_verdict == "new_run":
             batch_input_rows: list[dict[str, Any]] = []
             for task in pending_tasks:
-                batch_input_rows.append(
-                    build_batch_request_line(
-                        custom_id=str(task["custom_id"]),
-                        body=build_openai_request_body(model, dict(task["working"])),
+                for field_name in ARTISTS_ENRICHMENT_BATCH_FIELDS:
+                    batch_input_rows.append(
+                        build_batch_request_line(
+                            custom_id=build_enrichment_field_custom_id(str(task["custom_id"]), field_name),
+                            body=build_openai_request_body(
+                                get_artists_enrichment_model(field_name),
+                                dict(task["working"]),
+                            ),
+                        )
                     )
-                )
             write_jsonl(paths["batch_input_path"], batch_input_rows)
             upload_file = upload_batch_input_file(client, paths["batch_input_path"])
             batch_input_file_id = str(upload_file.get("id") or "").strip()
@@ -717,7 +738,8 @@ def main() -> int:
                 "guard_state_path": str(paths["guard_state_path"]),
                 "requests_path": str(REQUESTS_PATH),
                 "input_bundle_hash": input_bundle_hash,
-                "enrich_model": model,
+                "enrich_model": enrich_model_fingerprint,
+                "enrich_models_by_field": dict(ARTISTS_ENRICHMENT_FIELD_MODELS),
                 "enrich_prompt_version": ENRICH_PROMPT_VERSION,
                 "enrich_completion_window": completion_window,
                 "target_rows": target_rows,
@@ -802,7 +824,8 @@ def main() -> int:
                 "target_request_ids": target_request_ids,
                 "counters": dict(counters),
                 "request_counts": batch_state.get("request_counts") or {},
-                "enrich_model": model,
+                "enrich_model": enrich_model_fingerprint,
+                "enrich_models_by_field": dict(ARTISTS_ENRICHMENT_FIELD_MODELS),
                 "enrich_use_openai_batch": use_batch,
                 "enrich_completion_window": completion_window,
                 "enrich_prompt_version": ENRICH_PROMPT_VERSION,
@@ -829,7 +852,8 @@ def main() -> int:
                 "request_counts": batch_state.get("request_counts") or {},
                 "batch_input_file_id": batch_input_file_id,
                 "batch_input_path": str(paths["batch_input_path"]),
-                "enrich_model": model,
+                "enrich_model": enrich_model_fingerprint,
+                "enrich_models_by_field": dict(ARTISTS_ENRICHMENT_FIELD_MODELS),
                 "enrich_prompt_version": ENRICH_PROMPT_VERSION,
                 "enrich_completion_window": completion_window,
                 "openai_client_available": bool(api_key),
@@ -874,75 +898,136 @@ def main() -> int:
         batch_error_count = 0
 
         for task in pending_tasks:
-            custom_id = str(task["custom_id"])
-            result_row = output_map.get(custom_id)
-            error_row = error_map.get(custom_id)
+            request_id = str(task["custom_id"])
             artist_name_en = infer_artist_name_en(dict(task["working"]))
+            parsed_fields: dict[str, str] = {}
+            failure_status = ""
+            failure_field = ""
+            failure_error: Any = ""
+            failure_status_code = 0
+            parser_response_info: dict[str, Any] | None = None
+            parser_response_body: dict[str, Any] | None = None
 
-            if error_row:
-                batch_error_count += 1
-                counters["batch_error_file_rows"] += 1
-                batch_result_rows.append({"request_id": custom_id, "fair_slug": str(task["fair_slug"]), "text_hash": str(task["text_hash"]), "source_url": str(task["source_url"]), "status": "BATCH_RESULT_FAILED", "batch_job_id": batch_job_id, "batch_status": batch_status, "error": error_row.get("error")})
-                continue
-            if not result_row:
-                batch_error_count += 1
-                counters["batch_result_missing"] += 1
-                batch_result_rows.append({"request_id": custom_id, "fair_slug": str(task["fair_slug"]), "text_hash": str(task["text_hash"]), "source_url": str(task["source_url"]), "status": "BATCH_RESULT_MISSING", "batch_job_id": batch_job_id, "batch_status": batch_status})
-                continue
+            for field_name in ARTISTS_ENRICHMENT_BATCH_FIELDS:
+                field_custom_id = build_enrichment_field_custom_id(request_id, field_name)
+                result_row = output_map.get(field_custom_id)
+                error_row = error_map.get(field_custom_id)
 
-            response_info = result_row.get("response")
-            if not isinstance(response_info, dict):
-                batch_error_count += 1
-                counters["batch_response_missing"] += 1
-                batch_result_rows.append({"request_id": custom_id, "fair_slug": str(task["fair_slug"]), "text_hash": str(task["text_hash"]), "source_url": str(task["source_url"]), "status": "BATCH_RESPONSE_MISSING", "batch_job_id": batch_job_id, "batch_status": batch_status})
-                continue
+                if error_row:
+                    failure_status = "BATCH_RESULT_FAILED"
+                    failure_field = field_name
+                    failure_error = error_row.get("error")
+                    break
+                if not result_row:
+                    failure_status = "BATCH_RESULT_MISSING"
+                    failure_field = field_name
+                    break
 
-            status_code = int(response_info.get("status_code") or 0)
-            response_body = response_info.get("body")
-            if status_code != 200 or not isinstance(response_body, dict):
-                batch_error_count += 1
-                counters["batch_request_failed"] += 1
-                batch_result_rows.append({"request_id": custom_id, "fair_slug": str(task["fair_slug"]), "text_hash": str(task["text_hash"]), "source_url": str(task["source_url"]), "status": "BATCH_REQUEST_FAILED", "batch_job_id": batch_job_id, "batch_status": batch_status, "status_code": status_code, "error": result_row.get("error")})
-                continue
+                response_info = result_row.get("response")
+                if not isinstance(response_info, dict):
+                    failure_status = "BATCH_RESPONSE_MISSING"
+                    failure_field = field_name
+                    break
 
-            try:
-                headline_ja, summary_ja, artist_name_kana = parse_openai_response_body(response_body)
-            except Exception as exc:
-                parser_error = str(exc)
-                response_request_id = ""
-                if isinstance(response_info, dict):
-                    response_request_id = str(response_info.get("request_id") or "").strip()
-                response_text = extract_response_text_for_diagnostic(response_body)
-                repaired_update, diagnostic = maybe_build_localized_repair_update(
-                    task=task,
-                    current_applied_index=current_applied_index,
-                    batch_job_id=batch_job_id,
-                    parser_error=parser_error,
-                )
-                diagnostic.update(
-                    {
-                        "batch_status": batch_status,
-                        "response_request_id": response_request_id,
-                        "response_status_code": status_code,
-                        "response_text": response_text,
-                    }
-                )
-                diagnostic_rows.append(diagnostic)
-                if repaired_update is None:
-                    batch_error_count += 1
+                status_code = int(response_info.get("status_code") or 0)
+                response_body = response_info.get("body")
+                if status_code != 200 or not isinstance(response_body, dict):
+                    failure_status = "BATCH_REQUEST_FAILED"
+                    failure_field = field_name
+                    failure_status_code = status_code
+                    failure_error = result_row.get("error")
+                    break
+
+                try:
+                    headline_ja, summary_ja, artist_name_kana = parse_openai_response_body(response_body)
+                except Exception as exc:
+                    failure_status = "BATCH_PARSE_FAILED"
+                    failure_field = field_name
+                    failure_error = str(exc)
+                    parser_response_info = response_info
+                    parser_response_body = response_body
+                    break
+
+                parsed_value = {
+                    "headline_ja": headline_ja,
+                    "summary_ja": summary_ja,
+                    "artist_name_kana": artist_name_kana,
+                }.get(field_name, "")
+                parsed_value = str(parsed_value or "").strip()
+                if not parsed_value:
+                    failure_status = "BATCH_FIELD_EMPTY"
+                    failure_field = field_name
+                    failure_error = "parsed_field_empty"
+                    break
+                parsed_fields[field_name] = parsed_value
+
+            if failure_status:
+                if failure_status == "BATCH_PARSE_FAILED":
+                    response_request_id = ""
+                    response_status_code = 0
+                    if isinstance(parser_response_info, dict):
+                        response_request_id = str(parser_response_info.get("request_id") or "").strip()
+                        response_status_code = int(parser_response_info.get("status_code") or 0)
+                    response_text = ""
+                    if isinstance(parser_response_body, dict):
+                        response_text = extract_response_text_for_diagnostic(parser_response_body)
+                    repaired_update, diagnostic = maybe_build_localized_repair_update(
+                        task=task,
+                        current_applied_index=current_applied_index,
+                        batch_job_id=batch_job_id,
+                        parser_error=str(failure_error),
+                    )
+                    diagnostic.update(
+                        {
+                            "batch_status": batch_status,
+                            "response_request_id": response_request_id,
+                            "response_status_code": response_status_code,
+                            "response_text": response_text,
+                            "failed_field": failure_field,
+                        }
+                    )
+                    diagnostic_rows.append(diagnostic)
+                    if repaired_update is not None:
+                        counters["batch_parse_failed_localized_repair_applied"] += 1
+                        parsed_success_rows += 1
+                        staged_updates.append(repaired_update)
+                        continue
                     counters["batch_parse_failed"] += 1
-                    batch_result_rows.append({"request_id": custom_id, "fair_slug": str(task["fair_slug"]), "text_hash": str(task["text_hash"]), "source_url": str(task["source_url"]), "status": "BATCH_PARSE_FAILED", "batch_job_id": batch_job_id, "batch_status": batch_status, "error": parser_error})
-                    continue
+                elif failure_status == "BATCH_RESULT_FAILED":
+                    counters["batch_error_file_rows"] += 1
+                elif failure_status == "BATCH_RESULT_MISSING":
+                    counters["batch_result_missing"] += 1
+                elif failure_status == "BATCH_RESPONSE_MISSING":
+                    counters["batch_response_missing"] += 1
+                elif failure_status == "BATCH_REQUEST_FAILED":
+                    counters["batch_request_failed"] += 1
+                elif failure_status == "BATCH_FIELD_EMPTY":
+                    counters["batch_field_empty"] += 1
 
-                counters["batch_parse_failed_localized_repair_applied"] += 1
-                parsed_success_rows += 1
-                staged_updates.append(repaired_update)
+                batch_error_count += 1
+                batch_result_row = {
+                    "request_id": request_id,
+                    "fair_slug": str(task["fair_slug"]),
+                    "text_hash": str(task["text_hash"]),
+                    "source_url": str(task["source_url"]),
+                    "status": failure_status,
+                    "batch_job_id": batch_job_id,
+                    "batch_status": batch_status,
+                    "failed_field": failure_field,
+                    "error": failure_error,
+                }
+                if failure_status_code:
+                    batch_result_row["status_code"] = failure_status_code
+                batch_result_rows.append(batch_result_row)
                 continue
 
+            headline_ja = parsed_fields["headline_ja"]
+            summary_ja = parsed_fields["summary_ja"]
+            artist_name_kana = parsed_fields["artist_name_kana"]
             warnings = build_warnings(summary_ja=summary_ja, artist_name_en=artist_name_en, artist_name_kana=artist_name_kana)
             warning_count += len(warnings)
             parsed_success_rows += 1
-            staged_updates.append({"fair_slug": str(task["fair_slug"]), "row_index": int(task["row_index"]), "text_hash": str(task["text_hash"]), "source_url": str(task["source_url"]), "request_id": custom_id, "headline_ja": headline_ja, "summary_ja": summary_ja, "artist_name_kana": artist_name_kana, "warnings": warnings, "input_chars": int(task["input_chars"]), "repair_mode": "", "repair_source_request_id": "", "repair_source_summary_chars": 0})
+            staged_updates.append({"fair_slug": str(task["fair_slug"]), "row_index": int(task["row_index"]), "text_hash": str(task["text_hash"]), "source_url": str(task["source_url"]), "request_id": request_id, "headline_ja": headline_ja, "summary_ja": summary_ja, "artist_name_kana": artist_name_kana, "warnings": warnings, "input_chars": int(task["input_chars"]), "repair_mode": "", "repair_source_request_id": "", "repair_source_summary_chars": 0})
 
         committed_rows = 0
         if batch_error_count == 0 and parsed_success_rows == target_rows:
@@ -953,7 +1038,8 @@ def main() -> int:
                 row["summary_ja"] = update["summary_ja"]
                 row["artist_name_kana"] = update["artist_name_kana"]
                 row["enrich_status"] = "applied"
-                row["enrich_model"] = model
+                row["enrich_model"] = enrich_model_fingerprint
+                row["enrich_models_by_field"] = dict(ARTISTS_ENRICHMENT_FIELD_MODELS)
                 row["enrich_mode"] = "openai_batch_apply"
                 row["enrich_use_openai_batch"] = use_batch
                 row["enrich_completion_window"] = completion_window
@@ -975,7 +1061,7 @@ def main() -> int:
                     counters["artist_name_kana_over_limit"] += 1
                 if update["warnings"]:
                     counters["warnings_rows"] += 1
-                batch_result_rows.append({"request_id": update["request_id"], "fair_slug": fair_slug, "text_hash": update["text_hash"], "source_url": update["source_url"], "status": "APPLIED", "headline_ja": update["headline_ja"], "summary_ja": update["summary_ja"], "artist_name_kana": update["artist_name_kana"], "headline_ja_chars": len(update["headline_ja"]), "summary_ja_chars": len(update["summary_ja"]), "artist_name_kana_chars": len(update["artist_name_kana"]), "warnings": update["warnings"], "enrich_model": model, "enrich_mode": "openai_batch_apply", "enrich_use_openai_batch": use_batch, "enrich_completion_window": completion_window, "enrich_prompt_version": ENRICH_PROMPT_VERSION, "enrich_input_text_hash": update["text_hash"], "enrich_batch_job_id": batch_job_id, "enrich_notes": str(update.get("repair_mode") or "")})
+                batch_result_rows.append({"request_id": update["request_id"], "fair_slug": fair_slug, "text_hash": update["text_hash"], "source_url": update["source_url"], "status": "APPLIED", "headline_ja": update["headline_ja"], "summary_ja": update["summary_ja"], "artist_name_kana": update["artist_name_kana"], "headline_ja_chars": len(update["headline_ja"]), "summary_ja_chars": len(update["summary_ja"]), "artist_name_kana_chars": len(update["artist_name_kana"]), "warnings": update["warnings"], "enrich_model": enrich_model_fingerprint, "enrich_models_by_field": dict(ARTISTS_ENRICHMENT_FIELD_MODELS), "enrich_mode": "openai_batch_apply", "enrich_use_openai_batch": use_batch, "enrich_completion_window": completion_window, "enrich_prompt_version": ENRICH_PROMPT_VERSION, "enrich_input_text_hash": update["text_hash"], "enrich_batch_job_id": batch_job_id, "enrich_notes": str(update.get("repair_mode") or "")})
             for fair_slug, raw_path in RAW_INPUT_PATHS.items():
                 write_jsonl(raw_path, raw_rows_by_fair[fair_slug])
         else:
@@ -1032,7 +1118,8 @@ def main() -> int:
             "target_request_ids_count": len(target_request_ids),
             "target_request_ids": target_request_ids,
             "counters": dict(counters),
-            "enrich_model": model,
+            "enrich_model": enrich_model_fingerprint,
+            "enrich_models_by_field": dict(ARTISTS_ENRICHMENT_FIELD_MODELS),
             "enrich_use_openai_batch": use_batch,
             "enrich_completion_window": completion_window,
             "enrich_prompt_version": ENRICH_PROMPT_VERSION,
@@ -1055,7 +1142,8 @@ def main() -> int:
             "diagnostics_path": str(diagnostics_path) if diagnostic_rows and emit_diagnostics else "",
             "diagnostic_rows": len(diagnostic_rows),
             "localized_repair_applied": int(counters.get("batch_parse_failed_localized_repair_applied", 0)),
-            "enrich_model": model,
+            "enrich_model": enrich_model_fingerprint,
+            "enrich_models_by_field": dict(ARTISTS_ENRICHMENT_FIELD_MODELS),
             "enrich_prompt_version": ENRICH_PROMPT_VERSION,
             "enrich_completion_window": completion_window,
             "openai_client_available": bool(api_key),
