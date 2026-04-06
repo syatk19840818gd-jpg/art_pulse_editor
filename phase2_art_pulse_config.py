@@ -75,9 +75,9 @@ def get_phase1_legacy_trash_root(root: Path | None = None) -> Path:
     return get_phase1_legacy_root(root) / "_trash"
 
 
-def get_enrichment_preview_dir(category: str) -> Path:
+def get_enrichment_preview_dir(category: str, root: Path | None = None) -> Path:
     _validate_enrichment_category(category)
-    return ENRICHMENT_RUNTIME_PREVIEWS_DIR / category
+    return get_enrichment_runtime_requests_reports_dir(root=root) / "previews" / category
 
 
 def get_image_cache_dir(root: Path | None = None) -> Path:
@@ -183,12 +183,52 @@ def get_current_artist_text_vector_artifact_paths(
     root: Path | None = None,
     target_year: int = TARGET_YEAR,
 ) -> dict[str, Path]:
+    runtime_paths = get_current_artist_text_vector_runtime_paths(
+        root=root,
+        target_year=target_year,
+    )
+    return {
+        "index": runtime_paths["index"],
+        "meta": runtime_paths["meta"],
+        "manifest": runtime_paths["manifest"],
+    }
+
+
+def get_current_artist_text_vector_runtime_paths(
+    *,
+    root: Path | None = None,
+    target_year: int = TARGET_YEAR,
+) -> dict[str, Path | str]:
     _ = target_year
     vector_dir = get_current_artist_text_vector_dir(root)
     return {
+        "output_dir": vector_dir,
         "index": vector_dir / "artists_text_index.npy",
         "meta": vector_dir / "artists_text_meta.jsonl",
         "manifest": vector_dir / "artists_text_artifact_manifest.json",
+        "failed": vector_dir / f"artists_text_vectorize_failed_{target_year}.jsonl",
+        "summary": vector_dir / f"artists_text_vectorize_summary_{target_year}.json",
+        "manifest_r2_prefix": "data/current/vector/artists" if root is None else "",
+    }
+
+
+def get_current_artist_works_vector_runtime_paths(
+    *,
+    root: Path | None = None,
+    target_year: int = TARGET_YEAR,
+) -> dict[str, Path | str]:
+    vector_dir = get_current_artist_works_vector_dir(root)
+    search_index_path = vector_dir / "artist_works_images_openclip_search_index.npy"
+    return {
+        "output_dir": vector_dir,
+        "embeddings": vector_dir / "artist_works_images_openclip_embeddings.npy",
+        "index": search_index_path,
+        "search_index": search_index_path,
+        "id_map": vector_dir / "artist_works_images_openclip_id_map.jsonl",
+        "failed": vector_dir / f"artist_works_images_vectorize_failed_{target_year}.jsonl",
+        "summary": vector_dir / f"artist_works_images_vectorize_summary_{target_year}.json",
+        "manifest": vector_dir / "artist_works_images_artifact_manifest.json",
+        "manifest_r2_prefix": "data/current/vector/artist_works_images" if root is None else "",
     }
 
 
@@ -197,8 +237,11 @@ def get_current_artist_works_openclip_embeddings_path(
     *,
     root: Path | None = None,
 ) -> Path:
-    _ = target_year
-    return get_current_artist_works_vector_dir(root) / "artist_works_images_openclip_embeddings.npy"
+    runtime_paths = get_current_artist_works_vector_runtime_paths(
+        root=root,
+        target_year=target_year,
+    )
+    return Path(runtime_paths["embeddings"])
 
 
 def get_current_artist_works_openclip_index_path(
@@ -206,8 +249,11 @@ def get_current_artist_works_openclip_index_path(
     *,
     root: Path | None = None,
 ) -> Path:
-    _ = target_year
-    return get_current_artist_works_vector_dir(root) / "artist_works_images_openclip_search_index.npy"
+    runtime_paths = get_current_artist_works_vector_runtime_paths(
+        root=root,
+        target_year=target_year,
+    )
+    return Path(runtime_paths["search_index"])
 
 
 def get_current_artist_works_openclip_id_map_path(
@@ -215,8 +261,11 @@ def get_current_artist_works_openclip_id_map_path(
     *,
     root: Path | None = None,
 ) -> Path:
-    _ = target_year
-    return get_current_artist_works_vector_dir(root) / "artist_works_images_openclip_id_map.jsonl"
+    runtime_paths = get_current_artist_works_vector_runtime_paths(
+        root=root,
+        target_year=target_year,
+    )
+    return Path(runtime_paths["id_map"])
 
 
 def get_current_artist_works_embeddings_path(
@@ -257,19 +306,14 @@ def get_current_artist_works_artifact_paths(
     root: Path | None = None,
     target_year: int = TARGET_YEAR,
 ) -> dict[str, Path]:
+    runtime_paths = get_current_artist_works_vector_runtime_paths(
+        root=root,
+        target_year=target_year,
+    )
     return {
-        "embeddings": get_current_artist_works_embeddings_path(
-            root=root,
-            target_year=target_year,
-        ),
-        "index": get_current_artist_works_index_path(
-            root=root,
-            target_year=target_year,
-        ),
-        "id_map": get_current_artist_works_id_map_path(
-            root=root,
-            target_year=target_year,
-        ),
+        "embeddings": Path(runtime_paths["embeddings"]),
+        "index": Path(runtime_paths["index"]),
+        "id_map": Path(runtime_paths["id_map"]),
     }
 
 
@@ -361,54 +405,105 @@ def get_current_raw_paths(
     }
 
 
-def get_enrichment_current_output_path(category: str, target_year: int = TARGET_YEAR) -> Path:
+def get_enrichment_current_dir(root: Path | None = None) -> Path:
+    if root is None:
+        return ENRICHMENT_CURRENT_DIR
+    return Path(root) / "current" / "enrichment"
+
+
+def get_enrichment_current_output_path(
+    category: str,
+    target_year: int = TARGET_YEAR,
+    *,
+    root: Path | None = None,
+) -> Path:
     _validate_enrichment_category(category)
     if category == "artists":
-        return ENRICHMENT_CURRENT_DIR / f"{category}_enrichment_apply_output.jsonl"
-    return ENRICHMENT_CURRENT_DIR / f"{category}_enrichment_apply_output_{target_year}.jsonl"
+        return get_enrichment_current_dir(root) / f"{category}_enrichment_apply_output.jsonl"
+    return get_enrichment_current_dir(root) / f"{category}_enrichment_apply_output_{target_year}.jsonl"
 
 
-def get_enrichment_current_summary_path(category: str, target_year: int = TARGET_YEAR) -> Path:
+def get_enrichment_current_summary_path(
+    category: str,
+    target_year: int = TARGET_YEAR,
+    *,
+    root: Path | None = None,
+) -> Path:
     _validate_enrichment_category(category)
     if category == "artists":
-        return ENRICHMENT_CURRENT_DIR / f"{category}_enrichment_apply_summary.json"
-    return ENRICHMENT_CURRENT_DIR / f"{category}_enrichment_apply_summary_{target_year}.json"
+        return get_enrichment_current_dir(root) / f"{category}_enrichment_apply_summary.json"
+    return get_enrichment_current_dir(root) / f"{category}_enrichment_apply_summary_{target_year}.json"
 
 
-def get_enrichment_history_output_path(category: str, stamp: str, target_year: int = TARGET_YEAR) -> Path:
+def get_enrichment_history_root(root: Path | None = None) -> Path:
+    if root is None:
+        return ENRICHMENT_HISTORY_DIR
+    return Path(root) / "history" / "enrichment"
+
+
+def get_enrichment_history_output_path(
+    category: str,
+    stamp: str,
+    target_year: int = TARGET_YEAR,
+    *,
+    root: Path | None = None,
+) -> Path:
     _validate_enrichment_category(category)
-    return get_enrichment_history_dir(category) / f"{category}_enrichment_apply_output_{target_year}_{stamp}.jsonl"
+    return get_enrichment_history_dir(category, root=root) / f"{category}_enrichment_apply_output_{target_year}_{stamp}.jsonl"
 
 
-def get_enrichment_history_summary_path(category: str, stamp: str, target_year: int = TARGET_YEAR) -> Path:
+def get_enrichment_history_summary_path(
+    category: str,
+    stamp: str,
+    target_year: int = TARGET_YEAR,
+    *,
+    root: Path | None = None,
+) -> Path:
     _validate_enrichment_category(category)
-    return get_enrichment_history_dir(category) / f"{category}_enrichment_apply_summary_{target_year}_{stamp}.json"
+    return get_enrichment_history_dir(category, root=root) / f"{category}_enrichment_apply_summary_{target_year}_{stamp}.json"
 
 
-def get_enrichment_history_dir(category: str) -> Path:
+def get_enrichment_history_dir(category: str, root: Path | None = None) -> Path:
     _validate_enrichment_category(category)
     if category == "artists":
-        return ENRICHMENT_HISTORY_ARTISTS_DIR
-    return ENRICHMENT_HISTORY_EXHIBITIONS_DIR
+        if root is None:
+            return ENRICHMENT_HISTORY_ARTISTS_DIR
+        return get_enrichment_history_root(root) / "artists"
+    if root is None:
+        return ENRICHMENT_HISTORY_EXHIBITIONS_DIR
+    return get_enrichment_history_root(root) / "exhibitions"
 
 
-def get_enrichment_runtime_requests_dir(category: str) -> Path:
+def get_enrichment_runtime_requests_root(root: Path | None = None) -> Path:
+    if root is None:
+        return ENRICHMENT_RUNTIME_REQUESTS_DIR
+    return Path(root) / "runtime" / "enrichment_requests"
+
+
+def get_enrichment_runtime_requests_dir(category: str, root: Path | None = None) -> Path:
     _validate_enrichment_category(category)
-    return ENRICHMENT_RUNTIME_REQUESTS_DIR / category
+    return get_enrichment_runtime_requests_root(root) / category
 
 
-def get_enrichment_runtime_requests_path(category: str, target_year: int = TARGET_YEAR) -> Path:
+def get_enrichment_runtime_requests_path(
+    category: str,
+    target_year: int = TARGET_YEAR,
+    *,
+    root: Path | None = None,
+) -> Path:
     _validate_enrichment_category(category)
-    return get_enrichment_runtime_requests_dir(category) / f"{category}_enrichment_requests_{target_year}.jsonl"
+    return get_enrichment_runtime_requests_dir(category, root=root) / f"{category}_enrichment_requests_{target_year}.jsonl"
 
 
-def get_enrichment_runtime_requests_completed_dir(category: str) -> Path:
+def get_enrichment_runtime_requests_completed_dir(category: str, root: Path | None = None) -> Path:
     _validate_enrichment_category(category)
-    return get_enrichment_runtime_requests_dir(category) / "_completed"
+    return get_enrichment_runtime_requests_dir(category, root=root) / "_completed"
 
 
-def get_enrichment_runtime_requests_reports_dir() -> Path:
-    return ENRICHMENT_RUNTIME_REQUESTS_REPORTS_DIR
+def get_enrichment_runtime_requests_reports_dir(root: Path | None = None) -> Path:
+    if root is None:
+        return ENRICHMENT_RUNTIME_REQUESTS_REPORTS_DIR
+    return get_enrichment_runtime_requests_root(root) / "_reports"
 
 
 def get_enrichment_seed10_legacy_requests_path(category: str, target_year: int = TARGET_YEAR) -> Path:
@@ -416,14 +511,14 @@ def get_enrichment_seed10_legacy_requests_path(category: str, target_year: int =
     return DATA_ROOT / "phase1_seed10" / "derived" / f"{category}_enrichment_requests_{target_year}.jsonl"
 
 
-def get_enrichment_scaffold_dirs() -> tuple[Path, ...]:
+def get_enrichment_scaffold_dirs(root: Path | None = None) -> tuple[Path, ...]:
     return (
-        ENRICHMENT_CURRENT_DIR,
-        ENRICHMENT_HISTORY_ARTISTS_DIR,
-        ENRICHMENT_HISTORY_EXHIBITIONS_DIR,
-        get_enrichment_runtime_requests_dir("artists"),
-        get_enrichment_runtime_requests_dir("exhibitions"),
-        ENRICHMENT_RUNTIME_REQUESTS_REPORTS_DIR,
+        get_enrichment_current_dir(root),
+        get_enrichment_history_dir("artists", root=root),
+        get_enrichment_history_dir("exhibitions", root=root),
+        get_enrichment_runtime_requests_dir("artists", root=root),
+        get_enrichment_runtime_requests_dir("exhibitions", root=root),
+        get_enrichment_runtime_requests_reports_dir(root=root),
     )
 
 

@@ -137,15 +137,33 @@ def extract_year_tokens(text: str) -> set[int]:
 
 
 TWO_DIGIT_DATE_RE = re.compile(
-    r"(?<!\d)(?:(?:\d{1,2}[./-]){1,2}(?P<year>\d{2}))(?:\D|$)"
+    r"(?<!\d)(?P<day>\d{1,2})(?P<sep>[./-])(?P<month>\d{1,2})(?P=sep)(?P<year>\d{2})(?!\d)"
+)
+TWO_DIGIT_DATE_RANGE_RE = re.compile(
+    r"(?<!\d)"
+    r"(?P<start_day>\d{1,2})(?P<start_sep>[./-])(?P<start_month>\d{1,2})(?P=start_sep)(?P<start_year>\d{2})"
+    r"\s*(?:-|to)\s*"
+    r"(?P<end_day>\d{1,2})(?P<end_sep>[./-])(?P<end_month>\d{1,2})(?P=end_sep)(?P<end_year>\d{2})(?!\d)"
 )
 
 
 def extract_two_digit_years_in_date_context(text: str) -> set[int]:
     entries: set[int] = set()
-    for match in TWO_DIGIT_DATE_RE.finditer(str(text or "")):
-        year = int(match.group("year"))
-        entries.add(year)
+    normalized = (
+        str(text or "")
+        .replace("\u2013", "-")
+        .replace("\u2014", "-")
+        .replace("\u2212", "-")
+    )
+    for raw_line in normalized.splitlines():
+        line = normalize_whitespace(raw_line)
+        if not line or len(line) > 160:
+            continue
+        if not re.search(r"\b\d{1,2}[./-]\d{1,2}[./-]\d{2}\b", line):
+            continue
+        for match in TWO_DIGIT_DATE_RE.finditer(line):
+            year = int(match.group("year"))
+            entries.add(year)
     return entries
 
 
@@ -178,6 +196,47 @@ def _parse_month_name_date(raw_text: str) -> date | None:
         except ValueError:
             continue
     return None
+
+
+def _expand_two_digit_year(year: str) -> int:
+    value = int(year)
+    return 2000 + value if value <= 68 else 1900 + value
+
+
+def _parse_two_digit_year_date(day: str, month: str, year: str) -> date | None:
+    try:
+        return date(_expand_two_digit_year(year), int(month), int(day))
+    except ValueError:
+        return None
+
+
+def _extract_two_digit_date_ranges(extracted_text: str) -> list[tuple[date, date]]:
+    ranges: list[tuple[date, date]] = []
+    normalized_text = (
+        str(extracted_text or "")
+        .replace("\u2013", "-")
+        .replace("\u2014", "-")
+        .replace("\u2212", "-")
+    )
+    for raw_line in normalized_text.splitlines():
+        line = normalize_whitespace(raw_line)
+        if not line or len(line) > 80:
+            continue
+        for match in TWO_DIGIT_DATE_RANGE_RE.finditer(line):
+            start = _parse_two_digit_year_date(
+                match.group("start_day"),
+                match.group("start_month"),
+                match.group("start_year"),
+            )
+            end = _parse_two_digit_year_date(
+                match.group("end_day"),
+                match.group("end_month"),
+                match.group("end_year"),
+            )
+            if start is None or end is None:
+                continue
+            ranges.append((start, end))
+    return ranges
 
 
 def _collect_date_candidates(page_url: str, html: str, extracted_text: str) -> list[date]:
@@ -217,7 +276,95 @@ def _collect_date_candidates(page_url: str, html: str, extracted_text: str) -> l
         seen.add(key)
         candidates.append(d)
 
+    normalized_text = (
+        str(extracted_text or "")
+        .replace("\u2013", "-")
+        .replace("\u2014", "-")
+        .replace("\u2212", "-")
+    )
+    for raw_line in normalized_text.splitlines():
+        line = normalize_whitespace(raw_line)
+        if not line or len(line) > 160:
+            continue
+        if not TWO_DIGIT_DATE_RE.search(line):
+            continue
+        for match in TWO_DIGIT_DATE_RANGE_RE.finditer(line):
+            for d in (
+                _parse_two_digit_year_date(
+                    match.group("start_day"),
+                    match.group("start_month"),
+                    match.group("start_year"),
+                ),
+                _parse_two_digit_year_date(
+                    match.group("end_day"),
+                    match.group("end_month"),
+                    match.group("end_year"),
+                ),
+            ):
+                if d is None:
+                    continue
+                key = d.isoformat()
+                if key in seen:
+                    continue
+                seen.add(key)
+                candidates.append(d)
+        for match in TWO_DIGIT_DATE_RE.finditer(line):
+            d = _parse_two_digit_year_date(
+                match.group("day"),
+                match.group("month"),
+                match.group("year"),
+            )
+            if d is None:
+                continue
+            key = d.isoformat()
+            if key in seen:
+                continue
+            seen.add(key)
+            candidates.append(d)
+
     return sorted(candidates)
+
+
+def _extract_page_title_and_headings(html: str) -> str:
+    if BeautifulSoup is None:
+        return ""
+    try:
+        soup = BeautifulSoup(html or "", "lxml")
+    except Exception:
+        return ""
+    chunks: list[str] = []
+    if soup.title:
+        title = normalize_whitespace(soup.title.get_text(" ", strip=True))
+        if title:
+            chunks.append(title)
+    for tag_name in ("h1", "h2"):
+        for node in soup.find_all(tag_name, limit=4):
+            value = normalize_whitespace(node.get_text(" ", strip=True))
+            if value and value not in chunks:
+                chunks.append(value)
+    return "\n".join(chunks)
+
+
+def _build_local_year_signal_text(page_url: str, html: str, extracted_text: str) -> str:
+    title_and_headings = _extract_page_title_and_headings(html)
+    visible_text = str(extracted_text or "")
+    lines: list[str] = []
+    for raw_line in visible_text.splitlines():
+        line = normalize_whitespace(raw_line)
+        if not line:
+            continue
+        lines.append(line)
+        if len(lines) >= 40:
+            break
+    parts = [str(page_url or "").strip(), title_and_headings]
+    parts.extend(lines)
+    return "\n".join(part for part in parts if part)
+
+
+def _is_local_target_year_signal(years: set[int], target_year: int) -> bool:
+    if int(target_year) not in years:
+        return False
+    return len(years) <= 3 and all(abs(year - int(target_year)) <= 1 for year in years)
 
 
 def extract_exhibition_dates(
@@ -227,6 +374,17 @@ def extract_exhibition_dates(
     extracted_text: str,
     target_year: int,
 ) -> dict[str, str]:
+    two_digit_ranges = _extract_two_digit_date_ranges(extracted_text)
+    if two_digit_ranges:
+        start, end = two_digit_ranges[0]
+        confidence = "high" if start != end else "medium"
+        return {
+            "exhibition_start_date": start.isoformat(),
+            "exhibition_end_date": end.isoformat(),
+            "date_source": "regex_date_extraction",
+            "date_confidence": confidence,
+        }
+
     dates = _collect_date_candidates(page_url, html, extracted_text)
     if dates:
         start = dates[0]
@@ -239,8 +397,15 @@ def extract_exhibition_dates(
             "date_confidence": confidence,
         }
 
-    years = extract_year_tokens(f"{page_url}\n{html}\n{extracted_text}")
-    if int(target_year) in years:
+    local_year_text = _build_local_year_signal_text(page_url, html, extracted_text)
+    local_years = extract_year_tokens(local_year_text)
+    title_and_headings = _extract_page_title_and_headings(html)
+    title_years = extract_year_tokens(title_and_headings)
+    if (
+        url_path_contains_year(page_url, int(target_year))
+        or int(target_year) in title_years
+        or _is_local_target_year_signal(local_years, int(target_year))
+    ):
         return {
             "exhibition_start_date": f"{target_year}-01-01",
             "exhibition_end_date": f"{target_year}-12-31",
@@ -258,20 +423,30 @@ def extract_exhibition_dates(
 
 def should_include_target_year_page(*, page_url: str, html: str, target_year: int) -> tuple[bool, str]:
     target = int(target_year)
-    combined = f"{page_url}\n{html}"
-    years = extract_year_tokens(combined)
-    if target in years:
+    extracted_text = extract_visible_text(html)
+    dates = _collect_date_candidates(page_url, html, extracted_text)
+    if dates:
+        date_years = {entry.year for entry in dates}
+        if target in date_years:
+            return True, "year_signal_present"
+        return False, "explicit_non_target_year"
+    local_year_text = _build_local_year_signal_text(page_url, html, extracted_text)
+    title_and_headings = _extract_page_title_and_headings(html)
+    title_years = extract_year_tokens(title_and_headings)
+    local_years = extract_year_tokens(local_year_text)
+    if target in title_years:
+        return True, "year_signal_present"
+    if _is_local_target_year_signal(local_years, target):
         return True, "year_signal_present"
     if target == 2025:
-        two_digit_years = extract_two_digit_years_in_date_context(combined)
-        if 25 in two_digit_years:
+        two_digit_years = extract_two_digit_years_in_date_context(local_year_text)
+        if 25 in two_digit_years and len(two_digit_years) <= 3:
             return True, "two_digit_year_signal"
-    if years:
+    if local_years:
         return False, "explicit_non_target_year"
     if url_path_contains_year(page_url, target):
         return True, "year_signal_in_url_path"
-    # If no explicit year signal exists, keep page as potentially valid candidate.
-    return True, "no_explicit_year_signal"
+    return False, "no_explicit_year_signal"
 
 
 def extract_participating_artists_line(extracted_text: str) -> str:

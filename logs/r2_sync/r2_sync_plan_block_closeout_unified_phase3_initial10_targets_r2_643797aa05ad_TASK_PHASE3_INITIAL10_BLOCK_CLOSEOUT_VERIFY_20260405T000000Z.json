@@ -1,0 +1,93 @@
+{
+  "artifact_kind": "r2_sync_plan",
+  "schema_version": "v2",
+  "generated_at": "2026-04-06T10:49:41Z",
+  "command": "plan",
+  "scope": "block_closeout_unified_phase3_initial10_targets_r2_643797aa05ad",
+  "description": "Block closeout required R2 sync for phase3_initial10_targets_block_current_formal_artifacts. Current formal artifacts only; xlsx is intentionally excluded.",
+  "enabled_by_default": false,
+  "sync_mode": "mirror",
+  "uploads_enabled": true,
+  "deletes_enabled": true,
+  "run_id": "TASK_PHASE3_INITIAL10_BLOCK_CLOSEOUT_VERIFY_20260405T000000Z",
+  "bucket_env_key": "R2_BUCKET",
+  "bucket": "art-pulse-editor",
+  "local_stats": {
+    "roots_missing": [],
+    "local_count": 23,
+    "local_total_size_bytes": 20317967
+  },
+  "remote_scanned_count": 23,
+  "unchanged_count": 19,
+  "would_upload_count": 4,
+  "would_delete_count": 0,
+  "would_prune_count": 0,
+  "scope_hash": "3f3f1a1df7b83fc04f8364e55f15b9d045bfd079391c070efc25f76b059d4049",
+  "input_fingerprint": "a1e6d6cdb476f97b6d1127b80047caf0dab70eff6bbe009cb91cdd70bcd09958",
+  "code_fingerprint": "899cbbe3a59a50fff5e0c942ed8266417aab0522afd8d8b58af10581c12dda9c",
+  "prune_candidates_fingerprint": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "targets": [
+    {
+      "local_root": "data/current",
+      "r2_prefix": "data/current",
+      "include_globs": [
+        "enrichment/artists_enrichment_apply_output.jsonl",
+        "enrichment/artists_enrichment_apply_summary.json",
+        "enrichment/exhibitions_enrichment_apply_output_2025.jsonl",
+        "enrichment/exhibitions_enrichment_apply_summary_2025.json",
+        "images/metadata/artist_works_images_frieze_london.jsonl",
+        "images/metadata/artist_works_images_liste.jsonl",
+        "images/metadata/exhibitions_images_frieze_london_2025.jsonl",
+        "images/metadata/exhibitions_images_liste_2025.jsonl",
+        "raw/artists_frieze_london_2025.jsonl",
+        "raw/artists_liste_2025.jsonl",
+        "raw/exhibitions_frieze_london_2025.jsonl",
+        "raw/exhibitions_liste_2025.jsonl",
+        "vector/artist_works_images/artist_works_images_artifact_manifest.json",
+        "vector/artist_works_images/artist_works_images_openclip_embeddings.npy",
+        "vector/artist_works_images/artist_works_images_openclip_id_map.jsonl",
+        "vector/artist_works_images/artist_works_images_openclip_search_index.npy",
+        "vector/artist_works_images/artist_works_images_vectorize_failed_2025.jsonl",
+        "vector/artist_works_images/artist_works_images_vectorize_summary_2025.json",
+        "vector/artists/artists_text_artifact_manifest.json",
+        "vector/artists/artists_text_index.npy",
+        "vector/artists/artists_text_meta.jsonl",
+        "vector/artists/artists_text_vectorize_failed_2025.jsonl",
+        "vector/artists/artists_text_vectorize_summary_2025.json"
+      ],
+      "exclude_globs": [],
+      "ignore_global_excludes": false
+    }
+  ],
+  "would_upload": [
+    {
+      "r2_key": "data/current/enrichment/exhibitions_enrichment_apply_output_2025.jsonl",
+      "reason": "SIZE_MISMATCH",
+      "size_bytes": 152374,
+      "remote_size_bytes": 155195,
+      "local_path": "data/current/enrichment/exhibitions_enrichment_apply_output_2025.jsonl"
+    },
+    {
+      "r2_key": "data/current/enrichment/exhibitions_enrichment_apply_summary_2025.json",
+      "reason": "SIZE_MISMATCH",
+      "size_bytes": 26850,
+      "remote_size_bytes": 26002,
+      "local_path": "data/current/enrichment/exhibitions_enrichment_apply_summary_2025.json"
+    },
+    {
+      "r2_key": "data/current/images/metadata/exhibitions_images_frieze_london_2025.jsonl",
+      "reason": "SIZE_MISMATCH",
+      "size_bytes": 81262,
+      "remote_size_bytes": 47665,
+      "local_path": "data/current/images/metadata/exhibitions_images_frieze_london_2025.jsonl"
+    },
+    {
+      "r2_key": "data/current/images/metadata/exhibitions_images_liste_2025.jsonl",
+      "reason": "SIZE_MISMATCH",
+      "size_bytes": 76164,
+      "remote_size_bytes": 46447,
+      "local_path": "data/current/images/metadata/exhibitions_images_liste_2025.jsonl"
+    }
+  ],
+  "would_prune": []
+}

@@ -17,12 +17,14 @@ EXHIBITIONS_ENRICHMENT_BATCH_FIELDS: tuple[str, ...] = (
 )
 
 ARTISTS_ENRICHMENT_FIELD_MODELS: dict[str, str] = {
-    "artist_name_kana": "gpt-5.4-nano",
-    "headline_ja": "gpt-5.4-nano",
+    # OpenAI Batch requires a single model per batch input file.
+    "artist_name_kana": "gpt-5-mini",
+    "headline_ja": "gpt-5-mini",
     "summary_ja": "gpt-5-mini",
 }
 EXHIBITIONS_ENRICHMENT_FIELD_MODELS: dict[str, str] = {
-    "headline_ja": "gpt-5.4-nano",
+    # OpenAI Batch requires a single model per batch input file.
+    "headline_ja": "gpt-5-mini",
     "summary_ja": "gpt-5-mini",
 }
 

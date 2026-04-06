@@ -172,37 +172,93 @@ def build_bulk_guard_key(
     return sha256_text(json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")))
 
 
-def build_bulk_artifact_paths(category: str, *, stamp: str, target_year: int, guard_key: str) -> dict[str, Path]:
-    history_dir = get_enrichment_history_dir(category)
+def build_bulk_artifact_paths(
+    category: str,
+    *,
+    stamp: str,
+    target_year: int,
+    guard_key: str,
+    root: Path | None = None,
+) -> dict[str, Path]:
+    if root is not None:
+        trial_root = Path(root)
+        history_dir = trial_root / "eh" / category
+        current_dir = trial_root / "ce"
+        runtime_dir = history_dir / "_g"
+        short_guard_key = str(guard_key or "").strip()[:16]
+        category_prefix = "artists" if category == "artists" else "exhibitions"
+        return {
+            "history_output_path": history_dir / f"{category_prefix}_out_{target_year}_{stamp}.jsonl",
+            "history_summary_path": history_dir / f"{category_prefix}_summary_{target_year}_{stamp}.json",
+            "history_manifest_path": history_dir / f"{category_prefix}_manifest_{target_year}_{stamp}.json",
+            "batch_input_path": history_dir / f"{category_prefix}_batch_in_{target_year}_{stamp}.jsonl",
+            "current_output_path": current_dir / f"{category_prefix}_apply_output.jsonl",
+            "current_summary_path": current_dir / f"{category_prefix}_apply_summary.json",
+            "guard_state_path": runtime_dir / f"{category_prefix}_guard_{target_year}_{short_guard_key}.json",
+            "lock_path": runtime_dir / f"{category_prefix}_guard_{target_year}_{short_guard_key}.lock",
+        }
+
+    history_dir = get_enrichment_history_dir(category, root=root)
     runtime_dir = history_dir / "_runtime_guards"
     return {
-        "history_output_path": get_enrichment_history_output_path(category, stamp, target_year),
-        "history_summary_path": get_enrichment_history_summary_path(category, stamp, target_year),
+        "history_output_path": get_enrichment_history_output_path(category, stamp, target_year, root=root),
+        "history_summary_path": get_enrichment_history_summary_path(category, stamp, target_year, root=root),
         "history_manifest_path": history_dir / f"{category}_enrichment_apply_manifest_{target_year}_{stamp}.json",
         "batch_input_path": history_dir / f"{category}_enrichment_batch_input_{target_year}_{stamp}.jsonl",
-        "current_output_path": get_enrichment_current_output_path(category, target_year),
-        "current_summary_path": get_enrichment_current_summary_path(category, target_year),
+        "current_output_path": get_enrichment_current_output_path(category, target_year, root=root),
+        "current_summary_path": get_enrichment_current_summary_path(category, target_year, root=root),
         "guard_state_path": runtime_dir / f"{category}_enrichment_guard_{target_year}_{guard_key}.json",
         "lock_path": runtime_dir / f"{category}_enrichment_guard_{target_year}_{guard_key}.lock",
     }
 
 
-def build_requests_runtime_report_path(category: str, *, action: str, target_year: int, stamp: str | None = None) -> Path:
+def build_requests_runtime_report_path(
+    category: str,
+    *,
+    action: str,
+    target_year: int,
+    stamp: str | None = None,
+    root: Path | None = None,
+) -> Path:
     safe_action = str(action or "report").strip().replace(" ", "_")
     report_stamp = str(stamp or utc_now_compact())
     return (
-        get_enrichment_runtime_requests_reports_dir()
+        get_enrichment_runtime_requests_reports_dir(root=root)
         / f"{category}_enrichment_requests_{safe_action}_{target_year}_{report_stamp}.json"
     )
 
 
-def resolve_runtime_requests_path(category: str, *, target_year: int, migrate_legacy: bool = True) -> Path:
-    runtime_path = get_enrichment_runtime_requests_path(category, target_year)
+def build_requests_runtime_archive_path(
+    category: str,
+    *,
+    requests_path: Path,
+    target_year: int,
+    stamp: str | None = None,
+    root: Path | None = None,
+) -> Path:
+    archive_stamp = str(stamp or utc_now_compact())
+    completed_dir = get_enrichment_runtime_requests_completed_dir(category, root=root)
+    if root is not None:
+        category_prefix = "artists" if category == "artists" else "exhibitions"
+        archive_name = f"{category_prefix}_{target_year}_{archive_stamp}{requests_path.suffix}"
+    else:
+        archive_name = f"{requests_path.stem}_{archive_stamp}{requests_path.suffix}"
+    return completed_dir / archive_name
+
+
+def resolve_runtime_requests_path(
+    category: str,
+    *,
+    target_year: int,
+    migrate_legacy: bool = True,
+    root: Path | None = None,
+) -> Path:
+    runtime_path = get_enrichment_runtime_requests_path(category, target_year, root=root)
     if runtime_path.exists():
         return runtime_path
 
     legacy_path = get_enrichment_seed10_legacy_requests_path(category, target_year)
-    if not migrate_legacy or not legacy_path.exists():
+    if root is not None or not migrate_legacy or not legacy_path.exists():
         return runtime_path
 
     runtime_path.parent.mkdir(parents=True, exist_ok=True)
@@ -348,6 +404,7 @@ def evaluate_runtime_requests_retention(
     summary: dict[str, Any],
     guard_state_path: Path,
     lock_path: Path,
+    root: Path | None = None,
 ) -> tuple[bool, str]:
     if not requests_path.exists():
         return False, "requests_cleanup_skipped_missing_active_runtime_requests"
@@ -408,7 +465,7 @@ def evaluate_runtime_requests_retention(
         if artifact_path is None or not artifact_path.exists():
             return False, failure_code
 
-    if requests_path != get_enrichment_runtime_requests_path(category, target_year):
+    if requests_path != get_enrichment_runtime_requests_path(category, target_year, root=root):
         return False, "requests_cleanup_retained_non_runtime_active_path"
 
     return True, "requests_cleanup_allowed"
@@ -422,6 +479,7 @@ def finalize_runtime_requests_retention(
     summary: dict[str, Any],
     guard_state_path: Path,
     lock_path: Path,
+    root: Path | None = None,
 ) -> dict[str, Any]:
     cleanup_allowed, retention_verdict = evaluate_runtime_requests_retention(
         category=category,
@@ -430,6 +488,7 @@ def finalize_runtime_requests_retention(
         summary=summary,
         guard_state_path=guard_state_path,
         lock_path=lock_path,
+        root=root,
     )
     stamp = utc_now_compact()
     report_path = build_requests_runtime_report_path(
@@ -437,6 +496,7 @@ def finalize_runtime_requests_retention(
         action="retention",
         target_year=target_year,
         stamp=stamp,
+        root=root,
     ) if is_optional_output_enabled("report") else None
     report: dict[str, Any] = {
         "category": category,
@@ -452,9 +512,12 @@ def finalize_runtime_requests_retention(
         "batch_job_id": str(summary.get("batch_job_id") or ""),
     }
     if cleanup_allowed:
-        archived_path = (
-            get_enrichment_runtime_requests_completed_dir(category)
-            / f"{requests_path.stem}_{stamp}{requests_path.suffix}"
+        archived_path = build_requests_runtime_archive_path(
+            category,
+            requests_path=requests_path,
+            target_year=target_year,
+            stamp=stamp,
+            root=root,
         )
         archived_path.parent.mkdir(parents=True, exist_ok=True)
         report["active_requests_sha256"] = sha256_file(requests_path)

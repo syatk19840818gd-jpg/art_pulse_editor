@@ -1,0 +1,32 @@
+{
+  "version": "v3",
+  "global_exclude_globs": [
+    "**/__pycache__/**",
+    "**/*.pyc",
+    "**/_trial/**",
+    "**/_trash/**",
+    "**/*.tmp",
+    "**/*.bak*",
+    "**/Thumbs.db"
+  ],
+  "scopes": {
+    "initial10_exhibitions_closeout_narrow": {
+      "description": "Review-only narrow scope for initial10 exhibitions closeout artifacts.",
+      "enabled_by_default": false,
+      "sync_mode": "mirror",
+      "targets": [
+        {
+          "local_root": "data/current",
+          "r2_prefix": "data/current",
+          "include_globs": [
+            "raw/exhibitions_frieze_london_2025.jsonl",
+            "raw/exhibitions_liste_2025.jsonl",
+            "enrichment/exhibitions_enrichment_apply_output_2025.jsonl",
+            "enrichment/exhibitions_enrichment_apply_summary_2025.json"
+          ],
+          "exclude_globs": []
+        }
+      ]
+    }
+  }
+}

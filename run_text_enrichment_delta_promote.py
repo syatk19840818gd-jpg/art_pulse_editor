@@ -7,6 +7,13 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
+from closeout_breakdown_contract import (
+    BLOCK_ARTIFACT_CATEGORY_ARTIST,
+    BLOCK_ARTIFACT_CATEGORY_ARTIST_WORKS_IMAGES,
+    BLOCK_ARTIFACT_CATEGORY_EXHIBITION,
+    execute_closeout_with_breakdown_contract,
+    resolve_current_formal_artifact_bundle,
+)
 from enrichment_batch_common import (
     is_optional_output_enabled,
     read_jsonl,
@@ -22,32 +29,66 @@ from phase2_art_pulse_config import (
     get_enrichment_history_output_path,
     get_enrichment_history_summary_path,
     get_enrichment_runtime_requests_path,
+    get_current_raw_paths,
     promote_history_file_to_current,
 )
+from run_rag_gallery_breakdown_update import DEFAULT_XLSX_PATH, ScopeTarget
 from run_enrichment_artists_seed10_apply import normalize_source_url_for_match
 
 SUPPORTED_CATEGORIES = ("artists", "exhibitions")
 SUPPORTED_REPAIR_MODES = {"carry_forward_current_applied_row"}
+DEFAULT_RUN_ID_PREFIX = "TASK_TEXT_ENRICHMENT_DELTA_PROMOTE"
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Apply text enrichment delta promotes without re-extraction.")
+    parser = argparse.ArgumentParser(
+        description=(
+            "Apply text enrichment delta promotes without re-extraction, "
+            "and close out through xlsx update plus required R2 sync of current formal artifacts."
+        )
+    )
     parser.add_argument("--manifest", required=True, help="Path to delta manifest JSON.")
     parser.add_argument(
         "--apply",
         action="store_true",
-        help="Write canonical history/current/runtime artifacts. Default is dry-run to a trial root.",
+        help=(
+            "Write canonical history/current/runtime artifacts, update xlsx, "
+            "and execute required R2 sync. Default is dry-run to a trial root."
+        ),
     )
     parser.add_argument(
         "--trial-root",
         default="data/trials/text_enrichment_delta_promote_2025",
         help="Dry-run root directory. Ignored when --apply is used.",
     )
+    parser.add_argument(
+        "--xlsx-path",
+        default=str(DEFAULT_XLSX_PATH),
+        help=f"xlsx path (default: {DEFAULT_XLSX_PATH})",
+    )
+    parser.add_argument(
+        "--run-id",
+        default="",
+        help=f"run_id for closeout contract (default: {DEFAULT_RUN_ID_PREFIX}_<UTCSTAMP>)",
+    )
+    parser.add_argument(
+        "--category",
+        action="append",
+        default=[],
+        help="optional category filter; repeatable. Supported: artists, exhibitions",
+    )
     return parser.parse_args()
 
 
 def read_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def resolve_path(path_text: str | Path) -> Path:
+    path = Path(path_text)
+    if path.is_absolute():
+        return path
+    return (Path.cwd() / path).resolve()
 
 
 def collect_request_urls(row: dict[str, Any]) -> list[str]:
@@ -77,6 +118,83 @@ def build_applied_index_from_rows(rows: list[dict[str, Any]]) -> dict[tuple[str,
             continue
         out[(request_id, fair_slug, text_hash, source_url_norm)] = row
     return out
+
+
+def build_current_scope_target_maps(category: str, target_year: int) -> tuple[dict[tuple[str, str], ScopeTarget], dict[str, ScopeTarget]]:
+    scoped: dict[tuple[str, str], ScopeTarget] = {}
+    fallback: dict[str, ScopeTarget] = {}
+    for fair_slug, path in get_current_raw_paths(category, target_year).items():
+        for row in read_jsonl(path):
+            gallery_name_en = str(row.get("gallery_name_en") or "").strip()
+            source_url = normalize_source_url_for_match(str(row.get("source_url") or ""))
+            if not gallery_name_en or not source_url:
+                continue
+            target = ScopeTarget(fair_slug=fair_slug, gallery_name_en=gallery_name_en)
+            scoped[(fair_slug, source_url)] = target
+            fallback.setdefault(source_url, target)
+    return scoped, fallback
+
+
+def collect_manifest_scope_targets(operations: list[dict[str, Any]], target_year: int) -> list[ScopeTarget]:
+    ordered_targets: list[ScopeTarget] = []
+    seen: set[tuple[str, str]] = set()
+    maps_by_category: dict[str, tuple[dict[tuple[str, str], ScopeTarget], dict[str, ScopeTarget]]] = {}
+
+    def add_target(target: ScopeTarget) -> None:
+        if target.scope_key in seen:
+            return
+        seen.add(target.scope_key)
+        ordered_targets.append(target)
+
+    for op in operations:
+        category = str(op.get("category") or "").strip()
+        if category not in SUPPORTED_CATEGORIES:
+            continue
+        if category not in maps_by_category:
+            maps_by_category[category] = build_current_scope_target_maps(category, target_year)
+        scoped_map, fallback_map = maps_by_category[category]
+
+        for repair in list(op.get("localized_repairs") or []):
+            fair_slug = str(repair.get("fair_slug") or "").strip()
+            source_url = normalize_source_url_for_match(str(repair.get("source_url") or ""))
+            if not source_url:
+                continue
+            target = None
+            if fair_slug:
+                target = scoped_map.get((fair_slug, source_url))
+            if target is None:
+                target = fallback_map.get(source_url)
+            if target is None:
+                raise RuntimeError(f"closeout_scope_unresolved_for_repair:{category}:{fair_slug}:{source_url}")
+            add_target(target)
+
+        for value in list(op.get("intentional_drop_urls") or []):
+            source_url = normalize_source_url_for_match(str(value or ""))
+            if not source_url:
+                continue
+            target = fallback_map.get(source_url)
+            if target is None:
+                raise RuntimeError(f"closeout_scope_unresolved_for_drop:{category}:{source_url}")
+            add_target(target)
+
+    if not ordered_targets:
+        raise RuntimeError("closeout_scope_targets_not_found_from_manifest")
+    return ordered_targets
+
+
+def resolve_r2_artifact_categories(operations: list[dict[str, Any]]) -> tuple[str, ...]:
+    resolved: list[str] = []
+    categories_present = {str(op.get("category") or "").strip() for op in operations}
+    if "artists" in categories_present:
+        resolved.extend(
+            [
+                BLOCK_ARTIFACT_CATEGORY_ARTIST,
+                BLOCK_ARTIFACT_CATEGORY_ARTIST_WORKS_IMAGES,
+            ]
+        )
+    if "exhibitions" in categories_present:
+        resolved.append(BLOCK_ARTIFACT_CATEGORY_EXHIBITION)
+    return tuple(resolved)
 
 
 def build_paths(*, category: str, target_year: int, stamp: str, dry_run: bool, trial_root: Path) -> dict[str, Path]:
@@ -398,7 +516,7 @@ def process_category(
 
     current_output_rows = read_jsonl(current_output_path)
     current_summary = read_json(current_summary_path) if current_summary_path.exists() else {}
-    runtime_request_rows = read_jsonl(runtime_requests_path)
+    runtime_request_rows = read_jsonl(runtime_requests_path) if runtime_requests_path.exists() else []
 
     normalized_drop_urls = {
         normalize_source_url_for_match(str(url or ""))
@@ -526,14 +644,32 @@ def validate_manifest(manifest: dict[str, Any]) -> tuple[int, list[dict[str, Any
     return target_year, operations
 
 
-def main() -> int:
-    args = parse_args()
-    manifest_path = Path(args.manifest)
-    manifest = read_json(manifest_path)
-    target_year, operations = validate_manifest(manifest)
-    dry_run = not args.apply
+def filter_operations_by_category(
+    operations: list[dict[str, Any]],
+    category_filters: list[str],
+) -> list[dict[str, Any]]:
+    normalized = {str(value or "").strip() for value in category_filters if str(value or "").strip()}
+    if not normalized:
+        return list(operations)
+    invalid = sorted(normalized - set(SUPPORTED_CATEGORIES))
+    if invalid:
+        raise ValueError(f"Unsupported category filter(s): {invalid}")
+    filtered = [op for op in operations if str(op.get("category") or "").strip() in normalized]
+    if not filtered:
+        raise RuntimeError(f"category_filter_matched_no_operations:{sorted(normalized)}")
+    return filtered
+
+
+def execute_delta_promote_run(
+    *,
+    manifest_path: Path,
+    target_year: int,
+    operations: list[dict[str, Any]],
+    trial_root: Path,
+    apply: bool,
+) -> dict[str, Any]:
+    dry_run = not apply
     stamp = utc_now_compact()
-    trial_root = Path(args.trial_root)
 
     category_results = []
     for op in operations:
@@ -564,24 +700,47 @@ def main() -> int:
         run_report_obj = run_root / "delta_promote_run_report.json"
         write_json(run_report_obj, run_report)
         run_report_path = str(run_report_obj)
-    print(
-        json.dumps(
-            {
-                "dry_run": dry_run,
-                "manifest_path": str(manifest_path),
-                "run_report_path": run_report_path,
-                "categories": [
-                    {
-                        "category": item["category"],
-                        "history_summary_path": item["paths"]["history_summary_path"],
-                        "report_path": item["paths"]["report_path"],
-                    }
-                    for item in category_results
-                ],
-            },
-            ensure_ascii=False,
-        )
+
+    return {
+        "dry_run": dry_run,
+        "manifest_path": str(manifest_path),
+        "run_report_path": run_report_path,
+        "categories": category_results,
+    }
+
+
+def main() -> int:
+    args = parse_args()
+    manifest_path = resolve_path(args.manifest)
+    manifest = read_json(manifest_path)
+    target_year, operations = validate_manifest(manifest)
+    operations = filter_operations_by_category(operations, list(args.category or []))
+    trial_root = resolve_path(args.trial_root)
+    xlsx_path = resolve_path(args.xlsx_path)
+    run_id = str(args.run_id or "").strip() or f"{DEFAULT_RUN_ID_PREFIX}_{utc_now_compact()}"
+    targets = collect_manifest_scope_targets(operations, target_year)
+
+    report = execute_closeout_with_breakdown_contract(
+        contract_name="text_enrichment_delta_promote_with_breakdown",
+        apply=bool(args.apply),
+        run_id=run_id,
+        xlsx_path=xlsx_path,
+        target_year=target_year,
+        targets=targets,
+        current_write_callback=lambda apply: execute_delta_promote_run(
+            manifest_path=manifest_path,
+            target_year=target_year,
+            operations=operations,
+            trial_root=trial_root,
+            apply=apply,
+        ),
+        r2_artifact_bundle=resolve_current_formal_artifact_bundle(
+            bundle_name=f"{manifest_path.stem}_current_formal_artifacts",
+            categories=resolve_r2_artifact_categories(operations),
+            target_year=target_year,
+        ),
     )
+    print(json.dumps(report, ensure_ascii=True, default=str))
     return 0
 
 

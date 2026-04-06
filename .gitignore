@@ -117,3 +117,4 @@ debug_bundle_*.tgz
 ############################################################
 data/phase1_seed10/
 data/current/
+data/runtime/

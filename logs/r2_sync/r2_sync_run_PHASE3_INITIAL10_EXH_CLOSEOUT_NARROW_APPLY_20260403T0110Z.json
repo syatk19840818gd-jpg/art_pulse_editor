@@ -1,0 +1,29 @@
+{
+  "artifact_kind": "r2_sync_run",
+  "schema_version": "v2",
+  "generated_at": "2026-04-03T01:16:34Z",
+  "command": "sync",
+  "run_id": "PHASE3_INITIAL10_EXH_CLOSEOUT_NARROW_APPLY_20260403T0110Z",
+  "bucket": "art-pulse-editor",
+  "scope_count": 1,
+  "uploaded_count": 4,
+  "deleted_count": 0,
+  "upload_failed_count": 0,
+  "delete_failed_count": 0,
+  "scopes": [
+    {
+      "scope": "initial10_exhibitions_closeout_narrow",
+      "sync_mode": "mirror",
+      "plan_log_path": "logs/r2_sync/r2_sync_plan_initial10_exhibitions_closeout_narrow_PHASE3_INITIAL10_EXH_CLOSEOUT_NARROW_APPLY_20260403T0110Z.json",
+      "apply_log_path": "logs/r2_sync/r2_sync_apply_initial10_exhibitions_closeout_narrow_PHASE3_INITIAL10_EXH_CLOSEOUT_NARROW_APPLY_20260403T0110Z.json",
+      "local_roots_missing": [],
+      "would_upload_count": 4,
+      "would_delete_count": 0,
+      "uploaded_count": 4,
+      "deleted_count": 0,
+      "upload_failed_count": 0,
+      "delete_failed_count": 0,
+      "delete_policy": "no_delete_candidates"
+    }
+  ]
+}

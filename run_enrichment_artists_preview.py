@@ -36,10 +36,6 @@ from run_enrichment_exhibitions_preview import (
 TARGET_YEAR = 2025
 RAG_CATEGORY = "artists_text"
 
-RAW_INPUT_PATHS = get_current_raw_paths("artists", TARGET_YEAR)
-REQUESTS_OUTPUT_PATH = get_enrichment_runtime_requests_path("artists", TARGET_YEAR)
-PREVIEW_OUTPUT_DIR = get_enrichment_preview_dir("artists")
-
 ENRICH_PROMPT_VERSION = "artists_preview_v1"
 HEADLINE_MAX_CHARS = 56
 SUMMARY_MAX_CHARS = 500
@@ -64,11 +60,34 @@ def parse_args() -> argparse.Namespace:
         default=SAMPLE_PREVIEW_MAX,
         help="Number of preview samples to generate (1-3).",
     )
+    parser.add_argument(
+        "--io-root",
+        default="",
+        help="optional trial I/O root; when set, raw/requests/preview paths resolve under this root",
+    )
     return parser.parse_args()
 
 
 def clamp_sample_max(value: int) -> int:
     return max(1, min(SAMPLE_PREVIEW_MAX, int(value or SAMPLE_PREVIEW_MAX)))
+
+
+def resolve_io_root(path_text: str) -> Path | None:
+    raw = str(path_text or "").strip()
+    if not raw:
+        return None
+    path = Path(raw)
+    if not path.is_absolute():
+        path = (Path.cwd() / path).resolve()
+    return path
+
+
+def resolve_artists_enrichment_io_paths(*, io_root: Path | None = None) -> dict[str, Any]:
+    return {
+        "raw_input_paths": get_current_raw_paths("artists", TARGET_YEAR, root=io_root),
+        "requests_output_path": get_enrichment_runtime_requests_path("artists", TARGET_YEAR, root=io_root),
+        "preview_output_dir": get_enrichment_preview_dir("artists", root=io_root),
+    }
 
 
 def sanitize_headline(headline: str) -> str:
@@ -246,9 +265,9 @@ def build_warnings(*, summary_ja: str, artist_name_en: str, artist_name_kana: st
     return warnings
 
 
-def _build_raw_row_index() -> dict[tuple[str, str, str], dict[str, Any]]:
+def _build_raw_row_index(raw_input_paths: dict[str, Path]) -> dict[tuple[str, str, str], dict[str, Any]]:
     index: dict[tuple[str, str, str], dict[str, Any]] = {}
-    for fair_slug, raw_path in RAW_INPUT_PATHS.items():
+    for fair_slug, raw_path in raw_input_paths.items():
         for row in read_jsonl(raw_path):
             text_hash = str(row.get("text_hash") or "").strip()
             source_url = str(row.get("source_url") or "").strip()
@@ -284,12 +303,16 @@ def _resolve_batch_preview_values(
     return headline, summary, artist_name_kana, raw_row
 
 
-def make_preview_rows(sample_rows: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], dict[str, int]]:
+def make_preview_rows(
+    sample_rows: list[dict[str, Any]],
+    *,
+    raw_input_paths: dict[str, Path],
+) -> tuple[list[dict[str, Any]], dict[str, int]]:
     use_batch = os.getenv("ENRICH_USE_OPENAI_BATCH", ENRICH_USE_OPENAI_BATCH).strip() or ENRICH_USE_OPENAI_BATCH
     if not is_truthy_flag(use_batch):
         raise RuntimeError("preview_batch_enforcement_violation:batch_flag_disabled")
 
-    raw_row_index = _build_raw_row_index()
+    raw_row_index = _build_raw_row_index(raw_input_paths)
     model_fingerprint = get_enrichment_model_fingerprint("artists")
     stats = {"batch_snapshot_ok": 0, "warnings": 0}
     preview_rows: list[dict[str, Any]] = []
@@ -353,12 +376,13 @@ def make_preview_rows(sample_rows: list[dict[str, Any]]) -> tuple[list[dict[str,
     return preview_rows, stats
 
 
-def ensure_requests_output_path() -> Path:
-    requests_path = resolve_runtime_requests_path("artists", target_year=TARGET_YEAR)
+def ensure_requests_output_path(*, io_root: Path | None = None) -> Path:
+    io_paths = resolve_artists_enrichment_io_paths(io_root=io_root)
+    requests_path = resolve_runtime_requests_path("artists", target_year=TARGET_YEAR, root=io_root)
     if requests_path.exists():
         return requests_path
     build_artists_enrichment_requests(
-        raw_input_paths=RAW_INPUT_PATHS,
+        raw_input_paths=io_paths["raw_input_paths"],
         output_path=requests_path,
         target_year=TARGET_YEAR,
         rag_category=RAG_CATEGORY,
@@ -366,8 +390,8 @@ def ensure_requests_output_path() -> Path:
     return requests_path
 
 
-def load_request_rows() -> list[dict[str, Any]]:
-    requests_path = ensure_requests_output_path()
+def load_request_rows(*, io_root: Path | None = None) -> list[dict[str, Any]]:
+    requests_path = ensure_requests_output_path(io_root=io_root)
     rows = read_jsonl(requests_path)
     out: list[dict[str, Any]] = []
     for row in rows:
@@ -386,17 +410,19 @@ def main() -> int:
     args = parse_args()
     sample_max = clamp_sample_max(args.sample_max)
     started_at = utc_now_iso()
+    io_root = resolve_io_root(args.io_root)
+    io_paths = resolve_artists_enrichment_io_paths(io_root=io_root)
 
-    request_rows = load_request_rows()
+    request_rows = load_request_rows(io_root=io_root)
     sample_rows = select_preview_samples(request_rows, max_samples=sample_max)
-    preview_rows, preview_stats = make_preview_rows(sample_rows)
+    preview_rows, preview_stats = make_preview_rows(sample_rows, raw_input_paths=io_paths["raw_input_paths"])
 
     stamp = utc_now_compact()
-    preview_path = PREVIEW_OUTPUT_DIR / f"artists_enrichment_preview_2025_{stamp}.jsonl"
+    preview_path = io_paths["preview_output_dir"] / f"artists_enrichment_preview_2025_{stamp}.jsonl"
     write_jsonl(preview_path, preview_rows)
 
     safe_print(f"[START] artists enrichment preview: {started_at}")
-    safe_print(f"[DONE] requests={REQUESTS_OUTPUT_PATH} total={len(request_rows)}")
+    safe_print(f"[DONE] requests={io_paths['requests_output_path']} total={len(request_rows)}")
     safe_print(f"[DONE] preview={preview_path} samples={len(preview_rows)}")
     safe_print(
         "[DONE] preview_stats="

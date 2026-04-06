@@ -2,9 +2,12 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import os
+import re
 import sys
+import unicodedata
 from collections import Counter
 from copy import deepcopy
 from pathlib import Path
@@ -55,19 +58,17 @@ from run_enrichment_artists_preview import (
     ENRICH_PROMPT_VERSION,
     HEADLINE_MAX_CHARS,
     RAG_CATEGORY,
-    RAW_INPUT_PATHS,
-    REQUESTS_OUTPUT_PATH,
     SUMMARY_MAX_CHARS,
     build_openai_request_body,
     build_warnings,
     ensure_requests_output_path,
     infer_artist_name_en,
     parse_openai_response_body,
+    resolve_artists_enrichment_io_paths,
+    resolve_io_root,
 )
 
 TARGET_YEAR = 2025
-
-REQUESTS_PATH = REQUESTS_OUTPUT_PATH
 LOCALIZED_REPAIR_TARGET_REQUEST_IDS = {
     "seed10_artists_enrich_336ffd39ede28d95d3a1983d90f7174bb1f0b740fd34b710a968f6fb4ba38f74",
 }
@@ -98,7 +99,43 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Validate bulk batch prerequisites and rerun-guard inputs without creating a batch job.",
     )
+    parser.add_argument(
+        "--allowlist-csv",
+        default="",
+        help="optional allowlist CSV with fair_slug and gallery_name_en columns; out-of-scope requests are skipped",
+    )
+    parser.add_argument(
+        "--io-root",
+        default="",
+        help="optional trial I/O root; when set, requests/artifacts/raw writeback resolve under this root",
+    )
     return parser.parse_args()
+
+
+def normalize_gallery_scope_name(value: str) -> str:
+    text = unicodedata.normalize("NFKC", str(value or "").strip())
+    text = re.sub(r"\s+", " ", text)
+    return text.casefold()
+
+
+def load_gallery_allowlist(path_text: str) -> set[tuple[str, str]]:
+    path = Path(path_text)
+    if not path.is_absolute():
+        path = (Path.cwd() / path).resolve()
+    if not path.exists():
+        raise FileNotFoundError(f"Missing allowlist CSV: {path}")
+    out: set[tuple[str, str]] = set()
+    with path.open("r", encoding="utf-8-sig", newline="") as handle:
+        reader = csv.DictReader(handle)
+        for row in reader:
+            fair_slug = str(row.get("fair_slug") or row.get("fair") or "").strip().lower().replace("-", "_")
+            gallery_name = str(row.get("gallery_name_en") or row.get("gallery_name") or "").strip()
+            if not fair_slug or not gallery_name:
+                continue
+            out.add((fair_slug, normalize_gallery_scope_name(gallery_name)))
+    if not out:
+        raise RuntimeError(f"No valid allowlist rows found: {path}")
+    return out
 
 
 def safe_print(line: str) -> None:
@@ -187,8 +224,8 @@ def request_source_url(req: dict[str, Any], *, row_index: dict[tuple[str, str], 
     return candidates[0] if candidates else ""
 
 
-def load_requests() -> list[dict[str, Any]]:
-    requests_path = ensure_requests_output_path()
+def load_requests(*, io_root: Path | None = None) -> list[dict[str, Any]]:
+    requests_path = ensure_requests_output_path(io_root=io_root)
     return read_jsonl(requests_path)
 
 
@@ -219,9 +256,11 @@ def build_current_applied_row_index(current_output_path: Path) -> dict[tuple[str
 
 
 def diagnostic_path_for_apply(paths: dict[str, Path]) -> Path:
-    return paths["history_summary_path"].with_name(
-        paths["history_summary_path"].name.replace("_apply_summary_", "_apply_diagnostics_")
-    )
+    summary_path = paths["history_summary_path"]
+    replaced = summary_path.name.replace("_apply_summary_", "_apply_diagnostics_")
+    if replaced == summary_path.name:
+        replaced = f"{summary_path.stem}_diagnostics{summary_path.suffix}"
+    return summary_path.with_name(replaced)
 
 
 def extract_response_text_for_diagnostic(response_body: dict[str, Any]) -> str:
@@ -347,12 +386,93 @@ def persist_artifacts(
     write_guard_state(guard_state_path, guard_state)
 
 
+def commit_successful_artist_enrichment_updates(
+    *,
+    staged_updates: list[dict[str, Any]],
+    raw_rows_by_fair: dict[str, list[dict[str, Any]]],
+    raw_input_paths: dict[str, Path],
+    batch_result_rows: list[dict[str, Any]],
+    counters: Counter[str],
+    batch_job_id: str,
+    enrich_model_fingerprint: str,
+    completion_window: str,
+    use_batch: str,
+) -> int:
+    committed_rows = 0
+    dirty_fairs: set[str] = set()
+    for update in staged_updates:
+        fair_slug = str(update["fair_slug"])
+        row = raw_rows_by_fair[fair_slug][int(update["row_index"])]
+        row["headline_ja"] = update["headline_ja"]
+        row["summary_ja"] = update["summary_ja"]
+        row["artist_name_kana"] = update["artist_name_kana"]
+        row["enrich_status"] = "applied"
+        row["enrich_model"] = enrich_model_fingerprint
+        row["enrich_models_by_field"] = dict(ARTISTS_ENRICHMENT_FIELD_MODELS)
+        row["enrich_mode"] = "openai_batch_apply"
+        row["enrich_use_openai_batch"] = use_batch
+        row["enrich_completion_window"] = completion_window
+        row["enrich_prompt_version"] = ENRICH_PROMPT_VERSION
+        row["enrich_input_text_hash"] = update["text_hash"]
+        row["enrich_input_chars"] = update["input_chars"]
+        row["enrich_headline_chars"] = len(update["headline_ja"])
+        row["enrich_summary_chars"] = len(update["summary_ja"])
+        row["enrich_artist_name_kana_chars"] = len(update["artist_name_kana"])
+        row["enrich_generated_at"] = utc_now_iso()
+        row["enrich_notes"] = str(update.get("repair_mode") or "")
+        row["enrich_batch_job_id"] = batch_job_id
+        committed_rows += 1
+        dirty_fairs.add(fair_slug)
+        if len(update["headline_ja"]) > HEADLINE_MAX_CHARS:
+            counters["headline_over_limit"] += 1
+        if len(update["summary_ja"]) > SUMMARY_MAX_CHARS:
+            counters["summary_over_limit"] += 1
+        if len(update["artist_name_kana"]) > ARTIST_NAME_KANA_MAX_CHARS:
+            counters["artist_name_kana_over_limit"] += 1
+        if update["warnings"]:
+            counters["warnings_rows"] += 1
+        batch_result_rows.append(
+            {
+                "request_id": update["request_id"],
+                "fair_slug": fair_slug,
+                "text_hash": update["text_hash"],
+                "source_url": update["source_url"],
+                "status": "APPLIED",
+                "headline_ja": update["headline_ja"],
+                "summary_ja": update["summary_ja"],
+                "artist_name_kana": update["artist_name_kana"],
+                "headline_ja_chars": len(update["headline_ja"]),
+                "summary_ja_chars": len(update["summary_ja"]),
+                "artist_name_kana_chars": len(update["artist_name_kana"]),
+                "warnings": update["warnings"],
+                "enrich_model": enrich_model_fingerprint,
+                "enrich_models_by_field": dict(ARTISTS_ENRICHMENT_FIELD_MODELS),
+                "enrich_mode": "openai_batch_apply",
+                "enrich_use_openai_batch": use_batch,
+                "enrich_completion_window": completion_window,
+                "enrich_prompt_version": ENRICH_PROMPT_VERSION,
+                "enrich_input_text_hash": update["text_hash"],
+                "enrich_batch_job_id": batch_job_id,
+                "enrich_notes": str(update.get("repair_mode") or ""),
+            }
+        )
+
+    for fair_slug in sorted(dirty_fairs):
+        write_jsonl(raw_input_paths[fair_slug], raw_rows_by_fair[fair_slug])
+    return committed_rows
+
+
 def main() -> int:
     args = parse_args()
     started_at = utc_now_iso()
     safe_print(f"[START] artists enrichment apply: {started_at}")
+    io_root = resolve_io_root(args.io_root)
+    io_paths = resolve_artists_enrichment_io_paths(io_root=io_root)
+    raw_input_paths = io_paths["raw_input_paths"]
+    requests_path = io_paths["requests_output_path"]
+    allow_current_promote = io_root is None
 
-    for fair_slug, raw_path in RAW_INPUT_PATHS.items():
+    for fair_slug, raw_path in raw_input_paths.items():
         if not raw_path.exists():
             raise FileNotFoundError(f"Missing artists raw input for {fair_slug}: {raw_path}")
 
@@ -368,11 +488,13 @@ def main() -> int:
         or ENRICH_BATCH_COMPLETION_WINDOW
     )
 
-    request_rows = load_requests()
+    request_rows = load_requests(io_root=io_root)
+    allowlist = load_gallery_allowlist(args.allowlist_csv) if str(args.allowlist_csv or "").strip() else set()
+    allowlist_enabled = bool(allowlist)
     raw_rows_by_fair: dict[str, list[dict[str, Any]]] = {}
     raw_text_before: dict[str, list[str]] = {}
     row_index_by_fair: dict[str, dict[tuple[str, str], int]] = {}
-    for fair_slug, raw_path in RAW_INPUT_PATHS.items():
+    for fair_slug, raw_path in raw_input_paths.items():
         rows = read_jsonl(raw_path)
         raw_rows_by_fair[fair_slug] = rows
         raw_text_before[fair_slug] = [str(r.get("text") or "") for r in rows]
@@ -381,6 +503,7 @@ def main() -> int:
     counters: Counter[str] = Counter()
     apply_rows: list[dict[str, Any]] = []
     pending_tasks: list[dict[str, Any]] = []
+    scoped_request_rows = 0
 
     for req in request_rows:
         request_id = str(req.get("request_id") or "").strip()
@@ -467,6 +590,23 @@ def main() -> int:
             continue
 
         row = rows[idx]
+        gallery_name = str(row.get("gallery_name_en") or req.get("gallery_name_en") or "").strip()
+        if allowlist_enabled:
+            key = (fair_slug.lower().replace("-", "_"), normalize_gallery_scope_name(gallery_name))
+            if key not in allowlist:
+                counters["skipped_out_of_scope_allowlist"] += 1
+                apply_rows.append(
+                    {
+                        "request_id": request_id,
+                        "fair_slug": fair_slug,
+                        "text_hash": text_hash,
+                        "source_url": source_url,
+                        "gallery_name_en": gallery_name,
+                        "status": "SKIPPED_OUT_OF_SCOPE_ALLOWLIST",
+                    }
+                )
+                continue
+        scoped_request_rows += 1
         text = str(row.get("text") or "").strip()
         if not text:
             counters["skipped_empty_text"] += 1
@@ -537,15 +677,21 @@ def main() -> int:
         )
 
     target_rows = len(pending_tasks)
-    input_bundle_hash = build_input_bundle_hash(REQUESTS_PATH)
+    input_bundle_hash = build_input_bundle_hash(requests_path)
     guard_key = build_bulk_guard_key(
-        requests_path=REQUESTS_PATH,
+        requests_path=requests_path,
         input_bundle_hash=input_bundle_hash,
         prompt_version=ENRICH_PROMPT_VERSION,
         model=enrich_model_fingerprint,
         target_year=TARGET_YEAR,
     )
-    probe_paths = build_bulk_artifact_paths("artists", stamp=utc_now_compact(), target_year=TARGET_YEAR, guard_key=guard_key)
+    probe_paths = build_bulk_artifact_paths(
+        "artists",
+        stamp=utc_now_compact(),
+        target_year=TARGET_YEAR,
+        guard_key=guard_key,
+        root=io_root,
+    )
     prereq = validate_bulk_batch_prerequisites(api_key=api_key, use_batch=use_batch, target_rows=target_rows)
     target_request_ids = [
         build_enrichment_field_custom_id(str(task["custom_id"]), field_name)
@@ -560,15 +706,20 @@ def main() -> int:
             "execution_mode": "bulk_apply",
             "batch_required": True,
             "direct_openai_allowed": False,
-            "requests_path": str(REQUESTS_PATH),
+            "requests_path": str(requests_path),
             "input_bundle_hash": input_bundle_hash,
             "guard_key": guard_key,
-            "guard_state_path": str(probe_paths["guard_state_path"]),
-            "target_rows": target_rows,
-            "total_requests": len(request_rows),
-            "target_request_ids_count": len(target_request_ids),
-            "enrich_model": enrich_model_fingerprint,
-            "enrich_models_by_field": dict(ARTISTS_ENRICHMENT_FIELD_MODELS),
+                "guard_state_path": str(probe_paths["guard_state_path"]),
+                "target_rows": target_rows,
+                "total_requests": len(request_rows),
+                "allowlist_enabled": allowlist_enabled,
+                "allowlist_path": str(args.allowlist_csv or ""),
+                "allowlist_entry_count": len(allowlist),
+                "scoped_request_rows": scoped_request_rows,
+                "out_of_scope_skipped": counters["skipped_out_of_scope_allowlist"],
+                "target_request_ids_count": len(target_request_ids),
+                "enrich_model": enrich_model_fingerprint,
+                "enrich_models_by_field": dict(ARTISTS_ENRICHMENT_FIELD_MODELS),
             "prereq": prereq,
         }
         safe_print(payload)
@@ -579,15 +730,21 @@ def main() -> int:
 
     if target_rows == 0:
         stamp = utc_now_compact()
-        paths = build_bulk_artifact_paths("artists", stamp=stamp, target_year=TARGET_YEAR, guard_key=guard_key)
+        paths = build_bulk_artifact_paths(
+            "artists",
+            stamp=stamp,
+            target_year=TARGET_YEAR,
+            guard_key=guard_key,
+            root=io_root,
+        )
         raw_state = summarize_raw_state(raw_rows_by_fair, raw_text_before)
         summary = {
             "started_at": started_at,
             "completed_at": utc_now_iso(),
             "target_year": TARGET_YEAR,
             "rag_category": RAG_CATEGORY,
-            "requests_path": str(REQUESTS_PATH),
-            "raw_input_paths": {k: str(v) for k, v in RAW_INPUT_PATHS.items()},
+            "requests_path": str(requests_path),
+            "raw_input_paths": {k: str(v) for k, v in raw_input_paths.items()},
             "apply_output_path": str(paths["history_output_path"]),
             "apply_summary_path": str(paths["history_summary_path"]),
             "apply_manifest_path": str(paths["history_manifest_path"]),
@@ -632,7 +789,7 @@ def main() -> int:
             "category": "artists",
             "guard_status": "completed_no_target_rows",
             "batch_status": "not_submitted",
-            "requests_path": str(REQUESTS_PATH),
+            "requests_path": str(requests_path),
             "target_request_ids": [],
             "enrich_model": enrich_model_fingerprint,
             "enrich_models_by_field": dict(ARTISTS_ENRICHMENT_FIELD_MODELS),
@@ -682,7 +839,13 @@ def main() -> int:
             stamp = str(existing_state.get("stamp") or "").strip()
             if not stamp:
                 raise RuntimeError("rerun_guard_missing_stamp")
-            paths = build_bulk_artifact_paths("artists", stamp=stamp, target_year=TARGET_YEAR, guard_key=guard_key)
+            paths = build_bulk_artifact_paths(
+                "artists",
+                stamp=stamp,
+                target_year=TARGET_YEAR,
+                guard_key=guard_key,
+                root=io_root,
+            )
             batch_job_id = str(existing_state.get("batch_job_id") or "").strip()
             batch_input_file_id = str(existing_state.get("batch_input_file_id") or "").strip()
             if not batch_job_id:
@@ -691,7 +854,13 @@ def main() -> int:
             process_lock_id = acquire_process_lock(probe_paths["lock_path"], category="artists", guard_key=guard_key)
             release_lock_at_exit = True
             stamp = utc_now_compact()
-            paths = build_bulk_artifact_paths("artists", stamp=stamp, target_year=TARGET_YEAR, guard_key=guard_key)
+            paths = build_bulk_artifact_paths(
+                "artists",
+                stamp=stamp,
+                target_year=TARGET_YEAR,
+                guard_key=guard_key,
+                root=io_root,
+            )
             batch_job_id = ""
             batch_input_file_id = ""
 
@@ -736,7 +905,7 @@ def main() -> int:
                 "guard_status": "in_progress",
                 "guard_key": guard_key,
                 "guard_state_path": str(paths["guard_state_path"]),
-                "requests_path": str(REQUESTS_PATH),
+                "requests_path": str(requests_path),
                 "input_bundle_hash": input_bundle_hash,
                 "enrich_model": enrich_model_fingerprint,
                 "enrich_models_by_field": dict(ARTISTS_ENRICHMENT_FIELD_MODELS),
@@ -800,8 +969,8 @@ def main() -> int:
                 "completed_at": "",
                 "target_year": TARGET_YEAR,
                 "rag_category": RAG_CATEGORY,
-                "requests_path": str(REQUESTS_PATH),
-                "raw_input_paths": {k: str(v) for k, v in RAW_INPUT_PATHS.items()},
+                "requests_path": str(requests_path),
+                "raw_input_paths": {k: str(v) for k, v in raw_input_paths.items()},
                 "apply_output_path": str(paths["history_output_path"]),
                 "apply_summary_path": str(paths["history_summary_path"]),
                 "apply_manifest_path": str(paths["history_manifest_path"]),
@@ -847,7 +1016,7 @@ def main() -> int:
                 "category": "artists",
                 "guard_status": "in_progress",
                 "batch_status": batch_status or "in_progress",
-                "requests_path": str(REQUESTS_PATH),
+                "requests_path": str(requests_path),
                 "target_request_ids": target_request_ids,
                 "request_counts": batch_state.get("request_counts") or {},
                 "batch_input_file_id": batch_input_file_id,
@@ -1030,48 +1199,32 @@ def main() -> int:
             staged_updates.append({"fair_slug": str(task["fair_slug"]), "row_index": int(task["row_index"]), "text_hash": str(task["text_hash"]), "source_url": str(task["source_url"]), "request_id": request_id, "headline_ja": headline_ja, "summary_ja": summary_ja, "artist_name_kana": artist_name_kana, "warnings": warnings, "input_chars": int(task["input_chars"]), "repair_mode": "", "repair_source_request_id": "", "repair_source_summary_chars": 0})
 
         committed_rows = 0
-        if batch_error_count == 0 and parsed_success_rows == target_rows:
-            for update in staged_updates:
-                fair_slug = update["fair_slug"]
-                row = raw_rows_by_fair[fair_slug][update["row_index"]]
-                row["headline_ja"] = update["headline_ja"]
-                row["summary_ja"] = update["summary_ja"]
-                row["artist_name_kana"] = update["artist_name_kana"]
-                row["enrich_status"] = "applied"
-                row["enrich_model"] = enrich_model_fingerprint
-                row["enrich_models_by_field"] = dict(ARTISTS_ENRICHMENT_FIELD_MODELS)
-                row["enrich_mode"] = "openai_batch_apply"
-                row["enrich_use_openai_batch"] = use_batch
-                row["enrich_completion_window"] = completion_window
-                row["enrich_prompt_version"] = ENRICH_PROMPT_VERSION
-                row["enrich_input_text_hash"] = update["text_hash"]
-                row["enrich_input_chars"] = update["input_chars"]
-                row["enrich_headline_chars"] = len(update["headline_ja"])
-                row["enrich_summary_chars"] = len(update["summary_ja"])
-                row["enrich_artist_name_kana_chars"] = len(update["artist_name_kana"])
-                row["enrich_generated_at"] = utc_now_iso()
-                row["enrich_notes"] = str(update.get("repair_mode") or "")
-                row["enrich_batch_job_id"] = batch_job_id
-                committed_rows += 1
-                if len(update["headline_ja"]) > HEADLINE_MAX_CHARS:
-                    counters["headline_over_limit"] += 1
-                if len(update["summary_ja"]) > SUMMARY_MAX_CHARS:
-                    counters["summary_over_limit"] += 1
-                if len(update["artist_name_kana"]) > ARTIST_NAME_KANA_MAX_CHARS:
-                    counters["artist_name_kana_over_limit"] += 1
-                if update["warnings"]:
-                    counters["warnings_rows"] += 1
-                batch_result_rows.append({"request_id": update["request_id"], "fair_slug": fair_slug, "text_hash": update["text_hash"], "source_url": update["source_url"], "status": "APPLIED", "headline_ja": update["headline_ja"], "summary_ja": update["summary_ja"], "artist_name_kana": update["artist_name_kana"], "headline_ja_chars": len(update["headline_ja"]), "summary_ja_chars": len(update["summary_ja"]), "artist_name_kana_chars": len(update["artist_name_kana"]), "warnings": update["warnings"], "enrich_model": enrich_model_fingerprint, "enrich_models_by_field": dict(ARTISTS_ENRICHMENT_FIELD_MODELS), "enrich_mode": "openai_batch_apply", "enrich_use_openai_batch": use_batch, "enrich_completion_window": completion_window, "enrich_prompt_version": ENRICH_PROMPT_VERSION, "enrich_input_text_hash": update["text_hash"], "enrich_batch_job_id": batch_job_id, "enrich_notes": str(update.get("repair_mode") or "")})
-            for fair_slug, raw_path in RAW_INPUT_PATHS.items():
-                write_jsonl(raw_path, raw_rows_by_fair[fair_slug])
-        else:
-            for update in staged_updates:
-                status = "LOCALIZED_REPAIR_READY_UNCOMMITTED" if str(update.get("repair_mode") or "") else "BATCH_RESULT_READY_UNCOMMITTED"
-                batch_result_rows.append({"request_id": update["request_id"], "fair_slug": update["fair_slug"], "text_hash": update["text_hash"], "source_url": update["source_url"], "status": status, "headline_ja": update["headline_ja"], "summary_ja": update["summary_ja"], "artist_name_kana": update["artist_name_kana"], "warnings": update["warnings"], "batch_job_id": batch_job_id, "batch_status": batch_status, "repair_mode": str(update.get("repair_mode") or ""), "repair_source_request_id": str(update.get("repair_source_request_id") or "")})
+        if staged_updates:
+            committed_rows = commit_successful_artist_enrichment_updates(
+                staged_updates=staged_updates,
+                raw_rows_by_fair=raw_rows_by_fair,
+                raw_input_paths=raw_input_paths,
+                batch_result_rows=batch_result_rows,
+                counters=counters,
+                batch_job_id=batch_job_id,
+                enrich_model_fingerprint=enrich_model_fingerprint,
+                completion_window=completion_window,
+                use_batch=use_batch,
+            )
+
+        status_counts = Counter(str(row.get("status") or "").strip() for row in batch_result_rows)
+        parse_failed_rows = int(status_counts.get("BATCH_PARSE_FAILED", 0))
+        ready_uncommitted_rows = int(status_counts.get("BATCH_RESULT_READY_UNCOMMITTED", 0)) + int(
+            status_counts.get("LOCALIZED_REPAIR_READY_UNCOMMITTED", 0)
+        )
+        failed_rows = batch_error_count
 
         apply_rows.extend(batch_result_rows)
         raw_state = summarize_raw_state(raw_rows_by_fair, raw_text_before)
         error_count = counters["skipped_non_artists_category"] + counters["skipped_invalid_fair_slug"] + counters["skipped_missing_text_hash"] + counters["skipped_target_guard_non_artist_utility_url"] + counters["skipped_target_guard_missing_target"] + counters["skipped_target_row_not_found"] + counters["skipped_empty_text"] + batch_error_count
+        full_success = committed_rows == target_rows and error_count == 0
+        partial_success = committed_rows > 0 and error_count > 0
+        apply_completed_ok = batch_status == "completed" and committed_rows > 0 and ready_uncommitted_rows == 0
 
         diagnostics_payload = {
             "category": "artists",
@@ -1089,14 +1242,15 @@ def main() -> int:
             "completed_at": utc_now_iso(),
             "target_year": TARGET_YEAR,
             "rag_category": RAG_CATEGORY,
-            "requests_path": str(REQUESTS_PATH),
-            "raw_input_paths": {k: str(v) for k, v in RAW_INPUT_PATHS.items()},
+            "requests_path": str(requests_path),
+            "raw_input_paths": {k: str(v) for k, v in raw_input_paths.items()},
             "apply_output_path": str(paths["history_output_path"]),
             "apply_summary_path": str(paths["history_summary_path"]),
             "apply_manifest_path": str(paths["history_manifest_path"]),
             "current_output_path": str(paths["current_output_path"]),
             "current_summary_path": str(paths["current_summary_path"]),
             "total_targeted": len(request_rows),
+            "applied_rows": committed_rows,
             "total_applied": committed_rows,
             "total_not_updated": len(request_rows) - committed_rows,
             "warning_count": warning_count,
@@ -1104,6 +1258,10 @@ def main() -> int:
             "generated_openai": committed_rows,
             "generated_fallback": 0,
             "error_count": error_count,
+            "failed_rows": failed_rows,
+            "parse_failed_rows": parse_failed_rows,
+            "ready_uncommitted_rows": ready_uncommitted_rows,
+            "partial_success": partial_success,
             "batch_status": batch_status,
             "request_counts": batch_state.get("request_counts") or {},
             "parsed_success_rows": parsed_success_rows,
@@ -1130,9 +1288,9 @@ def main() -> int:
         manifest = {
             "schema_name": "enrichment_bulk_apply_manifest",
             "category": "artists",
-            "guard_status": "completed" if committed_rows == target_rows and error_count == 0 else "terminal_failed",
+            "guard_status": "completed" if apply_completed_ok else "terminal_failed",
             "batch_status": batch_status,
-            "requests_path": str(REQUESTS_PATH),
+            "requests_path": str(requests_path),
             "target_request_ids": target_request_ids,
             "request_counts": batch_state.get("request_counts") or {},
             "batch_input_file_id": batch_input_file_id,
@@ -1149,12 +1307,26 @@ def main() -> int:
             "openai_client_available": bool(api_key),
             "parsed_success_rows": parsed_success_rows,
             "batch_error_rows": batch_error_count,
+            "applied_rows": committed_rows,
+            "failed_rows": failed_rows,
+            "parse_failed_rows": parse_failed_rows,
+            "ready_uncommitted_rows": ready_uncommitted_rows,
+            "partial_success": partial_success,
             **build_bulk_contract_fields(api_mode="openai_batch_apply", batch_used=True, batch_job_id=batch_job_id, input_bundle_hash=input_bundle_hash, target_rows=target_rows, updated_rows=committed_rows, rerun_guard_verdict=rerun_guard_verdict, process_lock_id=process_lock_id),
         }
 
-        promote_ok, promote_verdict = validate_bulk_promote_summary(summary)
+        promote_ready = False
+        if allow_current_promote:
+            if full_success:
+                promote_ready, promote_verdict = validate_bulk_promote_summary(summary)
+            elif apply_completed_ok:
+                promote_ready, promote_verdict = True, "promote_allowed_partial_success"
+            else:
+                promote_verdict = "promote_blocked_no_committed_rows"
+        else:
+            promote_verdict = "promote_skipped_non_current_root"
         summary["promote_verdict"] = promote_verdict
-        guard_state["guard_status"] = "completed" if promote_ok else "terminal_failed"
+        guard_state["guard_status"] = "completed" if apply_completed_ok else "terminal_failed"
         guard_state["updated_rows"] = committed_rows
         guard_state["batch_status"] = batch_status
         guard_state["completed_at"] = utc_now_iso()
@@ -1163,7 +1335,7 @@ def main() -> int:
         persist_artifacts(history_output_path=paths["history_output_path"], history_summary_path=paths["history_summary_path"], history_manifest_path=paths["history_manifest_path"], apply_rows=apply_rows, summary=summary, manifest=manifest, guard_state_path=paths["guard_state_path"], guard_state=guard_state)
         release_lock_at_exit = True
 
-        if promote_ok:
+        if allow_current_promote and promote_ready:
             promote_history_file_to_current(paths["history_output_path"], paths["current_output_path"])
             promote_history_file_to_current(paths["history_summary_path"], paths["current_summary_path"])
             summary["promoted_to_current"] = True
@@ -1173,24 +1345,32 @@ def main() -> int:
         retention_info = finalize_runtime_requests_retention(
             category="artists",
             target_year=TARGET_YEAR,
-            requests_path=REQUESTS_PATH,
+            requests_path=requests_path,
             summary=summary,
             guard_state_path=paths["guard_state_path"],
             lock_path=paths["lock_path"],
+            root=io_root,
         )
         summary.update(retention_info)
         manifest.update(retention_info)
         write_json(paths["history_summary_path"], summary)
         write_json(paths["history_manifest_path"], manifest)
 
-        if promote_ok:
+        if allow_current_promote and promote_ready:
             write_json(paths["current_summary_path"], summary)
             safe_print(f"[DONE] total_targeted={summary['total_targeted']} total_applied={summary['total_applied']}")
             safe_print(f"[DONE] history_summary={paths['history_summary_path']}")
             safe_print(f"[DONE] current_summary={paths['current_summary_path']}")
             return 0
 
-        safe_print(f"[BLOCKED] promote_verdict={promote_verdict}")
+        if apply_completed_ok:
+            safe_print(f"[DONE] total_targeted={summary['total_targeted']} total_applied={summary['total_applied']}")
+            safe_print(f"[DONE] history_summary={paths['history_summary_path']}")
+            if not allow_current_promote:
+                safe_print("[DONE] current_promotion=skipped_non_current_root")
+            return 0
+
+        safe_print(f"[BLOCKED] promote_verdict={summary['promote_verdict']}")
         safe_print(f"[BLOCKED] history_summary={paths['history_summary_path']}")
         return 1
     finally:

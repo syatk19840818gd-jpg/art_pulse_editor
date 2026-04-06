@@ -77,6 +77,8 @@ SUCCESS_THRESHOLD_DEFAULT = 0.70
 # TEMPORARY TEST CAP:
 # Keep image collection target list aligned with current artists extraction cap (5 per gallery).
 MAX_ARTISTS_PER_GALLERY_FOR_COLLECT = 80
+TRIAL_IMAGE_CACHE_DIRNAME = "img"
+TRIAL_IMAGE_CACHE_STEM_LEN = 12
 REQUEST_TIMEOUT_SECONDS = 15
 USER_AGENT = "art-pulse-editor/phase1-seed10-artist-image-collect"
 REQUEST_RETRY_TOTAL = 2
@@ -2132,8 +2134,49 @@ def metadata_record_lookup_key(artist_name_key: str, source_url: str) -> str:
     return f"source_url:{normalize_url_for_link_compare(source_url)}"
 
 
-def list_existing_artist_images(fair_dir: Path, artist_key: str) -> list[Path]:
-    files = [p for p in fair_dir.glob(f"{artist_key}__img_*") if p.is_file()]
+def build_artist_image_cache_stem(
+    artist_key: str,
+    *,
+    artist_id: str = "",
+    compact: bool = False,
+) -> str:
+    if compact:
+        compact_id = re.sub(r"[^a-f0-9]+", "", str(artist_id or "").lower())
+        if compact_id:
+            return compact_id[:TRIAL_IMAGE_CACHE_STEM_LEN]
+    return str(artist_key or "").strip()
+
+
+def build_artist_image_cache_path(
+    fair_dir: Path,
+    *,
+    cache_stem: str,
+    image_index: int,
+    extension: str,
+) -> Path:
+    return fair_dir / f"{cache_stem}__img_{image_index:02d}{extension}"
+
+
+def list_existing_artist_images(fair_dir: Path, artist_key: str, *, artist_id: str = "", compact: bool = False) -> list[Path]:
+    stems = [str(artist_key or "").strip()]
+    compact_stem = build_artist_image_cache_stem(
+        artist_key,
+        artist_id=artist_id,
+        compact=compact,
+    )
+    if compact_stem and compact_stem not in stems:
+        stems.insert(0, compact_stem)
+    files: list[Path] = []
+    seen_paths: set[Path] = set()
+    for stem in stems:
+        for path in fair_dir.glob(f"{stem}__img_*"):
+            if not path.is_file():
+                continue
+            resolved = path.resolve()
+            if resolved in seen_paths:
+                continue
+            seen_paths.add(resolved)
+            files.append(path)
     return sorted(files, key=lambda p: (parse_image_index_from_filename(p), p.name))
 
 
@@ -2180,6 +2223,45 @@ def build_valid_existing_metadata_items(
                 "year_source": str(prev.get("year_source") or "none"),
                 "year_confidence": str(prev.get("year_confidence") or "low"),
                 "payload_hash": str(prev_payload_hash or local_payload_hash),
+            }
+        )
+    return items
+
+
+def build_cache_only_metadata_items(
+    existing_images: list[Path],
+    *,
+    target_images_per_artist: int,
+) -> list[dict[str, Any]]:
+    items: list[dict[str, Any]] = []
+    seen_payload_hashes: set[str] = set()
+    seen_local_paths: set[str] = set()
+    for local_path in existing_images:
+        if len(items) >= target_images_per_artist:
+            break
+        resolved = local_path.resolve()
+        local_key = str(resolved)
+        if local_key in seen_local_paths:
+            continue
+        ok_cached, _cached_reason = validate_cached_image_file(resolved)
+        if not ok_cached:
+            continue
+        local_payload_hash = payload_hash_from_file(resolved).strip().lower()
+        if not local_payload_hash or local_payload_hash in seen_payload_hashes:
+            continue
+        seen_local_paths.add(local_key)
+        seen_payload_hashes.add(local_payload_hash)
+        items.append(
+            {
+                "url": "",
+                "hash": f"cache:{local_payload_hash}",
+                "caption": "",
+                "year": 0,
+                "r2_key": get_image_r2_key(resolved),
+                "local_path": str(resolved),
+                "year_source": "none",
+                "year_confidence": "low",
+                "payload_hash": local_payload_hash,
             }
         )
     return items
@@ -2300,10 +2382,11 @@ def main() -> int:
     RAW_DIR = get_current_raw_dir(io_root) if policy_mode == skip_policy.REBUILD_MODE else get_current_raw_dir()
     logs_dir = get_phase1_logs_dir(io_root)
     IMAGE_ROOT_DIR = (
-        get_artist_image_cache_dir(io_root).resolve()
+        (io_root / TRIAL_IMAGE_CACHE_DIRNAME).resolve()
         if policy_mode == skip_policy.REBUILD_MODE
         else (PROJECT_ROOT / get_artist_image_cache_dir()).resolve()
     )
+    use_compact_trial_cache_names = policy_mode == skip_policy.REBUILD_MODE
     artist_master_global_path = get_phase1_artist_master_global_path(logs_dir=logs_dir).resolve()
     known_unresolvable_path = get_current_known_unresolvable_artist_images_path().resolve()
     if policy_mode == skip_policy.REBUILD_MODE:
@@ -2877,6 +2960,11 @@ def main() -> int:
                 summary["notes"].append(f"invalid_artist_seed_token_empty:{source_url}")
                 continue
             artist_key = f"{gallery_slug}__{artist_slug}__{artist_id[:8]}"
+            cache_stem = build_artist_image_cache_stem(
+                artist_key,
+                artist_id=artist_id,
+                compact=use_compact_trial_cache_names,
+            )
             fair_rows = works_meta_rows_by_fair.setdefault(fair_slug, [])
             fair_index = works_meta_index_by_fair.setdefault(fair_slug, {})
             works_meta_paths_by_fair.setdefault(fair_slug, works_meta_path_for_fair(fair_slug).resolve())
@@ -2977,7 +3065,12 @@ def main() -> int:
 
             fair_dir = artists_image_root / fair_slug_safe
             fair_dir.mkdir(parents=True, exist_ok=True)
-            existing_image_candidates = list_existing_artist_images(fair_dir, artist_key)
+            existing_image_candidates = list_existing_artist_images(
+                fair_dir,
+                artist_key,
+                artist_id=artist_id,
+                compact=use_compact_trial_cache_names,
+            )
             existing_images: list[Path] = []
             invalid_cached_images: list[tuple[Path, str]] = []
             for cached_path in existing_image_candidates:
@@ -2998,9 +3091,30 @@ def main() -> int:
                     run_ts=run_ts,
                 )
                 case_notes.append(f"invalid_cached_images_quarantined:{moved_invalid}")
-            saved_count = len(existing_images)
+            cache_only_metadata_items = build_cache_only_metadata_items(
+                existing_images,
+                target_images_per_artist=max(target_images_per_artist, len(existing_images)),
+            )
+            materialized_existing_metadata_items = (
+                list(valid_existing_metadata_items_for_seen)
+                if valid_existing_metadata_items_for_seen
+                else list(cache_only_metadata_items)
+            )
+            materialized_existing_meta_hashes = [
+                str(item.get("hash") or "")
+                for item in materialized_existing_metadata_items
+                if str(item.get("hash") or "")
+            ]
+            materialized_existing_meta_by_hash = dict(existing_meta_by_hash)
+            for item in materialized_existing_metadata_items:
+                item_hash = str(item.get("hash") or "")
+                if not item_hash:
+                    continue
+                materialized_existing_meta_by_hash[item_hash] = dict(item)
+            effective_has_metadata_row = bool(isinstance(existing_meta_row, dict) or materialized_existing_metadata_items)
+            saved_count = len(materialized_existing_metadata_items)
             seen_payload_hashes: set[str] = set()
-            for item in valid_existing_metadata_items_for_seen:
+            for item in materialized_existing_metadata_items:
                 ph = str(item.get("payload_hash") or "").strip().lower()
                 if ph:
                     seen_payload_hashes.add(ph)
@@ -3033,7 +3147,7 @@ def main() -> int:
             prev_topn_hashes_set = set(prev_topn_hashes)
             current_topn_seen_hashes: set[str] = set()
 
-            metadata_cover_count = len(valid_existing_metadata_items_for_seen)
+            metadata_cover_count = len(materialized_existing_metadata_items)
             metadata_gap_detected = saved_count > 0 and metadata_cover_count < saved_count
             if metadata_gap_detected:
                 case_notes.append(
@@ -3041,13 +3155,13 @@ def main() -> int:
                 )
             should_fetch_remote, effective_fetch_reason = resolve_artist_image_fetch_decision(
                 mode=policy_mode,
-                has_metadata_row=isinstance(existing_meta_row, dict),
-                existing_meta_hashes=existing_meta_hashes,
-                valid_existing_count=len(valid_existing_metadata_items_for_seen),
+                has_metadata_row=effective_has_metadata_row,
+                existing_meta_hashes=materialized_existing_meta_hashes,
+                valid_existing_count=len(materialized_existing_metadata_items),
                 target_images_per_artist=target_images_per_artist,
                 integrity_stats=analyze_existing_metadata_integrity(
-                    existing_meta_hashes,
-                    existing_meta_by_hash,
+                    materialized_existing_meta_hashes,
+                    materialized_existing_meta_by_hash,
                 ),
                 same_source_yearly_diff_allowed=same_source_yearly_diff_allowed,
             )
@@ -3248,7 +3362,12 @@ def main() -> int:
                                     seen_payload_hashes.add(current_payload_hash)
                                 selected_url_hash = image_url_hash(selected_image_url) or url_hash
                                 selected_url_identity = normalize_image_url_for_dedupe(selected_image_url)
-                                file_path = fair_dir / f"{artist_key}__img_{next_index:02d}{ext}"
+                                file_path = build_artist_image_cache_path(
+                                    fair_dir,
+                                    cache_stem=cache_stem,
+                                    image_index=next_index,
+                                    extension=ext,
+                                )
                                 file_path.write_bytes(payload)
                                 if selected_url_identity:
                                     seen_image_url_identities.add(selected_url_identity)
@@ -3365,7 +3484,12 @@ def main() -> int:
                                     seen_payload_hashes.add(current_payload_hash)
                                 selected_url_hash = image_url_hash(selected_image_url) or url_hash
                                 selected_url_identity = normalize_image_url_for_dedupe(selected_image_url)
-                                file_path = fair_dir / f"{artist_key}__img_{next_index:02d}{ext}"
+                                file_path = build_artist_image_cache_path(
+                                    fair_dir,
+                                    cache_stem=cache_stem,
+                                    image_index=next_index,
+                                    extension=ext,
+                                )
                                 file_path.write_bytes(payload)
                                 if selected_url_identity:
                                     seen_image_url_identities.add(selected_url_identity)
@@ -3409,7 +3533,7 @@ def main() -> int:
                             case_reason = "insufficient_image_candidates_after_download"
 
             metadata_items: list[dict[str, Any]] = []
-            valid_existing_metadata_items = list(valid_existing_metadata_items_for_seen)
+            valid_existing_metadata_items = list(materialized_existing_metadata_items)
 
             if selected_year_evidence:
                 selected_items: list[dict[str, Any]] = []

@@ -1,0 +1,27 @@
+{
+  "schema_name": "enrichment_bulk_apply_manifest",
+  "category": "artists",
+  "guard_status": "completed_no_target_rows",
+  "batch_status": "not_submitted",
+  "requests_path": "data\\runtime\\enrichment_requests\\artists\\artists_enrichment_requests_2025.jsonl",
+  "target_request_ids": [],
+  "enrich_model": "artist_name_kana:gpt-5-mini|headline_ja:gpt-5-mini|summary_ja:gpt-5-mini",
+  "enrich_models_by_field": {
+    "artist_name_kana": "gpt-5-mini",
+    "headline_ja": "gpt-5-mini",
+    "summary_ja": "gpt-5-mini"
+  },
+  "enrich_prompt_version": "artists_preview_v1",
+  "enrich_completion_window": "24h",
+  "openai_client_available": true,
+  "api_mode": "bulk_noop",
+  "batch_used": false,
+  "batch_job_id": "",
+  "input_bundle_hash": "b14f0515b6fc5cc46e58958890a36a67d4aea28127cb5013ec2da1be8f9a3d69",
+  "target_rows": 0,
+  "updated_rows": 0,
+  "rerun_guard_verdict": "no_target_rows",
+  "process_lock_id": "",
+  "execution_mode": "bulk_apply",
+  "batch_required": true
+}

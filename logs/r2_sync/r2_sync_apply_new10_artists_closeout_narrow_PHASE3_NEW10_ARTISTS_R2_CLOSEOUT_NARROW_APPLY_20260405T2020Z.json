@@ -1,0 +1,120 @@
+{
+  "artifact_kind": "r2_sync_apply",
+  "schema_version": "v2",
+  "generated_at": "2026-04-05T11:08:23Z",
+  "scope": "new10_artists_closeout_narrow",
+  "run_id": "PHASE3_NEW10_ARTISTS_R2_CLOSEOUT_NARROW_APPLY_20260405T2020Z",
+  "bucket": "art-pulse-editor",
+  "sync_mode": "mirror",
+  "plan_log_path": "logs/r2_sync/r2_sync_plan_new10_artists_closeout_narrow_PHASE3_NEW10_ARTISTS_R2_CLOSEOUT_NARROW_APPLY_20260405T2020Z.json",
+  "local_roots_missing": [],
+  "would_upload_count": 16,
+  "would_delete_count": 0,
+  "would_prune_count": 0,
+  "uploaded_count": 16,
+  "upload_failed_count": 0,
+  "deleted_count": 0,
+  "delete_failed_count": 0,
+  "delete_policy": "no_delete_candidates",
+  "uploaded": [
+    {
+      "r2_key": "data/current/enrichment/artists_enrichment_apply_output.jsonl",
+      "local_path": "data/current/enrichment/artists_enrichment_apply_output.jsonl",
+      "size_bytes": 105844,
+      "sha256": "fc87035ba94e505d94943bc18a1df85c2e88791171b93465fda4006b45e3167a"
+    },
+    {
+      "r2_key": "data/current/enrichment/artists_enrichment_apply_summary.json",
+      "local_path": "data/current/enrichment/artists_enrichment_apply_summary.json",
+      "size_bytes": 34977,
+      "sha256": "b4bed4626d26db187ea43b5ad822c36bddb0c52b27f55619f9eb34d20938899d"
+    },
+    {
+      "r2_key": "data/current/images/metadata/artist_works_images_frieze_london.jsonl",
+      "local_path": "data/current/images/metadata/artist_works_images_frieze_london.jsonl",
+      "size_bytes": 1188412,
+      "sha256": "76009c54f363629cc91cabcd193e2c5b371bf010014acc87b4516604597f9bd1"
+    },
+    {
+      "r2_key": "data/current/images/metadata/artist_works_images_liste.jsonl",
+      "local_path": "data/current/images/metadata/artist_works_images_liste.jsonl",
+      "size_bytes": 588136,
+      "sha256": "dae0b3a8fe7cfa3a23c1bec609a4252a141fed3887babb431a50c9db6aba9d81"
+    },
+    {
+      "r2_key": "data/current/raw/artists_frieze_london_2025.jsonl",
+      "local_path": "data/current/raw/artists_frieze_london_2025.jsonl",
+      "size_bytes": 1844615,
+      "sha256": "356d6c91d088fc594026ecd948afde0fb9e69f35b311b5af911397f44e409799"
+    },
+    {
+      "r2_key": "data/current/raw/artists_liste_2025.jsonl",
+      "local_path": "data/current/raw/artists_liste_2025.jsonl",
+      "size_bytes": 1151717,
+      "sha256": "ee4684846cab795918ade0419b1993f34751797ed81efa6342bbff7689cbe87a"
+    },
+    {
+      "r2_key": "data/current/vector/artist_works_images/artist_works_images_artifact_manifest.json",
+      "local_path": "data/current/vector/artist_works_images/artist_works_images_artifact_manifest.json",
+      "size_bytes": 2349,
+      "sha256": "fa7e38a3bdec24e5c14a442aefcf356b87b48e0116262ab042faf9113b2009e3"
+    },
+    {
+      "r2_key": "data/current/vector/artist_works_images/artist_works_images_openclip_embeddings.npy",
+      "local_path": "data/current/vector/artist_works_images/artist_works_images_openclip_embeddings.npy",
+      "size_bytes": 4003968,
+      "sha256": "f08bb8afc9de0073f0ccef6585c014dce6a7a28f14bfdb7c411bc7cc7a1bbcc8"
+    },
+    {
+      "r2_key": "data/current/vector/artist_works_images/artist_works_images_openclip_id_map.jsonl",
+      "local_path": "data/current/vector/artist_works_images/artist_works_images_openclip_id_map.jsonl",
+      "size_bytes": 2343509,
+      "sha256": "b7e0385efe9fa9d05cfc965588e5bc4161e50e5c6985f67ed48e9b57b714f287"
+    },
+    {
+      "r2_key": "data/current/vector/artist_works_images/artist_works_images_openclip_search_index.npy",
+      "local_path": "data/current/vector/artist_works_images/artist_works_images_openclip_search_index.npy",
+      "size_bytes": 4003968,
+      "sha256": "dd576261b9da036f56dfecdef04d5b17c6dff2f7212285c5752b6692fb4e96c9"
+    },
+    {
+      "r2_key": "data/current/vector/artist_works_images/artist_works_images_vectorize_failed_2025.jsonl",
+      "local_path": "data/current/vector/artist_works_images/artist_works_images_vectorize_failed_2025.jsonl",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "r2_key": "data/current/vector/artist_works_images/artist_works_images_vectorize_summary_2025.json",
+      "local_path": "data/current/vector/artist_works_images/artist_works_images_vectorize_summary_2025.json",
+      "size_bytes": 4331,
+      "sha256": "acce1f9a34c06c5a590de79237db622e26a0d02371529087de9b55f0d87498a8"
+    },
+    {
+      "r2_key": "data/current/vector/artists/artists_text_artifact_manifest.json",
+      "local_path": "data/current/vector/artists/artists_text_artifact_manifest.json",
+      "size_bytes": 2062,
+      "sha256": "fd18a280e4c3dbd04aa1d5005bb5bc6ea7e552aec90644ee9c1fab9778538216"
+    },
+    {
+      "r2_key": "data/current/vector/artists/artists_text_index.npy",
+      "local_path": "data/current/vector/artists/artists_text_index.npy",
+      "size_bytes": 2850944,
+      "sha256": "5bc1ff29915b179530fa0e46d7e5ad4e24a72e1776cb4e245bcc49dc6a135f32"
+    },
+    {
+      "r2_key": "data/current/vector/artists/artists_text_meta.jsonl",
+      "local_path": "data/current/vector/artists/artists_text_meta.jsonl",
+      "size_bytes": 257849,
+      "sha256": "a353ebb1622cc42db179f925d8f04e69cb4eb1e7215d54020f7776d29de01990"
+    },
+    {
+      "r2_key": "data/current/vector/artists/artists_text_vectorize_summary_2025.json",
+      "local_path": "data/current/vector/artists/artists_text_vectorize_summary_2025.json",
+      "size_bytes": 4213,
+      "sha256": "290034912d8ff1e71f6236e4b1c6f9560077e2fb712f541e45288af2a5069a7d"
+    }
+  ],
+  "upload_failed": [],
+  "deleted": [],
+  "delete_failed": []
+}

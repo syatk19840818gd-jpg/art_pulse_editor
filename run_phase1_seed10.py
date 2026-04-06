@@ -8,13 +8,14 @@ import json
 import os
 import re
 import sys
+import unicodedata
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any
-from urllib.parse import ParseResult, urljoin, urlparse
+from urllib.parse import ParseResult, parse_qsl, urljoin, urlparse
 
 import requests
 from tools import skip_policy
@@ -47,12 +48,14 @@ from phase2_art_pulse_config import (
 )
 from phase1_artist_link_utils import (
     ARTIST_LINK_KEYWORDS,
+    artist_listing_scope_mode as shared_artist_listing_scope_mode,
     build_artist_name_en_from_source_url as shared_build_artist_name_en_from_source_url,
     canonical_artist_source_key as shared_canonical_artist_source_key,
     canonicalize_artist_detail_url as shared_canonicalize_artist_detail_url,
+    evaluate_artist_candidate_relation as shared_evaluate_artist_candidate_relation,
     get_artist_master_duplicate_reason as shared_get_artist_master_duplicate_reason,
     is_invalid_artist_name as shared_is_invalid_artist_name,
-    looks_like_artist_detail_url as shared_looks_like_artist_detail_url,
+    looks_like_explicit_artist_detail_url as shared_looks_like_explicit_artist_detail_url,
     looks_like_artist_listing_url as shared_looks_like_artist_listing_url,
     normalize_url_for_link_compare as shared_normalize_url_for_link_compare,
     sanitize_artist_name_en as shared_sanitize_artist_name_en,
@@ -88,12 +91,153 @@ TARGET_YEAR = 2025
 RAG_CATEGORY = "exhibitions_text"
 RAG_CATEGORY_ARTISTS = "artists_text"
 SEED_PER_FAIR = 5
-MAX_EXHIBITION_LINKS_PER_GALLERY = 10
+MAX_EXHIBITION_LINKS_PER_GALLERY = 25
 MAX_EXHIBITION_LISTING_EXPANSION_DEPTH = 2
 # TEMPORARY TEST CAP:
 # User-requested operational override for stability testing.
 # SSOT default target remains 80, but current runs are intentionally capped to 5 per gallery.
 MAX_ARTISTS_PER_GALLERY = 80
+ARTIST_PROBABLE_DETAIL_REJECT_SLUGS = frozenset(
+    {
+        "artist",
+        "artists",
+        "about",
+        "about-us",
+        "contact",
+        "news",
+        "press",
+        "publication",
+        "publications",
+        "exhibition",
+        "exhibitions",
+        "fair",
+        "fairs",
+        "gallery",
+        "main-homepage",
+        "homepage",
+        "home",
+        "basket",
+        "shop",
+        "event",
+        "events",
+        "archive",
+        "main",
+        "list",
+        "category",
+        "of",
+        "current",
+        "past",
+        "upcoming",
+        "viewing-room",
+        "viewingroom",
+        "works",
+        "work",
+        "search",
+    }
+)
+ARTIST_IDENTITY_SOURCE_WEIGHTS = {
+    "h1": 32,
+    "meta_title": 28,
+    "title": 24,
+    "anchor": 18,
+    "slug": 8,
+}
+ARTIST_IDENTITY_STRONG_PAGE_SOURCES = frozenset({"h1", "meta_title", "title"})
+ARTIST_IDENTITY_CONNECTOR_TOKENS = frozenset({"and", "et", "plus", "und", "x", "y"})
+ARTIST_IDENTITY_NON_NAME_TOKENS = frozenset(
+    {
+        "address",
+        "archive",
+        "art",
+        "article",
+        "artist",
+        "artists",
+        "category",
+        "contact",
+        "cookie",
+        "cookies",
+        "current",
+        "editions",
+        "email",
+        "exhibitions",
+        "fairs",
+        "first",
+        "gallery",
+        "home",
+        "index",
+        "information",
+        "last",
+        "list",
+        "login",
+        "mailing",
+        "name",
+        "newsletter",
+        "news",
+        "past",
+        "password",
+        "php",
+        "policy",
+        "privacy",
+        "project",
+        "projects",
+        "publications",
+        "search",
+        "space",
+        "studio",
+        "subscribe",
+        "username",
+    }
+)
+ARTIST_IDENTITY_UTILITY_NAME_PHRASES = frozenset(
+    {
+        "contact us",
+        "email address",
+        "first name",
+        "last name",
+        "log in",
+        "login",
+        "mailing list",
+        "privacy policy",
+        "sign up",
+    }
+)
+ARTIST_IDENTITY_INDEX_NAME_PHRASES = frozenset(
+    {
+        "archive",
+        "article",
+        "category",
+        "index",
+        "index php",
+    }
+)
+ARTIST_IDENTITY_UTILITY_PAGE_MARKERS = frozenset(
+    {
+        "email address",
+        "first name",
+        "last name",
+        "mailing list",
+        "newsletter",
+        "password",
+        "privacy policy",
+        "subscribe",
+        "username",
+    }
+)
+ARTIST_IDENTITY_HUB_PAGE_MARKERS = frozenset(
+    {
+        "artists",
+        "current",
+        "editions",
+        "exhibitions",
+        "fairs",
+        "gallery",
+        "home",
+        "information",
+        "news",
+        "past",
+        "publications",
+    }
+)
 REQUEST_TIMEOUT_SECONDS = 12
 USER_AGENT = "art-pulse-editor/phase1-seed10"
 MAX_FAILURE_RETRIES_PER_URL = 3
@@ -265,6 +409,14 @@ class GallerySeed:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Phase1 seed10 fetch runner")
     parser.add_argument(
+        "--targets-csv",
+        default="",
+        help=(
+            "optional explicit gallery targets CSV. "
+            "expected columns: fair_slug,gallery_name_en,exhibitions_url[,artists_url,gallery_name_kana,gallery_name_raw]"
+        ),
+    )
+    parser.add_argument(
         "--include-artists-text",
         action="store_true",
         help="include artists_text minimal fetch loop (default: exhibitions_text only)",
@@ -369,6 +521,49 @@ def load_seed_galleries(csv_path: Path, fair_slug: str, limit: int) -> list[Gall
             )
             if len(galleries) >= limit:
                 break
+    return galleries
+
+
+def normalize_fair_slug(value: str) -> str:
+    token = str(value or "").strip().lower().replace("-", "_")
+    if token in {"frieze_london", "liste"}:
+        return token
+    return ""
+
+
+def load_seed_galleries_from_targets_csv(path: Path) -> list[GallerySeed]:
+    if not path.exists():
+        raise FileNotFoundError(f"Missing targets CSV: {path}")
+    galleries: list[GallerySeed] = []
+    with path.open("r", encoding="utf-8-sig", newline="") as handle:
+        reader = csv.DictReader(handle)
+        for row in reader:
+            fair_slug = normalize_fair_slug(row.get("fair_slug") or row.get("fair") or "")
+            gallery_name_en = str(row.get("gallery_name_en") or row.get("gallery_name") or "").strip()
+            exhibitions_url = str(row.get("exhibitions_url") or row.get("exhibition_url") or "").strip()
+            artists_url = str(row.get("artists_url") or row.get("artist_url") or "").strip()
+            gallery_name_kana = str(row.get("gallery_name_kana") or "").strip()
+            gallery_name_raw = str(row.get("gallery_name_raw") or "").strip()
+            if not fair_slug:
+                continue
+            if not gallery_name_en:
+                continue
+            if not exhibitions_url:
+                continue
+            if not gallery_name_raw:
+                gallery_name_raw = gallery_name_en
+            galleries.append(
+                GallerySeed(
+                    fair_slug=fair_slug,
+                    gallery_name_raw=gallery_name_raw,
+                    gallery_name_en=gallery_name_en,
+                    gallery_name_kana=gallery_name_kana,
+                    exhibitions_url=exhibitions_url,
+                    artists_url=artists_url,
+                )
+            )
+    if not galleries:
+        raise RuntimeError(f"No valid target rows found in targets CSV: {path}")
     return galleries
 
 
@@ -501,7 +696,33 @@ def _path_segments_from_url(url: str) -> list[str]:
     return [segment for segment in path.lower().split("/") if segment]
 
 
+def _query_pairs_lower(url: str) -> dict[str, str]:
+    parsed = urlparse(str(url or ""))
+    return {str(key or "").lower(): str(value or "").lower() for key, value in parse_qsl(parsed.query, keep_blank_values=True)}
+
+
+def _anchor_text_has_exhibition_date_context(anchor_text: str, target_year: int = TARGET_YEAR) -> bool:
+    text = str(anchor_text or "").lower()
+    if not text:
+        return False
+    if str(int(target_year)) in text:
+        return True
+    if re.search(r"(?<!\d)(19\d{2}|20\d{2})(?!\d)", text):
+        return True
+    return bool(
+        re.search(
+            r"\b(?:jan|january|feb|february|mar|march|apr|april|may|jun|june|jul|july|aug|august|sep|sept|september|oct|october|nov|november|dec|december)\b",
+            text,
+        )
+    )
+
+
 def _is_listing_like_exhibition_url(url: str) -> bool:
+    query_pairs = _query_pairs_lower(url)
+    if query_pairs.get("view") == "article" and query_pairs.get("id"):
+        return False
+    if query_pairs.get("view") == "category" or query_pairs.get("layout") == "blog":
+        return True
     segments = _path_segments_from_url(url)
     if not segments:
         return True
@@ -523,9 +744,14 @@ def _is_exhibition_family_segment(segment: str) -> bool:
 
 
 def _exhibition_listing_scope_mode(list_page_url: str) -> str:
+    query_pairs = _query_pairs_lower(list_page_url)
+    if query_pairs.get("view") == "category" or query_pairs.get("layout") == "blog":
+        return "taxonomy"
     segments = _path_segments_from_url(list_page_url)
     if not segments:
         return "unknown"
+    if len(segments) == 1 and segments[0] in EXHIBITION_LISTING_PATH_SEGMENTS:
+        return "root-listing"
     if segments[0] == "category" and any(_is_exhibition_family_segment(segment) for segment in segments[1:]):
         return "taxonomy"
     if _is_exhibition_family_segment(segments[0]):
@@ -537,19 +763,33 @@ def _exhibition_listing_scope_mode(list_page_url: str) -> str:
     return "unknown"
 
 
-def _matches_exhibition_listing_scope(candidate_url: str, list_page_url: str) -> bool:
+def _matches_exhibition_listing_scope(candidate_url: str, list_page_url: str, anchor_text: str = "") -> bool:
     candidate_segments = _path_segments_from_url(candidate_url)
-    if not candidate_segments:
+    candidate_query_pairs = _query_pairs_lower(candidate_url)
+    if not candidate_segments and not candidate_query_pairs:
         return False
     scope_mode = _exhibition_listing_scope_mode(list_page_url)
+    if candidate_query_pairs.get("view") == "article" and candidate_query_pairs.get("id"):
+        return scope_mode in {"family", "root-listing", "taxonomy"}
     if scope_mode == "family":
         return _is_exhibition_family_segment(candidate_segments[0])
-    if scope_mode in {"root-listing", "taxonomy"}:
-        return len(candidate_segments) == 1 or _is_exhibition_family_segment(candidate_segments[0])
+    if scope_mode == "taxonomy":
+        return bool(candidate_segments) and _is_exhibition_family_segment(candidate_segments[0])
+    if scope_mode == "root-listing":
+        if candidate_segments and _is_exhibition_family_segment(candidate_segments[0]):
+            return True
+        if len(candidate_segments) >= 2 and _is_probable_exhibition_detail_url(candidate_url):
+            return True
+        return _anchor_text_has_exhibition_date_context(anchor_text) and _is_probable_exhibition_detail_url(candidate_url)
     return False
 
 
 def _is_probable_exhibition_detail_url(url: str) -> bool:
+    query_pairs = _query_pairs_lower(url)
+    if query_pairs.get("view") == "article" and query_pairs.get("id"):
+        return True
+    if query_pairs.get("view") == "category" or query_pairs.get("layout") == "blog":
+        return False
     segments = _path_segments_from_url(url)
     if not segments:
         return False
@@ -587,11 +827,54 @@ def _looks_like_artist_listing_url(url: str) -> bool:
 
 
 def _looks_like_artist_detail_link(candidate_url: str, list_page_url: str, anchor_text: str = "") -> bool:
-    return shared_looks_like_artist_detail_url(
+    return shared_looks_like_explicit_artist_detail_url(
         candidate_url=candidate_url,
         list_page_url=list_page_url,
         anchor_text=anchor_text,
         same_domain_required=False,
+    )
+
+
+def _normalize_artist_name_for_compare(name: str) -> str:
+    value = str(name or "").strip()
+    if not value:
+        return ""
+    value = unicodedata.normalize("NFKD", value)
+    value = "".join(char for char in value if not unicodedata.combining(char))
+    value = _sanitize_artist_name_en(value)
+    if not value:
+        return ""
+    value = re.sub(r"[^a-z0-9]+", " ", value.lower()).strip()
+    return re.sub(r"\s+", " ", value)
+
+
+def _artist_anchor_text_looks_like_name(anchor_text: str) -> bool:
+    normalized = _normalize_artist_name_for_compare(anchor_text)
+    if not normalized:
+        return False
+    parts = [part for part in normalized.split(" ") if part]
+    if len(parts) < 2:
+        return False
+    return len("".join(parts)) >= 6
+
+
+def _artist_listing_scope_mode(list_page_url: str) -> str:
+    return shared_artist_listing_scope_mode(list_page_url)
+
+
+def _evaluate_artist_candidate_relation(
+    candidate_url: str,
+    list_page_url: str,
+    anchor_text: str = "",
+    *,
+    path_family_counts: Counter[str] | None = None,
+) -> dict[str, Any]:
+    return shared_evaluate_artist_candidate_relation(
+        candidate_url=candidate_url,
+        list_page_url=list_page_url,
+        anchor_text=anchor_text,
+        path_family_counts=path_family_counts,
+        same_domain_required=True,
     )
 
 
@@ -633,7 +916,7 @@ def extract_candidate_exhibition_urls(list_page_url: str, list_page_html: str) -
             fallback_allowed = (
                 _is_listing_like_exhibition_url(list_page_url)
                 and _is_probable_exhibition_detail_url(normalized)
-                and _matches_exhibition_listing_scope(normalized, list_page_url)
+                and _matches_exhibition_listing_scope(normalized, list_page_url, anchor_text)
             )
             if not fallback_allowed:
                 continue
@@ -649,19 +932,116 @@ def extract_candidate_exhibition_urls(list_page_url: str, list_page_html: str) -
     return [url for _score, url in ranked[:MAX_EXHIBITION_LINKS_PER_GALLERY]]
 
 
+def _upsert_artist_candidate(
+    *,
+    parsed: ParseResult,
+    quality_score: int,
+    anchor_text: str,
+    candidates: list[dict[str, Any]],
+    candidate_scores: list[int],
+    is_explicit: bool,
+    relation_confidence: str,
+    relation_type: str,
+    seen_by_canonical: dict[str, int],
+) -> None:
+    if (parsed.path or "/") == "/":
+        normalized = f"{parsed.scheme}://{parsed.netloc}/"
+    else:
+        normalized = f"{parsed.scheme}://{parsed.netloc}{parsed.path}".rstrip("/")
+    if parsed.query:
+        normalized = f"{normalized}?{parsed.query}"
+    canonical_url = _canonicalize_artist_detail_url(normalized)
+    existing_index = seen_by_canonical.get(canonical_url)
+    candidate_payload = {
+        "anchor_text": str(anchor_text or "").strip(),
+        "is_explicit": bool(is_explicit),
+        "relation_confidence": str(relation_confidence or "").strip(),
+        "relation_type": str(relation_type or "").strip(),
+        "url": normalized,
+    }
+    if existing_index is not None:
+        if quality_score > candidate_scores[existing_index]:
+            candidates[existing_index] = candidate_payload
+            candidate_scores[existing_index] = quality_score
+        return
+    seen_by_canonical[canonical_url] = len(candidates)
+    candidates.append(candidate_payload)
+    candidate_scores.append(quality_score)
+
+
+def _build_artist_path_family_counts(
+    candidate_rows: list[tuple[str, str, ParseResult]],
+) -> Counter[str]:
+    counts: Counter[str] = Counter()
+    for absolute_url, anchor_text_raw, parsed in candidate_rows:
+        if not _artist_anchor_text_looks_like_name(anchor_text_raw):
+            continue
+        path_parts = [part for part in (parsed.path or "").split("/") if part]
+        if len(path_parts) != 2:
+            continue
+        family_segment = path_parts[0].strip().lower()
+        slug = path_parts[1].strip().lower()
+        if (
+            not family_segment
+            or family_segment in ARTIST_PROBABLE_DETAIL_REJECT_SLUGS
+            or family_segment in {"artist", "artists"}
+            or not slug
+            or slug in ARTIST_PROBABLE_DETAIL_REJECT_SLUGS
+            or "." in slug
+            or "-" not in slug
+            or not re.fullmatch(r"[a-z0-9-]+", slug)
+        ):
+            continue
+        counts[family_segment] += 1
+    return counts
+
+
+def _resolve_artist_candidate_failure_reason(
+    *,
+    list_page_url: str,
+    explicit_candidates_found: bool,
+    fallback_relation_counts: Counter[str],
+    failure_reason_counts: Counter[str],
+) -> str:
+    if explicit_candidates_found:
+        return ""
+    if fallback_relation_counts:
+        relation_type = fallback_relation_counts.most_common(1)[0][0]
+        return relation_type
+    scope_mode = _artist_listing_scope_mode(list_page_url)
+    if scope_mode == "unknown":
+        return "LISTING_SCOPE_UNKNOWN"
+    if failure_reason_counts.get("LOW_CONFIDENCE_NAME_MATCH", 0) > 0:
+        return "LOW_CONFIDENCE_NAME_MATCH"
+    if (
+        scope_mode == "taxonomy_query"
+        and failure_reason_counts.get("QUERY_TAXONOMY_UNSUPPORTED", 0) > 0
+    ):
+        return "QUERY_TAXONOMY_UNSUPPORTED"
+    return "NO_RELATION_MATCH_CANDIDATES"
+
+
 def extract_candidate_artist_urls(
     list_page_url: str,
     list_page_html: str,
     max_artists_per_gallery: int,
-) -> list[str]:
-    candidates: list[str] = []
-    candidate_scores: list[int] = []
-    seen_by_canonical: dict[str, int] = {}
+) -> tuple[list[dict[str, Any]], str]:
+    explicit_candidates: list[dict[str, Any]] = []
+    explicit_candidate_scores: list[int] = []
+    explicit_seen_by_canonical: dict[str, int] = {}
+    fallback_candidates: list[dict[str, Any]] = []
+    fallback_candidate_scores: list[int] = []
+    fallback_seen_by_canonical: dict[str, int] = {}
+    candidate_rows: list[tuple[str, str, ParseResult]] = []
+    fallback_relation_counts: Counter[str] = Counter()
+    failure_reason_counts: Counter[str] = Counter()
     # Cap should be applied on "saved artists", not on first discovered links.
     # For small caps (e.g. 1 in initial smoke), scan a wider window to avoid
     # stopping at already-saved duplicates.
     candidate_scan_limit = min(200, max(max_artists_per_gallery, max_artists_per_gallery * 20))
+    raw_scan_limit = min(400, max(candidate_scan_limit, candidate_scan_limit * 4))
     listing_context = _looks_like_artist_listing_url(list_page_url)
+    normalized_listing_url = _normalize_url_for_link_compare(list_page_url)
 
     for href, anchor_text_raw in extract_links_from_html(list_page_html):
         href = href.strip()
@@ -675,30 +1055,77 @@ def extract_candidate_artist_urls(
             continue
         if not _same_domain(absolute_url, list_page_url):
             continue
+        if _normalize_url_for_link_compare(absolute_url) == normalized_listing_url:
+            continue
         anchor_text = anchor_text_raw.lower()
         target = f"{absolute_url.lower()} {anchor_text}"
         if not listing_context and not any(keyword in target for keyword in ARTIST_LINK_KEYWORDS):
             continue
-        if not _looks_like_artist_detail_link(absolute_url, list_page_url, anchor_text_raw):
-            continue
-        normalized = f"{parsed.scheme}://{parsed.netloc}{parsed.path}".rstrip("/")
-        if parsed.query:
-            normalized = f"{normalized}?{parsed.query}"
-        canonical_url = _canonicalize_artist_detail_url(normalized)
-        quality_score = _score_artist_detail_url_quality(normalized)
-        existing_index = seen_by_canonical.get(canonical_url)
-        if existing_index is not None:
-            if quality_score > candidate_scores[existing_index]:
-                candidates[existing_index] = normalized
-                candidate_scores[existing_index] = quality_score
-            continue
-        seen_by_canonical[canonical_url] = len(candidates)
-        candidates.append(normalized)
-        candidate_scores.append(quality_score)
-        if len(candidates) >= candidate_scan_limit:
+        candidate_rows.append((absolute_url, anchor_text_raw, parsed))
+        if len(candidate_rows) >= raw_scan_limit:
             break
 
-    return candidates
+    path_family_counts = _build_artist_path_family_counts(candidate_rows)
+
+    for absolute_url, anchor_text_raw, parsed in candidate_rows:
+        if _looks_like_artist_detail_link(absolute_url, list_page_url, anchor_text_raw):
+            explicit_score = 100 + _score_artist_detail_url_quality(absolute_url)
+            _upsert_artist_candidate(
+                parsed=parsed,
+                quality_score=explicit_score,
+                anchor_text=anchor_text_raw,
+                candidates=explicit_candidates,
+                candidate_scores=explicit_candidate_scores,
+                is_explicit=True,
+                relation_confidence="high",
+                relation_type="explicit_detail",
+                seen_by_canonical=explicit_seen_by_canonical,
+            )
+            if len(explicit_candidates) >= candidate_scan_limit:
+                break
+            continue
+
+        relation = _evaluate_artist_candidate_relation(
+            absolute_url,
+            list_page_url,
+            anchor_text_raw,
+            path_family_counts=path_family_counts,
+        )
+        failure_reason = str(relation.get("failure_reason") or "").strip()
+        if failure_reason:
+            failure_reason_counts[failure_reason] += 1
+        if not relation.get("accepted"):
+            continue
+
+        relation_type = str(relation.get("relation_type") or "").strip()
+        if relation_type:
+            fallback_relation_counts[relation_type] += 1
+        fallback_score = int(relation.get("score") or 0) + _score_artist_detail_url_quality(absolute_url)
+        _upsert_artist_candidate(
+            parsed=parsed,
+            quality_score=fallback_score,
+            anchor_text=anchor_text_raw,
+            candidates=fallback_candidates,
+            candidate_scores=fallback_candidate_scores,
+            is_explicit=False,
+            relation_confidence=str(relation.get("confidence") or "").strip(),
+            relation_type=relation_type,
+            seen_by_canonical=fallback_seen_by_canonical,
+        )
+        if len(fallback_candidates) >= candidate_scan_limit:
+            break
+
+    result_reason = _resolve_artist_candidate_failure_reason(
+        list_page_url=list_page_url,
+        explicit_candidates_found=bool(explicit_candidates),
+        fallback_relation_counts=fallback_relation_counts,
+        failure_reason_counts=failure_reason_counts,
+    )
+    if explicit_candidates:
+        return explicit_candidates, ""
+    if fallback_candidates:
+        return fallback_candidates, result_reason
+    return [], result_reason
 
 
 def reason_code_from_status(status_code: int) -> str:
@@ -917,6 +1344,580 @@ def extract_text(html: str) -> str:
     parser.feed(html)
     parser.close()
     return parser.get_text()
+
+
+def _dedupe_preserve_order(values: list[str]) -> list[str]:
+    seen: set[str] = set()
+    unique_values: list[str] = []
+    for value in values:
+        normalized = str(value or "").strip()
+        if not normalized or normalized in seen:
+            continue
+        seen.add(normalized)
+        unique_values.append(normalized)
+    return unique_values
+
+
+def _split_artist_title_segments(title: str) -> list[str]:
+    raw_title = str(title or "").strip()
+    if not raw_title:
+        return []
+    segments = re.split(r"\s+(?:[-\u2013\u2014\|\u00b7])\s+|\s*:\s*", raw_title)
+    return _dedupe_preserve_order([segment.strip() for segment in segments if str(segment or "").strip()])
+
+
+def _extract_artist_page_identity_signals(html: str, text: str) -> dict[str, Any]:
+    title = ""
+    h1_texts: list[str] = []
+    meta_titles: list[str] = []
+    if BeautifulSoup is not None:
+        soup = BeautifulSoup(html, "lxml")
+        if soup.title:
+            title = soup.title.get_text(" ", strip=True)
+        for node in soup.find_all("h1")[:5]:
+            value = node.get_text(" ", strip=True)
+            if value:
+                h1_texts.append(value)
+        for key in ("og:title", "twitter:title"):
+            node = soup.find(attrs={"property": key}) or soup.find(attrs={"name": key})
+            if node and node.get("content"):
+                meta_titles.append(str(node.get("content") or "").strip())
+    else:
+        title_match = re.search(r"<title[^>]*>(.*?)</title>", html or "", flags=re.IGNORECASE | re.DOTALL)
+        if title_match:
+            title = re.sub(r"\s+", " ", title_match.group(1)).strip()
+        h1_texts = [
+            re.sub(r"<[^>]+>", " ", match.group(1))
+            for match in re.finditer(r"<h1[^>]*>(.*?)</h1>", html or "", flags=re.IGNORECASE | re.DOTALL)
+        ][:5]
+        h1_texts = [re.sub(r"\s+", " ", value).strip() for value in h1_texts if str(value or "").strip()]
+    body_first_lines = [
+        re.sub(r"\s+", " ", line).strip()
+        for line in str(text or "").splitlines()
+        if str(line or "").strip()
+    ][:30]
+    return {
+        "body_first_lines": body_first_lines,
+        "h1_texts": _dedupe_preserve_order(h1_texts),
+        "meta_titles": _dedupe_preserve_order(meta_titles),
+        "title": str(title or "").strip(),
+        "title_segments": _split_artist_title_segments(title),
+    }
+
+
+def _collect_text_marker_hits(lines: list[str], markers: frozenset[str]) -> list[str]:
+    lowered_lines = [str(line or "").lower() for line in lines if str(line or "").strip()]
+    hits: list[str] = []
+    for marker in sorted(markers):
+        if any(marker in line for line in lowered_lines):
+            hits.append(marker)
+    return hits
+
+
+def _classify_artist_identity_name(name: str) -> dict[str, Any]:
+    cleaned = _sanitize_artist_name_en(name)
+    normalized = _normalize_artist_name_for_compare(cleaned)
+    if not cleaned or not normalized:
+        return {
+            "cleaned_name": "",
+            "invalid_reason": "LOW_CONFIDENCE_IDENTITY",
+            "normalized_name": "",
+            "score": 0,
+            "strength": "invalid",
+            "valid": False,
+        }
+
+    tokens = [token for token in normalized.split(" ") if token]
+    non_connector_tokens = [token for token in tokens if token not in ARTIST_IDENTITY_CONNECTOR_TOKENS]
+    if not non_connector_tokens:
+        return {
+            "cleaned_name": cleaned,
+            "invalid_reason": "LOW_CONFIDENCE_IDENTITY",
+            "normalized_name": normalized,
+            "score": 0,
+            "strength": "invalid",
+            "valid": False,
+        }
+
+    if normalized in ARTIST_IDENTITY_INDEX_NAME_PHRASES:
+        return {
+            "cleaned_name": cleaned,
+            "invalid_reason": "INDEX_LIKE_PAGE_REJECTED",
+            "normalized_name": normalized,
+            "score": 0,
+            "strength": "invalid",
+            "valid": False,
+        }
+    if normalized in ARTIST_IDENTITY_UTILITY_NAME_PHRASES:
+        return {
+            "cleaned_name": cleaned,
+            "invalid_reason": "UTILITY_PAGE_REJECTED",
+            "normalized_name": normalized,
+            "score": 0,
+            "strength": "invalid",
+            "valid": False,
+        }
+    if _is_invalid_artist_name(cleaned):
+        invalid_reason = (
+            "INDEX_LIKE_PAGE_REJECTED"
+            if all(token in {"archive", "article", "category", "index", "list", "php"} for token in non_connector_tokens)
+            else "UTILITY_PAGE_REJECTED"
+        )
+        return {
+            "cleaned_name": cleaned,
+            "invalid_reason": invalid_reason,
+            "normalized_name": normalized,
+            "score": 0,
+            "strength": "invalid",
+            "valid": False,
+        }
+
+    letter_count = sum(1 for char in cleaned if unicodedata.category(char).startswith("L"))
+    utility_token_hits = [token for token in non_connector_tokens if token in ARTIST_IDENTITY_NON_NAME_TOKENS]
+    site_like_hits = [
+        token
+        for token in non_connector_tokens
+        if token in {"art", "arts", "gallery", "project", "projects", "space", "studio"}
+    ]
+
+    score = 0
+    if len(non_connector_tokens) >= 2:
+        score += 30
+    else:
+        score += 10
+    if letter_count >= 6:
+        score += 12
+    if letter_count >= 12:
+        score += 4
+    if len(non_connector_tokens) >= 3:
+        score += 4
+    if any(token in ARTIST_IDENTITY_CONNECTOR_TOKENS for token in tokens) or any(
+        mark in str(cleaned or "") for mark in ("&", "+", "/")
+    ):
+        score += 4
+    if len(non_connector_tokens) == 1 and len(non_connector_tokens[0]) < 5:
+        score -= 8
+    if utility_token_hits:
+        score -= 18
+    if site_like_hits and len(non_connector_tokens) <= 2:
+        score -= 32
+
+    recoverable = False
+    if score >= 36:
+        strength = "strong"
+    elif score >= 18:
+        strength = "weak"
+    else:
+        strength = "invalid"
+        if (
+            len(non_connector_tokens) == 1
+            and letter_count >= 4
+            and not utility_token_hits
+            and not site_like_hits
+            and normalized not in ARTIST_IDENTITY_INDEX_NAME_PHRASES
+            and normalized not in ARTIST_IDENTITY_UTILITY_NAME_PHRASES
+        ):
+            recoverable = True
+
+    return {
+        "cleaned_name": cleaned,
+        "invalid_reason": "" if strength != "invalid" else "LOW_CONFIDENCE_IDENTITY",
+        "normalized_name": normalized,
+        "recoverable": recoverable,
+        "score": score,
+        "strength": strength,
+        "valid": strength != "invalid",
+    }
+
+
+def _build_artist_identity_value_variants(value: str) -> list[dict[str, str]]:
+    raw_value = str(value or "").strip()
+    cleaned = _sanitize_artist_name_en(raw_value)
+    if not cleaned:
+        return []
+
+    variants: list[dict[str, str]] = [{"variant_type": "raw", "value": cleaned}]
+    seen = {_normalize_artist_name_for_compare(cleaned)}
+
+    def add_variant(candidate: str, variant_type: str) -> None:
+        cleaned_candidate = _sanitize_artist_name_en(candidate)
+        if not cleaned_candidate:
+            return
+        normalized_candidate = _normalize_artist_name_for_compare(cleaned_candidate)
+        if not normalized_candidate or normalized_candidate in seen:
+            return
+        seen.add(normalized_candidate)
+        variants.append({"variant_type": variant_type, "value": cleaned_candidate})
+
+    without_parenthetical = re.sub(r"\s*\([^)]*\)\s*$", "", raw_value).strip(" ,;:-")
+    add_variant(without_parenthetical, "trimmed")
+
+    if "," in raw_value:
+        add_variant(raw_value.split(",", 1)[0], "trimmed")
+
+    without_year_tail = re.sub(
+        r"[\s,;:/-]*(?:born|b\.|d\.)?\s*(?:18|19|20)\d{2}(?:\s*[-/\u2013\u2014]\s*(?:18|19|20)?\d{2})?\s*$",
+        "",
+        raw_value,
+        flags=re.IGNORECASE,
+    ).strip(" ,;:-")
+    add_variant(without_year_tail, "trimmed")
+
+    descriptor_rich = bool(
+        re.search(r"[\(\),]", raw_value)
+        or re.search(r"\b(?:18|19|20)\d{2}\b", raw_value)
+    )
+    if descriptor_rich:
+        first_token = cleaned.split(" ", 1)[0].strip()
+        if len(first_token) >= 4 and not _is_invalid_artist_name(first_token):
+            add_variant(first_token, "trimmed")
+
+    return variants
+
+
+def _candidate_has_descriptor_tail(long_name: str, short_name: str) -> bool:
+    long_tokens = [token for token in _normalize_artist_name_for_compare(long_name).split(" ") if token]
+    short_tokens = [token for token in _normalize_artist_name_for_compare(short_name).split(" ") if token]
+    if not long_tokens or not short_tokens or len(short_tokens) >= len(long_tokens):
+        return False
+    if long_tokens[: len(short_tokens)] != short_tokens:
+        return False
+
+    suffix_tokens = long_tokens[len(short_tokens) :]
+    if not suffix_tokens:
+        return False
+
+    raw_long = str(long_name or "").strip()
+    if re.search(r"[\(\),]", raw_long) or re.search(r"\b(?:18|19|20)\d{2}\b", raw_long):
+        return True
+    if len(short_tokens) == 1 and len(suffix_tokens) <= 3:
+        return all(token not in ARTIST_IDENTITY_CONNECTOR_TOKENS for token in suffix_tokens)
+    return False
+
+
+def _promote_shorter_corroborated_artist_candidates(grouped_candidates: dict[str, dict[str, Any]]) -> None:
+    candidates = list(grouped_candidates.values())
+    for short_candidate in candidates:
+        short_name = str(short_candidate.get("display_name") or "").strip()
+        short_sources = set(str(source or "").strip() for source in short_candidate.get("sources", []) if source)
+        if not short_name or len(short_sources) < 2:
+            continue
+        if int(short_candidate.get("page_source_score") or 0) < 24:
+            continue
+
+        for long_candidate in candidates:
+            if long_candidate is short_candidate:
+                continue
+            long_name = str(long_candidate.get("display_name") or "").strip()
+            if not long_name or not _candidate_has_descriptor_tail(long_name, short_name):
+                continue
+            corroboration_bonus = 12 + 6 * min(len(short_sources), 4)
+            short_candidate["raw_score"] = int(short_candidate.get("raw_score") or 0) + corroboration_bonus
+            if any(source in ARTIST_IDENTITY_STRONG_PAGE_SOURCES for source in short_sources):
+                short_candidate["page_source_score"] = int(short_candidate.get("page_source_score") or 0) + min(
+                    16, corroboration_bonus
+                )
+            break
+
+
+def _build_artist_identity_name_rows(
+    *,
+    anchor_text: str,
+    signals: dict[str, Any],
+    source_url: str,
+) -> list[dict[str, str]]:
+    rows: list[dict[str, str]] = []
+    for value in signals.get("h1_texts", []):
+        rows.append({"source": "h1", "value": str(value or "").strip()})
+    for value in signals.get("meta_titles", []):
+        rows.append({"source": "meta_title", "value": str(value or "").strip()})
+    for value in signals.get("title_segments", []):
+        rows.append({"source": "title", "value": str(value or "").strip()})
+    if str(anchor_text or "").strip():
+        rows.append({"source": "anchor", "value": str(anchor_text or "").strip()})
+    slug_name = build_artist_name_en_from_source_url(source_url)
+    if slug_name != "Unknown Artist":
+        rows.append({"source": "slug", "value": slug_name})
+    return rows
+
+
+def _build_artist_identity_reason_detail(
+    *,
+    anchor_name: str,
+    page_confidence: str,
+    relation_confidence: str,
+    relation_type: str,
+    selected_artist_name: str,
+    sources: list[str],
+    utility_hits: list[str],
+) -> str:
+    parts: list[str] = []
+    if selected_artist_name:
+        parts.append(f"name={selected_artist_name}")
+    if page_confidence:
+        parts.append(f"page_confidence={page_confidence}")
+    if relation_type:
+        parts.append(f"relation={relation_type}")
+    if relation_confidence:
+        parts.append(f"relation_confidence={relation_confidence}")
+    if sources:
+        parts.append(f"sources={'+'.join(sources)}")
+    if anchor_name:
+        parts.append(f"anchor={anchor_name}")
+    if utility_hits:
+        parts.append(f"utility_hits={','.join(utility_hits[:4])}")
+    return ";".join(parts)
+
+
+def _evaluate_artist_identity_gate(
+    *,
+    anchor_text: str,
+    html: str,
+    is_explicit: bool,
+    relation_confidence: str,
+    relation_type: str,
+    source_url: str,
+    text: str,
+) -> dict[str, Any]:
+    signals = _extract_artist_page_identity_signals(html, text)
+    body_first_lines = list(signals.get("body_first_lines", []))
+    utility_hits = _collect_text_marker_hits(body_first_lines, ARTIST_IDENTITY_UTILITY_PAGE_MARKERS)
+    hub_hits = _collect_text_marker_hits(body_first_lines[:12], ARTIST_IDENTITY_HUB_PAGE_MARKERS)
+    name_rows = _build_artist_identity_name_rows(
+        anchor_text=anchor_text,
+        signals=signals,
+        source_url=source_url,
+    )
+
+    grouped_candidates: dict[str, dict[str, Any]] = {}
+    anchor_candidate: dict[str, Any] | None = None
+    for row in name_rows:
+        source = str(row.get("source") or "").strip()
+        value = str(row.get("value") or "").strip()
+        if not source or not value:
+            continue
+        row_seen_normalized: set[str] = set()
+        for variant in _build_artist_identity_value_variants(value):
+            candidate_value = str(variant.get("value") or "").strip()
+            variant_type = str(variant.get("variant_type") or "raw").strip()
+            if not candidate_value:
+                continue
+            classified = _classify_artist_identity_name(candidate_value)
+            is_recoverable = bool(classified.get("recoverable")) and not bool(classified.get("valid"))
+            if source == "anchor" and anchor_candidate is None and (classified.get("valid") or is_recoverable):
+                anchor_candidate = classified
+            if not classified.get("valid") and not is_recoverable:
+                continue
+            normalized_name = str(classified.get("normalized_name") or "").strip()
+            if not normalized_name or normalized_name in row_seen_normalized:
+                continue
+            row_seen_normalized.add(normalized_name)
+
+            candidate = grouped_candidates.get(normalized_name)
+            if candidate is None:
+                candidate = {
+                    "display_name": str(classified.get("cleaned_name") or "").strip(),
+                    "has_valid_support": False,
+                    "normalized_name": normalized_name,
+                    "page_source_score": 0,
+                    "raw_score": 0,
+                    "recoverable_source_count": 0,
+                    "sources": [],
+                    "strong_source_count": 0,
+                }
+                grouped_candidates[normalized_name] = candidate
+
+            weight = int(ARTIST_IDENTITY_SOURCE_WEIGHTS.get(source, 0))
+            strength_bonus = 14 if classified.get("strength") == "strong" else 4 if classified.get("strength") == "weak" else 0
+            recoverable_penalty = 8 if is_recoverable else 0
+            candidate["raw_score"] += max(0, int(classified.get("score") or 0) + weight + strength_bonus - recoverable_penalty)
+            candidate["sources"].append(source)
+            if source in ARTIST_IDENTITY_STRONG_PAGE_SOURCES:
+                candidate["page_source_score"] += max(0, weight + strength_bonus - recoverable_penalty)
+            if classified.get("strength") == "strong":
+                candidate["strong_source_count"] += 1
+            if classified.get("valid"):
+                candidate["has_valid_support"] = True
+            elif is_recoverable:
+                candidate["recoverable_source_count"] += 1
+
+            current_display_name = str(candidate.get("display_name") or "").strip()
+            next_display_name = str(classified.get("cleaned_name") or "").strip()
+            if not current_display_name:
+                candidate["display_name"] = next_display_name
+            elif source in ARTIST_IDENTITY_STRONG_PAGE_SOURCES:
+                if variant_type == "trimmed" and len(next_display_name) < len(current_display_name):
+                    candidate["display_name"] = next_display_name
+                elif variant_type == "raw":
+                    candidate["display_name"] = next_display_name
+
+    grouped_candidates = {
+        normalized_name: candidate
+        for normalized_name, candidate in grouped_candidates.items()
+        if candidate.get("has_valid_support")
+        or (
+            len(set(str(source or "").strip() for source in candidate.get("sources", []) if source)) >= 2
+            and int(candidate.get("page_source_score") or 0) >= 24
+        )
+    }
+    _promote_shorter_corroborated_artist_candidates(grouped_candidates)
+
+    ranked_candidates = sorted(
+        grouped_candidates.values(),
+        key=lambda item: (
+            -int(item.get("raw_score") or 0),
+            -int(item.get("page_source_score") or 0),
+            -int(item.get("strong_source_count") or 0),
+            -len(set(item.get("sources") or [])),
+            -len(str(item.get("display_name") or "")),
+        ),
+    )
+    winner = ranked_candidates[0] if ranked_candidates else None
+    anchor_name = (
+        str(anchor_candidate.get("cleaned_name") or "").strip()
+        if anchor_candidate and anchor_candidate.get("valid")
+        else ""
+    )
+    anchor_normalized = (
+        str(anchor_candidate.get("normalized_name") or "").strip()
+        if anchor_candidate and anchor_candidate.get("valid")
+        else ""
+    )
+    source_path = (urlparse(source_url).path or "").lower()
+    source_index_like = (
+        source_path.endswith(".php")
+        or source_path.endswith("/index")
+        or source_path.endswith("/article")
+        or source_path.endswith("/category")
+    )
+
+    if winner is None:
+        if len(utility_hits) >= 2:
+            return {
+                "identity_gate_verdict": "reject",
+                "page_confidence": "none",
+                "reason_code": "UTILITY_PAGE_REJECTED",
+                "reason_detail": _build_artist_identity_reason_detail(
+                    anchor_name=anchor_name,
+                    page_confidence="none",
+                    relation_confidence=relation_confidence,
+                    relation_type=relation_type,
+                    selected_artist_name="",
+                    sources=[],
+                    utility_hits=utility_hits,
+                ),
+                "selected_artist_name": "",
+            }
+        reject_reason = "INDEX_LIKE_PAGE_REJECTED" if source_index_like or len(hub_hits) >= 4 else "LOW_CONFIDENCE_IDENTITY"
+        return {
+            "identity_gate_verdict": "reject",
+            "page_confidence": "none",
+            "reason_code": reject_reason,
+            "reason_detail": _build_artist_identity_reason_detail(
+                anchor_name=anchor_name,
+                page_confidence="none",
+                relation_confidence=relation_confidence,
+                relation_type=relation_type,
+                selected_artist_name="",
+                sources=[],
+                utility_hits=utility_hits,
+            ),
+            "selected_artist_name": "",
+        }
+
+    winner_sources = list(dict.fromkeys(str(source or "").strip() for source in winner.get("sources", []) if source))
+    selected_artist_name = str(winner.get("display_name") or "").strip()
+    page_source_score = int(winner.get("page_source_score") or 0)
+    raw_score = int(winner.get("raw_score") or 0)
+    winner_normalized = str(winner.get("normalized_name") or "").strip()
+
+    if raw_score >= 90 or page_source_score >= 60 or int(winner.get("strong_source_count") or 0) >= 2:
+        page_confidence = "high"
+    elif raw_score >= 40 or page_source_score >= 28:
+        page_confidence = "medium"
+    else:
+        page_confidence = "low"
+
+    if len(utility_hits) >= 2 and page_source_score < 60:
+        return {
+            "identity_gate_verdict": "reject",
+            "page_confidence": page_confidence,
+            "reason_code": "UTILITY_PAGE_REJECTED",
+            "reason_detail": _build_artist_identity_reason_detail(
+                anchor_name=anchor_name,
+                page_confidence=page_confidence,
+                relation_confidence=relation_confidence,
+                relation_type=relation_type,
+                selected_artist_name=selected_artist_name,
+                sources=winner_sources,
+                utility_hits=utility_hits,
+            ),
+            "selected_artist_name": "",
+        }
+    if source_index_like and page_source_score == 0:
+        return {
+            "identity_gate_verdict": "reject",
+            "page_confidence": page_confidence,
+            "reason_code": "INDEX_LIKE_PAGE_REJECTED",
+            "reason_detail": _build_artist_identity_reason_detail(
+                anchor_name=anchor_name,
+                page_confidence=page_confidence,
+                relation_confidence=relation_confidence,
+                relation_type=relation_type,
+                selected_artist_name=selected_artist_name,
+                sources=winner_sources,
+                utility_hits=utility_hits,
+            ),
+            "selected_artist_name": "",
+        }
+    if anchor_normalized and anchor_normalized != winner_normalized and page_source_score < 60:
+        return {
+            "identity_gate_verdict": "low-confidence",
+            "page_confidence": "low",
+            "reason_code": "ANCHOR_TITLE_NAME_MISMATCH",
+            "reason_detail": _build_artist_identity_reason_detail(
+                anchor_name=anchor_name,
+                page_confidence="low",
+                relation_confidence=relation_confidence,
+                relation_type=relation_type,
+                selected_artist_name=selected_artist_name,
+                sources=winner_sources,
+                utility_hits=utility_hits,
+            ),
+            "selected_artist_name": selected_artist_name,
+        }
+    if page_confidence == "low" and not (is_explicit and page_source_score >= 24):
+        return {
+            "identity_gate_verdict": "low-confidence",
+            "page_confidence": page_confidence,
+            "reason_code": "LOW_CONFIDENCE_IDENTITY",
+            "reason_detail": _build_artist_identity_reason_detail(
+                anchor_name=anchor_name,
+                page_confidence=page_confidence,
+                relation_confidence=relation_confidence,
+                relation_type=relation_type,
+                selected_artist_name=selected_artist_name,
+                sources=winner_sources,
+                utility_hits=utility_hits,
+            ),
+            "selected_artist_name": selected_artist_name,
+        }
+
+    return {
+        "identity_gate_verdict": "accept",
+        "page_confidence": page_confidence,
+        "reason_code": "OK",
+        "reason_detail": _build_artist_identity_reason_detail(
+            anchor_name=anchor_name,
+            page_confidence=page_confidence,
+            relation_confidence=relation_confidence,
+            relation_type=relation_type,
+            selected_artist_name=selected_artist_name,
+            sources=winner_sources,
+            utility_hits=utility_hits,
+        ),
+        "selected_artist_name": selected_artist_name,
+    }
 
 
 def normalize_text_for_hash(text: str) -> str:
@@ -1211,6 +2212,7 @@ def upsert_visited_page(
     gallery_name_en: str,
     decision: str,
     reason_code: str,
+    reason_detail: str | None = None,
     parent_source_url: str | None = None,
     category: str = RAG_CATEGORY,
 ) -> dict[str, Any]:
@@ -1231,6 +2233,8 @@ def upsert_visited_page(
     }
     if parent_source_url:
         record["parent_source_url"] = parent_source_url
+    if reason_detail:
+        record["reason_detail"] = reason_detail
     ledger[page_url_hash] = record
     return record
 
@@ -1244,6 +2248,7 @@ def upsert_visited_page_with_canonical_alias(
     gallery_name_en: str,
     decision: str,
     reason_code: str,
+    reason_detail: str | None = None,
     parent_source_url: str | None = None,
     category: str = RAG_CATEGORY,
 ) -> dict[str, Any]:
@@ -1254,6 +2259,7 @@ def upsert_visited_page_with_canonical_alias(
         gallery_name_en=gallery_name_en,
         decision=decision,
         reason_code=reason_code,
+        reason_detail=reason_detail,
         parent_source_url=parent_source_url,
         category=category,
     )
@@ -1265,6 +2271,7 @@ def upsert_visited_page_with_canonical_alias(
             gallery_name_en=gallery_name_en,
             decision=decision,
             reason_code=reason_code,
+            reason_detail=reason_detail,
             parent_source_url=parent_source_url,
             category=category,
         )
@@ -1280,6 +2287,7 @@ def upsert_failed_fetch(
     last_error: str,
     http_status: int | None,
     reason_code: str,
+    reason_detail: str | None = None,
     category: str = RAG_CATEGORY,
 ) -> dict[str, Any]:
     now = utc_now_iso()
@@ -1302,6 +2310,8 @@ def upsert_failed_fetch(
         "target_year": TARGET_YEAR,
         "category": category,
     }
+    if reason_detail:
+        record["reason_detail"] = reason_detail
     ledger[fail_hash] = record
     return record
 
@@ -1342,11 +2352,17 @@ def main() -> int:
         print(f"[INFO] startup_min_sync status={startup_min_sync_result.get('status')}")
 
     seed_galleries: list[GallerySeed] = []
-    for fair_slug, csv_path in CSV_PATHS.items():
-        if not csv_path.exists():
-            raise FileNotFoundError(f"Missing gallery CSV: {csv_path}")
-        galleries = load_seed_galleries(csv_path=csv_path, fair_slug=fair_slug, limit=SEED_PER_FAIR)
-        seed_galleries.extend(galleries)
+    if str(args.targets_csv or "").strip():
+        targets_csv_path = Path(args.targets_csv)
+        if not targets_csv_path.is_absolute():
+            targets_csv_path = (Path.cwd() / targets_csv_path).resolve()
+        seed_galleries = load_seed_galleries_from_targets_csv(targets_csv_path)
+    else:
+        for fair_slug, csv_path in CSV_PATHS.items():
+            if not csv_path.exists():
+                raise FileNotFoundError(f"Missing gallery CSV: {csv_path}")
+            galleries = load_seed_galleries(csv_path=csv_path, fair_slug=fair_slug, limit=SEED_PER_FAIR)
+            seed_galleries.extend(galleries)
 
     skipped_gallery_name_set = load_skipped_gallery_name_set(SKIPPED_GALLERIES_REGISTRY_PATH)
     seed_gallery_count_before_registry = len(seed_galleries)
@@ -1459,6 +2475,7 @@ def main() -> int:
     artists_skip_reason_counter: Counter[str] = Counter()
     artists_failed_fetches_in_run: list[dict[str, Any]] = []
     artists_list_source_counter: Counter[str] = Counter()
+    artists_candidate_fallback_counter: Counter[str] = Counter()
     artists_list_source_counter_by_fair: dict[str, Counter[str]] = {
         fair_slug: Counter() for fair_slug in CSV_PATHS
     }
@@ -1890,22 +2907,26 @@ def main() -> int:
             clear_failed_fetch(artists_failed_fetches_ledger, artists_list_url, hash_fn=compute_page_url_hash)
 
             list_page_url = list_result["final_url"]
-            candidate_urls = extract_candidate_artist_urls(
+            candidate_urls, candidate_fallback_reason = extract_candidate_artist_urls(
                 list_page_url=list_page_url,
                 list_page_html=list_result["html"],
                 max_artists_per_gallery=max_artists_per_gallery,
             )
+            if candidate_fallback_reason:
+                artists_candidate_fallback_counter[candidate_fallback_reason] += 1
             if not candidate_urls:
                 no_detail_reason = "NO_ARTIST_DETAIL_LINKS"
+                no_detail_reason_detail = str(candidate_fallback_reason or "").strip()
                 artists_failed_fetches_in_run.append(
                     upsert_failed_fetch(
                         artists_failed_fetches_ledger,
                         kind="page",
                         raw_url=list_page_url,
                         parent_source_url=artists_list_url,
-                        last_error=no_detail_reason,
+                        last_error=f"{no_detail_reason}:{no_detail_reason_detail}" if no_detail_reason_detail else no_detail_reason,
                         http_status=list_result["status_code"],
                         reason_code=no_detail_reason,
+                        reason_detail=no_detail_reason_detail or None,
                         category=RAG_CATEGORY_ARTISTS,
                     )
                 )
@@ -1916,56 +2937,23 @@ def main() -> int:
                     gallery_name_en=gallery.gallery_name_en,
                     decision="failed",
                     reason_code=no_detail_reason,
+                    reason_detail=no_detail_reason_detail or None,
                     parent_source_url=artists_list_url,
                     category=RAG_CATEGORY_ARTISTS,
                 )
                 continue
 
-            for page_url in candidate_urls:
+            for candidate in candidate_urls:
                 if artists_saved_in_gallery >= max_artists_per_gallery:
                     break
-                artist_name_en_candidate = build_artist_name_en_from_source_url(page_url)
-                artist_name_key_candidate = build_artist_name_key(artist_name_en_candidate, page_url)
-                artist_identity_key_candidate = build_artist_identity_key(
-                    artist_name_key_candidate,
-                    artist_name_en_candidate,
-                    page_url,
-                )
-                existing_artist = artist_master_global.get(artist_identity_key_candidate)
+                page_url = str(candidate.get("url") or "").strip()
+                if not page_url:
+                    continue
+                candidate_anchor_text = str(candidate.get("anchor_text") or "").strip()
+                candidate_relation_type = str(candidate.get("relation_type") or "").strip()
+                candidate_relation_confidence = str(candidate.get("relation_confidence") or "").strip()
+                candidate_is_explicit = bool(candidate.get("is_explicit"))
                 current_artist_source = _canonical_artist_source_key(page_url)
-                should_skip_existing_artist, existing_reason = _should_skip_artist_master_duplicate(
-                    existing_artist=existing_artist,
-                    candidate_source_url=page_url,
-                )
-                if should_skip_existing_artist:
-                    upsert_visited_page_with_canonical_alias(
-                        artists_visited_pages_ledger,
-                        url=page_url,
-                        canonical_url=current_artist_source,
-                        fair_slug=gallery.fair_slug,
-                        gallery_name_en=gallery.gallery_name_en,
-                        decision="skipped",
-                        reason_code=existing_reason,
-                        parent_source_url=list_page_url,
-                        category=RAG_CATEGORY_ARTISTS,
-                    )
-                    artists_skip_reason_counter[existing_reason] += 1
-                    continue
-                if artist_identity_key_candidate in artists_seen_identity_keys_in_run:
-                    upsert_visited_page_with_canonical_alias(
-                        artists_visited_pages_ledger,
-                        url=page_url,
-                        canonical_url=current_artist_source,
-                        fair_slug=gallery.fair_slug,
-                        gallery_name_en=gallery.gallery_name_en,
-                        decision="skipped",
-                        reason_code="DUPLICATE_ARTIST_GLOBAL_IN_RUN",
-                        parent_source_url=list_page_url,
-                        category=RAG_CATEGORY_ARTISTS,
-                    )
-                    artists_skip_reason_counter["DUPLICATE_ARTIST_GLOBAL_IN_RUN"] += 1
-                    continue
-                artists_seen_identity_keys_in_run.add(artist_identity_key_candidate)
 
                 canonical_page_url = _canonicalize_artist_detail_url(page_url)
                 failed_page_entry, page_url_hash, canonical_page_url_hash = get_ledger_entry_with_canonical(
@@ -2040,48 +3028,10 @@ def main() -> int:
 
                 source_url = page_result["final_url"]
                 canonical_source_url = _canonicalize_artist_detail_url(source_url)
-                artist_name_en = build_artist_name_en_from_source_url(source_url)
-                artist_name_key = build_artist_name_key(artist_name_en, source_url)
-                artist_identity_key = build_artist_identity_key(artist_name_key, artist_name_en, source_url)
                 clear_failed_fetch(artists_failed_fetches_ledger, page_url, hash_fn=compute_page_url_hash)
                 clear_failed_fetch(artists_failed_fetches_ledger, canonical_page_url, hash_fn=compute_page_url_hash)
                 clear_failed_fetch(artists_failed_fetches_ledger, source_url, hash_fn=compute_page_url_hash)
                 clear_failed_fetch(artists_failed_fetches_ledger, canonical_source_url, hash_fn=compute_page_url_hash)
-                existing_artist_after_fetch = artist_master_global.get(artist_identity_key)
-                should_skip_existing_artist, existing_reason = _should_skip_artist_master_duplicate(
-                    existing_artist=existing_artist_after_fetch,
-                    candidate_source_url=source_url,
-                )
-                if should_skip_existing_artist:
-                    upsert_visited_page_with_canonical_alias(
-                        artists_visited_pages_ledger,
-                        url=source_url,
-                        canonical_url=canonical_source_url,
-                        fair_slug=gallery.fair_slug,
-                        gallery_name_en=gallery.gallery_name_en,
-                        decision="skipped",
-                        reason_code=existing_reason,
-                        parent_source_url=list_page_url,
-                        category=RAG_CATEGORY_ARTISTS,
-                    )
-                    artists_skip_reason_counter[existing_reason] += 1
-                    continue
-                if artist_identity_key != artist_identity_key_candidate:
-                    if artist_identity_key in artists_seen_identity_keys_in_run:
-                        upsert_visited_page_with_canonical_alias(
-                            artists_visited_pages_ledger,
-                            url=source_url,
-                            canonical_url=canonical_source_url,
-                            fair_slug=gallery.fair_slug,
-                            gallery_name_en=gallery.gallery_name_en,
-                            decision="skipped",
-                            reason_code="DUPLICATE_ARTIST_GLOBAL_IN_RUN",
-                            parent_source_url=list_page_url,
-                            category=RAG_CATEGORY_ARTISTS,
-                        )
-                        artists_skip_reason_counter["DUPLICATE_ARTIST_GLOBAL_IN_RUN"] += 1
-                        continue
-                    artists_seen_identity_keys_in_run.add(artist_identity_key)
                 text = extract_text(page_result["html"])
                 if not text:
                     artists_failed_fetches_in_run.append(
@@ -2108,6 +3058,90 @@ def main() -> int:
                         category=RAG_CATEGORY_ARTISTS,
                     )
                     continue
+
+                identity_gate = _evaluate_artist_identity_gate(
+                    anchor_text=candidate_anchor_text,
+                    html=page_result["html"],
+                    is_explicit=candidate_is_explicit,
+                    relation_confidence=candidate_relation_confidence,
+                    relation_type=candidate_relation_type,
+                    source_url=source_url,
+                    text=text,
+                )
+                identity_gate_verdict = str(identity_gate.get("identity_gate_verdict") or "").strip()
+                identity_reason_code = str(identity_gate.get("reason_code") or "LOW_CONFIDENCE_IDENTITY").strip()
+                identity_reason_detail = str(identity_gate.get("reason_detail") or "").strip()
+                artist_name_en = str(identity_gate.get("selected_artist_name") or "").strip()
+                if identity_gate_verdict != "accept" or not artist_name_en:
+                    artists_failed_fetches_in_run.append(
+                        upsert_failed_fetch(
+                            artists_failed_fetches_ledger,
+                            kind="page",
+                            raw_url=canonical_source_url,
+                            parent_source_url=list_page_url,
+                            last_error=(
+                                f"{identity_reason_code}:{identity_reason_detail}"
+                                if identity_reason_detail
+                                else identity_reason_code
+                            ),
+                            http_status=page_result["status_code"],
+                            reason_code=identity_reason_code,
+                            reason_detail=identity_reason_detail or None,
+                            category=RAG_CATEGORY_ARTISTS,
+                        )
+                    )
+                    upsert_visited_page_with_canonical_alias(
+                        artists_visited_pages_ledger,
+                        url=source_url,
+                        canonical_url=canonical_source_url,
+                        fair_slug=gallery.fair_slug,
+                        gallery_name_en=gallery.gallery_name_en,
+                        decision="failed",
+                        reason_code=identity_reason_code,
+                        reason_detail=identity_reason_detail or None,
+                        parent_source_url=list_page_url,
+                        category=RAG_CATEGORY_ARTISTS,
+                    )
+                    continue
+
+                artist_name_key = build_artist_name_key(artist_name_en, source_url)
+                artist_identity_key = build_artist_identity_key(artist_name_key, artist_name_en, source_url)
+                existing_artist_after_fetch = artist_master_global.get(artist_identity_key)
+                should_skip_existing_artist, existing_reason = _should_skip_artist_master_duplicate(
+                    existing_artist=existing_artist_after_fetch,
+                    candidate_source_url=source_url,
+                )
+                if should_skip_existing_artist:
+                    upsert_visited_page_with_canonical_alias(
+                        artists_visited_pages_ledger,
+                        url=source_url,
+                        canonical_url=canonical_source_url,
+                        fair_slug=gallery.fair_slug,
+                        gallery_name_en=gallery.gallery_name_en,
+                        decision="skipped",
+                        reason_code=existing_reason,
+                        reason_detail=identity_reason_detail or None,
+                        parent_source_url=list_page_url,
+                        category=RAG_CATEGORY_ARTISTS,
+                    )
+                    artists_skip_reason_counter[existing_reason] += 1
+                    continue
+                if artist_identity_key in artists_seen_identity_keys_in_run:
+                    upsert_visited_page_with_canonical_alias(
+                        artists_visited_pages_ledger,
+                        url=source_url,
+                        canonical_url=canonical_source_url,
+                        fair_slug=gallery.fair_slug,
+                        gallery_name_en=gallery.gallery_name_en,
+                        decision="skipped",
+                        reason_code="DUPLICATE_ARTIST_GLOBAL_IN_RUN",
+                        reason_detail=identity_reason_detail or None,
+                        parent_source_url=list_page_url,
+                        category=RAG_CATEGORY_ARTISTS,
+                    )
+                    artists_skip_reason_counter["DUPLICATE_ARTIST_GLOBAL_IN_RUN"] += 1
+                    continue
+                artists_seen_identity_keys_in_run.add(artist_identity_key)
 
                 text_hash = compute_text_hash(
                     text=text,
@@ -2142,6 +3176,13 @@ def main() -> int:
                     "artist_name_en": artist_name_en,
                     "artist_name_key": artist_name_key,
                     "artist_identity_key": artist_identity_key,
+                    "identity_gate_verdict": identity_gate_verdict,
+                    "identity_reason_code": identity_reason_code,
+                    "identity_reason_detail": identity_reason_detail,
+                    "page_confidence": str(identity_gate.get("page_confidence") or "").strip(),
+                    "candidate_anchor_text": candidate_anchor_text,
+                    "candidate_relation_type": candidate_relation_type,
+                    "candidate_relation_confidence": candidate_relation_confidence,
                     "text": text,
                     "text_hash": text_hash,
                     "headline_ja": "",
@@ -2170,6 +3211,7 @@ def main() -> int:
                     gallery_name_en=gallery.gallery_name_en,
                     decision="saved",
                     reason_code="OK",
+                    reason_detail=identity_reason_detail or None,
                     parent_source_url=list_page_url,
                     category=RAG_CATEGORY_ARTISTS,
                 )
@@ -2194,7 +3236,11 @@ def main() -> int:
             artists_output_files[fair_slug] = str(output_path)
         save_artist_master_global(artist_master_global_path, artist_master_global)
 
-    artists_enrichment_requests_path = get_enrichment_runtime_requests_path("artists", TARGET_YEAR)
+    artists_enrichment_requests_path = get_enrichment_runtime_requests_path(
+        "artists",
+        TARGET_YEAR,
+        root=output_root if policy_mode == skip_policy.REBUILD_MODE else None,
+    )
     artists_enrichment_summary: dict[str, Any] = {
         "artists_enrichment_mode": "disabled",
         "artists_enrichment_candidates_total": 0,
@@ -2238,6 +3284,8 @@ def main() -> int:
         "completed_at": completed_at,
         "target_year": TARGET_YEAR,
         "seed_per_fair": SEED_PER_FAIR,
+        "targets_csv_path": str(args.targets_csv or ""),
+        "targets_csv_used": bool(str(args.targets_csv or "").strip()),
         "html_parser_backend": "bs4_lxml" if BeautifulSoup is not None else "stdlib_html_parser_fallback",
         "max_exhibition_links_per_gallery": MAX_EXHIBITION_LINKS_PER_GALLERY,
         "max_artists_per_gallery": max_artists_per_gallery,
@@ -2280,6 +3328,7 @@ def main() -> int:
         "artists_skipped_total": sum(artists_skip_reason_counter.values()),
         "artists_skipped_by_reason": dict(artists_skip_reason_counter),
         "artists_list_source_counts": dict(artists_list_source_counter),
+        "artists_candidate_fallback_counts": dict(artists_candidate_fallback_counter),
         "artists_list_source_counts_by_fair": {
             fair_slug: dict(artists_list_source_counter_by_fair.get(fair_slug, Counter()))
             for fair_slug in CSV_PATHS

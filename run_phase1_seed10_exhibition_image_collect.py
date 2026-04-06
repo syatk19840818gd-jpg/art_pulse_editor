@@ -11,7 +11,7 @@ from datetime import UTC, datetime
 from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any
-from urllib.parse import urljoin, urlparse
+from urllib.parse import parse_qsl, urljoin, urlparse
 
 import requests
 
@@ -541,6 +541,10 @@ def path_segments_from_url(url: str) -> list[str]:
 
 
 def classify_seed_url_type(url: str) -> str:
+    parsed = urlparse(str(url or ""))
+    query_pairs = {k.lower(): v.lower() for k, v in parse_qsl(parsed.query, keep_blank_values=True)}
+    if query_pairs.get("view") == "category" or query_pairs.get("layout") == "blog":
+        return "listing"
     segments = path_segments_from_url(url)
     if not segments:
         return "listing"
@@ -586,11 +590,15 @@ def is_candidate_title_like(candidate_url: str, anchor_text: str, base_domain: s
 def score_exhibition_detail_candidate(url: str, anchor_text: str, target_year: int) -> int:
     score = 0
     url_type = classify_seed_url_type(url)
+    segments = path_segments_from_url(url)
+    has_listing_segment = any(segment in EXHIBITION_LISTING_PATH_SEGMENTS for segment in segments)
     if url_type == "detail":
         score += 35
     else:
         score -= 20
-    if any(segment in urlparse(url).path.lower() for segment in EXHIBITION_LISTING_PATH_SEGMENTS):
+    if url_type == "detail" and has_listing_segment:
+        score += 20
+    elif has_listing_segment:
         score -= 30
     target = f"{url.lower()} {anchor_text.lower()}".strip()
     if str(int(target_year)) in target:
@@ -974,7 +982,12 @@ def load_targets(
             for row in reader:
                 fair_slug = str(row.get("fair_slug") or "").strip()
                 gallery_name = str(row.get("gallery_name_en") or "").strip()
-                source_url = str(row.get("source_url") or "").strip()
+                source_url = str(
+                    row.get("source_url")
+                    or row.get("exhibitions_url")
+                    or row.get("exhibition_url")
+                    or ""
+                ).strip()
                 if not fair_slug or not source_url:
                     continue
                 csv_target_year_raw = str(row.get("target_year") or "").strip()
@@ -995,7 +1008,12 @@ def load_targets(
     targets: list[dict[str, Any]] = []
     only_fair_slug_norm = (only_fair_slug or "").strip().lower()
     only_gallery_name_norm = normalize_gallery_name_for_registry(only_gallery_name)
-    only_source_url_norm = artist_img.normalize_url_for_link_compare(only_source_url)
+    only_source_url_raw = str(only_source_url or "").strip()
+    only_source_url_norm = (
+        artist_img.normalize_url_for_link_compare(only_source_url_raw)
+        if only_source_url_raw
+        else ""
+    )
     for path in sorted(raw_dir.glob(f"exhibitions_*_{target_year}.jsonl")):
         for row in read_jsonl_rows(path):
             fair_slug = str(row.get("fair_slug") or "").strip()

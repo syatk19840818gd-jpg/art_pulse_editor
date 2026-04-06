@@ -1,0 +1,48 @@
+{
+  "artifact_kind": "r2_sync_apply",
+  "schema_version": "v2",
+  "generated_at": "2026-04-06T11:04:07Z",
+  "scope": "block_closeout_unified_phase3_initial10_targets_r2_643797aa05ad",
+  "run_id": "TASK_PHASE3_INITIAL10_BLOCK_CLOSEOUT_APPLY_20260405T000000Z",
+  "bucket": "art-pulse-editor",
+  "sync_mode": "mirror",
+  "plan_log_path": "logs/r2_sync/r2_sync_plan_block_closeout_unified_phase3_initial10_targets_r2_643797aa05ad_TASK_PHASE3_INITIAL10_BLOCK_CLOSEOUT_APPLY_20260405T000000Z.json",
+  "local_roots_missing": [],
+  "would_upload_count": 4,
+  "would_delete_count": 0,
+  "would_prune_count": 0,
+  "uploaded_count": 4,
+  "upload_failed_count": 0,
+  "deleted_count": 0,
+  "delete_failed_count": 0,
+  "delete_policy": "no_delete_candidates",
+  "uploaded": [
+    {
+      "r2_key": "data/current/enrichment/exhibitions_enrichment_apply_output_2025.jsonl",
+      "local_path": "data/current/enrichment/exhibitions_enrichment_apply_output_2025.jsonl",
+      "size_bytes": 152374,
+      "sha256": "4e778788a76c8673a4aa7a584748273055d4df30cb9ec456614dafa43f0d5ccb"
+    },
+    {
+      "r2_key": "data/current/enrichment/exhibitions_enrichment_apply_summary_2025.json",
+      "local_path": "data/current/enrichment/exhibitions_enrichment_apply_summary_2025.json",
+      "size_bytes": 26850,
+      "sha256": "05321882815834c944a9ff395de741c44bf62d4b488db18834ad3e27f56424c2"
+    },
+    {
+      "r2_key": "data/current/images/metadata/exhibitions_images_frieze_london_2025.jsonl",
+      "local_path": "data/current/images/metadata/exhibitions_images_frieze_london_2025.jsonl",
+      "size_bytes": 81262,
+      "sha256": "01af1e38b99abebb472cc1fd54525b48ee1dfbf0f58af3de645d4c183c6e6f47"
+    },
+    {
+      "r2_key": "data/current/images/metadata/exhibitions_images_liste_2025.jsonl",
+      "local_path": "data/current/images/metadata/exhibitions_images_liste_2025.jsonl",
+      "size_bytes": 76164,
+      "sha256": "247a4a51195b8890d76be61fe67b0a3fc8aaa5eda66f6d5a98d52dac37d709b0"
+    }
+  ],
+  "upload_failed": [],
+  "deleted": [],
+  "delete_failed": []
+}

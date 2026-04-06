@@ -2,7 +2,10 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import os
+import re
+import unicodedata
 from collections import Counter
 from copy import deepcopy
 from pathlib import Path
@@ -69,7 +72,38 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Validate bulk batch prerequisites and rerun-guard inputs without creating a batch job.",
     )
+    parser.add_argument(
+        "--allowlist-csv",
+        default="",
+        help="optional allowlist CSV with fair_slug and gallery_name_en columns; out-of-scope requests are skipped",
+    )
     return parser.parse_args()
+
+
+def normalize_gallery_scope_name(value: str) -> str:
+    text = unicodedata.normalize("NFKC", str(value or "").strip())
+    text = re.sub(r"\s+", " ", text)
+    return text.casefold()
+
+
+def load_gallery_allowlist(path_text: str) -> set[tuple[str, str]]:
+    path = Path(path_text)
+    if not path.is_absolute():
+        path = (Path.cwd() / path).resolve()
+    if not path.exists():
+        raise FileNotFoundError(f"Missing allowlist CSV: {path}")
+    out: set[tuple[str, str]] = set()
+    with path.open("r", encoding="utf-8-sig", newline="") as handle:
+        reader = csv.DictReader(handle)
+        for row in reader:
+            fair_slug = str(row.get("fair_slug") or row.get("fair") or "").strip().lower().replace("-", "_")
+            gallery_name = str(row.get("gallery_name_en") or row.get("gallery_name") or "").strip()
+            if not fair_slug or not gallery_name:
+                continue
+            out.add((fair_slug, normalize_gallery_scope_name(gallery_name)))
+    if not out:
+        raise RuntimeError(f"No valid allowlist rows found: {path}")
+    return out
 
 
 def build_row_index(rows: list[dict[str, Any]]) -> dict[tuple[str, str], int]:
@@ -156,6 +190,8 @@ def main() -> int:
     )
 
     request_rows = load_requests()
+    allowlist = load_gallery_allowlist(args.allowlist_csv) if str(args.allowlist_csv or "").strip() else set()
+    allowlist_enabled = bool(allowlist)
     raw_rows_by_fair: dict[str, list[dict[str, Any]]] = {}
     raw_text_before: dict[str, list[str]] = {}
     row_index_by_fair: dict[str, dict[tuple[str, str], int]] = {}
@@ -168,6 +204,7 @@ def main() -> int:
     counters: Counter[str] = Counter()
     apply_rows: list[dict[str, Any]] = []
     pending_tasks: list[dict[str, Any]] = []
+    scoped_request_rows = 0
 
     for req in request_rows:
         request_id = str(req.get("request_id") or "").strip()
@@ -194,6 +231,29 @@ def main() -> int:
             continue
 
         row = rows[idx]
+        gallery_name = str(
+            row.get("gallery_name_en")
+            or row.get("gallery_name")
+            or req.get("gallery_name_en")
+            or req.get("gallery_name")
+            or ""
+        ).strip()
+        if allowlist_enabled:
+            key = (fair_slug.lower().replace("-", "_"), normalize_gallery_scope_name(gallery_name))
+            if key not in allowlist:
+                counters["skipped_out_of_scope_allowlist"] += 1
+                apply_rows.append(
+                    {
+                        "request_id": request_id,
+                        "fair_slug": fair_slug,
+                        "text_hash": text_hash,
+                        "source_url": source_url,
+                        "gallery_name": gallery_name,
+                        "status": "SKIPPED_OUT_OF_SCOPE_ALLOWLIST",
+                    }
+                )
+                continue
+        scoped_request_rows += 1
         text = str(row.get("text") or "").strip()
         if not text:
             counters["skipped_empty_text"] += 1
@@ -217,7 +277,7 @@ def main() -> int:
         working = deepcopy(req)
         working["text"] = text
         working["source_url"] = source_url or str(row.get("source_url") or "").strip()
-        working["gallery_name"] = str(row.get("gallery_name_en") or req.get("gallery_name") or "").strip()
+        working["gallery_name"] = gallery_name
         pending_tasks.append({"custom_id": request_id, "request_id": request_id, "fair_slug": fair_slug, "text_hash": text_hash, "source_url": source_url, "row_index": idx, "working": working, "input_chars": len(text)})
 
     target_rows = len(pending_tasks)
@@ -245,6 +305,11 @@ def main() -> int:
                 "guard_state_path": str(probe_paths["guard_state_path"]),
                 "target_rows": target_rows,
                 "total_requests": len(request_rows),
+                "allowlist_enabled": allowlist_enabled,
+                "allowlist_path": str(args.allowlist_csv or ""),
+                "allowlist_entry_count": len(allowlist),
+                "scoped_request_rows": scoped_request_rows,
+                "out_of_scope_skipped": counters["skipped_out_of_scope_allowlist"],
                 "target_request_ids_count": len(target_request_ids),
                 "enrich_model": enrich_model_fingerprint,
                 "enrich_models_by_field": dict(EXHIBITIONS_ENRICHMENT_FIELD_MODELS),
@@ -500,49 +565,68 @@ def main() -> int:
             failure_field = ""
             failure_error: Any = ""
             failure_status_code = 0
+            field_failures: list[dict[str, Any]] = []
 
             for field_name in EXHIBITIONS_ENRICHMENT_BATCH_FIELDS:
                 field_custom_id = build_enrichment_field_custom_id(request_id, field_name)
                 result_row = output_map.get(field_custom_id)
                 error_row = error_map.get(field_custom_id)
                 if error_row:
-                    failure_status = "BATCH_RESULT_FAILED"
-                    failure_field = field_name
-                    failure_error = error_row.get("error")
-                    break
+                    field_failures.append(
+                        {"status": "BATCH_RESULT_FAILED", "field": field_name, "error": error_row.get("error"), "status_code": 0}
+                    )
+                    continue
                 if not result_row:
-                    failure_status = "BATCH_RESULT_MISSING"
-                    failure_field = field_name
-                    break
+                    field_failures.append(
+                        {"status": "BATCH_RESULT_MISSING", "field": field_name, "error": "", "status_code": 0}
+                    )
+                    continue
                 response_info = result_row.get("response")
                 if not isinstance(response_info, dict):
-                    failure_status = "BATCH_RESPONSE_MISSING"
-                    failure_field = field_name
-                    break
+                    field_failures.append(
+                        {"status": "BATCH_RESPONSE_MISSING", "field": field_name, "error": "", "status_code": 0}
+                    )
+                    continue
                 status_code = int(response_info.get("status_code") or 0)
                 response_body = response_info.get("body")
                 if status_code != 200 or not isinstance(response_body, dict):
-                    failure_status = "BATCH_REQUEST_FAILED"
-                    failure_field = field_name
-                    failure_status_code = status_code
-                    failure_error = result_row.get("error")
-                    break
+                    field_failures.append(
+                        {
+                            "status": "BATCH_REQUEST_FAILED",
+                            "field": field_name,
+                            "error": result_row.get("error"),
+                            "status_code": status_code,
+                        }
+                    )
+                    continue
                 try:
                     headline_ja, summary_ja = parse_openai_response_body(response_body)
                 except Exception as exc:
-                    failure_status = "BATCH_PARSE_FAILED"
-                    failure_field = field_name
-                    failure_error = str(exc)
-                    break
+                    field_failures.append(
+                        {"status": "BATCH_PARSE_FAILED", "field": field_name, "error": str(exc), "status_code": 0}
+                    )
+                    continue
 
                 parsed_value = {"headline_ja": headline_ja, "summary_ja": summary_ja}.get(field_name, "")
                 parsed_value = str(parsed_value or "").strip()
                 if not parsed_value:
-                    failure_status = "BATCH_FIELD_EMPTY"
-                    failure_field = field_name
-                    failure_error = "parsed_field_empty"
-                    break
+                    field_failures.append(
+                        {"status": "BATCH_FIELD_EMPTY", "field": field_name, "error": "parsed_field_empty", "status_code": 0}
+                    )
+                    continue
                 parsed_fields[field_name] = parsed_value
+                if headline_ja and not parsed_fields.get("headline_ja"):
+                    parsed_fields["headline_ja"] = headline_ja
+                if summary_ja and not parsed_fields.get("summary_ja"):
+                    parsed_fields["summary_ja"] = summary_ja
+
+            missing_fields = [field for field in EXHIBITIONS_ENRICHMENT_BATCH_FIELDS if not str(parsed_fields.get(field) or "").strip()]
+            if missing_fields:
+                first_failure = field_failures[0] if field_failures else {}
+                failure_status = str(first_failure.get("status") or "BATCH_FIELD_EMPTY")
+                failure_field = str(first_failure.get("field") or missing_fields[0])
+                failure_error = first_failure.get("error") or f"missing_fields:{','.join(missing_fields)}"
+                failure_status_code = int(first_failure.get("status_code") or 0)
 
             if failure_status:
                 if failure_status == "BATCH_RESULT_FAILED":
