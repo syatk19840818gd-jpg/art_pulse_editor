@@ -180,6 +180,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         description="Bounded repair for current artist works image vectors."
     )
     parser.add_argument(
+        "--approval-token",
+        default="",
+        help="required for repair execution; perform offline-only diagnosis before any approved repair",
+    )
+    parser.add_argument(
         "--io-root",
         default="",
         help="optional trial I/O root; when set, metadata input and vector artifacts resolve under this root",
@@ -196,6 +201,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="CSV file with columns fair_slug,gallery_name_en for bounded repair mode.",
     )
     return parser.parse_args(argv)
+
+
+def require_repair_approval(args: argparse.Namespace) -> None:
+    if str(args.approval_token or "").strip():
+        return
+    raise RuntimeError(
+        "approval_required_for_artist_works_image_repair:"
+        "pass --approval-token <user-approved-note>; use offline-only diagnosis before approved repair"
+    )
 
 
 def resolve_repair_targets(
@@ -571,6 +585,7 @@ def atomic_write_artifacts(
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
+    require_repair_approval(args)
     io_root = resolve_io_root(args.io_root)
     configure_runtime_paths(io_root)
     repair_targets = resolve_repair_targets(args.repair_target, args.repair_targets_file)

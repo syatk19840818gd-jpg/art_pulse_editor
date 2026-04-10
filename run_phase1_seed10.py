@@ -18,6 +18,7 @@ from typing import Any
 from urllib.parse import ParseResult, parse_qsl, urljoin, urlparse
 
 import requests
+from gallery_skip_registry import build_skip_lookup, find_skip_entry, load_skip_registry_entries
 from tools import skip_policy
 from enrichment_requests_runtime import (
     build_artists_enrichment_requests as build_runtime_artists_enrichment_requests,
@@ -93,9 +94,7 @@ RAG_CATEGORY_ARTISTS = "artists_text"
 SEED_PER_FAIR = 5
 MAX_EXHIBITION_LINKS_PER_GALLERY = 25
 MAX_EXHIBITION_LISTING_EXPANSION_DEPTH = 2
-# TEMPORARY TEST CAP:
-# User-requested operational override for stability testing.
-# SSOT default target remains 80, but current runs are intentionally capped to 5 per gallery.
+# Operational extraction cap for the current baseline.
 MAX_ARTISTS_PER_GALLERY = 80
 ARTIST_PROBABLE_DETAIL_REJECT_SLUGS = frozenset(
     {
@@ -439,6 +438,11 @@ def parse_args() -> argparse.Namespace:
         help="required with --mode rebuild",
     )
     parser.add_argument(
+        "--approval-token",
+        default="",
+        help="required with --mode rebuild; fill-missing and --dry-run remain available for offline-only diagnosis",
+    )
+    parser.add_argument(
         "--run-id",
         default="",
         help="required with --mode rebuild (trial run_id)",
@@ -475,25 +479,6 @@ def parse_gallery_name(raw_name: str) -> tuple[str, str]:
     inside = match.group(2).strip()
     gallery_name_kana = inside.split("/")[0].strip()
     return gallery_name_en, gallery_name_kana
-
-
-def normalize_gallery_name_for_registry(name: str) -> str:
-    return re.sub(r"\s+", " ", (name or "").strip().lower())
-
-
-def load_skipped_gallery_name_set(path: Path) -> set[str]:
-    if not path.exists():
-        return set()
-    names: set[str] = set()
-    with path.open("r", encoding="utf-8", newline="") as handle:
-        reader = csv.reader(handle)
-        for row in reader:
-            if not row:
-                continue
-            name = normalize_gallery_name_for_registry(row[0])
-            if name:
-                names.add(name)
-    return names
 
 
 def load_seed_galleries(csv_path: Path, fair_slug: str, limit: int) -> list[GallerySeed]:
@@ -2329,6 +2314,11 @@ def main() -> int:
         allow_rebuild=bool(args.allow_rebuild),
         run_id=str(args.run_id or ""),
     )
+    if policy_mode == skip_policy.REBUILD_MODE and not str(args.approval_token or "").strip():
+        raise RuntimeError(
+            "approval_required_for_phase1_rebuild:"
+            "pass --approval-token <user-approved-note>; use fill_missing or --dry-run for offline-only diagnosis"
+        )
     output_root = OUTPUT_ROOT
     if policy_mode == skip_policy.REBUILD_MODE:
         output_root = skip_policy.build_trial_root(
@@ -2364,14 +2354,23 @@ def main() -> int:
             galleries = load_seed_galleries(csv_path=csv_path, fair_slug=fair_slug, limit=SEED_PER_FAIR)
             seed_galleries.extend(galleries)
 
-    skipped_gallery_name_set = load_skipped_gallery_name_set(SKIPPED_GALLERIES_REGISTRY_PATH)
+    skipped_gallery_lookup = build_skip_lookup(load_skip_registry_entries(SKIPPED_GALLERIES_REGISTRY_PATH))
+    skip_registry_gallery_count = len(skipped_gallery_lookup.get("by_scope", {})) + len(
+        skipped_gallery_lookup.get("by_gallery", {})
+    )
     seed_gallery_count_before_registry = len(seed_galleries)
     registry_skipped_gallery_names: list[str] = []
-    if skipped_gallery_name_set:
+    if skip_registry_gallery_count > 0:
         filtered_seed_galleries: list[GallerySeed] = []
         for gallery in seed_galleries:
-            gallery_key = normalize_gallery_name_for_registry(gallery.gallery_name_en)
-            if gallery_key in skipped_gallery_name_set:
+            if (
+                find_skip_entry(
+                    skipped_gallery_lookup,
+                    fair_slug=gallery.fair_slug,
+                    gallery_name_en=gallery.gallery_name_en,
+                )
+                is not None
+            ):
                 registry_skipped_gallery_names.append(gallery.gallery_name_en)
                 continue
             filtered_seed_galleries.append(gallery)
@@ -2384,7 +2383,7 @@ def main() -> int:
             for fair_slug in CSV_PATHS
         )
     )
-    if skipped_gallery_name_set:
+    if skip_registry_gallery_count > 0:
         print(
             f"[INFO] skip_registry applied: before={seed_gallery_count_before_registry} "
             f"after={len(seed_galleries)} skipped={seed_gallery_count_before_registry - len(seed_galleries)}"
@@ -3291,8 +3290,8 @@ def main() -> int:
         "max_artists_per_gallery": max_artists_per_gallery,
         "artists_per_gallery_cap_mode": "temporary_test_cap",
         "skip_registry_path": str(SKIPPED_GALLERIES_REGISTRY_PATH),
-        "skip_registry_enabled": bool(skipped_gallery_name_set),
-        "skip_registry_gallery_count": len(skipped_gallery_name_set),
+        "skip_registry_enabled": skip_registry_gallery_count > 0,
+        "skip_registry_gallery_count": skip_registry_gallery_count,
         "seed_gallery_count_before_registry": seed_gallery_count_before_registry,
         "seed_gallery_count_after_registry": len(seed_galleries),
         "seed_gallery_registry_skipped_count": seed_gallery_count_before_registry - len(seed_galleries),

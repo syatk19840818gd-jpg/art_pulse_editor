@@ -1,0 +1,54 @@
+{
+  "artifact_kind": "r2_sync_apply",
+  "schema_version": "v2",
+  "generated_at": "2026-04-08T06:29:41Z",
+  "scope": "block_closeout_unified_phase3_block_scope_candid_r2_671690069faf",
+  "run_id": "TASK_PHASE3_TRUE_NEXT_BLOCK_CLOSEOUT_APPLY_20260408T063900Z",
+  "bucket": "art-pulse-editor",
+  "sync_mode": "mirror",
+  "plan_log_path": "logs/r2_sync/r2_sync_plan_block_closeout_unified_phase3_block_scope_candid_r2_671690069faf_TASK_PHASE3_TRUE_NEXT_BLOCK_CLOSEOUT_APPLY_20260408T063900Z.json",
+  "local_roots_missing": [],
+  "would_upload_count": 5,
+  "would_delete_count": 0,
+  "would_prune_count": 0,
+  "uploaded_count": 5,
+  "upload_failed_count": 0,
+  "deleted_count": 0,
+  "delete_failed_count": 0,
+  "delete_policy": "no_delete_candidates",
+  "uploaded": [
+    {
+      "r2_key": "data/current/enrichment/artists_enrichment_apply_summary.json",
+      "local_path": "data/current/enrichment/artists_enrichment_apply_summary.json",
+      "size_bytes": 34999,
+      "sha256": "4e09ebcb2c1435918c4919089628a17956e3b12f0c2ddf2350e0166022bca58e"
+    },
+    {
+      "r2_key": "data/current/images/metadata/exhibitions_images_frieze_london_2025.jsonl",
+      "local_path": "data/current/images/metadata/exhibitions_images_frieze_london_2025.jsonl",
+      "size_bytes": 90373,
+      "sha256": "d8f36507898a64b601303b0b42d2121d03d9f5308019275acb99fc5337eb8dfa"
+    },
+    {
+      "r2_key": "data/current/images/metadata/exhibitions_images_liste_2025.jsonl",
+      "local_path": "data/current/images/metadata/exhibitions_images_liste_2025.jsonl",
+      "size_bytes": 81990,
+      "sha256": "3b868651b8bc1f78d2dee63fa0b2d669d1ba4500e7b6cce10f24c77fcaa9d383"
+    },
+    {
+      "r2_key": "data/current/vector/artist_works_images/artist_works_images_vectorize_summary_2025.json",
+      "local_path": "data/current/vector/artist_works_images/artist_works_images_vectorize_summary_2025.json",
+      "size_bytes": 4890,
+      "sha256": "10e65b955e7344e384cf4c11f4774e7f47d68eea52ae54745b243cf9964b6152"
+    },
+    {
+      "r2_key": "data/current/vector/artists/artists_text_vectorize_summary_2025.json",
+      "local_path": "data/current/vector/artists/artists_text_vectorize_summary_2025.json",
+      "size_bytes": 4670,
+      "sha256": "c0651fde7bdb365046639491f56e183f5256d5c0ae92be1ac93a4907bc7d0d3e"
+    }
+  ],
+  "upload_failed": [],
+  "deleted": [],
+  "delete_failed": []
+}

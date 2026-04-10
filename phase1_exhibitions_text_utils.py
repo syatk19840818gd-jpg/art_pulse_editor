@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import contextlib
 import io
+import logging
 import re
 import unicodedata
+import warnings
 from datetime import date, datetime
 from html.parser import HTMLParser
 from typing import Any
@@ -49,6 +52,9 @@ URL_DROP_QUERY_KEYS = {
     "mc_eid",
     "ref",
 }
+PDF_PARSER_LOGGER_NAMES = ("pypdf", "PyPDF2")
+PDF_DEBUG_NOTE_LIMIT = 5
+PDF_DEBUG_TEXT_LIMIT = 200
 
 
 class _VisibleTextHTMLParser(HTMLParser):
@@ -513,23 +519,87 @@ def extract_pdf_urls(page_url: str, html: str) -> list[str]:
     return urls
 
 
-def _extract_pdf_text(payload: bytes) -> str:
-    if PdfReader is None:
-        return ""
+@contextlib.contextmanager
+def _capture_pdf_parser_noise() -> Any:
+    stderr_buffer = io.StringIO()
+    logger_states: list[tuple[logging.Logger, list[logging.Handler], int, bool]] = []
+    attached_handlers: list[logging.Handler] = []
+    for logger_name in PDF_PARSER_LOGGER_NAMES:
+        logger = logging.getLogger(logger_name)
+        logger_states.append((logger, list(logger.handlers), logger.level, logger.propagate))
+        handler = logging.StreamHandler(stderr_buffer)
+        handler.setLevel(logging.WARNING)
+        attached_handlers.append(handler)
+        logger.handlers = [handler]
+        logger.setLevel(logging.WARNING)
+        logger.propagate = False
     try:
-        reader = PdfReader(io.BytesIO(payload))
-    except Exception:
-        return ""
+        with contextlib.redirect_stderr(stderr_buffer), warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            yield stderr_buffer, caught
+    finally:
+        for logger, handlers, level, propagate in logger_states:
+            logger.handlers = handlers
+            logger.setLevel(level)
+            logger.propagate = propagate
+        for handler in attached_handlers:
+            handler.close()
+
+
+def _collect_pdf_debug_notes(stderr_text: str, caught_warnings: list[Any]) -> list[str]:
+    notes: list[str] = []
+    normalized_stderr = normalize_whitespace(stderr_text)
+    if normalized_stderr:
+        notes.append(f"parser_stderr:{normalized_stderr[:PDF_DEBUG_TEXT_LIMIT]}")
+    for warning_item in caught_warnings:
+        message = normalize_whitespace(str(getattr(warning_item, "message", "") or ""))
+        if not message:
+            continue
+        note = f"parser_warning:{message[:PDF_DEBUG_TEXT_LIMIT]}"
+        if note not in notes:
+            notes.append(note)
+        if len(notes) >= PDF_DEBUG_NOTE_LIMIT:
+            break
+    return notes[:PDF_DEBUG_NOTE_LIMIT]
+
+
+def _extract_pdf_text(payload: bytes) -> tuple[str, list[str]]:
+    if PdfReader is None:
+        return "", ["pdf_reader_unavailable"]
     chunks: list[str] = []
-    for page in reader.pages:
+    notes: list[str] = []
+    with _capture_pdf_parser_noise() as (stderr_buffer, caught_warnings):
         try:
-            chunk = page.extract_text() or ""
-        except Exception:
-            chunk = ""
-        chunk = normalize_whitespace(chunk)
-        if chunk:
-            chunks.append(chunk)
-    return "\n".join(chunks)
+            reader = PdfReader(io.BytesIO(payload))
+        except Exception as exc:
+            notes.append(f"reader_init_failed:{exc.__class__.__name__}")
+            notes.extend(_collect_pdf_debug_notes(stderr_buffer.getvalue(), caught_warnings))
+            return "", notes[:PDF_DEBUG_NOTE_LIMIT]
+
+        try:
+            page_total = len(reader.pages)
+        except Exception as exc:
+            notes.append(f"page_count_failed:{exc.__class__.__name__}")
+            notes.extend(_collect_pdf_debug_notes(stderr_buffer.getvalue(), caught_warnings))
+            return "", notes[:PDF_DEBUG_NOTE_LIMIT]
+
+        for page_index in range(page_total):
+            try:
+                page = reader.pages[page_index]
+            except Exception as exc:
+                notes.append(f"page_load_failed:{page_index}:{exc.__class__.__name__}")
+                continue
+            try:
+                chunk = page.extract_text() or ""
+            except Exception as exc:
+                notes.append(f"page_extract_failed:{page_index}:{exc.__class__.__name__}")
+                continue
+            chunk = normalize_whitespace(chunk)
+            if chunk:
+                chunks.append(chunk)
+
+        notes.extend(_collect_pdf_debug_notes(stderr_buffer.getvalue(), caught_warnings))
+    return "\n".join(chunks), notes[:PDF_DEBUG_NOTE_LIMIT]
 
 
 def fetch_and_extract_pdf_text(
@@ -569,7 +639,9 @@ def fetch_and_extract_pdf_text(
             debug_rows.append(row)
             continue
 
-        text = _extract_pdf_text(resp.content or b"")
+        text, pdf_notes = _extract_pdf_text(resp.content or b"")
+        if pdf_notes:
+            row["pdf_notes"] = pdf_notes
         if not text:
             row["status"] = "empty_pdf_text"
             debug_rows.append(row)

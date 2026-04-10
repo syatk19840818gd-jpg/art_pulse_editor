@@ -16,6 +16,13 @@ from zoneinfo import ZoneInfo
 
 import openpyxl
 
+from gallery_skip_registry import (
+    SKIPPED_GALLERIES_REGISTRY_PATH,
+    build_skip_lookup,
+    find_skip_entry,
+    is_all_rag_zero_target_row,
+    load_skip_registry_entries,
+)
 from phase2_art_pulse_config import (
     get_current_artist_image_meta_paths,
     get_current_exhibitions_image_meta_paths,
@@ -173,12 +180,15 @@ def load_targets_ordered(path: Path) -> list[ScopeTarget]:
         raise FileNotFoundError(f"Missing targets CSV: {path}")
     out: list[ScopeTarget] = []
     seen: set[tuple[str, str]] = set()
+    skip_lookup = build_skip_lookup(load_skip_registry_entries(SKIPPED_GALLERIES_REGISTRY_PATH))
     with path.open("r", encoding="utf-8-sig", newline="") as handle:
         reader = csv.DictReader(handle)
         for row in reader:
             fair_slug = fair_slug_token(row.get("fair_slug") or row.get("fair") or "")
             gallery_name = str(row.get("gallery_name_en") or row.get("gallery_name") or "").strip()
             if not fair_slug or not gallery_name:
+                continue
+            if find_skip_entry(skip_lookup, fair_slug=fair_slug, gallery_name_en=gallery_name) is not None:
                 continue
             target = ScopeTarget(fair_slug=fair_slug, gallery_name_en=gallery_name)
             if target.scope_key in seen:
@@ -282,6 +292,68 @@ def build_stats(target_year: int) -> dict[tuple[str, str], GalleryStats]:
     return stats
 
 
+def empty_gallery_stats() -> GalleryStats:
+    return GalleryStats(set(), 0, set(), 0, set(), 0, set(), 0)
+
+
+def build_scope_source_validation(
+    *,
+    targets: list[ScopeTarget],
+    stats: dict[tuple[str, str], GalleryStats],
+) -> dict[str, Any]:
+    target_rows: list[dict[str, Any]] = []
+    missing_exhibition_image_targets: list[dict[str, Any]] = []
+    exhibition_text_total = 0
+    exhibition_image_total = 0
+    galleries_with_exhibition_text = 0
+    galleries_with_exhibition_images = 0
+
+    for target in targets:
+        stat = stats.get(target.scope_key) or empty_gallery_stats()
+        artist_image_keys_count = len(stat.artist_image_keys)
+        artist_union_count = len(stat.artist_image_keys | stat.artist_text_keys)
+        exhibition_count = int(stat.exhibition_text_count)
+        row = {
+            "fair_slug": target.fair_slug,
+            "gallery_name_en": target.gallery_name_en,
+            "artist_count": int(artist_union_count),
+            "artist_image_rows": int(artist_image_keys_count),
+            "artist_text_count": int(stat.artist_text_count),
+            "artist_image_count": int(stat.artist_image_count),
+            "exhibition_count": exhibition_count,
+            "exhibition_text_count": int(stat.exhibition_text_count),
+            "exhibition_image_count": int(stat.exhibition_image_count),
+        }
+        target_rows.append(row)
+        if int(stat.exhibition_text_count) > 0:
+            galleries_with_exhibition_text += 1
+            exhibition_text_total += int(stat.exhibition_text_count)
+        if int(stat.exhibition_image_count) > 0:
+            galleries_with_exhibition_images += 1
+            exhibition_image_total += int(stat.exhibition_image_count)
+        if int(stat.exhibition_text_count) > 0 and int(stat.exhibition_image_count) <= 0:
+            missing_exhibition_image_targets.append(row)
+
+    exhibition_images_required = exhibition_text_total > 0
+    blocking_errors: list[str] = []
+    if exhibition_images_required and exhibition_image_total <= 0:
+        blocking_errors.append("blocked_exhibition_image_source_missing")
+
+    all_rag_zero_target_rows = [row for row in target_rows if is_all_rag_zero_target_row(row)]
+
+    return {
+        "exhibition_images_required": bool(exhibition_images_required),
+        "galleries_with_exhibition_text": galleries_with_exhibition_text,
+        "galleries_with_exhibition_images": galleries_with_exhibition_images,
+        "exhibition_text_total": exhibition_text_total,
+        "exhibition_image_total": exhibition_image_total,
+        "all_rag_zero_target_rows": all_rag_zero_target_rows,
+        "scope_missing_exhibition_image_galleries": missing_exhibition_image_targets,
+        "blocking_errors": blocking_errors,
+        "target_gallery_rows": target_rows,
+    }
+
+
 def ratio_pct(match_count: int, total_count: int) -> float | None:
     if total_count <= 0:
         return None
@@ -290,9 +362,8 @@ def ratio_pct(match_count: int, total_count: int) -> float | None:
 
 def sheet_existing_rows(ws: openpyxl.worksheet.worksheet.Worksheet) -> tuple[dict[str, int], int]:
     rows: dict[str, int] = {}
-    first_blank = ws.max_row + 1
-    for row_idx in range(2, ws.max_row + 1):
-        value = ws.cell(row=row_idx, column=1).value
+    first_blank = int(ws.max_row or 0) + 1
+    for row_idx, (value,) in enumerate(ws.iter_rows(min_row=2, max_col=1, values_only=True), start=2):
         if value is None or not str(value).strip():
             first_blank = row_idx
             break
@@ -322,19 +393,30 @@ def build_row_values(item: GalleryStats) -> dict[int, Any]:
 
 
 def read_xlsx_target_snapshot(xlsx_path: Path, targets: list[ScopeTarget]) -> dict[str, dict[str, Any]]:
-    wb = openpyxl.load_workbook(xlsx_path, data_only=True, read_only=True)
+    wb = openpyxl.load_workbook(xlsx_path, data_only=True, read_only=True, keep_links=False)
     snapshots: dict[str, dict[str, Any]] = {}
+    targets_by_fair: dict[str, dict[str, str]] = {fair_slug: {} for fair_slug in SHEET_BY_FAIR}
     for target in targets:
-        sheet_name = SHEET_BY_FAIR[target.fair_slug]
+        targets_by_fair[target.fair_slug][normalize_gallery_name(target.gallery_name_en)] = target.gallery_name_en
+    for fair_slug, sheet_name in SHEET_BY_FAIR.items():
+        pending = dict(targets_by_fair.get(fair_slug, {}))
+        if not pending:
+            continue
         ws = wb[sheet_name]
-        row_values: dict[str, Any] = {}
-        for row_idx in range(2, ws.max_row + 1):
-            value = ws.cell(row=row_idx, column=1).value
-            if normalize_gallery_name(value) != normalize_gallery_name(target.gallery_name_en):
+        for row in ws.iter_rows(min_row=2, max_col=16, values_only=True):
+            value = row[0] if row else None
+            norm_name = normalize_gallery_name(value)
+            gallery_name = pending.get(norm_name)
+            if gallery_name is None:
                 continue
-            row_values = {str(col): ws.cell(row=row_idx, column=col).value for col in range(1, 17)}
-            break
-        snapshots[f"{target.fair_slug}::{target.gallery_name_en}"] = row_values
+            snapshots[f"{fair_slug}::{gallery_name}"] = {
+                str(col_idx): row[col_idx - 1] for col_idx in range(1, 17)
+            }
+            pending.pop(norm_name, None)
+            if not pending:
+                break
+        for gallery_name in pending.values():
+            snapshots[f"{fair_slug}::{gallery_name}"] = {}
     return snapshots
 
 
@@ -348,8 +430,25 @@ def build_breakdown_update_report(
     stats: dict[tuple[str, str], GalleryStats] | None = None,
 ) -> dict[str, Any]:
     effective_stats = stats if stats is not None else build_stats(int(target_year))
+    source_validation = build_scope_source_validation(targets=targets, stats=effective_stats)
+    blocking_errors = list(source_validation.get("blocking_errors", []))
+    if blocking_errors:
+        return {
+            "mode": "apply" if apply else "dry_run",
+            "status": "blocked_missing_required_exhibition_image_source",
+            "blocking_errors": blocking_errors,
+            "source_validation": source_validation,
+            "xlsx_path": str(xlsx_path),
+            "target_year": int(target_year),
+            "run_id": run_id,
+            "target_counts_by_fair": dict(Counter(target.fair_slug for target in targets)),
+            "target_total": len(targets),
+            "row_action_counts": {},
+            "before": {},
+            "updates": [],
+        }
     before = read_xlsx_target_snapshot(xlsx_path, targets)
-    wb = openpyxl.load_workbook(xlsx_path)
+    wb = openpyxl.load_workbook(xlsx_path, keep_links=False)
     jst_today = datetime.now(ZoneInfo("Asia/Tokyo")).date()
     updates: list[dict[str, Any]] = []
     row_action_counts: Counter[str] = Counter()
@@ -373,7 +472,7 @@ def build_breakdown_update_report(
                 action = "append"
             stat = effective_stats.get((fair_slug, norm_name))
             if stat is None:
-                stat = GalleryStats(set(), 0, set(), 0, set(), 0, set(), 0)
+                stat = empty_gallery_stats()
             values = build_row_values(stat)
             if apply:
                 ws.cell(row=row_idx, column=1, value=target.gallery_name_en)
@@ -400,6 +499,9 @@ def build_breakdown_update_report(
 
     return {
         "mode": "apply" if apply else "dry_run",
+        "status": "applied" if apply else "planned",
+        "blocking_errors": [],
+        "source_validation": source_validation,
         "xlsx_path": str(xlsx_path),
         "target_year": int(target_year),
         "run_id": run_id,
@@ -454,9 +556,11 @@ def main() -> int:
         print(f"[breakdown-update] report={output_json_path}")
     print(
         "[breakdown-update] "
-        f"mode={report['mode']} target_total={report['target_total']} "
+        f"mode={report['mode']} status={report['status']} target_total={report['target_total']} "
         f"append={report['row_action_counts'].get('append', 0)} overwrite={report['row_action_counts'].get('overwrite', 0)}"
     )
+    if str(report.get("status") or "").startswith("blocked"):
+        return 1
     return 0
 
 

@@ -163,8 +163,13 @@ def select_preview_samples(request_rows: list[dict[str, Any]], max_samples: int)
             return None
         return sorted(rows, key=lambda x: int(x.get("text_length") or 0), reverse=True)[0]
 
-    for fair_slug in ("frieze_london", "liste"):
-        fair_rows = [r for r in request_rows if str(r.get("fair_slug") or "").strip() == fair_slug]
+    fair_rows_by_slug: dict[str, list[dict[str, Any]]] = {}
+    for row in request_rows:
+        fair_slug = str(row.get("fair_slug") or "").strip()
+        fair_rows_by_slug.setdefault(fair_slug, []).append(row)
+
+    for fair_slug in sorted(fair_rows_by_slug):
+        fair_rows = fair_rows_by_slug[fair_slug]
         chosen = pick_longest(fair_rows)
         if chosen is None:
             continue
@@ -178,7 +183,21 @@ def select_preview_samples(request_rows: list[dict[str, Any]], max_samples: int)
     remaining = [r for r in request_rows if str(r.get("request_id") or "") not in selected_ids]
     if remaining and len(selected) < max_samples:
         remaining_sorted = sorted(remaining, key=lambda x: int(x.get("text_length") or 0))
-        selected.append(remaining_sorted[len(remaining_sorted) // 2])
+        chosen = remaining_sorted[len(remaining_sorted) // 2]
+        request_id = str(chosen.get("request_id") or "")
+        if request_id and request_id not in selected_ids:
+            selected.append(chosen)
+            selected_ids.add(request_id)
+
+    if len(selected) < max_samples:
+        for row in sorted(remaining, key=lambda x: int(x.get("text_length") or 0), reverse=True):
+            request_id = str(row.get("request_id") or "")
+            if not request_id or request_id in selected_ids:
+                continue
+            selected.append(row)
+            selected_ids.add(request_id)
+            if len(selected) >= max_samples:
+                break
 
     return selected[:max_samples]
 

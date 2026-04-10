@@ -1,0 +1,114 @@
+{
+  "artifact_kind": "r2_sync_plan",
+  "schema_version": "v2",
+  "generated_at": "2026-04-08T06:15:48Z",
+  "command": "plan",
+  "scope": "block_closeout_unified_phase3_block_scope_candid_r2_837a0f6a769e",
+  "description": "Block closeout required R2 sync for phase3_block_scope_candidate_after_new10_block_planned_current_formal_artifacts. Current formal artifacts only; xlsx is intentionally excluded.",
+  "enabled_by_default": false,
+  "sync_mode": "mirror",
+  "uploads_enabled": true,
+  "deletes_enabled": true,
+  "run_id": "TASK_PHASE3_TRUE_NEXT_BLOCK_CLOSEOUT_VERIFY_20260408T062500Z",
+  "bucket_env_key": "R2_BUCKET",
+  "bucket": "art-pulse-editor",
+  "local_stats": {
+    "roots_missing": [],
+    "local_count": 23,
+    "local_total_size_bytes": 31368707
+  },
+  "remote_scanned_count": 23,
+  "unchanged_count": 16,
+  "would_upload_count": 7,
+  "would_delete_count": 0,
+  "would_prune_count": 0,
+  "scope_hash": "8a77287c80d851e234b77430dacfdcd7fdd3ea0a7d313d1f3750261a69ea3c10",
+  "input_fingerprint": "58f1c6647595360bee259ef9cdcf5b05fc2a591e7cecddb544bf4918874cc457",
+  "code_fingerprint": "cffefe3da9fa45c9ee08fb85bc3c2eeef5c2c7d36256326ff7f1d9d6183d2837",
+  "prune_candidates_fingerprint": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "targets": [
+    {
+      "local_root": "C:/Users/tarutani tomoaki/Pictures/Dev/my_projects/art_pulse_editor/_trial/TASK_PHASE3_TRUE_NEXT_BLOCK_CLOSEOUT_VERIFY_20260408T062500Z/data/current",
+      "r2_prefix": "data/current",
+      "include_globs": [
+        "enrichment/artists_enrichment_apply_output.jsonl",
+        "enrichment/artists_enrichment_apply_summary.json",
+        "enrichment/exhibitions_enrichment_apply_output_2025.jsonl",
+        "enrichment/exhibitions_enrichment_apply_summary_2025.json",
+        "images/metadata/artist_works_images_frieze_london.jsonl",
+        "images/metadata/artist_works_images_liste.jsonl",
+        "images/metadata/exhibitions_images_frieze_london_2025.jsonl",
+        "images/metadata/exhibitions_images_liste_2025.jsonl",
+        "raw/artists_frieze_london_2025.jsonl",
+        "raw/artists_liste_2025.jsonl",
+        "raw/exhibitions_frieze_london_2025.jsonl",
+        "raw/exhibitions_liste_2025.jsonl",
+        "vector/artist_works_images/artist_works_images_artifact_manifest.json",
+        "vector/artist_works_images/artist_works_images_openclip_embeddings.npy",
+        "vector/artist_works_images/artist_works_images_openclip_id_map.jsonl",
+        "vector/artist_works_images/artist_works_images_openclip_search_index.npy",
+        "vector/artist_works_images/artist_works_images_vectorize_failed_2025.jsonl",
+        "vector/artist_works_images/artist_works_images_vectorize_summary_2025.json",
+        "vector/artists/artists_text_artifact_manifest.json",
+        "vector/artists/artists_text_index.npy",
+        "vector/artists/artists_text_meta.jsonl",
+        "vector/artists/artists_text_vectorize_failed_2025.jsonl",
+        "vector/artists/artists_text_vectorize_summary_2025.json"
+      ],
+      "exclude_globs": [],
+      "ignore_global_excludes": false
+    }
+  ],
+  "would_upload": [
+    {
+      "r2_key": "data/current/enrichment/artists_enrichment_apply_summary.json",
+      "reason": "SIZE_MISMATCH",
+      "size_bytes": 35001,
+      "remote_size_bytes": 34997,
+      "local_path": "C:/Users/tarutani tomoaki/Pictures/Dev/my_projects/art_pulse_editor/_trial/TASK_PHASE3_TRUE_NEXT_BLOCK_CLOSEOUT_VERIFY_20260408T062500Z/data/current/enrichment/artists_enrichment_apply_summary.json"
+    },
+    {
+      "r2_key": "data/current/images/metadata/exhibitions_images_frieze_london_2025.jsonl",
+      "reason": "SIZE_MISMATCH",
+      "size_bytes": 90373,
+      "remote_size_bytes": 81262,
+      "local_path": "C:/Users/tarutani tomoaki/Pictures/Dev/my_projects/art_pulse_editor/_trial/TASK_PHASE3_TRUE_NEXT_BLOCK_CLOSEOUT_VERIFY_20260408T062500Z/data/current/images/metadata/exhibitions_images_frieze_london_2025.jsonl"
+    },
+    {
+      "r2_key": "data/current/images/metadata/exhibitions_images_liste_2025.jsonl",
+      "reason": "SIZE_MISMATCH",
+      "size_bytes": 81990,
+      "remote_size_bytes": 76164,
+      "local_path": "C:/Users/tarutani tomoaki/Pictures/Dev/my_projects/art_pulse_editor/_trial/TASK_PHASE3_TRUE_NEXT_BLOCK_CLOSEOUT_VERIFY_20260408T062500Z/data/current/images/metadata/exhibitions_images_liste_2025.jsonl"
+    },
+    {
+      "r2_key": "data/current/vector/artist_works_images/artist_works_images_artifact_manifest.json",
+      "reason": "SIZE_MISMATCH",
+      "size_bytes": 3187,
+      "remote_size_bytes": 3183,
+      "local_path": "C:/Users/tarutani tomoaki/Pictures/Dev/my_projects/art_pulse_editor/_trial/TASK_PHASE3_TRUE_NEXT_BLOCK_CLOSEOUT_VERIFY_20260408T062500Z/data/current/vector/artist_works_images/artist_works_images_artifact_manifest.json"
+    },
+    {
+      "r2_key": "data/current/vector/artist_works_images/artist_works_images_vectorize_summary_2025.json",
+      "reason": "SIZE_MISMATCH",
+      "size_bytes": 4896,
+      "remote_size_bytes": 4888,
+      "local_path": "C:/Users/tarutani tomoaki/Pictures/Dev/my_projects/art_pulse_editor/_trial/TASK_PHASE3_TRUE_NEXT_BLOCK_CLOSEOUT_VERIFY_20260408T062500Z/data/current/vector/artist_works_images/artist_works_images_vectorize_summary_2025.json"
+    },
+    {
+      "r2_key": "data/current/vector/artists/artists_text_artifact_manifest.json",
+      "reason": "SIZE_MISMATCH",
+      "size_bytes": 2272,
+      "remote_size_bytes": 2270,
+      "local_path": "C:/Users/tarutani tomoaki/Pictures/Dev/my_projects/art_pulse_editor/_trial/TASK_PHASE3_TRUE_NEXT_BLOCK_CLOSEOUT_VERIFY_20260408T062500Z/data/current/vector/artists/artists_text_artifact_manifest.json"
+    },
+    {
+      "r2_key": "data/current/vector/artists/artists_text_vectorize_summary_2025.json",
+      "reason": "SIZE_MISMATCH",
+      "size_bytes": 4675,
+      "remote_size_bytes": 4666,
+      "local_path": "C:/Users/tarutani tomoaki/Pictures/Dev/my_projects/art_pulse_editor/_trial/TASK_PHASE3_TRUE_NEXT_BLOCK_CLOSEOUT_VERIFY_20260408T062500Z/data/current/vector/artists/artists_text_vectorize_summary_2025.json"
+    }
+  ],
+  "would_prune": []
+}

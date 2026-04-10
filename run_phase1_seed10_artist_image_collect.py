@@ -20,6 +20,7 @@ from urllib.parse import urljoin, urlparse
 
 import requests
 from PIL import Image, UnidentifiedImageError
+from gallery_skip_registry import load_skip_registry_entries, normalize_fair_slug as normalize_registry_fair_slug
 from phase1_ledger_contract import (
     build_artist_master_entry,
     clear_failed_fetch,
@@ -74,8 +75,7 @@ SOURCE_CLI = "run_phase1_seed10_artist_image_collect.py"
 TARGET_YEAR_DEFAULT = 2025
 TARGET_IMAGES_PER_ARTIST_DEFAULT = 5
 SUCCESS_THRESHOLD_DEFAULT = 0.70
-# TEMPORARY TEST CAP:
-# Keep image collection target list aligned with current artists extraction cap (5 per gallery).
+# Operational collection cap aligned with the current artists extraction baseline.
 MAX_ARTISTS_PER_GALLERY_FOR_COLLECT = 80
 TRIAL_IMAGE_CACHE_DIRNAME = "img"
 TRIAL_IMAGE_CACHE_STEM_LEN = 12
@@ -108,6 +108,8 @@ MANUAL_SEED_TEXT_MARKERS = (
 _PLAYWRIGHT_MANAGER = None
 _PLAYWRIGHT_BROWSER = None
 _PLAYWRIGHT_CONTEXT = None
+_PLAYWRIGHT_DISABLED_REASON = ""
+_PLAYWRIGHT_FAILURE_COUNT = 0
 
 SCHEMA_NAME = "phase1_seed10_artist_image_collect_summary"
 SCHEMA_VERSION = "v1"
@@ -258,6 +260,14 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Collect artists images for Phase1 seed10 and summarize observed success rate.")
     parser.add_argument("--target-year", type=int, default=TARGET_YEAR_DEFAULT, help=f"default: {TARGET_YEAR_DEFAULT}")
     parser.add_argument(
+        "--targets-csv",
+        default="",
+        help=(
+            "optional explicit gallery targets CSV. "
+            "expected columns: fair_slug,gallery_name_en[,exhibitions_url,artists_url,csv_position]"
+        ),
+    )
+    parser.add_argument(
         "--target-images-per-artist",
         type=int,
         default=TARGET_IMAGES_PER_ARTIST_DEFAULT,
@@ -287,6 +297,11 @@ def parse_args() -> argparse.Namespace:
         "--allow-rebuild",
         action="store_true",
         help="required with --mode rebuild",
+    )
+    parser.add_argument(
+        "--approval-token",
+        default="",
+        help="required with --mode rebuild; fill-missing and --dry-run remain available for offline-only diagnosis",
     )
     parser.add_argument(
         "--run-id",
@@ -486,31 +501,48 @@ def reason_code_from_error_text(error_text: str) -> str:
 
 def load_skipped_gallery_registry(path: Path) -> dict[str, dict[str, str]]:
     registry: dict[str, dict[str, str]] = {}
-    if not path.exists():
-        return registry
     try:
-        with path.open("r", encoding="utf-8", newline="") as handle:
-            reader = csv.reader(handle)
-            for row in reader:
-                if not row:
-                    continue
-                if len(row) < 3:
-                    continue
-                gallery_name = str(row[0] or "").strip()
-                if not gallery_name:
-                    continue
-                exhibition_url = str(row[1] or "").strip()
-                artists_url = str(row[2] or "").strip()
-                skip_reason = str(row[3] or "").strip() if len(row) >= 4 else ""
-                registry[gallery_name.lower()] = {
-                    "gallery_name": gallery_name,
-                    "exhibition_url": exhibition_url,
-                    "artists_url": artists_url,
-                    "skip_reason": skip_reason,
-                }
+        entries = load_skip_registry_entries(path)
     except OSError:
         return {}
+    for entry in entries:
+        gallery_name = str(entry.gallery_name_en or "").strip()
+        if not gallery_name:
+            continue
+        gallery_key = gallery_name.lower()
+        payload = {
+            "gallery_name": gallery_name,
+            "fair_slug": str(entry.fair_slug or "").strip(),
+            "skip_reason": str(entry.skip_reason or "").strip(),
+            "detected_at": str(entry.detected_at or "").strip(),
+            "run_id": str(entry.run_id or "").strip(),
+            "source_scope_file": str(entry.source_scope_file or "").strip(),
+            "evidence": str(entry.evidence or "").strip(),
+            "exhibition_url": "",
+            "artists_url": "",
+        }
+        fair_key = normalize_registry_fair_slug(payload["fair_slug"])
+        if fair_key:
+            registry[f"{fair_key}::{gallery_key}"] = dict(payload)
+        registry.setdefault(gallery_key, dict(payload))
     return registry
+
+
+def find_skipped_gallery_item(
+    registry: dict[str, dict[str, str]],
+    *,
+    fair_slug: str,
+    gallery_name_en: str,
+) -> dict[str, str] | None:
+    gallery_key = str(gallery_name_en or "").strip().lower()
+    if not gallery_key:
+        return None
+    fair_key = normalize_registry_fair_slug(fair_slug)
+    if fair_key:
+        hit = registry.get(f"{fair_key}::{gallery_key}")
+        if hit is not None:
+            return hit
+    return registry.get(gallery_key)
 
 
 def build_artist_id(row: dict[str, Any]) -> str:
@@ -521,10 +553,72 @@ def build_artist_id(row: dict[str, Any]) -> str:
     return hashlib.sha256(source_url.encode("utf-8")).hexdigest()
 
 
-def load_artist_targets(target_year: int, *, only_source_url: str = "") -> list[dict[str, Any]]:
+def normalize_target_fair_slug(value: str) -> str:
+    token = str(value or "").strip().lower().replace("-", "_")
+    if token in {"frieze_london", "liste"}:
+        return token
+    return ""
+
+
+def normalize_gallery_scope_key(fair_slug: str, gallery_name_en: str) -> tuple[str, str]:
+    fair_slug_token = normalize_target_fair_slug(fair_slug)
+    gallery_token = " ".join(str(gallery_name_en or "").strip().split())
+    return fair_slug_token, gallery_token.casefold()
+
+
+def load_gallery_scope_from_targets_csv(path: Path) -> list[dict[str, str]]:
+    if not path.exists():
+        raise FileNotFoundError(f"Missing targets CSV: {path}")
+    scope_rows: list[dict[str, str]] = []
+    invalid_row_numbers: list[int] = []
+    seen_scope_keys: set[tuple[str, str]] = set()
+    with path.open("r", encoding="utf-8-sig", newline="") as handle:
+        reader = csv.DictReader(handle)
+        fieldnames = {str(name or "").strip() for name in (reader.fieldnames or [])}
+        if not {"fair_slug", "gallery_name_en"}.issubset(fieldnames):
+            raise RuntimeError(
+                "Invalid targets CSV for artist image collect: "
+                "required columns are fair_slug and gallery_name_en"
+            )
+        for row_number, row in enumerate(reader, start=2):
+            fair_slug = normalize_target_fair_slug(row.get("fair_slug") or row.get("fair") or "")
+            gallery_name_en = " ".join(str(row.get("gallery_name_en") or row.get("gallery_name") or "").strip().split())
+            if not fair_slug or not gallery_name_en:
+                invalid_row_numbers.append(row_number)
+                continue
+            scope_key = normalize_gallery_scope_key(fair_slug, gallery_name_en)
+            if scope_key in seen_scope_keys:
+                continue
+            seen_scope_keys.add(scope_key)
+            scope_rows.append(
+                {
+                    "fair_slug": fair_slug,
+                    "gallery_name_en": gallery_name_en,
+                }
+            )
+    if invalid_row_numbers:
+        preview = ",".join(str(number) for number in invalid_row_numbers[:10])
+        raise RuntimeError(
+            "Invalid targets CSV rows for artist image collect at lines "
+            f"{preview}; each row requires fair_slug and gallery_name_en"
+        )
+    if not scope_rows:
+        raise RuntimeError(f"No valid target rows found in targets CSV: {path}")
+    return scope_rows
+
+
+def load_artist_targets(
+    target_year: int,
+    *,
+    only_source_url: str = "",
+    scope_gallery_keys: set[tuple[str, str]] | None = None,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     grouped_rows: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
     targets: list[dict[str, Any]] = []
     source_filter = str(only_source_url or "").strip()
+    explicit_scope_keys = set(scope_gallery_keys or set())
+    matched_scope_keys: set[tuple[str, str]] = set()
+    scope_filtered_raw_row_count = 0
 
     def _is_listing_url(url: str) -> bool:
         path = (urlparse(url).path or "").lower().rstrip("/")
@@ -549,6 +643,12 @@ def load_artist_targets(target_year: int, *, only_source_url: str = "") -> list[
                 str(row.get("fair_slug") or fair_slug),
                 str(row.get("gallery_name_en") or ""),
             )
+            scope_key = normalize_gallery_scope_key(key[0], key[1])
+            if explicit_scope_keys and scope_key not in explicit_scope_keys:
+                continue
+            if explicit_scope_keys:
+                matched_scope_keys.add(scope_key)
+                scope_filtered_raw_row_count += 1
             grouped_rows[key].append(
                 {
                     "fair_slug": key[0],
@@ -593,7 +693,15 @@ def load_artist_targets(target_year: int, *, only_source_url: str = "") -> list[
                 }
             )
             added_for_gallery += 1
-    return targets
+    diagnostics = {
+        "explicit_scope_enabled": bool(explicit_scope_keys),
+        "explicit_scope_gallery_total": len(explicit_scope_keys),
+        "matched_scope_keys": sorted(matched_scope_keys),
+        "scope_filtered_raw_row_count": scope_filtered_raw_row_count,
+        "scope_filtered_gallery_count": len(matched_scope_keys),
+        "scope_filtered_artist_target_count": len(targets) if explicit_scope_keys else 0,
+    }
+    return targets, diagnostics
 
 
 def collect_seed_supply_by_gallery(target_year: int) -> list[dict[str, Any]]:
@@ -997,23 +1105,66 @@ def summarize_request_error(prefix: str, url: str, exc: Exception) -> str:
     return f"{prefix}:{host}:{message}"
 
 
+def summarize_playwright_launch_error(exc: Exception) -> str:
+    message = str(exc or "").strip()
+    lowered = message.lower()
+    if isinstance(exc, PermissionError) or "[winerror 5]" in lowered or "アクセスが拒否" in message:
+        return "playwright_launch_failed:permission_denied"
+    if "user data dir" in lowered or "profile" in lowered or "lock" in lowered:
+        return "playwright_launch_failed:profile_lock_or_tempdir"
+    if "timed out" in lowered:
+        return "playwright_launch_failed:timeout"
+    return f"playwright_launch_failed:{exc.__class__.__name__}"
+
+
+def get_playwright_runtime_diagnostics() -> dict[str, Any]:
+    return {
+        "playwright_enabled": bool(_playwright_enabled()),
+        "playwright_context_ready": bool(_PLAYWRIGHT_CONTEXT is not None),
+        "playwright_disabled_reason": str(_PLAYWRIGHT_DISABLED_REASON or ""),
+        "playwright_failure_count": int(_PLAYWRIGHT_FAILURE_COUNT or 0),
+    }
+
+
+def combine_fetch_errors(errors: list[str]) -> str:
+    ordered: list[str] = []
+    seen: set[str] = set()
+    for error in errors:
+        token = str(error or "").strip()
+        if not token or token in seen:
+            continue
+        seen.add(token)
+        ordered.append(token)
+    if not ordered:
+        return ""
+    if len(ordered) == 1:
+        return ordered[0]
+    return " || ".join(ordered)
+
+
 def _playwright_enabled() -> bool:
     return bool(USE_PLAYWRIGHT_HTML_FETCH and sync_playwright is not None)
 
 
 def _ensure_playwright_context():
     global _PLAYWRIGHT_MANAGER, _PLAYWRIGHT_BROWSER, _PLAYWRIGHT_CONTEXT
+    global _PLAYWRIGHT_DISABLED_REASON, _PLAYWRIGHT_FAILURE_COUNT
     if _PLAYWRIGHT_CONTEXT is not None:
         return _PLAYWRIGHT_CONTEXT
     if not _playwright_enabled():
+        return None
+    if _PLAYWRIGHT_DISABLED_REASON:
         return None
     try:
         _PLAYWRIGHT_MANAGER = sync_playwright().start()
         _PLAYWRIGHT_BROWSER = _PLAYWRIGHT_MANAGER.chromium.launch(headless=True)
         _PLAYWRIGHT_CONTEXT = _PLAYWRIGHT_BROWSER.new_context(user_agent=USER_AGENT)
+        _PLAYWRIGHT_DISABLED_REASON = ""
         return _PLAYWRIGHT_CONTEXT
-    except Exception:
+    except Exception as exc:
         _PLAYWRIGHT_CONTEXT = None
+        _PLAYWRIGHT_FAILURE_COUNT += 1
+        _PLAYWRIGHT_DISABLED_REASON = summarize_playwright_launch_error(exc)
         if _PLAYWRIGHT_BROWSER is not None:
             try:
                 _PLAYWRIGHT_BROWSER.close()
@@ -1032,6 +1183,10 @@ def _ensure_playwright_context():
 def fetch_html_with_playwright(url: str) -> tuple[bool, str, str]:
     context = _ensure_playwright_context()
     if context is None:
+        diagnostics = get_playwright_runtime_diagnostics()
+        disabled_reason = str(diagnostics.get("playwright_disabled_reason") or "").strip()
+        if disabled_reason:
+            return False, "", disabled_reason
         return False, "", "html_fetch_failed:playwright_unavailable"
     page = None
     try:
@@ -1970,37 +2125,44 @@ def quarantine_invalid_cached_images(
 def fetch_html(session: requests.Session, url: str) -> tuple[bool, str, str]:
     errors: list[str] = []
     for candidate_url in build_url_fetch_candidates(url):
-        if _playwright_enabled():
-            ok_pw_html, pw_html, pw_error = fetch_html_with_playwright(candidate_url)
-            if ok_pw_html:
-                return True, pw_html, ""
-            if pw_error:
-                errors.append(pw_error)
+        request_error = ""
 
         try:
             response = session.get(candidate_url, timeout=REQUEST_TIMEOUT_SECONDS, allow_redirects=True)
             response.raise_for_status()
         except requests.RequestException as exc:
-            errors.append(summarize_request_error("html_fetch_failed", candidate_url, exc))
-            continue
+            request_error = summarize_request_error("html_fetch_failed", candidate_url, exc)
+        else:
+            content_type = str(response.headers.get("content-type") or "").lower()
+            if "text/html" not in content_type and "application/xhtml+xml" not in content_type:
+                request_error = (
+                    f"html_content_type_unsupported:{normalize_domain(candidate_url)}:{content_type or 'unknown'}"
+                )
+            else:
+                final_url = str(response.url or candidate_url).strip() or candidate_url
+                if is_redirected_to_generic_listing(candidate_url, final_url):
+                    request_error = (
+                        "html_redirected_to_generic_listing:"
+                        f"{normalize_domain(candidate_url)}:{urlparse(final_url).path or '/'}"
+                    )
+                else:
+                    response.encoding = response.encoding or "utf-8"
+                    return True, response.text, ""
 
-        content_type = str(response.headers.get("content-type") or "").lower()
-        if "text/html" not in content_type and "application/xhtml+xml" not in content_type:
-            errors.append(f"html_content_type_unsupported:{normalize_domain(candidate_url)}:{content_type or 'unknown'}")
-            continue
-        final_url = str(response.url or candidate_url).strip() or candidate_url
-        if is_redirected_to_generic_listing(candidate_url, final_url):
-            errors.append(
-                "html_redirected_to_generic_listing:"
-                f"{normalize_domain(candidate_url)}:{urlparse(final_url).path or '/'}"
-            )
-            continue
+        local_errors: list[str] = []
+        if request_error:
+            local_errors.append(request_error)
+        if _playwright_enabled():
+            ok_pw_html, pw_html, pw_error = fetch_html_with_playwright(candidate_url)
+            if ok_pw_html:
+                return True, pw_html, ""
+            if pw_error:
+                local_errors.append(f"playwright_fallback:{pw_error}")
+        errors.extend(local_errors)
 
-        response.encoding = response.encoding or "utf-8"
-        return True, response.text, ""
-
-    if errors:
-        return False, "", errors[0]
+    combined_error = combine_fetch_errors(errors)
+    if combined_error:
+        return False, "", combined_error
     return False, "", "html_fetch_failed:unknown"
 
 
@@ -2373,6 +2535,11 @@ def main() -> int:
         allow_rebuild=bool(args.allow_rebuild),
         run_id=str(args.run_id or ""),
     )
+    if policy_mode == skip_policy.REBUILD_MODE and not str(args.approval_token or "").strip():
+        raise RuntimeError(
+            "approval_required_for_artist_image_rebuild:"
+            "pass --approval-token <user-approved-note>; use fill_missing or --dry-run for offline-only diagnosis"
+        )
     io_root = PHASE1_SEED10_ROOT
     if policy_mode == skip_policy.REBUILD_MODE:
         io_root = skip_policy.build_trial_root(
@@ -2450,6 +2617,13 @@ def main() -> int:
         "allow_rebuild": bool(args.allow_rebuild),
         "run_id": str(args.run_id or ""),
         "io_root": str(io_root),
+        "targets_csv": "",
+        "target_gallery_scope_total": 0,
+        "target_gallery_scope": [],
+        "scope_filtered_raw_row_count": 0,
+        "scope_filtered_gallery_count": 0,
+        "scope_filtered_artist_target_count": 0,
+        "scope_missing_galleries": [],
         "skipped_known_unresolvable_count": 0,
         "skipped_known_unresolvable": [],
     }
@@ -2466,8 +2640,34 @@ def main() -> int:
         only_fair_slug = str(args.only_fair_slug or "").strip().lower()
         only_gallery_name = str(args.only_gallery_name or "").strip().lower()
         only_source_url = str(args.only_source_url or "").strip()
+        targets_csv_path: Path | None = None
+        explicit_scope_rows: list[dict[str, str]] = []
+        explicit_scope_keys: set[tuple[str, str]] = set()
+        if str(args.targets_csv or "").strip():
+            targets_csv_path = Path(args.targets_csv)
+            if not targets_csv_path.is_absolute():
+                targets_csv_path = (Path.cwd() / targets_csv_path).resolve()
+            explicit_scope_rows = load_gallery_scope_from_targets_csv(targets_csv_path)
+            explicit_scope_keys = {
+                normalize_gallery_scope_key(row.get("fair_slug") or "", row.get("gallery_name_en") or "")
+                for row in explicit_scope_rows
+            }
+            summary["targets_csv"] = str(targets_csv_path)
+            summary["target_gallery_scope_total"] = len(explicit_scope_rows)
+            summary["target_gallery_scope"] = explicit_scope_rows
+            summary["notes"].append(f"explicit_targets_scope:{len(explicit_scope_rows)}")
 
         seed_supply_snapshot = collect_seed_supply_by_gallery(target_year)
+        if explicit_scope_keys:
+            seed_supply_snapshot = [
+                row
+                for row in seed_supply_snapshot
+                if normalize_gallery_scope_key(
+                    str(row.get("fair_slug") or ""),
+                    str(row.get("gallery_name_en") or ""),
+                )
+                in explicit_scope_keys
+            ]
         summary["seed_supply_by_gallery"] = seed_supply_snapshot
         under_cap_rows = [row for row in seed_supply_snapshot if bool(row.get("supply_under_cap"))]
         summary["seed_supply_under_cap"] = under_cap_rows
@@ -2478,7 +2678,31 @@ def main() -> int:
                 f"detail={row.get('detail_seed_total')}<cap={row.get('configured_cap')}"
             )
 
-        targets = load_artist_targets(target_year, only_source_url=only_source_url)
+        targets, target_scope_stats = load_artist_targets(
+            target_year,
+            only_source_url=only_source_url,
+            scope_gallery_keys=explicit_scope_keys,
+        )
+        matched_scope_keys = {
+            tuple(item)
+            for item in target_scope_stats.get("matched_scope_keys", [])
+            if isinstance(item, (list, tuple)) and len(item) == 2
+        }
+        summary["scope_filtered_raw_row_count"] = int(target_scope_stats.get("scope_filtered_raw_row_count") or 0)
+        summary["scope_filtered_gallery_count"] = int(target_scope_stats.get("scope_filtered_gallery_count") or 0)
+        summary["scope_filtered_artist_target_count"] = int(target_scope_stats.get("scope_filtered_artist_target_count") or 0)
+        if explicit_scope_rows:
+            summary["scope_missing_galleries"] = [
+                row
+                for row in explicit_scope_rows
+                if normalize_gallery_scope_key(row.get("fair_slug") or "", row.get("gallery_name_en") or "")
+                not in matched_scope_keys
+            ]
+            if not matched_scope_keys:
+                raise RuntimeError(
+                    "Explicit targets CSV matched 0 artist raw rows; "
+                    f"refusing broad-scope fallback: {targets_csv_path}"
+                )
         if only_fair_slug:
             targets = [row for row in targets if str(row.get("fair_slug") or "").strip().lower() == only_fair_slug]
             summary["notes"].append(f"filter_only_fair_slug:{only_fair_slug}")
@@ -2489,25 +2713,31 @@ def main() -> int:
             targets = [row for row in targets if str(row.get("source_url") or "").strip() == only_source_url]
             summary["notes"].append(f"filter_only_source_url:{only_source_url}")
 
+        skip_registry_entries = load_skip_registry_entries(SKIPPED_GALLERIES_REGISTRY_PATH)
         skip_registry = load_skipped_gallery_registry(SKIPPED_GALLERIES_REGISTRY_PATH)
-        summary["skip_registry_gallery_count"] = len(skip_registry)
+        summary["skip_registry_gallery_count"] = len(skip_registry_entries)
         if not skip_registry:
             summary["notes"].append("skip_registry_empty_or_missing")
         else:
             filtered_targets: list[dict[str, Any]] = []
             for row in targets:
                 gallery_name = str(row.get("gallery_name_en") or "").strip()
+                fair_slug = str(row.get("fair_slug") or "").strip()
                 if not gallery_name:
                     filtered_targets.append(row)
                     continue
-                skip_item = skip_registry.get(gallery_name.lower())
+                skip_item = find_skipped_gallery_item(
+                    skip_registry,
+                    fair_slug=fair_slug,
+                    gallery_name_en=gallery_name,
+                )
                 if skip_item is None:
                     filtered_targets.append(row)
                     continue
                 summary["skipped_by_registry"].append(
                     {
                         "gallery_name_en": gallery_name,
-                        "fair_slug": str(row.get("fair_slug") or ""),
+                        "fair_slug": fair_slug,
                         "source_url": str(row.get("source_url") or ""),
                         "exhibition_url": str(skip_item.get("exhibition_url") or ""),
                         "artists_url": str(skip_item.get("artists_url") or ""),
@@ -2779,6 +3009,13 @@ def main() -> int:
                 "execution_mode": policy_mode,
                 "dry_run": True,
                 "target_year": target_year,
+                "targets_csv": summary.get("targets_csv") or "",
+                "target_gallery_scope_total": int(summary.get("target_gallery_scope_total") or 0),
+                "target_gallery_scope": summary.get("target_gallery_scope") or [],
+                "scope_filtered_raw_row_count": int(summary.get("scope_filtered_raw_row_count") or 0),
+                "scope_filtered_gallery_count": int(summary.get("scope_filtered_gallery_count") or 0),
+                "scope_filtered_artist_target_count": int(summary.get("scope_filtered_artist_target_count") or 0),
+                "scope_missing_galleries": summary.get("scope_missing_galleries") or [],
                 "candidate_total": candidate_total,
                 "would_skip_count": would_skip_count,
                 "would_fetch_count": would_fetch_count,
@@ -2803,6 +3040,11 @@ def main() -> int:
             return 0
 
         if not targets:
+            if summary.get("targets_csv"):
+                raise RuntimeError(
+                    "Explicit targets CSV produced 0 artist image targets after filtering; "
+                    f"refusing broad-scope fallback: {summary.get('targets_csv')}"
+                )
             summary["notes"].append(f"no_artist_raw_records_found:artists_*_{target_year}.jsonl")
             save_failed_fetches_ledger(failed_fetches_path, failed_fetches_ledger)
             update_failed_fetches_summary(

@@ -1,0 +1,2 @@
+fair_slug,gallery_name_en,skip_reason,detected_at,run_id,source_scope_file,evidence
+liste,City Galerie Wien,all_rag_zero_after_human_review,2026-04-08T14:48:25Z,TASK_PHASE3_TRUE_NEXT_BLOCK_CLOSEOUT_APPLY_20260408T130041Z,data/gallery_lists/phase3_block_scope_candidate_after_new10.csv,derived_from_closeout_scope_stats_target_gallery_rows

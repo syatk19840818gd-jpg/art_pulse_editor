@@ -6,6 +6,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Tuple
 
+from gallery_skip_registry import (
+    SKIPPED_GALLERIES_REGISTRY_PATH,
+    build_skip_lookup,
+    find_skip_entry,
+    load_skip_registry_entries,
+)
 from phase2_common_readonly import FAIR_LABEL_TO_SLUG, FAIR_SLUG_TO_LABEL, GALLERY_LIST_PATHS
 
 
@@ -53,6 +59,7 @@ class GalleryListData:
     artists_fallback_rows: int
     artists_raw_rows: int
     artists_empty_rows: int
+    skip_registry_filtered_rows: int
     count_note: str
 
 
@@ -66,11 +73,14 @@ def load_gallery_list_records_readonly() -> GalleryListData:
         "row_skip_empty_gallery": 0,
         "row_missing_exhibitions_url": 0,
         "row_extra_columns_ignored": 0,
+        "row_skip_registry_filtered": 0,
     }
     fair_rows: Dict[str, int] = {"frieze_london": 0, "liste": 0}
     artists_fallback_rows = 0
     artists_raw_rows = 0
     artists_empty_rows = 0
+    skip_registry_filtered_rows = 0
+    skip_lookup = build_skip_lookup(load_skip_registry_entries(SKIPPED_GALLERIES_REGISTRY_PATH))
 
     for fair_slug, path in GALLERY_LIST_PATHS.items():
         raw_rows, ws = _read_rows_with_fallback(path)
@@ -96,6 +106,10 @@ def load_gallery_list_records_readonly() -> GalleryListData:
             if not gallery_name:
                 warnings.append(f"row_skip_empty_gallery: {path} line={idx}")
                 warning_counts["row_skip_empty_gallery"] += 1
+                continue
+            if find_skip_entry(skip_lookup, fair_slug=fair_slug, gallery_name_en=gallery_name) is not None:
+                warning_counts["row_skip_registry_filtered"] += 1
+                skip_registry_filtered_rows += 1
                 continue
 
             if len(cols) < 2:
@@ -154,6 +168,7 @@ def load_gallery_list_records_readonly() -> GalleryListData:
         artists_fallback_rows=artists_fallback_rows,
         artists_raw_rows=artists_raw_rows,
         artists_empty_rows=artists_empty_rows,
+        skip_registry_filtered_rows=skip_registry_filtered_rows,
         count_note=(
             "Gallery listはCSV正本（ヘッダーなし、UTF-8想定）を読み取り専用で表示。"
             " 2列行は artists_url を exhibitions_url でfallback。"

@@ -57,6 +57,11 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--approval-token",
+        default="",
+        help="required for --apply; dry-run remains available for offline-only diagnosis",
+    )
+    parser.add_argument(
         "--trial-root",
         default="data/trials/text_enrichment_delta_promote_2025",
         help="Dry-run root directory. Ignored when --apply is used.",
@@ -78,6 +83,17 @@ def parse_args() -> argparse.Namespace:
         help="optional category filter; repeatable. Supported: artists, exhibitions",
     )
     return parser.parse_args()
+
+
+def require_delta_promote_approval(args: argparse.Namespace) -> None:
+    if not args.apply:
+        return
+    if str(args.approval_token or "").strip():
+        return
+    raise RuntimeError(
+        "approval_required_for_text_delta_promote_apply:"
+        "pass --approval-token <user-approved-note>; use dry-run for offline-only diagnosis"
+    )
 
 
 def read_json(path: Path) -> dict[str, Any]:
@@ -711,6 +727,7 @@ def execute_delta_promote_run(
 
 def main() -> int:
     args = parse_args()
+    require_delta_promote_approval(args)
     manifest_path = resolve_path(args.manifest)
     manifest = read_json(manifest_path)
     target_year, operations = validate_manifest(manifest)

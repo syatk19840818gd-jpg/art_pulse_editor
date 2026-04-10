@@ -1,6 +1,6 @@
 03_状態スナップショット_次タスク
 プロジェクトスラッグ: ART_PULSE_EDITOR
-最終更新: 2026-04-06 JST
+最終更新: 2026-04-07 JST
 
 文書パス
 - 正本01: `./docs/01_PROJECT_SPEC_CURRENT_FULL.docx`
@@ -67,9 +67,21 @@ Phase 3 固定運用方針
 - 各 block は、current 反映、同一 scope の `rag_gellery_breakdown_master.xlsx` 更新、Artist Works Images の OpenCLIP current 反映確認、R2 sync、closeout report がすべて完了して初めて closeout 完了とする。
 - 上記のいずれかが未完了の状態では、初期10件 / 新10件 / 今後の全 gallery block を問わず、次 block に進まない。
 - 安定化フェーズ残タスクとしての `new10` verify-first は例外的に許容するが、通常運用ルールへ昇格しない。
+- 次 block 以降は baseline code をまずそのまま1回だけ使う。様子見前提の複数 rerun は標準運用にしない。
+- block の標準手順は verify-first を先に行い、70%以上ならコードを触らず apply 判断へ進む。
+- 70%未満の時だけ failure class を offline-only で分析し、gallery個別ではない generic patch を1回だけ検討する。
+- 70%以上なら rerun / rebuild / repair / promote rerun を追加せず、その block は baseline のまま次工程へ進める。
+- API を使う rerun / rebuild / repair / promote rerun は必ず事前承認制とし、承認前は offline-only diagnosis だけを許可する。
+- OpenAI Batch / Gemini embedding / current closeout / R2 live 操作を伴う runner は `--approval-token` なしでは実行しない運用に固定する。
+- gallery個別対応、host個別対応、block母集団別専用コードを通常運用の本番ロジックへ追加しない。
+- 特殊館は個別救済前提で rerun せず、必要時は skip を許容する。ただし block 全体70%以上は必須ラインとして維持する。
+- full rebuild / full retake は最終手段とし、failure class が generic patch 1回で収まらない場合にだけ再判断する。
+- Batch を使うレーンは必ず Batch を使い、OpenCLIP / local vector lane でも verify-first を先に行う。
+- ①②で繰り返した trial-and-error の教訓は以後の全 block にそのまま適用し、同じ gallery 個別修正ループを再発させない。
 
 次タスク
-- [ ] 安定化フェーズ残タスクとして `phase3_fixed_block_next10_targets.csv` の closeout apply 判断を `run_block_closeout.py` 主導線で行う。verify-first は planned で通過済みだが、恒久運用ルールにはしない。
+- [ ] 次 block は baseline code をそのまま1回だけ使い、scope CSV を明示指定した `run_block_closeout.py` の verify-first から入る。
+- [ ] 70%未満時のみ offline-only で failure class を棚卸しし、gallery個別ではない generic patch を1回だけ検討する。
 - [ ] 通常運用の主導線を scope 一括 closeout に統一したまま、差分 scope 一括運用へ移行する。
 - [ ] residual の可視化を継続する（fixed10: Bombon 403 / Callirrhoë image 0）。
 - [ ] cleanup レーンを閉じたまま、explicit-user-task mode で主ロードマップを継続する。

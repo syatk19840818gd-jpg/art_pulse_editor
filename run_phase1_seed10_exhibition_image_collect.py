@@ -18,6 +18,7 @@ import requests
 import unicodedata
 
 from enrichment_batch_common import is_optional_output_enabled
+from gallery_skip_registry import build_skip_lookup, find_skip_entry, load_skip_registry_entries
 import run_phase1_seed10_artist_image_collect as artist_img
 from phase2_art_pulse_config import (
     PHASE1_SEED10_ROOT,
@@ -115,6 +116,15 @@ BAD_SOFT_ROUTE_SUBSTRINGS = (
     "/art-fairs",
     "/art-fair",
 )
+DETAIL_PAGE_IMAGE_LIMIT = 1
+LISTING_DYNAMIC_TARGET_CAP = 8
+LISTING_UNKNOWN_YEAR_TARGET_CAP = 3
+DETAIL_PAGE_TARGET_YEAR_SUPPORT_REASONS = {
+    "year_signal_present",
+    "two_digit_year_signal",
+    "year_signal_in_url_path",
+    "year_signal_in_url_path_override",
+}
 
 
 def _normalized_path_lower(url: str) -> str:
@@ -137,18 +147,22 @@ def classify_route_class(url: str) -> str:
 def evaluate_route_guard(*, detail_url: str, seed_url: str) -> dict[str, Any]:
     detail_class = classify_route_class(detail_url)
     seed_class = classify_route_class(seed_url)
-    classes = {detail_class, seed_class}
     reasons: list[str] = []
     decision = "allow"
-    if "BAD_HARD" in classes:
+    if detail_class == "BAD_HARD":
         decision = "reject"
         reasons.append("route_bad_hard")
-    elif "BAD_SOFT" in classes or "LISTING_ROOT" in classes:
+    elif detail_class in {"BAD_SOFT", "LISTING_ROOT"}:
         decision = "quarantine"
         reasons.append("route_bad_soft_or_listing")
     elif detail_class != "DETAIL_CANDIDATE":
         decision = "quarantine"
         reasons.append("route_not_detail_candidate")
+    elif seed_class == "BAD_HARD":
+        # Listing/archive seed URLs are normal inputs for exhibition discovery.
+        # Only keep a soft warning path when the originating seed is clearly non-exhibition.
+        decision = "quarantine"
+        reasons.append("seed_route_bad_hard")
     return {
         "decision": decision,
         "reasons": reasons,
@@ -165,6 +179,8 @@ def evaluate_year_evidence_guard(
     seed_url: str,
     target_year: int,
     parent_tag: str,
+    detail_page_year_bucket: int | None = None,
+    detail_page_year_reason: str = "",
 ) -> dict[str, Any]:
     reasons: list[str] = []
     decision = "allow"
@@ -173,6 +189,10 @@ def evaluate_year_evidence_guard(
     has_target_year = int(target_year) in year_tokens
     has_non_target_year = bool(year_tokens - {int(target_year)})
     metadata_fallback = parent_tag.lower() == "metadata" or "metadata_fallback" in (evidence_text or "").lower()
+    detail_page_target_year_supported = detail_page_has_target_year_support(
+        detail_page_year_bucket=detail_page_year_bucket,
+        detail_page_year_reason=detail_page_year_reason,
+    )
 
     if candidate_year is not None and int(candidate_year) != int(target_year):
         decision = "reject"
@@ -186,7 +206,7 @@ def evaluate_year_evidence_guard(
             "year_tokens": sorted(year_tokens),
         }
 
-    if candidate_year is None and metadata_fallback:
+    if candidate_year is None and metadata_fallback and not detail_page_target_year_supported:
         decision = "quarantine"
         reasons.append("metadata_fallback_without_candidate_year")
 
@@ -201,7 +221,10 @@ def evaluate_year_evidence_guard(
             reasons.append("year_token_non_target")
     else:
         year_confidence = "LOW"
-        if decision == "allow":
+        if decision == "allow" and detail_page_target_year_supported:
+            year_confidence = "MEDIUM"
+            reasons.append("detail_page_target_year_support")
+        elif decision == "allow":
             decision = "quarantine"
             reasons.append("weak_year_signal")
 
@@ -222,6 +245,8 @@ def evaluate_provenance_guard(
     selected_reason: str,
     parent_tag: str,
     metadata_fallback: bool,
+    detail_page_year_bucket: int | None = None,
+    detail_page_year_reason: str = "",
 ) -> dict[str, Any]:
     reasons: list[str] = []
     decision = "allow"
@@ -229,6 +254,10 @@ def evaluate_provenance_guard(
     seed_domain = artist_img.normalize_domain(seed_url)
     detail_type = classify_seed_url_type(detail_url)
     trace_coherence = bool(detail_domain and seed_domain and detail_domain == seed_domain and detail_type == "detail")
+    detail_page_target_year_supported = detail_page_has_target_year_support(
+        detail_page_year_bucket=detail_page_year_bucket,
+        detail_page_year_reason=detail_page_year_reason,
+    )
     if not trace_coherence:
         decision = "quarantine"
         reasons.append("trace_coherence_missing")
@@ -238,7 +267,7 @@ def evaluate_provenance_guard(
     if seed_url_type == "listing" and detail_type != "detail":
         decision = "quarantine"
         reasons.append("listing_without_detail_transition")
-    if metadata_fallback and parent_tag.lower() == "metadata":
+    if metadata_fallback and parent_tag.lower() == "metadata" and not detail_page_target_year_supported:
         decision = "quarantine"
         reasons.append("metadata_fallback_weak_provenance")
     return {
@@ -465,19 +494,8 @@ def normalize_gallery_name_for_registry(name: str) -> str:
     return re.sub(r"\s+", " ", (name or "").strip().lower())
 
 
-def load_skipped_gallery_name_set(path: Path) -> set[str]:
-    if not path.exists():
-        return set()
-    text = path.read_text(encoding="utf-8").strip()
-    if not text:
-        return set()
-    rows = list(csv.DictReader(text.splitlines()))
-    skipped: set[str] = set()
-    for row in rows:
-        gallery = (row.get("gallery_name_en") or row.get("gallery_name") or "").strip()
-        if gallery:
-            skipped.add(normalize_gallery_name_for_registry(gallery))
-    return skipped
+def load_skipped_gallery_lookup(path: Path) -> dict[str, dict[Any, Any]]:
+    return build_skip_lookup(load_skip_registry_entries(path))
 
 
 def gallery_slug(value: str) -> str:
@@ -780,6 +798,8 @@ def fetch_hydrated_detail_html(detail_url: str) -> str | None:
         return page.content()
     except artist_img.PlaywrightError:
         return None
+    except Exception:
+        return None
     finally:
         if page is not None:
             try:
@@ -961,6 +981,42 @@ def normalize_year_bucket(value: Any) -> int:
     return bucket if bucket in (0, 1, 2) else 2
 
 
+def detail_page_has_target_year_support(
+    *,
+    detail_page_year_bucket: Any,
+    detail_page_year_reason: str,
+) -> bool:
+    return normalize_year_bucket(detail_page_year_bucket) == 0 and str(detail_page_year_reason or "").strip() in (
+        DETAIL_PAGE_TARGET_YEAR_SUPPORT_REASONS
+    )
+
+
+def derive_case_target_images(
+    *,
+    seed_url_type: str,
+    requested_target_images: int,
+    detail_pages: list[dict[str, Any]],
+) -> int:
+    base_target = max(DETAIL_PAGE_IMAGE_LIMIT, int(requested_target_images or DETAIL_PAGE_IMAGE_LIMIT))
+    if seed_url_type != "listing":
+        return base_target
+    strong_target_pages = sum(
+        1
+        for page in detail_pages
+        if detail_page_has_target_year_support(
+            detail_page_year_bucket=page.get("year_bucket"),
+            detail_page_year_reason=str(page.get("year_reason") or ""),
+        )
+    )
+    if strong_target_pages > 0:
+        listing_target = (strong_target_pages + 1) // 2
+        return max(base_target, min(LISTING_DYNAMIC_TARGET_CAP, listing_target))
+    weak_target_pages = sum(1 for page in detail_pages if normalize_year_bucket(page.get("year_bucket")) == 1)
+    if weak_target_pages > 0:
+        return max(base_target, min(LISTING_UNKNOWN_YEAR_TARGET_CAP, weak_target_pages))
+    return base_target
+
+
 def load_targets(
     target_year: int,
     *,
@@ -1093,6 +1149,85 @@ def build_breakdowns(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return out
 
 
+def build_seed_transition_breakdown(cases: list[dict[str, Any]]) -> dict[str, dict[str, int]]:
+    by_seed_type: dict[str, dict[str, int]] = {}
+    for case in cases:
+        seed_type = str(case.get("seed_url_type") or "")
+        bucket = by_seed_type.setdefault(
+            seed_type,
+            {
+                "case_count": 0,
+                "saved_case_count": 0,
+                "new_saved_case_count": 0,
+                "existing_hit_only_case_count": 0,
+            },
+        )
+        bucket["case_count"] += 1
+        if int(case.get("saved_images") or 0) > 0:
+            bucket["saved_case_count"] += 1
+        if int(case.get("new_saved_images") or 0) > 0:
+            bucket["new_saved_case_count"] += 1
+        if bool(case.get("existing_hit_only")):
+            bucket["existing_hit_only_case_count"] += 1
+    return {seed_type: dict(values) for seed_type, values in sorted(by_seed_type.items(), key=lambda item: item[0])}
+
+
+def build_guard_counter_totals(cases: list[dict[str, Any]]) -> dict[str, dict[str, int]]:
+    reject_counter: Counter[str] = Counter()
+    quarantine_counter: Counter[str] = Counter()
+    no_change_counter: Counter[str] = Counter()
+    for case in cases:
+        reject_counter.update(case.get("guard_reject_counts") or {})
+        quarantine_counter.update(case.get("guard_quarantine_counts") or {})
+        no_change_counter.update(case.get("guard_no_change_counts") or {})
+    return {
+        "guard_reject_counts": dict(reject_counter),
+        "guard_quarantine_counts": dict(quarantine_counter),
+        "guard_no_change_counts": dict(no_change_counter),
+    }
+
+
+def build_exhibition_failed_case_record(
+    *,
+    fair_slug: str,
+    gallery_name_en: str,
+    source_url: str,
+    seed_url_type: str,
+    target_images: int,
+    reason: str,
+    saved_images: int = 0,
+    new_saved_images: int = 0,
+    existing_hit_only: bool = False,
+    detail_year_bucket_counts: dict[str, int] | None = None,
+    guard_reject_counts: dict[str, int] | None = None,
+    guard_quarantine_counts: dict[str, int] | None = None,
+    guard_no_change_counts: dict[str, int] | None = None,
+    detail_urls_considered_top10: list[str] | None = None,
+    notes_top20: list[str] | None = None,
+    html_fetch_error: str = "",
+    playwright_runtime_diagnostics: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    return {
+        "fair_slug": fair_slug,
+        "gallery_name_en": gallery_name_en,
+        "source_url": source_url,
+        "seed_url_type": seed_url_type,
+        "saved_images": int(saved_images),
+        "new_saved_images": int(new_saved_images),
+        "existing_hit_only": bool(existing_hit_only),
+        "target_images": int(target_images),
+        "reason": reason,
+        "detail_year_bucket_counts": dict(detail_year_bucket_counts or {}),
+        "guard_reject_counts": dict(guard_reject_counts or {}),
+        "guard_quarantine_counts": dict(guard_quarantine_counts or {}),
+        "guard_no_change_counts": dict(guard_no_change_counts or {}),
+        "detail_urls_considered_top10": list(detail_urls_considered_top10 or []),
+        "notes_top20": list(notes_top20 or []),
+        "html_fetch_error": str(html_fetch_error or ""),
+        "playwright_runtime_diagnostics": dict(playwright_runtime_diagnostics or {}),
+    }
+
+
 def main() -> int:
     args = parse_args()
     policy_mode = skip_policy.resolve_run_mode(
@@ -1114,13 +1249,10 @@ def main() -> int:
         else (PROJECT_ROOT / get_exhibition_image_cache_dir()).resolve()
     )
 
-    # SSOT 4-2 / 5-2: exhibition image is fixed to 1 per exhibition.
-    if int(args.target_images_per_exhibition) != 1:
-        print(
-            "[exhibitions-image-collect] "
-            f"target-images-per-exhibition={args.target_images_per_exhibition} ignored by SSOT; forced to 1"
-        )
-    args.target_images_per_exhibition = 1
+    args.target_images_per_exhibition = max(
+        DETAIL_PAGE_IMAGE_LIMIT,
+        int(args.target_images_per_exhibition or DETAIL_PAGE_IMAGE_LIMIT),
+    )
     logs_dir.mkdir(parents=True, exist_ok=True)
     image_root_dir.mkdir(parents=True, exist_ok=True)
     debug_gallery_inputs = [name.strip() for name in args.debug_gallery_triage.split(",") if name.strip()]
@@ -1136,7 +1268,7 @@ def main() -> int:
         debug_html_dir, debug_links_dir = ensure_debug_dirs(debug_output_base, debug_run_id)
     debug_triage_entries: list[dict[str, Any]] = []
 
-    skipped_gallery_set = load_skipped_gallery_name_set(SKIPPED_GALLERIES_REGISTRY_PATH)
+    skipped_gallery_lookup = load_skipped_gallery_lookup(SKIPPED_GALLERIES_REGISTRY_PATH)
     targets = load_targets(
         args.target_year,
         raw_dir=raw_dir,
@@ -1240,12 +1372,21 @@ def main() -> int:
             fair_slug = str(target["fair_slug"])
             gallery_name_en = str(target["gallery_name_en"])
             source_url = str(target["source_url"])
-            target_images = int(args.target_images_per_exhibition)
-            gallery_norm = normalize_gallery_name_for_registry(gallery_name_en)
+            target_images = max(
+                DETAIL_PAGE_IMAGE_LIMIT,
+                int(args.target_images_per_exhibition or DETAIL_PAGE_IMAGE_LIMIT),
+            )
             case_notes: list[str] = []
             seed_url_type = classify_seed_url_type(source_url)
             seed_url_type_counter[seed_url_type] += 1
-            if gallery_norm and gallery_norm in skipped_gallery_set:
+            if (
+                find_skip_entry(
+                    skipped_gallery_lookup,
+                    fair_slug=fair_slug,
+                    gallery_name_en=gallery_name_en,
+                )
+                is not None
+            ):
                 case = {
                     **target,
                     "seed_url_type": seed_url_type,
@@ -1258,14 +1399,15 @@ def main() -> int:
                 }
                 cases.append(case)
                 failed_cases.append(
-                    {
-                        "fair_slug": fair_slug,
-                        "gallery_name_en": gallery_name_en,
-                        "source_url": source_url,
-                        "saved_images": 0,
-                        "target_images": target_images,
-                        "reason": "auto_skipped_by_registry",
-                    }
+                    build_exhibition_failed_case_record(
+                        fair_slug=fair_slug,
+                        gallery_name_en=gallery_name_en,
+                        source_url=source_url,
+                        seed_url_type=seed_url_type,
+                        target_images=target_images,
+                        reason="auto_skipped_by_registry",
+                        notes_top20=["auto_skipped_by_registry"],
+                    )
                 )
                 reason_counter["auto_skipped_by_registry"] += 1
                 continue
@@ -1275,18 +1417,20 @@ def main() -> int:
                 reason_counter[reason] += 1
                 case_notes.append(reason)
                 failed_cases.append(
-                    {
-                        "fair_slug": fair_slug,
-                        "gallery_name_en": gallery_name_en,
-                        "source_url": source_url,
-                        "saved_images": 0,
-                        "target_images": target_images,
-                        "reason": reason,
-                    }
+                    build_exhibition_failed_case_record(
+                        fair_slug=fair_slug,
+                        gallery_name_en=gallery_name_en,
+                        source_url=source_url,
+                        seed_url_type=seed_url_type,
+                        target_images=target_images,
+                        reason=reason,
+                        notes_top20=case_notes[:20],
+                    )
                 )
                 cases.append(
                     {
                         **target,
+                        "seed_url_type": seed_url_type,
                         "saved_images": 0,
                         "target_images": target_images,
                         "target_met": False,
@@ -1335,24 +1479,34 @@ def main() -> int:
             if not html_ok or not html:
                 reason = "html_fetch_failed"
                 reason_counter[reason] += 1
+                html_fetch_error = str(final_url or "").strip()
+                if html_fetch_error:
+                    case_notes.append(html_fetch_error)
+                playwright_runtime_diagnostics = artist_img.get_playwright_runtime_diagnostics()
                 failed_cases.append(
-                    {
-                        "fair_slug": fair_slug,
-                        "gallery_name_en": gallery_name_en,
-                        "source_url": source_url,
-                        "saved_images": 0,
-                        "target_images": target_images,
-                        "reason": reason,
-                    }
+                    build_exhibition_failed_case_record(
+                        fair_slug=fair_slug,
+                        gallery_name_en=gallery_name_en,
+                        source_url=source_url,
+                        seed_url_type=seed_url_type,
+                        target_images=target_images,
+                        reason=reason,
+                        notes_top20=case_notes[:20],
+                        html_fetch_error=html_fetch_error,
+                        playwright_runtime_diagnostics=playwright_runtime_diagnostics,
+                    )
                 )
                 cases.append(
                     {
                         **target,
+                        "seed_url_type": seed_url_type,
                         "saved_images": 0,
                         "target_images": target_images,
                         "target_met": False,
                         "status": "failed",
                         "reason": reason,
+                        "html_fetch_error": html_fetch_error,
+                        "playwright_runtime_diagnostics": playwright_runtime_diagnostics,
                         "notes": case_notes,
                     }
                 )
@@ -1364,18 +1518,20 @@ def main() -> int:
                 reason_counter[reason] += 1
                 case_notes.append(reason)
                 failed_cases.append(
-                    {
-                        "fair_slug": fair_slug,
-                        "gallery_name_en": gallery_name_en,
-                        "source_url": source_url,
-                        "saved_images": 0,
-                        "target_images": target_images,
-                        "reason": reason,
-                    }
+                    build_exhibition_failed_case_record(
+                        fair_slug=fair_slug,
+                        gallery_name_en=gallery_name_en,
+                        source_url=source_url,
+                        seed_url_type=seed_url_type,
+                        target_images=target_images,
+                        reason=reason,
+                        notes_top20=case_notes[:20],
+                    )
                 )
                 cases.append(
                     {
                         **target,
+                        "seed_url_type": seed_url_type,
                         "saved_images": 0,
                         "target_images": target_images,
                         "target_met": False,
@@ -1406,19 +1562,26 @@ def main() -> int:
                 listing_resolved_seed_count += 1
                 listing_resolved_detail_urls_total += listing_resolved_to_detail_count
 
+            target_images = derive_case_target_images(
+                seed_url_type=seed_url_type,
+                requested_target_images=int(args.target_images_per_exhibition),
+                detail_pages=detail_pages,
+            )
+
             if not detail_pages:
                 reason = "detail_page_fetch_failed"
                 reason_counter[reason] += 1
                 case_notes.append(f"detail_fetch_failed_count:{detail_fetch_failed_count}")
                 failed_cases.append(
-                    {
-                        "fair_slug": fair_slug,
-                        "gallery_name_en": gallery_name_en,
-                        "source_url": source_url,
-                        "saved_images": 0,
-                        "target_images": target_images,
-                        "reason": reason,
-                    }
+                    build_exhibition_failed_case_record(
+                        fair_slug=fair_slug,
+                        gallery_name_en=gallery_name_en,
+                        source_url=source_url,
+                        seed_url_type=seed_url_type,
+                        target_images=target_images,
+                        reason=reason,
+                        notes_top20=case_notes[:20],
+                    )
                 )
                 cases.append(
                     {
@@ -1444,18 +1607,18 @@ def main() -> int:
             year_bucket_counter: Counter[int] = Counter()
             for page in detail_pages:
                 year_bucket_counter[normalize_year_bucket(page.get("year_bucket"))] += 1
-
-            existing_hit = False
-            existing_hit_detail_url = ""
+            quota_eligible_detail_page_count = sum(
+                1 for page in detail_pages if normalize_year_bucket(page.get("year_bucket")) in (0, 1)
+            )
+            existing_hit_detail_urls: set[str] = set()
             for page in detail_pages:
                 detail_url_norm = artist_img.normalize_url_for_link_compare(str(page.get("url") or ""))
-                if existing_source_counter.get(detail_url_norm, 0) >= target_images:
-                    existing_hit = True
-                    if not existing_hit_detail_url:
-                        existing_hit_detail_url = detail_url_norm
+                if not detail_url_norm:
                     continue
-                chosen_detail_url = detail_url_norm
-                break
+                if existing_source_counter.get(detail_url_norm, 0) >= DETAIL_PAGE_IMAGE_LIMIT:
+                    existing_hit_detail_urls.add(detail_url_norm)
+            existing_hit = bool(existing_hit_detail_urls)
+            existing_hit_detail_url = next(iter(existing_hit_detail_urls), "")
 
             image_index = 1
             listing_detail_reresolved = False
@@ -1463,10 +1626,45 @@ def main() -> int:
             guard_reject_counter: Counter[str] = Counter()
             guard_quarantine_counter: Counter[str] = Counter()
             guard_no_change_counter: Counter[str] = Counter()
+            raw_candidate_total = 0
+            guard_pass_candidate_total = 0
+            download_surviving_candidate_total = 0
+            detail_pages_with_saved_image: set[str] = set()
+
+            def build_failed_case_record(
+                reason: str,
+                *,
+                saved_images: int,
+                new_saved_images: int,
+                existing_hit_only: bool,
+            ) -> dict[str, Any]:
+                return build_exhibition_failed_case_record(
+                    fair_slug=fair_slug,
+                    gallery_name_en=gallery_name_en,
+                    source_url=source_url,
+                    seed_url_type=seed_url_type,
+                    target_images=target_images,
+                    reason=reason,
+                    saved_images=saved_images,
+                    new_saved_images=new_saved_images,
+                    existing_hit_only=existing_hit_only,
+                    detail_year_bucket_counts={
+                        "target_year": int(year_bucket_counter.get(0, 0)),
+                        "unknown_year": int(year_bucket_counter.get(1, 0)),
+                        "non_target_year": int(year_bucket_counter.get(2, 0)),
+                    },
+                    guard_reject_counts=dict(guard_reject_counter),
+                    guard_quarantine_counts=dict(guard_quarantine_counter),
+                    guard_no_change_counts=dict(guard_no_change_counter),
+                    detail_urls_considered_top10=[str(item.get("url") or "") for item in detail_pages[:10]],
+                    notes_top20=case_notes[:20],
+                    playwright_runtime_diagnostics=artist_img.get_playwright_runtime_diagnostics(),
+                )
             # always attempt candidate loop; skip existing detail during iteration
             def process_sorted_candidates(sorted_candidates: list[dict[str, Any]]) -> bool:
                 nonlocal image_index, chosen_detail_url, saved_rows, selected_urls, selected_reasons, selected_years, selected_evidence
                 nonlocal metadata_collision_detected
+                nonlocal guard_pass_candidate_total, download_surviving_candidate_total
                 saved_before = len(saved_rows)
                 for candidate in sorted_candidates:
                     if image_index > target_images:
@@ -1479,7 +1677,6 @@ def main() -> int:
                         if candidate.get("parent_tag") == "metadata":
                             metadata_collision_detected = True
                             case_notes.append("second_pass:metadata_candidate_dedupe_collision")
-                        continue
                         continue
                     attrs = candidate.get("attrs") if isinstance(candidate.get("attrs"), dict) else {}
                     parent_tag = str(candidate.get("parent_tag") or "")
@@ -1503,6 +1700,8 @@ def main() -> int:
                         seed_url=source_url,
                         target_year=int(args.target_year),
                         parent_tag=parent_tag,
+                        detail_page_year_bucket=normalize_year_bucket(page.get("year_bucket")),
+                        detail_page_year_reason=str(page.get("year_reason") or ""),
                     )
                     year_decision = str(year_guard.get("decision") or "allow")
                     metadata_fallback = bool(year_guard.get("metadata_fallback"))
@@ -1522,6 +1721,8 @@ def main() -> int:
                         selected_reason="detail_page_candidate_rank",
                         parent_tag=parent_tag,
                         metadata_fallback=metadata_fallback,
+                        detail_page_year_bucket=normalize_year_bucket(page.get("year_bucket")),
+                        detail_page_year_reason=str(page.get("year_reason") or ""),
                     )
                     provenance_decision = str(provenance_guard.get("decision") or "allow")
                     if provenance_decision in {"reject", "quarantine"}:
@@ -1545,6 +1746,7 @@ def main() -> int:
                     )
                     if reject:
                         continue
+                    guard_pass_candidate_total += 1
 
                     img_ok, payload, content_type, _ = artist_img.fetch_image(session, candidate_url)
                     if not img_ok or not payload:
@@ -1615,6 +1817,7 @@ def main() -> int:
                         )
                         continue
 
+                    download_surviving_candidate_total += 1
                     # Ensure trial/worktree runs never fail on missing parent output dir.
                     local_path.parent.mkdir(parents=True, exist_ok=True)
                     local_path.write_bytes(normalized_payload)
@@ -1657,7 +1860,9 @@ def main() -> int:
                             "extracted_at": utc_now_iso(),
                         }
                     )
+                    detail_pages_with_saved_image.add(artist_img.normalize_url_for_link_compare(detail_page_url))
                     image_index += 1
+                    break
                 return len(saved_rows) > saved_before
 
             for page in detail_pages:
@@ -1665,7 +1870,7 @@ def main() -> int:
                     break
                 detail_page_url = str(page.get("url") or "")
                 detail_url_norm = artist_img.normalize_url_for_link_compare(detail_page_url)
-                if existing_hit and detail_url_norm == existing_hit_detail_url:
+                if detail_url_norm in existing_hit_detail_urls:
                     continue
                 detail_html = str(page.get("html") or "")
                 detail_html_source = detail_html
@@ -1714,6 +1919,7 @@ def main() -> int:
                             raw_candidates = metadata_candidates
                             fallback_note = fallback_note or "metadata_fallback"
                             metadata_fallback_tried = True
+                raw_candidate_total += len(raw_candidates)
                 sorted_candidates = sort_exhibition_candidates(raw_candidates)
                 usable_candidate_found |= process_sorted_candidates(sorted_candidates)
                 if not usable_candidate_found and raw_candidates_existed and not metadata_fallback_tried:
@@ -1722,6 +1928,7 @@ def main() -> int:
                         metadata_fallback_tried = True
                         fallback_note = fallback_note or "metadata_fallback_priority"
                         case_notes.append(f"second_pass:{fallback_note}")
+                        raw_candidate_total += len(metadata_candidates)
                         sorted_candidates = sort_exhibition_candidates(metadata_candidates)
                         usable_candidate_found |= process_sorted_candidates(sorted_candidates)
                 if fallback_note:
@@ -1733,20 +1940,18 @@ def main() -> int:
 
             new_saved_count = len(saved_rows)
             existing_hit_only = False
-            saved_count = new_saved_count
-            if metadata_collision_detected and not usable_candidate_found:
+            existing_saved_count = min(target_images, len(existing_hit_detail_urls))
+            saved_count = min(target_images, new_saved_count + existing_saved_count)
+            if metadata_collision_detected and not usable_candidate_found and target_images <= DETAIL_PAGE_IMAGE_LIMIT:
                 case_notes.append("metadata_collision:known_url_hash")
                 existing_hit_only = True
                 saved_count = target_images
                 metadata_collision_detected = False
-            if existing_hit and new_saved_count < target_images:
-                if new_saved_count == 0:
-                    existing_hit_only = True
-                # Keep legacy success semantics for existing kept image,
-                # and expose new_save metrics separately.
-                saved_count = target_images
+            elif saved_count > 0 and new_saved_count == 0 and existing_saved_count >= target_images:
+                existing_hit_only = True
+            if existing_hit and saved_count > new_saved_count:
                 selected_reasons.append("existing_image_kept")
-                selected_urls.append(chosen_detail_url or source_url)
+                selected_urls.append(existing_hit_detail_url or chosen_detail_url or source_url)
                 selected_years.append(None)
                 selected_evidence.append("existing_image_kept")
             target_met = saved_count >= target_images
@@ -1762,29 +1967,23 @@ def main() -> int:
                     else "target_year_signal_missing"
                 )
                 failed_cases.append(
-                    {
-                        "fair_slug": fair_slug,
-                        "gallery_name_en": gallery_name_en,
-                        "source_url": source_url,
-                        "saved_images": saved_count,
-                        "new_saved_images": new_saved_count,
-                        "existing_hit_only": existing_hit_only,
-                        "target_images": target_images,
-                        "reason": reason,
-                    }
+                    build_failed_case_record(
+                        reason,
+                        saved_images=saved_count,
+                        new_saved_images=new_saved_count,
+                        existing_hit_only=existing_hit_only,
+                    )
                 )
                 reason_counter[reason] += 1
             elif not target_met:
                 reason = "insufficient_image_candidates_after_download"
                 failed_cases.append(
-                    {
-                        "fair_slug": fair_slug,
-                        "gallery_name_en": gallery_name_en,
-                        "source_url": source_url,
-                        "saved_images": saved_count,
-                        "target_images": target_images,
-                        "reason": reason,
-                    }
+                    build_failed_case_record(
+                        reason,
+                        saved_images=saved_count,
+                        new_saved_images=new_saved_count,
+                        existing_hit_only=existing_hit_only,
+                    )
                 )
                 reason_counter[reason] += 1
 
@@ -1792,7 +1991,7 @@ def main() -> int:
                 {
                     **target,
                     "seed_url_type": seed_url_type,
-                    "source_url_effective": chosen_detail_url,
+                    "source_url_effective": chosen_detail_url or existing_hit_detail_url,
                     "listing_resolved_to_detail_count": listing_resolved_to_detail_count,
                     "detail_urls_considered_top10": [str(item.get("url") or "") for item in detail_pages[:10]],
                     "detail_year_bucket_counts": {
@@ -1807,10 +2006,16 @@ def main() -> int:
                     "new_saved_images": new_saved_count,
                     "existing_hit_only": existing_hit_only,
                     "existing_hit": existing_hit,
+                    "existing_detail_hit_count": len(existing_hit_detail_urls),
+                    "quota_eligible_detail_page_count": quota_eligible_detail_page_count,
+                    "raw_candidate_total": raw_candidate_total,
+                    "guard_pass_candidate_total": guard_pass_candidate_total,
+                    "download_surviving_candidate_total": download_surviving_candidate_total,
+                    "saved_detail_page_count": len(detail_pages_with_saved_image),
                     "target_images": target_images,
-                        "target_met": target_met,
-                        "target_met_new": target_met_new,
-                        "status": case_status,
+                    "target_met": target_met,
+                    "target_met_new": target_met_new,
+                    "status": case_status,
                     "selected_image_urls_top5": selected_urls[:5],
                     "selected_image_years_top5": selected_years[:5],
                     "selected_image_evidence_top5": selected_evidence[:5],
@@ -1906,6 +2111,9 @@ def main() -> int:
         "io_root": str(io_root),
         "target_year": int(args.target_year),
         "target_images_per_exhibition": int(args.target_images_per_exhibition),
+        "detail_page_image_limit": DETAIL_PAGE_IMAGE_LIMIT,
+        "listing_dynamic_target_cap": LISTING_DYNAMIC_TARGET_CAP,
+        "listing_dynamic_target_policy": "ceil(strong_target_year_detail_pages/2), capped",
         "seed_exhibition_count": len(targets),
         "seed_url_type_breakdown": dict(seed_url_type_counter),
         "listing_resolved_to_detail_count": int(listing_resolved_seed_count),
@@ -1923,6 +2131,9 @@ def main() -> int:
         "existing_hit_only_case_count": sum(1 for c in cases if bool(c.get("existing_hit_only"))),
         "failed_case_count": len(failed_cases),
         "failed_reason_counts": dict(reason_counter),
+        "seed_transition_breakdown": build_seed_transition_breakdown(cases),
+        "guard_counter_totals": build_guard_counter_totals(cases),
+        "playwright_runtime_diagnostics": artist_img.get_playwright_runtime_diagnostics(),
         "gallery_breakdown": build_breakdowns(success_cases),
         "cases": cases,
         "failed_cases": failed_cases,

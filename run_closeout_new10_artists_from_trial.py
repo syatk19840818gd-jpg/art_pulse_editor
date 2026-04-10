@@ -41,8 +41,7 @@ from run_rag_gallery_breakdown_update import (
     normalize_url,
 )
 
-DEFAULT_TARGETS_CSV = Path("data/gallery_lists/phase3_fixed_block_next10_targets.csv")
-DEFAULT_RUN_ID_PREFIX = "TASK_PHASE3_NEW10_ARTISTS_CLOSEOUT"
+DEFAULT_RUN_ID_PREFIX = "TASK_PHASE3_ARTISTS_TRIAL_CLOSEOUT"
 
 
 def utc_now_iso() -> str:
@@ -63,15 +62,15 @@ def resolve_path(path_text: str | Path) -> Path:
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Close out new10 artist trial artifacts into current with bounded merges, "
-            "xlsx update, and required R2 sync of current formal artifacts."
+            "Stabilization-only helper for closing out artist trial artifacts into current "
+            "with bounded merges, xlsx update, and required R2 sync of current formal artifacts."
         )
     )
     parser.add_argument("--trial-root", required=True, help="trial root used as source of truth")
     parser.add_argument(
         "--targets-file",
-        default=str(DEFAULT_TARGETS_CSV),
-        help=f"gallery scope CSV (default: {DEFAULT_TARGETS_CSV})",
+        required=True,
+        help="gallery scope CSV for this bounded trial closeout",
     )
     parser.add_argument(
         "--xlsx-path",
@@ -88,7 +87,23 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="write current artifacts, update xlsx, and execute required R2 sync for the closeout bundle",
     )
+    parser.add_argument(
+        "--approval-token",
+        default="",
+        help="required for --apply; inspect trial/current artifacts offline before any approved closeout",
+    )
     return parser.parse_args(argv)
+
+
+def require_trial_closeout_approval(args: argparse.Namespace) -> None:
+    if not args.apply:
+        return
+    if str(args.approval_token or "").strip():
+        return
+    raise RuntimeError(
+        "approval_required_for_trial_closeout_apply:"
+        "pass --approval-token <user-approved-note>; offline diff/audit remains available without --apply"
+    )
 
 
 def read_json(path: Path) -> dict[str, Any]:
@@ -877,6 +892,7 @@ def write_image_vector_artifacts(
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
+    require_trial_closeout_approval(args)
     started_at = utc_now_iso()
     trial_root = resolve_path(args.trial_root)
     targets_path = resolve_path(args.targets_file)

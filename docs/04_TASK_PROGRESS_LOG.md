@@ -1,6 +1,6 @@
 # 04_作業進捗ログ
 
-最終更新: 2026-04-06 JST
+最終更新: 2026-04-07 JST
 プロジェクト: ART_PULSE_EDITOR
 
 ## 0. 文書の役割
@@ -128,3 +128,14 @@
 - xlsx 更新と R2 bundle は current formal artifacts を source of truth とし、docs / `rag_gellery_breakdown_master.xlsx` / `_trial` は R2 bundle に含めない。xlsx 自体は GitHub バックアップ前提であり、R2 sync 必須対象には含めない。
 - 既存のカテゴリ別 runner は残してよいが、手動のカテゴリ別 closeout / narrow sync は主導線にしない。
 - `phase3_fixed_block_next10_targets.csv` の verify-first は安定化フェーズ残タスクとして例外的に実施し、`run_block_closeout.py --r2-live-plan` で planned を確認した。これは通常運用ルールへ昇格させない。
+
+## 16. 2026-04-07 Phase 3 最終安全化（汎用性監査 + approval guard + baseline固定）
+- offline-only で、Phase 3 の主 runner / closeout / enrichment / vectorize / repair / promote を棚卸しし、gallery個別・host個別・initial10/new10 固定の残存有無を監査した。
+- `run_block_closeout.py` は `next10` 既定CSVに依存しないよう修正し、scope CSV の明示指定を必須化した。live R2 plan / apply は `--approval-token` 必須にした。
+- `run_enrichment_artists_seed10_apply.py` は live OpenAI Batch 実行を `--approval-token` 必須にし、request-id 固定の localized repair whitelist を空に戻した。以後の repair は hidden fallback ではなく offline diagnosis + approved promote に寄せる。
+- `run_vectorize_artists_seed10.py`、`run_repair_artist_works_images_vectors.py`、`run_text_enrichment_delta_promote.py`、`run_closeout_new10_artists_from_trial.py` は live vectorize / repair / promote / current closeout を `--approval-token` 必須にした。
+- `run_phase1_seed10.py` と `run_phase1_seed10_artist_image_collect.py` は `--mode rebuild` を approval 必須にし、承認前は fill-missing / dry-run による offline-only diagnosis へ寄せた。
+- `run_enrichment_artists_preview.py` の sample 選定は `frieze_london` / `liste` 固定分岐を外し、fair 一般化のロジックへ置き換えた。preview 層に残っていた軽微な母集団依存を削った。
+- 次 block の標準運用を正式固定: baseline code をそのまま1回だけ使う -> verify-first -> 70%以上なら apply -> 70%未満なら offline-only で failure class 分析 -> generic patch を1回だけ検討 -> 再実行は承認後のみ。
+- gallery個別対応 / host個別対応 / block母集団別専用コードは通常運用の本番ロジックに追加しない。特殊館は skip を許容するが、block 全体70%以上は必須ラインとして維持する。
+- ①②で行った trial-and-error の教訓を今後の全 block に適用することを、01 / 03 / 04 に同期した。

@@ -23,9 +23,10 @@ from phase2_art_pulse_config import (
 
 TRUTHY_VALUES = {"1", "true", "yes", "on"}
 TERMINAL_BATCH_STATUSES = {"completed", "failed", "expired", "cancelled"}
+FAILED_BATCH_STATUSES = {"failed", "expired", "cancelled"}
+BULK_LIFECYCLE_MODES = ("auto", "submit_only", "resume_or_check")
 ALLOWED_PROMOTE_RERUN_GUARD_VERDICTS = {"new_run", "resume_existing_batch"}
 OPTIONAL_OUTPUT_ARTIFACTS_ENV = "ART_PULSE_OUTPUT_ARTIFACTS"
-ENRICHMENT_BATCH_CUSTOM_ID_DELIMITER = "::field::"
 OPTIONAL_OUTPUT_ARTIFACT_ALIASES = {
     "all": "all",
     "preview": "preview",
@@ -46,6 +47,16 @@ def utc_now_iso() -> str:
 
 def utc_now_compact() -> str:
     return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+
+
+def resolve_optional_io_root(path_text: str) -> Path | None:
+    raw = str(path_text or "").strip()
+    if not raw:
+        return None
+    path = Path(raw)
+    if not path.is_absolute():
+        path = (Path.cwd() / path).resolve()
+    return path
 
 
 def write_json(path: Path, obj: Any) -> None:
@@ -122,16 +133,52 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
-def build_enrichment_field_custom_id(request_id: str, field_name: str) -> str:
+def build_enrichment_request_custom_id(request_id: str) -> str:
     rid = str(request_id or "").strip()
-    field = str(field_name or "").strip()
     if not rid:
         raise ValueError("request_id_empty")
-    if not field:
-        raise ValueError("field_name_empty")
-    if ENRICHMENT_BATCH_CUSTOM_ID_DELIMITER in rid:
-        raise ValueError("request_id_contains_reserved_delimiter")
-    return f"{rid}{ENRICHMENT_BATCH_CUSTOM_ID_DELIMITER}{field}"
+    return rid
+
+
+def normalize_requested_enrichment_fields(
+    requested_fields: Any,
+    allowed_fields: tuple[str, ...],
+) -> tuple[str, ...]:
+    allowed = tuple(str(field or "").strip() for field in allowed_fields if str(field or "").strip())
+    allowed_set = set(allowed)
+    if not allowed:
+        raise ValueError("allowed_fields_empty")
+
+    normalized: list[str] = []
+    if isinstance(requested_fields, (list, tuple, set)):
+        for value in requested_fields:
+            field = str(value or "").strip()
+            if field and field in allowed_set and field not in normalized:
+                normalized.append(field)
+
+    if not normalized:
+        return allowed
+    return tuple(field for field in allowed if field in normalized)
+
+
+def resolve_batch_request_model(
+    *,
+    request_id: str,
+    requested_fields: tuple[str, ...],
+    field_models: dict[str, str],
+) -> str:
+    models = {
+        str(field_models.get(field) or "").strip()
+        for field in requested_fields
+        if str(field_models.get(field) or "").strip()
+    }
+    if not models:
+        raise RuntimeError(f"batch_request_model_missing:{request_id}")
+    if len(models) != 1:
+        ordered = ",".join(sorted(models))
+        fields = ",".join(requested_fields)
+        raise RuntimeError(f"batch_request_multi_model_not_supported:{request_id}:{fields}:{ordered}")
+    return next(iter(models))
 
 
 def to_plain_dict(obj: Any) -> dict[str, Any]:
@@ -678,6 +725,53 @@ def build_bulk_contract_fields(
         "process_lock_id": str(process_lock_id or ""),
         "execution_mode": str(execution_mode or "bulk_apply"),
         "batch_required": bool(batch_required),
+    }
+
+
+def normalize_bulk_lifecycle_mode(value: str | None) -> str:
+    token = str(value or "").strip().lower()
+    if not token:
+        return "auto"
+    if token not in BULK_LIFECYCLE_MODES:
+        allowed = ",".join(BULK_LIFECYCLE_MODES)
+        raise ValueError(f"unsupported_bulk_lifecycle_mode:{token}; allowed={allowed}")
+    return token
+
+
+def build_bulk_lifecycle_fields(
+    *,
+    lifecycle_mode: str,
+    batch_status: str,
+    batch_job_id: str,
+    materialized: bool = False,
+) -> dict[str, Any]:
+    normalized_mode = normalize_bulk_lifecycle_mode(lifecycle_mode)
+    normalized_status = str(batch_status or "").strip()
+    if not normalized_status and normalized_mode == "submit_only" and str(batch_job_id or "").strip():
+        normalized_status = "submitted_or_validating"
+    terminal_ready = normalized_status in TERMINAL_BATCH_STATUSES
+    materialization_ready = normalized_status == "completed" and not bool(materialized)
+    if normalized_status in FAILED_BATCH_STATUSES:
+        lifecycle_phase = "terminal_failed"
+        needs_resume = False
+    elif normalized_status == "completed":
+        lifecycle_phase = "completed_materialized" if materialized else "completed_ready_for_materialization"
+        needs_resume = not bool(materialized)
+    elif normalized_status in {"", "not_submitted"}:
+        lifecycle_phase = "not_submitted"
+        needs_resume = False
+    elif normalized_mode == "submit_only":
+        lifecycle_phase = "submitted_pending"
+        needs_resume = True
+    else:
+        lifecycle_phase = "pending"
+        needs_resume = True
+    return {
+        "lifecycle_mode": normalized_mode,
+        "lifecycle_phase": lifecycle_phase,
+        "needs_resume": bool(needs_resume),
+        "terminal_ready": bool(terminal_ready),
+        "materialization_ready": bool(materialization_ready),
     }
 
 

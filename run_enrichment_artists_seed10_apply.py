@@ -18,21 +18,28 @@ from dotenv import load_dotenv
 from openai import OpenAI
 
 from enrichment_batch_common import (
+    BULK_LIFECYCLE_MODES,
+    FAILED_BATCH_STATUSES,
     TERMINAL_BATCH_STATUSES,
     acquire_process_lock,
-    build_enrichment_field_custom_id,
+    build_enrichment_request_custom_id,
     build_batch_request_line,
     build_bulk_artifact_paths,
     build_bulk_contract_fields,
     build_bulk_guard_key,
+    build_bulk_lifecycle_fields,
     build_input_bundle_hash,
     create_responses_batch,
     download_batch_file_rows,
     finalize_runtime_requests_retention,
     is_optional_output_enabled,
     load_guard_state,
+    normalize_bulk_lifecycle_mode,
+    normalize_requested_enrichment_fields,
     read_jsonl,
     release_process_lock,
+    resolve_batch_request_model,
+    resolve_optional_io_root,
     retrieve_batch,
     utc_now_compact,
     utc_now_iso,
@@ -48,7 +55,6 @@ from model_routing import (
     ARTISTS_ENRICHMENT_BATCH_FIELDS,
     ARTISTS_ENRICHMENT_FIELD_MODELS,
     ENRICH_USE_OPENAI_BATCH_DEFAULT,
-    get_artists_enrichment_model,
     get_enrichment_model_fingerprint,
 )
 from phase2_art_pulse_config import promote_history_file_to_current
@@ -65,13 +71,12 @@ from run_enrichment_artists_preview import (
     infer_artist_name_en,
     parse_openai_response_body,
     resolve_artists_enrichment_io_paths,
-    resolve_io_root,
 )
 
 TARGET_YEAR = 2025
-LOCALIZED_REPAIR_TARGET_REQUEST_IDS = {
-    "seed10_artists_enrich_336ffd39ede28d95d3a1983d90f7174bb1f0b740fd34b710a968f6fb4ba38f74",
-}
+# Request-id specific carry-forward is intentionally disabled in the baseline.
+# Localized repair must go through explicit offline diagnosis plus approved promote flow.
+LOCALIZED_REPAIR_TARGET_REQUEST_IDS: set[str] = set()
 NON_ARTIST_UTILITY_TOKENS = {
     "privacy",
     "policy",
@@ -100,6 +105,11 @@ def parse_args() -> argparse.Namespace:
         help="Validate bulk batch prerequisites and rerun-guard inputs without creating a batch job.",
     )
     parser.add_argument(
+        "--approval-token",
+        default="",
+        help="required for live OpenAI Batch execution; preflight-only remains available without approval",
+    )
+    parser.add_argument(
         "--allowlist-csv",
         default="",
         help="optional allowlist CSV with fair_slug and gallery_name_en columns; out-of-scope requests are skipped",
@@ -109,7 +119,24 @@ def parse_args() -> argparse.Namespace:
         default="",
         help="optional trial I/O root; when set, requests/artifacts/raw writeback resolve under this root",
     )
+    parser.add_argument(
+        "--lifecycle-mode",
+        choices=BULK_LIFECYCLE_MODES,
+        default="auto",
+        help="batch lifecycle mode: auto|submit_only|resume_or_check (default: auto)",
+    )
     return parser.parse_args()
+
+
+def require_live_batch_approval(args: argparse.Namespace) -> None:
+    if args.preflight_only:
+        return
+    if str(args.approval_token or "").strip():
+        return
+    raise RuntimeError(
+        "approval_required_for_openai_batch_apply:"
+        "pass --approval-token <user-approved-note>; use --preflight-only for offline-only diagnosis"
+    )
 
 
 def normalize_gallery_scope_name(value: str) -> str:
@@ -466,7 +493,9 @@ def main() -> int:
     args = parse_args()
     started_at = utc_now_iso()
     safe_print(f"[START] artists enrichment apply: {started_at}")
-    io_root = resolve_io_root(args.io_root)
+    require_live_batch_approval(args)
+    lifecycle_mode = normalize_bulk_lifecycle_mode(args.lifecycle_mode)
+    io_root = resolve_optional_io_root(args.io_root)
     io_paths = resolve_artists_enrichment_io_paths(io_root=io_root)
     raw_input_paths = io_paths["raw_input_paths"]
     requests_path = io_paths["requests_output_path"]
@@ -663,6 +692,11 @@ def main() -> int:
         working["text"] = text
         working["source_url"] = source_url or str(working.get("source_url") or "").strip()
         working["artist_name_kana"] = str(working.get("artist_name_kana") or "").strip()
+        requested_fields = normalize_requested_enrichment_fields(
+            req.get("needs_fields"),
+            ARTISTS_ENRICHMENT_BATCH_FIELDS,
+        )
+        working["needs_fields"] = list(requested_fields)
         pending_tasks.append(
             {
                 "custom_id": request_id,
@@ -672,6 +706,12 @@ def main() -> int:
                 "source_url": source_url,
                 "row_index": idx,
                 "working": working,
+                "requested_fields": list(requested_fields),
+                "model": resolve_batch_request_model(
+                    request_id=request_id,
+                    requested_fields=requested_fields,
+                    field_models=ARTISTS_ENRICHMENT_FIELD_MODELS,
+                ),
                 "input_chars": len(text),
             }
         )
@@ -693,33 +733,30 @@ def main() -> int:
         root=io_root,
     )
     prereq = validate_bulk_batch_prerequisites(api_key=api_key, use_batch=use_batch, target_rows=target_rows)
-    target_request_ids = [
-        build_enrichment_field_custom_id(str(task["custom_id"]), field_name)
-        for task in pending_tasks
-        for field_name in ARTISTS_ENRICHMENT_BATCH_FIELDS
-    ]
+    target_request_ids = [build_enrichment_request_custom_id(str(task["custom_id"])) for task in pending_tasks]
 
     if args.preflight_only:
         payload = {
             "status": "ok" if prereq["ok"] else "blocked",
             "category": "artists",
             "execution_mode": "bulk_apply",
+            "lifecycle_mode": lifecycle_mode,
             "batch_required": True,
             "direct_openai_allowed": False,
             "requests_path": str(requests_path),
             "input_bundle_hash": input_bundle_hash,
             "guard_key": guard_key,
-                "guard_state_path": str(probe_paths["guard_state_path"]),
-                "target_rows": target_rows,
-                "total_requests": len(request_rows),
-                "allowlist_enabled": allowlist_enabled,
-                "allowlist_path": str(args.allowlist_csv or ""),
-                "allowlist_entry_count": len(allowlist),
-                "scoped_request_rows": scoped_request_rows,
-                "out_of_scope_skipped": counters["skipped_out_of_scope_allowlist"],
-                "target_request_ids_count": len(target_request_ids),
-                "enrich_model": enrich_model_fingerprint,
-                "enrich_models_by_field": dict(ARTISTS_ENRICHMENT_FIELD_MODELS),
+            "guard_state_path": str(probe_paths["guard_state_path"]),
+            "target_rows": target_rows,
+            "total_requests": len(request_rows),
+            "allowlist_enabled": allowlist_enabled,
+            "allowlist_path": str(args.allowlist_csv or ""),
+            "allowlist_entry_count": len(allowlist),
+            "scoped_request_rows": scoped_request_rows,
+            "out_of_scope_skipped": counters["skipped_out_of_scope_allowlist"],
+            "target_request_ids_count": len(target_request_ids),
+            "enrich_model": enrich_model_fingerprint,
+            "enrich_models_by_field": dict(ARTISTS_ENRICHMENT_FIELD_MODELS),
             "prereq": prereq,
         }
         safe_print(payload)
@@ -759,6 +796,12 @@ def main() -> int:
             "generated_fallback": 0,
             "error_count": 0,
             "batch_status": "not_submitted",
+            **build_bulk_lifecycle_fields(
+                lifecycle_mode=lifecycle_mode,
+                batch_status="not_submitted",
+                batch_job_id="",
+                materialized=False,
+            ),
             "promoted_to_current": False,
             "promote_verdict": "promote_blocked_no_target_rows",
             "guard_state_path": str(paths["guard_state_path"]),
@@ -789,6 +832,12 @@ def main() -> int:
             "category": "artists",
             "guard_status": "completed_no_target_rows",
             "batch_status": "not_submitted",
+            **build_bulk_lifecycle_fields(
+                lifecycle_mode=lifecycle_mode,
+                batch_status="not_submitted",
+                batch_job_id="",
+                materialized=False,
+            ),
             "requests_path": str(requests_path),
             "target_request_ids": [],
             "enrich_model": enrich_model_fingerprint,
@@ -851,6 +900,8 @@ def main() -> int:
             if not batch_job_id:
                 raise RuntimeError("rerun_guard_missing_batch_job_id")
         else:
+            if lifecycle_mode == "resume_or_check":
+                raise RuntimeError("resume_or_check_requires_existing_in_progress_batch")
             process_lock_id = acquire_process_lock(probe_paths["lock_path"], category="artists", guard_key=guard_key)
             release_lock_at_exit = True
             stamp = utc_now_compact()
@@ -869,16 +920,15 @@ def main() -> int:
         if rerun_guard_verdict == "new_run":
             batch_input_rows: list[dict[str, Any]] = []
             for task in pending_tasks:
-                for field_name in ARTISTS_ENRICHMENT_BATCH_FIELDS:
-                    batch_input_rows.append(
-                        build_batch_request_line(
-                            custom_id=build_enrichment_field_custom_id(str(task["custom_id"]), field_name),
-                            body=build_openai_request_body(
-                                get_artists_enrichment_model(field_name),
-                                dict(task["working"]),
-                            ),
-                        )
+                batch_input_rows.append(
+                    build_batch_request_line(
+                        custom_id=build_enrichment_request_custom_id(str(task["custom_id"])),
+                        body=build_openai_request_body(
+                            str(task["model"]),
+                            dict(task["working"]),
+                        ),
                     )
+                )
             write_jsonl(paths["batch_input_path"], batch_input_rows)
             upload_file = upload_batch_input_file(client, paths["batch_input_path"])
             batch_input_file_id = str(upload_file.get("id") or "").strip()
@@ -917,6 +967,7 @@ def main() -> int:
                 "process_lock_id": process_lock_id,
                 "rerun_guard_verdict": rerun_guard_verdict,
                 "execution_mode": "bulk_apply",
+                "lifecycle_mode": lifecycle_mode,
                 "batch_required": True,
                 "api_mode": "openai_batch_apply",
                 "batch_used": True,
@@ -940,26 +991,165 @@ def main() -> int:
             guard_state["rerun_guard_verdict"] = rerun_guard_verdict
             guard_state["updated_at"] = utc_now_iso()
 
-        if rerun_guard_verdict == "new_run":
+        if rerun_guard_verdict == "new_run" and lifecycle_mode != "submit_only":
             batch_state = retrieve_batch(client, batch_job_id)
 
         batch_status = str(batch_state.get("status") or "").strip()
+        lifecycle_fields = build_bulk_lifecycle_fields(
+            lifecycle_mode=lifecycle_mode,
+            batch_status=batch_status,
+            batch_job_id=batch_job_id,
+            materialized=False,
+        )
         guard_state["batch_status"] = batch_status
         guard_state["batch_job_id"] = batch_job_id
         guard_state["batch_input_file_id"] = batch_input_file_id
         guard_state["request_counts"] = batch_state.get("request_counts") or {}
+        guard_state["lifecycle_mode"] = lifecycle_mode
+        guard_state["lifecycle_phase"] = lifecycle_fields["lifecycle_phase"]
+        guard_state["needs_resume"] = lifecycle_fields["needs_resume"]
+        guard_state["terminal_ready"] = lifecycle_fields["terminal_ready"]
+        guard_state["materialization_ready"] = lifecycle_fields["materialization_ready"]
         guard_state["updated_at"] = utc_now_iso()
 
-        if batch_status not in TERMINAL_BATCH_STATUSES:
+        if batch_status in FAILED_BATCH_STATUSES:
+            failed_rows = apply_rows + [
+                {
+                    "request_id": str(task["request_id"]),
+                    "fair_slug": str(task["fair_slug"]),
+                    "text_hash": str(task["text_hash"]),
+                    "source_url": str(task["source_url"]),
+                    "status": "BATCH_TERMINAL_FAILED",
+                    "batch_job_id": batch_job_id,
+                    "batch_status": batch_status,
+                }
+                for task in pending_tasks
+            ]
+            raw_state = summarize_raw_state(raw_rows_by_fair, raw_text_before)
+            summary = {
+                "started_at": str(guard_state.get("started_at") or started_at),
+                "completed_at": utc_now_iso(),
+                "target_year": TARGET_YEAR,
+                "rag_category": RAG_CATEGORY,
+                "requests_path": str(requests_path),
+                "raw_input_paths": {k: str(v) for k, v in raw_input_paths.items()},
+                "apply_output_path": str(paths["history_output_path"]),
+                "apply_summary_path": str(paths["history_summary_path"]),
+                "apply_manifest_path": str(paths["history_manifest_path"]),
+                "current_output_path": str(paths["current_output_path"]),
+                "current_summary_path": str(paths["current_summary_path"]),
+                "total_targeted": len(request_rows),
+                "total_applied": 0,
+                "total_not_updated": len(request_rows),
+                "warning_count": 0,
+                "warning_rows": 0,
+                "generated_openai": 0,
+                "generated_fallback": 0,
+                "error_count": 0,
+                "batch_status": batch_status,
+                **lifecycle_fields,
+                "promoted_to_current": False,
+                "promote_verdict": "promote_blocked_batch_terminal_failed",
+                "guard_state_path": str(paths["guard_state_path"]),
+                "guard_key": guard_key,
+                "target_request_ids_count": len(target_request_ids),
+                "target_request_ids": target_request_ids,
+                "counters": dict(counters),
+                "request_counts": batch_state.get("request_counts") or {},
+                "enrich_model": enrich_model_fingerprint,
+                "enrich_models_by_field": dict(ARTISTS_ENRICHMENT_FIELD_MODELS),
+                "enrich_use_openai_batch": use_batch,
+                "enrich_completion_window": completion_window,
+                "enrich_prompt_version": ENRICH_PROMPT_VERSION,
+                "openai_client_available": bool(api_key),
+                **raw_state,
+                **build_bulk_contract_fields(
+                    api_mode="openai_batch_apply",
+                    batch_used=True,
+                    batch_job_id=batch_job_id,
+                    input_bundle_hash=input_bundle_hash,
+                    target_rows=target_rows,
+                    updated_rows=0,
+                    rerun_guard_verdict=rerun_guard_verdict,
+                    process_lock_id=process_lock_id,
+                ),
+            }
+            manifest = {
+                "schema_name": "enrichment_bulk_apply_manifest",
+                "category": "artists",
+                "guard_status": "terminal_failed",
+                "batch_status": batch_status,
+                **lifecycle_fields,
+                "requests_path": str(requests_path),
+                "target_request_ids": target_request_ids,
+                "request_counts": batch_state.get("request_counts") or {},
+                "batch_input_file_id": batch_input_file_id,
+                "batch_input_path": str(paths["batch_input_path"]),
+                "enrich_model": enrich_model_fingerprint,
+                "enrich_models_by_field": dict(ARTISTS_ENRICHMENT_FIELD_MODELS),
+                "enrich_prompt_version": ENRICH_PROMPT_VERSION,
+                "enrich_completion_window": completion_window,
+                "openai_client_available": bool(api_key),
+                **build_bulk_contract_fields(
+                    api_mode="openai_batch_apply",
+                    batch_used=True,
+                    batch_job_id=batch_job_id,
+                    input_bundle_hash=input_bundle_hash,
+                    target_rows=target_rows,
+                    updated_rows=0,
+                    rerun_guard_verdict=rerun_guard_verdict,
+                    process_lock_id=process_lock_id,
+                ),
+            }
+            guard_state["guard_status"] = "terminal_failed"
+            guard_state["completed_at"] = summary["completed_at"]
+            guard_state["updated_at"] = summary["completed_at"]
+            persist_artifacts(
+                history_output_path=paths["history_output_path"],
+                history_summary_path=paths["history_summary_path"],
+                history_manifest_path=paths["history_manifest_path"],
+                apply_rows=failed_rows,
+                summary=summary,
+                manifest=manifest,
+                guard_state_path=paths["guard_state_path"],
+                guard_state=guard_state,
+            )
+            release_process_lock(paths["lock_path"])
+            release_lock_at_exit = False
+            retention_info = finalize_runtime_requests_retention(
+                category="artists",
+                target_year=TARGET_YEAR,
+                requests_path=requests_path,
+                summary=summary,
+                guard_state_path=paths["guard_state_path"],
+                lock_path=paths["lock_path"],
+                root=io_root,
+            )
+            summary.update(retention_info)
+            manifest.update(retention_info)
+            write_json(paths["history_summary_path"], summary)
+            write_json(paths["history_manifest_path"], manifest)
+            safe_print(f"[FAILED] batch_job_id={batch_job_id} status={batch_status}")
+            safe_print(f"[FAILED] history_summary={paths['history_summary_path']}")
+            return 1
+
+        if lifecycle_mode == "submit_only" or batch_status not in TERMINAL_BATCH_STATUSES:
+            waiting_status = batch_status or ("submitted_or_validating" if lifecycle_mode == "submit_only" else "in_progress")
+            waiting_row_status = "BATCH_SUBMITTED" if lifecycle_mode == "submit_only" else "BATCH_WAITING"
+            promote_verdict = (
+                "promote_pending_materialization_resume_required"
+                if lifecycle_fields["materialization_ready"]
+                else "promote_pending_batch_resume_required"
+            )
             waiting_rows = apply_rows + [
                 {
                     "request_id": str(task["request_id"]),
                     "fair_slug": str(task["fair_slug"]),
                     "text_hash": str(task["text_hash"]),
                     "source_url": str(task["source_url"]),
-                    "status": "BATCH_WAITING",
+                    "status": waiting_row_status,
                     "batch_job_id": batch_job_id,
-                    "batch_status": batch_status or "in_progress",
+                    "batch_status": waiting_status,
                 }
                 for task in pending_tasks
             ]
@@ -984,9 +1174,15 @@ def main() -> int:
                 "generated_openai": 0,
                 "generated_fallback": 0,
                 "error_count": 0,
-                "batch_status": batch_status or "in_progress",
+                "batch_status": waiting_status,
+                **build_bulk_lifecycle_fields(
+                    lifecycle_mode=lifecycle_mode,
+                    batch_status=waiting_status,
+                    batch_job_id=batch_job_id,
+                    materialized=False,
+                ),
                 "promoted_to_current": False,
-                "promote_verdict": "promote_blocked_batch_not_completed",
+                "promote_verdict": promote_verdict,
                 "guard_state_path": str(paths["guard_state_path"]),
                 "guard_key": guard_key,
                 "target_request_ids_count": len(target_request_ids),
@@ -1015,7 +1211,13 @@ def main() -> int:
                 "schema_name": "enrichment_bulk_apply_manifest",
                 "category": "artists",
                 "guard_status": "in_progress",
-                "batch_status": batch_status or "in_progress",
+                "batch_status": waiting_status,
+                **build_bulk_lifecycle_fields(
+                    lifecycle_mode=lifecycle_mode,
+                    batch_status=waiting_status,
+                    batch_job_id=batch_job_id,
+                    materialized=False,
+                ),
                 "requests_path": str(requests_path),
                 "target_request_ids": target_request_ids,
                 "request_counts": batch_state.get("request_counts") or {},
@@ -1047,7 +1249,7 @@ def main() -> int:
                 guard_state_path=paths["guard_state_path"],
                 guard_state=guard_state,
             )
-            safe_print(f"[HOLD] batch_job_id={batch_job_id} status={batch_status or 'in_progress'}")
+            safe_print(f"[HOLD] batch_job_id={batch_job_id} status={waiting_status}")
             safe_print(f"[HOLD] summary={paths['history_summary_path']}")
             return 0
 
@@ -1069,6 +1271,10 @@ def main() -> int:
         for task in pending_tasks:
             request_id = str(task["custom_id"])
             artist_name_en = infer_artist_name_en(dict(task["working"]))
+            requested_fields = normalize_requested_enrichment_fields(
+                task.get("requested_fields"),
+                ARTISTS_ENRICHMENT_BATCH_FIELDS,
+            )
             parsed_fields: dict[str, str] = {}
             failure_status = ""
             failure_field = ""
@@ -1076,59 +1282,53 @@ def main() -> int:
             failure_status_code = 0
             parser_response_info: dict[str, Any] | None = None
             parser_response_body: dict[str, Any] | None = None
+            result_row = output_map.get(request_id)
+            error_row = error_map.get(request_id)
 
-            for field_name in ARTISTS_ENRICHMENT_BATCH_FIELDS:
-                field_custom_id = build_enrichment_field_custom_id(request_id, field_name)
-                result_row = output_map.get(field_custom_id)
-                error_row = error_map.get(field_custom_id)
-
-                if error_row:
-                    failure_status = "BATCH_RESULT_FAILED"
-                    failure_field = field_name
-                    failure_error = error_row.get("error")
-                    break
-                if not result_row:
-                    failure_status = "BATCH_RESULT_MISSING"
-                    failure_field = field_name
-                    break
-
+            if error_row:
+                failure_status = "BATCH_RESULT_FAILED"
+                failure_field = ",".join(requested_fields)
+                failure_error = error_row.get("error")
+            elif not result_row:
+                failure_status = "BATCH_RESULT_MISSING"
+                failure_field = ",".join(requested_fields)
+            else:
                 response_info = result_row.get("response")
                 if not isinstance(response_info, dict):
                     failure_status = "BATCH_RESPONSE_MISSING"
-                    failure_field = field_name
-                    break
-
-                status_code = int(response_info.get("status_code") or 0)
-                response_body = response_info.get("body")
-                if status_code != 200 or not isinstance(response_body, dict):
-                    failure_status = "BATCH_REQUEST_FAILED"
-                    failure_field = field_name
-                    failure_status_code = status_code
-                    failure_error = result_row.get("error")
-                    break
-
-                try:
-                    headline_ja, summary_ja, artist_name_kana = parse_openai_response_body(response_body)
-                except Exception as exc:
-                    failure_status = "BATCH_PARSE_FAILED"
-                    failure_field = field_name
-                    failure_error = str(exc)
-                    parser_response_info = response_info
-                    parser_response_body = response_body
-                    break
-
-                parsed_value = {
-                    "headline_ja": headline_ja,
-                    "summary_ja": summary_ja,
-                    "artist_name_kana": artist_name_kana,
-                }.get(field_name, "")
-                parsed_value = str(parsed_value or "").strip()
-                if not parsed_value:
-                    failure_status = "BATCH_FIELD_EMPTY"
-                    failure_field = field_name
-                    failure_error = "parsed_field_empty"
-                    break
-                parsed_fields[field_name] = parsed_value
+                    failure_field = ",".join(requested_fields)
+                else:
+                    status_code = int(response_info.get("status_code") or 0)
+                    response_body = response_info.get("body")
+                    if status_code != 200 or not isinstance(response_body, dict):
+                        failure_status = "BATCH_REQUEST_FAILED"
+                        failure_field = ",".join(requested_fields)
+                        failure_status_code = status_code
+                        failure_error = result_row.get("error")
+                    else:
+                        try:
+                            headline_ja, summary_ja, artist_name_kana = parse_openai_response_body(response_body)
+                        except Exception as exc:
+                            failure_status = "BATCH_PARSE_FAILED"
+                            failure_field = ",".join(requested_fields)
+                            failure_error = str(exc)
+                            parser_response_info = response_info
+                            parser_response_body = response_body
+                        else:
+                            parsed_fields = {
+                                "headline_ja": str(headline_ja or "").strip(),
+                                "summary_ja": str(summary_ja or "").strip(),
+                                "artist_name_kana": str(artist_name_kana or "").strip(),
+                            }
+                            missing_fields = [
+                                field_name
+                                for field_name in requested_fields
+                                if not str(parsed_fields.get(field_name) or "").strip()
+                            ]
+                            if missing_fields:
+                                failure_status = "BATCH_FIELD_EMPTY"
+                                failure_field = ",".join(missing_fields)
+                                failure_error = "parsed_field_empty"
 
             if failure_status:
                 if failure_status == "BATCH_PARSE_FAILED":
@@ -1269,6 +1469,12 @@ def main() -> int:
             "diagnostics_path": str(diagnostics_path) if diagnostic_rows and emit_diagnostics else "",
             "diagnostic_rows": len(diagnostic_rows),
             "localized_repair_applied": int(counters.get("batch_parse_failed_localized_repair_applied", 0)),
+            **build_bulk_lifecycle_fields(
+                lifecycle_mode=lifecycle_mode,
+                batch_status=batch_status,
+                batch_job_id=batch_job_id,
+                materialized=True,
+            ),
             "promoted_to_current": False,
             "promote_verdict": "",
             "guard_state_path": str(paths["guard_state_path"]),
@@ -1290,6 +1496,12 @@ def main() -> int:
             "category": "artists",
             "guard_status": "completed" if apply_completed_ok else "terminal_failed",
             "batch_status": batch_status,
+            **build_bulk_lifecycle_fields(
+                lifecycle_mode=lifecycle_mode,
+                batch_status=batch_status,
+                batch_job_id=batch_job_id,
+                materialized=True,
+            ),
             "requests_path": str(requests_path),
             "target_request_ids": target_request_ids,
             "request_counts": batch_state.get("request_counts") or {},
@@ -1331,6 +1543,14 @@ def main() -> int:
         guard_state["batch_status"] = batch_status
         guard_state["completed_at"] = utc_now_iso()
         guard_state["updated_at"] = guard_state["completed_at"]
+        guard_state.update(
+            build_bulk_lifecycle_fields(
+                lifecycle_mode=lifecycle_mode,
+                batch_status=batch_status,
+                batch_job_id=batch_job_id,
+                materialized=True,
+            )
+        )
 
         persist_artifacts(history_output_path=paths["history_output_path"], history_summary_path=paths["history_summary_path"], history_manifest_path=paths["history_manifest_path"], apply_rows=apply_rows, summary=summary, manifest=manifest, guard_state_path=paths["guard_state_path"], guard_state=guard_state)
         release_lock_at_exit = True

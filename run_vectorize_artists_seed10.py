@@ -334,6 +334,11 @@ def resolve_repair_targets(
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Vectorize artist texts into current artifacts.")
     parser.add_argument(
+        "--approval-token",
+        default="",
+        help="required for live text vectorization; inspect artifacts offline before any approved execution",
+    )
+    parser.add_argument(
         "--io-root",
         default="",
         help="optional trial I/O root; when set, raw input and vector artifacts resolve under this root",
@@ -350,6 +355,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="CSV file with columns fair_slug,gallery_name_en for bounded repair mode.",
     )
     return parser.parse_args(argv)
+
+
+def require_vectorize_approval(args: argparse.Namespace) -> None:
+    if str(args.approval_token or "").strip():
+        return
+    raise RuntimeError(
+        "approval_required_for_text_vectorize:"
+        "pass --approval-token <user-approved-note>; inspect raw/meta artifacts offline before approved execution"
+    )
 
 
 def select_raw_input_paths(repair_targets: list[RepairTarget]) -> dict[str, Path]:
@@ -770,6 +784,7 @@ def ensure_atomic_repair_success(
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
+    require_vectorize_approval(args)
     io_root = resolve_io_root(args.io_root)
     configure_runtime_paths(io_root)
     repair_targets = resolve_repair_targets(args.repair_target, args.repair_targets_file)

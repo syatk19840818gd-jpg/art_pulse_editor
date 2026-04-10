@@ -1,0 +1,36 @@
+{
+  "artifact_kind": "r2_sync_apply",
+  "schema_version": "v2",
+  "generated_at": "2026-04-08T13:01:02Z",
+  "scope": "block_closeout_unified_phase3_block_scope_candid_r2_671690069faf",
+  "run_id": "TASK_PHASE3_TRUE_NEXT_BLOCK_CLOSEOUT_APPLY_20260408T130041Z",
+  "bucket": "art-pulse-editor",
+  "sync_mode": "mirror",
+  "plan_log_path": "logs/r2_sync/r2_sync_plan_block_closeout_unified_phase3_block_scope_candid_r2_671690069faf_TASK_PHASE3_TRUE_NEXT_BLOCK_CLOSEOUT_APPLY_20260408T130041Z.json",
+  "local_roots_missing": [],
+  "would_upload_count": 2,
+  "would_delete_count": 0,
+  "would_prune_count": 0,
+  "uploaded_count": 2,
+  "upload_failed_count": 0,
+  "deleted_count": 0,
+  "delete_failed_count": 0,
+  "delete_policy": "no_delete_candidates",
+  "uploaded": [
+    {
+      "r2_key": "data/current/images/metadata/exhibitions_images_frieze_london_2025.jsonl",
+      "local_path": "data/current/images/metadata/exhibitions_images_frieze_london_2025.jsonl",
+      "size_bytes": 125357,
+      "sha256": "598ed7799d25cb409987a7888bc9475c6c29c91a751faa484ec2b5a07575adc2"
+    },
+    {
+      "r2_key": "data/current/images/metadata/exhibitions_images_liste_2025.jsonl",
+      "local_path": "data/current/images/metadata/exhibitions_images_liste_2025.jsonl",
+      "size_bytes": 92518,
+      "sha256": "66a4d57f600927a16833d317ec0b09832bf7df7a79194e6f352f812e5ed71c48"
+    }
+  ],
+  "upload_failed": [],
+  "deleted": [],
+  "delete_failed": []
+}

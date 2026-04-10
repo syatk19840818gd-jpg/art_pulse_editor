@@ -10,6 +10,18 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from gallery_skip_registry import (
+    SKIPPED_GALLERIES_REGISTRY_PATH,
+    SkipGalleryEntry,
+    build_all_rag_zero_skip_entries,
+    build_skip_lookup,
+    is_all_rag_zero_target_row,
+    load_skip_registry_entries,
+    normalize_fair_slug,
+    normalize_gallery_name,
+    remove_skipped_from_gallery_list_csv,
+    upsert_skip_registry_entries,
+)
 from phase2_art_pulse_config import (
     TARGET_YEAR,
     get_current_artist_image_meta_paths,
@@ -51,9 +63,16 @@ SUPPORTED_BLOCK_ARTIFACT_CATEGORIES = (
 BLOCK_COMPLETION_REQUIRED_STAGES = (
     "current_write",
     "xlsx_update",
+    "skip_registry_gallery_list_cleanup",
     "r2_sync",
 )
 CURRENT_FORMAL_ARTIFACTS_ROOT = Path("data/current")
+GALLERY_LIST_PATHS_BY_FAIR = {
+    "frieze_london": Path("data/gallery_lists/gallery_list_frieze_london.csv"),
+    "liste": Path("data/gallery_lists/gallery_list_liste.csv"),
+}
+ALL_RAG_ZERO_SKIP_REASON = "all_rag_zero_auto_detected_in_block_closeout"
+ALL_RAG_ZERO_SKIP_EVIDENCE = "derived_from_closeout_scope_stats_target_gallery_rows"
 
 
 @dataclass(frozen=True)
@@ -71,6 +90,8 @@ class CurrentFormalArtifactBundle:
     target_year: int
     categories: tuple[str, ...]
     groups: tuple[CurrentFormalArtifactGroup, ...]
+    local_root: Path = CURRENT_FORMAL_ARTIFACTS_ROOT
+    r2_prefix: str = CURRENT_FORMAL_ARTIFACTS_ROOT.as_posix()
 
 
 def _slugify(value: str) -> str:
@@ -280,19 +301,33 @@ def _load_default_r2_global_excludes() -> list[str]:
     return list(global_excludes)
 
 
+def _effective_global_excludes_for_local_root(local_root: Path) -> list[str]:
+    excludes = _load_default_r2_global_excludes()
+    lowered_parts = {str(part).casefold() for part in Path(local_root).parts}
+    filtered: list[str] = []
+    for pattern in excludes:
+        lowered_pattern = str(pattern).casefold()
+        if "_trial" in lowered_parts and "_trial" in lowered_pattern:
+            continue
+        if "_trash" in lowered_parts and "_trash" in lowered_pattern:
+            continue
+        filtered.append(pattern)
+    return filtered
+
+
 def _bundle_paths(bundle: CurrentFormalArtifactBundle) -> tuple[Path, ...]:
     return _sorted_unique_paths([path for group in bundle.groups for path in group.paths])
 
 
-def _paths_relative_to_current(paths: Sequence[Path]) -> tuple[str, ...]:
+def _paths_relative_to_bundle_root(paths: Sequence[Path], local_root: Path) -> tuple[str, ...]:
     rels: list[str] = []
-    current_root = CURRENT_FORMAL_ARTIFACTS_ROOT.resolve()
+    bundle_root = Path(local_root).resolve()
     for path in paths:
         resolved = path.resolve()
         try:
-            rel = resolved.relative_to(current_root).as_posix()
+            rel = resolved.relative_to(bundle_root).as_posix()
         except Exception as exc:  # noqa: BLE001
-            raise ValueError(f"closeout_r2_path_outside_current_root:{path}") from exc
+            raise ValueError(f"closeout_r2_path_outside_bundle_root:{path}") from exc
         rels.append(rel)
     return tuple(sorted(dict.fromkeys(rels)))
 
@@ -303,12 +338,12 @@ def build_closeout_r2_scope_payload(
     scope_name: str,
     description: str,
 ) -> dict[str, Any]:
-    include_globs = list(_paths_relative_to_current(_bundle_paths(bundle)))
+    include_globs = list(_paths_relative_to_bundle_root(_bundle_paths(bundle), bundle.local_root))
     if not include_globs:
         raise ValueError("closeout_r2_scope_requires_paths")
     return {
         "version": "v3",
-        "global_exclude_globs": _load_default_r2_global_excludes(),
+        "global_exclude_globs": _effective_global_excludes_for_local_root(bundle.local_root),
         "scopes": {
             scope_name: {
                 "description": description,
@@ -316,8 +351,8 @@ def build_closeout_r2_scope_payload(
                 "sync_mode": "mirror",
                 "targets": [
                     {
-                        "local_root": CURRENT_FORMAL_ARTIFACTS_ROOT.as_posix(),
-                        "r2_prefix": CURRENT_FORMAL_ARTIFACTS_ROOT.as_posix(),
+                        "local_root": Path(bundle.local_root).as_posix(),
+                        "r2_prefix": str(bundle.r2_prefix or CURRENT_FORMAL_ARTIFACTS_ROOT.as_posix()),
                         "include_globs": include_globs,
                         "exclude_globs": [],
                     }
@@ -355,9 +390,10 @@ def _build_group_reports(bundle: CurrentFormalArtifactBundle) -> list[dict[str, 
 
 def _map_r2_keys_to_groups(bundle: CurrentFormalArtifactBundle) -> dict[str, dict[str, str]]:
     mapping: dict[str, dict[str, str]] = {}
+    r2_prefix = str(bundle.r2_prefix or CURRENT_FORMAL_ARTIFACTS_ROOT.as_posix()).rstrip("/")
     for group in bundle.groups:
-        for rel in _paths_relative_to_current(group.paths):
-            r2_key = f"{CURRENT_FORMAL_ARTIFACTS_ROOT.as_posix()}/{rel}".replace("//", "/")
+        for rel in _paths_relative_to_bundle_root(group.paths, bundle.local_root):
+            r2_key = f"{r2_prefix}/{rel}".replace("//", "/")
             mapping[r2_key] = {"group_key": group.group_key, "category": group.category}
     return mapping
 
@@ -599,22 +635,271 @@ def _derive_block_completion_status(
     apply: bool,
     current_write_status: str,
     xlsx_update_status: str,
+    skip_registry_gallery_list_cleanup_status: str,
     r2_sync_status: str,
 ) -> str:
     if apply:
         if (
             current_write_status == "applied"
             and xlsx_update_status == "applied"
+            and skip_registry_gallery_list_cleanup_status == "applied"
             and r2_sync_status == "applied"
         ):
             return "completed"
         return "blocked_or_followup_required"
-    if current_write_status == "planned" and xlsx_update_status == "planned" and r2_sync_status in {
-        "planned",
-        "planned_contract_only",
-    }:
+    if (
+        current_write_status == "planned"
+        and xlsx_update_status == "planned"
+        and skip_registry_gallery_list_cleanup_status in {"planned", "planned_contract_only"}
+        and r2_sync_status in {"planned", "planned_contract_only"}
+    ):
         return "planned"
     return "blocked"
+
+
+def _default_stage_status(*, apply: bool) -> str:
+    return "applied" if apply else "planned"
+
+
+def _resolve_stage_status(report: dict[str, Any], *, apply: bool) -> str:
+    status = str(report.get("status") or "").strip()
+    if status:
+        return status
+    return _default_stage_status(apply=apply)
+
+
+def _stage_allows_downstream(status: str, *, apply: bool) -> bool:
+    if apply:
+        return status == "applied"
+    return status in {"planned", "planned_contract_only"}
+
+
+def _blocked_stage_report(*, stage_name: str, reason: str, upstream: dict[str, str]) -> dict[str, Any]:
+    return {
+        "stage": stage_name,
+        "status": "blocked_prereq_failed",
+        "blocking_reason": reason,
+        "upstream_statuses": dict(upstream),
+    }
+
+
+def _merge_skip_entry(*, current: SkipGalleryEntry, incoming: SkipGalleryEntry) -> SkipGalleryEntry:
+    return SkipGalleryEntry(
+        fair_slug=incoming.fair_slug or current.fair_slug,
+        gallery_name_en=incoming.gallery_name_en or current.gallery_name_en,
+        skip_reason=incoming.skip_reason or current.skip_reason,
+        detected_at=incoming.detected_at or current.detected_at,
+        run_id=incoming.run_id or current.run_id,
+        source_scope_file=incoming.source_scope_file or current.source_scope_file,
+        evidence=incoming.evidence or current.evidence,
+    )
+
+
+def _build_skip_registry_plan(
+    *,
+    existing_entries: Sequence[SkipGalleryEntry],
+    new_entries: Sequence[SkipGalleryEntry],
+    registry_path: Path,
+) -> tuple[dict[str, Any], list[SkipGalleryEntry]]:
+    registry: dict[tuple[str, str], SkipGalleryEntry] = {entry.scope_key: entry for entry in existing_entries}
+    planned_entries: list[dict[str, Any]] = []
+    added = 0
+    updated = 0
+    unchanged = 0
+    for entry in new_entries:
+        fair_slug, gallery_key = entry.scope_key
+        if not gallery_key:
+            continue
+        key = (fair_slug, gallery_key)
+        current = registry.get(key)
+        action = "add"
+        merged = entry
+        if current is None:
+            added += 1
+        else:
+            merged = _merge_skip_entry(current=current, incoming=entry)
+            if merged == current:
+                action = "unchanged"
+                unchanged += 1
+            else:
+                action = "update"
+                updated += 1
+        registry[key] = merged
+        planned_entries.append({"action": action, **merged.to_row()})
+    final_entries = sorted(
+        registry.values(),
+        key=lambda item: (
+            normalize_fair_slug(item.fair_slug),
+            normalize_gallery_name(item.gallery_name_en),
+        ),
+    )
+    return (
+        {
+            "status": "planned",
+            "registry_path": str(registry_path),
+            "detected_entry_total": len(new_entries),
+            "planned_entry_total": len(planned_entries),
+            "planned_added": added,
+            "planned_updated": updated,
+            "planned_unchanged": unchanged,
+            "planned_total_after": len(final_entries),
+            "entries": planned_entries,
+        },
+        final_entries,
+    )
+
+
+def _extract_target_gallery_rows_from_xlsx_report(xlsx_report: dict[str, Any]) -> list[dict[str, Any]]:
+    source_validation = xlsx_report.get("source_validation")
+    if not isinstance(source_validation, dict):
+        return []
+    raw_rows = source_validation.get("target_gallery_rows")
+    if not isinstance(raw_rows, list):
+        return []
+    rows: list[dict[str, Any]] = []
+    for raw in raw_rows:
+        if not isinstance(raw, dict):
+            continue
+        fair_slug = normalize_fair_slug(str(raw.get("fair_slug") or ""))
+        gallery_name_en = str(raw.get("gallery_name_en") or "").strip()
+        if not fair_slug or not gallery_name_en:
+            continue
+        row = dict(raw)
+        row["fair_slug"] = fair_slug
+        row["gallery_name_en"] = gallery_name_en
+        rows.append(row)
+    return rows
+
+
+def execute_skip_registry_gallery_list_cleanup_contract(
+    *,
+    apply: bool,
+    run_id: str,
+    current_write_report: dict[str, Any],
+    xlsx_report: dict[str, Any],
+) -> dict[str, Any]:
+    mode = "apply" if apply else "dry_run"
+    target_gallery_rows = _extract_target_gallery_rows_from_xlsx_report(xlsx_report)
+    all_rag_zero_detected_rows = [row for row in target_gallery_rows if is_all_rag_zero_target_row(row)]
+    source_scope_file = str(current_write_report.get("targets_file") or "").strip()
+    new_entries = build_all_rag_zero_skip_entries(
+        target_gallery_rows=all_rag_zero_detected_rows,
+        skip_reason=ALL_RAG_ZERO_SKIP_REASON,
+        run_id=str(run_id),
+        source_scope_file=source_scope_file,
+        evidence=ALL_RAG_ZERO_SKIP_EVIDENCE,
+    )
+    existing_entries = load_skip_registry_entries(SKIPPED_GALLERIES_REGISTRY_PATH)
+    skip_registry_plan, planned_registry_entries = _build_skip_registry_plan(
+        existing_entries=existing_entries,
+        new_entries=new_entries,
+        registry_path=SKIPPED_GALLERIES_REGISTRY_PATH,
+    )
+    planned_lookup = build_skip_lookup(planned_registry_entries)
+    target_fair_slugs = sorted(
+        {
+            normalize_fair_slug(str(row.get("fair_slug") or ""))
+            for row in all_rag_zero_detected_rows
+            if str(row.get("fair_slug") or "").strip()
+        }
+    )
+    gallery_list_removal_plan: list[dict[str, Any]] = []
+    for fair_slug in target_fair_slugs:
+        gallery_list_path = GALLERY_LIST_PATHS_BY_FAIR.get(fair_slug)
+        if gallery_list_path is None:
+            gallery_list_removal_plan.append(
+                {
+                    "mode": "dry_run",
+                    "status": "blocked_missing_gallery_list_path",
+                    "gallery_list_path": "",
+                    "fair_slug": fair_slug,
+                    "removed_count": 0,
+                    "removed_galleries": [],
+                    "rows_before": 0,
+                    "rows_after": 0,
+                    "changed": False,
+                    "would_write": False,
+                    "missing": True,
+                }
+            )
+            continue
+        gallery_list_removal_plan.append(
+            remove_skipped_from_gallery_list_csv(
+                path=gallery_list_path,
+                fair_slug=fair_slug,
+                lookup=planned_lookup,
+                apply=False,
+            )
+        )
+    plan_blocking_errors = [
+        f"gallery_list_cleanup_blocked:{item.get('fair_slug', '')}"
+        for item in gallery_list_removal_plan
+        if str(item.get("status") or "").startswith("blocked")
+    ]
+    stage_status = "applied" if apply else "planned"
+    skip_registry_apply: dict[str, Any] = {
+        "status": "applied" if apply else "planned",
+        "registry_path": str(SKIPPED_GALLERIES_REGISTRY_PATH),
+        "added": 0,
+        "updated": 0,
+        "unchanged": len(new_entries),
+        "total": len(existing_entries),
+    }
+    gallery_list_removal_apply: list[dict[str, Any]] = []
+    apply_blocking_errors: list[str] = []
+    if plan_blocking_errors:
+        stage_status = "blocked_missing_gallery_list_path"
+        apply_blocking_errors.extend(plan_blocking_errors)
+    elif apply:
+        try:
+            if new_entries:
+                skip_registry_apply = upsert_skip_registry_entries(SKIPPED_GALLERIES_REGISTRY_PATH, new_entries)
+                skip_registry_apply["status"] = "applied"
+            apply_lookup = build_skip_lookup(load_skip_registry_entries(SKIPPED_GALLERIES_REGISTRY_PATH))
+            for fair_slug in target_fair_slugs:
+                gallery_list_path = GALLERY_LIST_PATHS_BY_FAIR.get(fair_slug)
+                if gallery_list_path is None:
+                    continue
+                gallery_list_removal_apply.append(
+                    remove_skipped_from_gallery_list_csv(
+                        path=gallery_list_path,
+                        fair_slug=fair_slug,
+                        lookup=apply_lookup,
+                        apply=True,
+                    )
+                )
+            apply_blocking_errors.extend(
+                [
+                    f"gallery_list_cleanup_apply_blocked:{item.get('fair_slug', '')}"
+                    for item in gallery_list_removal_apply
+                    if str(item.get("status") or "").startswith("blocked")
+                ]
+            )
+            if apply_blocking_errors:
+                stage_status = "blocked_gallery_list_cleanup_apply_failed"
+            else:
+                stage_status = "applied"
+        except Exception as exc:  # noqa: BLE001
+            stage_status = "blocked_skip_registry_gallery_list_cleanup_exception"
+            apply_blocking_errors.append(f"skip_registry_gallery_list_cleanup_exception:{exc}")
+
+    return {
+        "stage": "skip_registry_gallery_list_cleanup",
+        "mode": mode,
+        "status": stage_status,
+        "registry_path": str(SKIPPED_GALLERIES_REGISTRY_PATH),
+        "skip_reason": ALL_RAG_ZERO_SKIP_REASON,
+        "skip_evidence": ALL_RAG_ZERO_SKIP_EVIDENCE,
+        "source_scope_file": source_scope_file,
+        "target_gallery_row_total": len(target_gallery_rows),
+        "all_rag_zero_detected_count": len(all_rag_zero_detected_rows),
+        "all_rag_zero_detected_rows": all_rag_zero_detected_rows,
+        "skip_registry_plan": skip_registry_plan,
+        "gallery_list_removal_plan": gallery_list_removal_plan,
+        "skip_registry_apply": skip_registry_apply if apply else {},
+        "gallery_list_removal_apply": gallery_list_removal_apply if apply else [],
+        "blocking_errors": apply_blocking_errors,
+    }
 
 
 def execute_closeout_with_breakdown_contract(
@@ -637,31 +922,90 @@ def execute_closeout_with_breakdown_contract(
         raise ValueError("closeout_contract_requires_non_empty_targets")
 
     current_write_report = current_write_callback(bool(apply))
-    xlsx_report = build_breakdown_update_report(
-        targets=ordered_targets,
-        xlsx_path=Path(xlsx_path),
-        target_year=int(target_year),
-        run_id=str(run_id),
+    current_write_status = _resolve_stage_status(current_write_report, apply=bool(apply))
+
+    if _stage_allows_downstream(current_write_status, apply=bool(apply)):
+        xlsx_report = build_breakdown_update_report(
+            targets=ordered_targets,
+            xlsx_path=Path(xlsx_path),
+            target_year=int(target_year),
+            run_id=str(run_id),
+            apply=bool(apply),
+            stats=None if apply else breakdown_stats_override,
+        )
+    else:
+        xlsx_report = _blocked_stage_report(
+            stage_name="xlsx_update",
+            reason=f"current_write_status:{current_write_status}",
+            upstream={"current_write_status": current_write_status},
+        )
+    xlsx_update_status = _resolve_stage_status(xlsx_report, apply=bool(apply))
+
+    if _stage_allows_downstream(current_write_status, apply=bool(apply)) and _stage_allows_downstream(
+        xlsx_update_status,
         apply=bool(apply),
-        stats=None if apply else breakdown_stats_override,
-    )
-    r2_report = execute_closeout_r2_contract(
-        bundle=r2_artifact_bundle,
+    ):
+        skip_registry_gallery_list_cleanup_report = execute_skip_registry_gallery_list_cleanup_contract(
+            apply=bool(apply),
+            run_id=str(run_id),
+            current_write_report=current_write_report,
+            xlsx_report=xlsx_report,
+        )
+    else:
+        blocked_by = "xlsx_update" if not _stage_allows_downstream(xlsx_update_status, apply=bool(apply)) else "current_write"
+        blocked_status = xlsx_update_status if blocked_by == "xlsx_update" else current_write_status
+        skip_registry_gallery_list_cleanup_report = _blocked_stage_report(
+            stage_name="skip_registry_gallery_list_cleanup",
+            reason=f"{blocked_by}_status:{blocked_status}",
+            upstream={
+                "current_write_status": current_write_status,
+                "xlsx_update_status": xlsx_update_status,
+            },
+        )
+    skip_registry_gallery_list_cleanup_status = _resolve_stage_status(
+        skip_registry_gallery_list_cleanup_report,
         apply=bool(apply),
-        run_id=str(run_id),
-        contract_name=str(contract_name),
-        log_dir=Path(r2_log_dir),
-        max_delete=int(r2_max_delete),
-        execute_remote=bool(r2_execute_remote),
     )
 
-    current_write_status = "applied" if apply else "planned"
-    xlsx_update_status = "applied" if apply else "planned"
+    if (
+        _stage_allows_downstream(current_write_status, apply=bool(apply))
+        and _stage_allows_downstream(xlsx_update_status, apply=bool(apply))
+        and _stage_allows_downstream(skip_registry_gallery_list_cleanup_status, apply=bool(apply))
+    ):
+        r2_report = execute_closeout_r2_contract(
+            bundle=r2_artifact_bundle,
+            apply=bool(apply),
+            run_id=str(run_id),
+            contract_name=str(contract_name),
+            log_dir=Path(r2_log_dir),
+            max_delete=int(r2_max_delete),
+            execute_remote=bool(r2_execute_remote),
+        )
+    else:
+        if not _stage_allows_downstream(skip_registry_gallery_list_cleanup_status, apply=bool(apply)):
+            blocked_by = "skip_registry_gallery_list_cleanup"
+            blocked_status = skip_registry_gallery_list_cleanup_status
+        elif not _stage_allows_downstream(xlsx_update_status, apply=bool(apply)):
+            blocked_by = "xlsx_update"
+            blocked_status = xlsx_update_status
+        else:
+            blocked_by = "current_write"
+            blocked_status = current_write_status
+        r2_report = _blocked_stage_report(
+            stage_name="r2_sync",
+            reason=f"{blocked_by}_status:{blocked_status}",
+            upstream={
+                "current_write_status": current_write_status,
+                "xlsx_update_status": xlsx_update_status,
+                "skip_registry_gallery_list_cleanup_status": skip_registry_gallery_list_cleanup_status,
+            },
+        )
     r2_sync_status = str(r2_report.get("status", "")).strip() or "unknown"
     block_completion_status = _derive_block_completion_status(
         apply=bool(apply),
         current_write_status=current_write_status,
         xlsx_update_status=xlsx_update_status,
+        skip_registry_gallery_list_cleanup_status=skip_registry_gallery_list_cleanup_status,
         r2_sync_status=r2_sync_status,
     )
 
@@ -677,6 +1021,7 @@ def execute_closeout_with_breakdown_contract(
             "block_completion_status": block_completion_status,
             "current_write_status": current_write_status,
             "xlsx_update_status": xlsx_update_status,
+            "skip_registry_gallery_list_cleanup_status": skip_registry_gallery_list_cleanup_status,
             "r2_sync_status": r2_sync_status,
             "xlsx_path": str(Path(xlsx_path)),
             "xlsx_source_of_truth": "current_formal_artifacts",
@@ -686,5 +1031,6 @@ def execute_closeout_with_breakdown_contract(
         },
         "current_write": current_write_report,
         "xlsx_update": xlsx_report,
+        "skip_registry_gallery_list_cleanup": skip_registry_gallery_list_cleanup_report,
         "r2_sync": r2_report,
     }

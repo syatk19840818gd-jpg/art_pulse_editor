@@ -1,0 +1,186 @@
+{
+  "files": {
+    "data/current/enrichment/artists_enrichment_apply_output.jsonl": {
+      "mtime_ns": 1775629769881421300,
+      "size": 430877
+    },
+    "data/current/enrichment/artists_enrichment_apply_summary.json": {
+      "mtime_ns": 1775629769898835700,
+      "size": 34999
+    },
+    "data/current/vector/artists/artists_text_meta.jsonl": {
+      "mtime_ns": 1775629770214074200,
+      "size": 372470
+    },
+    "data/current/vector/artists/artists_text_index.npy": {
+      "mtime_ns": 1775629770200685800,
+      "size": 4073600
+    },
+    "data/current/vector/artists/artists_text_artifact_manifest.json": {
+      "mtime_ns": 1775629770238256700,
+      "size": 2270
+    },
+    "data/current/vector/artists/artists_text_vectorize_summary_2025.json": {
+      "mtime_ns": 1775629770234263500,
+      "size": 4670
+    },
+    "data/current/vector/artist_works_images/artist_works_images_openclip_id_map.jsonl": {
+      "mtime_ns": 1775629771063081000,
+      "size": 3384048
+    },
+    "data/current/vector/artist_works_images/artist_works_images_openclip_embeddings.npy": {
+      "mtime_ns": 1775629770922460900,
+      "size": 5722240
+    },
+    "data/current/vector/artist_works_images/artist_works_images_openclip_search_index.npy": {
+      "mtime_ns": 1775629770946536100,
+      "size": 5722240
+    },
+    "data/current/vector/artist_works_images/artist_works_images_artifact_manifest.json": {
+      "mtime_ns": 1775629771080082800,
+      "size": 3183
+    },
+    "data/current/vector/artist_works_images/artist_works_images_vectorize_summary_2025.json": {
+      "mtime_ns": 1775629771076080400,
+      "size": 4890
+    },
+    "data/current/vector/artist_works_images/artist_works_images_vectorize_failed_2025.jsonl": {
+      "mtime_ns": 1775629771071082100,
+      "size": 0
+    },
+    "data/current/images/metadata/exhibitions_images_frieze_london_2025.jsonl": {
+      "mtime_ns": 1775649093351615900,
+      "size": 125357
+    },
+    "data/current/images/metadata/exhibitions_images_liste_2025.jsonl": {
+      "mtime_ns": 1775649205749153400,
+      "size": 92518
+    },
+    "data/gallery_lists/rag_gellery_breakdown_master.xlsx": {
+      "mtime_ns": 1775629775733343500,
+      "size": 118232
+    }
+  },
+  "xlsx_rows_before": [
+    {
+      "sheet": "frieze-london",
+      "row": 12,
+      "gallery_name_en": "Galerie Gisela Capitain",
+      "artist_count": 38,
+      "artist_image_rows": 38,
+      "artist_image_count": 141,
+      "exhibition_count": 5,
+      "exhibition_image_count": 1,
+      "date": "2026-04-08 00:00:00",
+      "run_id": "TASK_PHASE3_TRUE_NEXT_BLOCK_CLOSEOUT_APPLY_20260408T063900Z"
+    },
+    {
+      "sheet": "frieze-london",
+      "row": 13,
+      "gallery_name_en": "Carlos/Ishikawa",
+      "artist_count": 21,
+      "artist_image_rows": 21,
+      "artist_image_count": 102,
+      "exhibition_count": 5,
+      "exhibition_image_count": 2,
+      "date": "2026-04-08 00:00:00",
+      "run_id": "TASK_PHASE3_TRUE_NEXT_BLOCK_CLOSEOUT_APPLY_20260408T063900Z"
+    },
+    {
+      "sheet": "frieze-london",
+      "row": 14,
+      "gallery_name_en": "Casado Santapau",
+      "artist_count": 21,
+      "artist_image_rows": 21,
+      "artist_image_count": 81,
+      "exhibition_count": 25,
+      "exhibition_image_count": 2,
+      "date": "2026-04-08 00:00:00",
+      "run_id": "TASK_PHASE3_TRUE_NEXT_BLOCK_CLOSEOUT_APPLY_20260408T063900Z"
+    },
+    {
+      "sheet": "frieze-london",
+      "row": 15,
+      "gallery_name_en": "Pedro Cera",
+      "artist_count": 30,
+      "artist_image_rows": 30,
+      "artist_image_count": 150,
+      "exhibition_count": 11,
+      "exhibition_image_count": 1,
+      "date": "2026-04-08 00:00:00",
+      "run_id": "TASK_PHASE3_TRUE_NEXT_BLOCK_CLOSEOUT_APPLY_20260408T063900Z"
+    },
+    {
+      "sheet": "frieze-london",
+      "row": 16,
+      "gallery_name_en": "James Cohan",
+      "artist_count": 50,
+      "artist_image_rows": 50,
+      "artist_image_count": 247,
+      "exhibition_count": 23,
+      "exhibition_image_count": 2,
+      "date": "2026-04-08 00:00:00",
+      "run_id": "TASK_PHASE3_TRUE_NEXT_BLOCK_CLOSEOUT_APPLY_20260408T063900Z"
+    },
+    {
+      "sheet": "liste",
+      "row": 12,
+      "gallery_name_en": "Ciaccia Levi",
+      "artist_count": 15,
+      "artist_image_rows": 15,
+      "artist_image_count": 8,
+      "exhibition_count": 2,
+      "exhibition_image_count": 0,
+      "date": "2026-04-08 00:00:00",
+      "run_id": "TASK_PHASE3_TRUE_NEXT_BLOCK_CLOSEOUT_APPLY_20260408T063900Z"
+    },
+    {
+      "sheet": "liste",
+      "row": 13,
+      "gallery_name_en": "Cibrián",
+      "artist_count": 8,
+      "artist_image_rows": 8,
+      "artist_image_count": 35,
+      "exhibition_count": 3,
+      "exhibition_image_count": 1,
+      "date": "2026-04-08 00:00:00",
+      "run_id": "TASK_PHASE3_TRUE_NEXT_BLOCK_CLOSEOUT_APPLY_20260408T063900Z"
+    },
+    {
+      "sheet": "liste",
+      "row": 14,
+      "gallery_name_en": "City Galerie Wien",
+      "artist_count": 0,
+      "artist_image_rows": 0,
+      "artist_image_count": 0,
+      "exhibition_count": 0,
+      "exhibition_image_count": 0,
+      "date": "2026-04-08 00:00:00",
+      "run_id": "TASK_PHASE3_TRUE_NEXT_BLOCK_CLOSEOUT_APPLY_20260408T063900Z"
+    },
+    {
+      "sheet": "liste",
+      "row": 15,
+      "gallery_name_en": "Clima",
+      "artist_count": 12,
+      "artist_image_rows": 12,
+      "artist_image_count": 60,
+      "exhibition_count": 5,
+      "exhibition_image_count": 2,
+      "date": "2026-04-08 00:00:00",
+      "run_id": "TASK_PHASE3_TRUE_NEXT_BLOCK_CLOSEOUT_APPLY_20260408T063900Z"
+    },
+    {
+      "sheet": "liste",
+      "row": 16,
+      "gallery_name_en": "Commune",
+      "artist_count": 4,
+      "artist_image_rows": 4,
+      "artist_image_count": 17,
+      "exhibition_count": 7,
+      "exhibition_image_count": 2,
+      "date": "2026-04-08 00:00:00",
+      "run_id": "TASK_PHASE3_TRUE_NEXT_BLOCK_CLOSEOUT_APPLY_20260408T063900Z"
+    }
+  ]
+}
