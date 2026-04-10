@@ -14,6 +14,12 @@ from typing import Any
 from dotenv import load_dotenv
 from openai import OpenAI
 
+from gallery_skip_registry import (
+    SKIPPED_GALLERIES_REGISTRY_PATH,
+    build_skip_lookup,
+    find_skip_entry,
+    load_skip_registry_entries,
+)
 from enrichment_batch_common import (
     BULK_LIFECYCLE_MODES,
     FAILED_BATCH_STATUSES,
@@ -135,6 +141,10 @@ def load_gallery_allowlist(path_text: str) -> set[tuple[str, str]]:
     if not out:
         raise RuntimeError(f"No valid allowlist rows found: {path}")
     return out
+
+
+def load_skip_lookup() -> dict[str, dict[Any, Any]]:
+    return build_skip_lookup(load_skip_registry_entries(SKIPPED_GALLERIES_REGISTRY_PATH))
 
 
 def build_row_index(rows: list[dict[str, Any]]) -> dict[tuple[str, str], int]:
@@ -298,6 +308,8 @@ def main() -> int:
     request_rows = load_requests(requests_path=requests_path, io_root=io_root)
     allowlist = load_gallery_allowlist(args.allowlist_csv) if str(args.allowlist_csv or "").strip() else set()
     allowlist_enabled = bool(allowlist)
+    skip_lookup = load_skip_lookup()
+    skip_registry_gallery_count = len(skip_lookup.get("by_scope", {})) + len(skip_lookup.get("by_gallery", {}))
     raw_rows_by_fair: dict[str, list[dict[str, Any]]] = {}
     raw_text_before: dict[str, list[str]] = {}
     row_index_by_fair: dict[str, dict[tuple[str, str], int]] = {}
@@ -344,6 +356,19 @@ def main() -> int:
             or req.get("gallery_name")
             or ""
         ).strip()
+        if find_skip_entry(skip_lookup, fair_slug=fair_slug, gallery_name_en=gallery_name) is not None:
+            counters["skipped_by_skip_registry"] += 1
+            apply_rows.append(
+                {
+                    "request_id": request_id,
+                    "fair_slug": fair_slug,
+                    "text_hash": text_hash,
+                    "source_url": source_url,
+                    "gallery_name": gallery_name,
+                    "status": "SKIPPED_BY_SKIP_REGISTRY",
+                }
+            )
+            continue
         if allowlist_enabled:
             key = (fair_slug.lower().replace("-", "_"), normalize_gallery_scope_name(gallery_name))
             if key not in allowlist:
@@ -433,8 +458,11 @@ def main() -> int:
                 "allowlist_enabled": allowlist_enabled,
                 "allowlist_path": str(args.allowlist_csv or ""),
                 "allowlist_entry_count": len(allowlist),
+                "skip_registry_path": str(SKIPPED_GALLERIES_REGISTRY_PATH),
+                "skip_registry_gallery_count": skip_registry_gallery_count,
                 "scoped_request_rows": scoped_request_rows,
                 "out_of_scope_skipped": counters["skipped_out_of_scope_allowlist"],
+                "skip_registry_skipped": counters["skipped_by_skip_registry"],
                 "target_request_ids_count": len(target_request_ids),
                 "enrich_model": enrich_model_fingerprint,
                 "enrich_models_by_field": dict(EXHIBITIONS_ENRICHMENT_FIELD_MODELS),

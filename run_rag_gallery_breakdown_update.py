@@ -21,6 +21,7 @@ from gallery_skip_registry import (
     build_skip_lookup,
     find_skip_entry,
     is_all_rag_zero_target_row,
+    is_exhibition_text_only_target_row,
     load_skip_registry_entries,
 )
 from phase2_art_pulse_config import (
@@ -340,6 +341,7 @@ def build_scope_source_validation(
         blocking_errors.append("blocked_exhibition_image_source_missing")
 
     all_rag_zero_target_rows = [row for row in target_rows if is_all_rag_zero_target_row(row)]
+    exhibition_text_only_target_rows = [row for row in target_rows if is_exhibition_text_only_target_row(row)]
 
     return {
         "exhibition_images_required": bool(exhibition_images_required),
@@ -348,6 +350,7 @@ def build_scope_source_validation(
         "exhibition_text_total": exhibition_text_total,
         "exhibition_image_total": exhibition_image_total,
         "all_rag_zero_target_rows": all_rag_zero_target_rows,
+        "exhibition_text_only_target_rows": exhibition_text_only_target_rows,
         "scope_missing_exhibition_image_galleries": missing_exhibition_image_targets,
         "blocking_errors": blocking_errors,
         "target_gallery_rows": target_rows,

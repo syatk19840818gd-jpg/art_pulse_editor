@@ -18,7 +18,18 @@ import requests
 import unicodedata
 
 from enrichment_batch_common import is_optional_output_enabled
-from gallery_skip_registry import build_skip_lookup, find_skip_entry, load_skip_registry_entries
+from gallery_skip_registry import (
+    build_all_rag_zero_skip_entries,
+    build_exhibition_text_only_skip_entries,
+    build_skip_lookup,
+    find_skip_entry,
+    is_all_rag_zero_target_row,
+    is_exhibition_text_only_target_row,
+    load_skip_registry_entries,
+    normalize_fair_slug,
+    remove_skipped_from_gallery_list_csv,
+    upsert_skip_registry_entries,
+)
 import run_phase1_seed10_artist_image_collect as artist_img
 from phase2_art_pulse_config import (
     PHASE1_SEED10_ROOT,
@@ -29,11 +40,23 @@ from phase2_art_pulse_config import (
     resolve_image_local_path,
 )
 from phase1_exhibitions_text_utils import should_include_target_year_page
+from run_rag_gallery_breakdown_update import (
+    ScopeTarget as BreakdownScopeTarget,
+    build_scope_source_validation,
+    build_stats,
+)
 from tools import skip_policy
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 LOGS_DIR = (PROJECT_ROOT / PHASE1_SEED10_ROOT / "logs").resolve()
 SKIPPED_GALLERIES_REGISTRY_PATH = PROJECT_ROOT / "data" / "gallery_lists" / "skipped_galleries_registry.csv"
+GALLERY_LIST_PATHS_BY_FAIR = {
+    "frieze_london": PROJECT_ROOT / "data" / "gallery_lists" / "gallery_list_frieze_london.csv",
+    "liste": PROJECT_ROOT / "data" / "gallery_lists" / "gallery_list_liste.csv",
+}
+ALL_RAG_ZERO_SKIP_REASON_PRE_ENRICHMENT = "all_rag_zero_auto_detected_after_image_collect"
+EXHIBITION_TEXT_ONLY_SKIP_REASON_PRE_ENRICHMENT = "exhibition_text_only_auto_detected_after_image_collect"
+AUTO_SKIP_EVIDENCE_PRE_ENRICHMENT = "derived_from_current_raw_and_image_collect_scope_stats"
 DEBUG_HTML_DIR_NAME = "debug_exhibitions_listing_html"
 DEBUG_LINKS_DIR_NAME = "debug_exhibitions_listing_links"
 DEBUG_TRIAGE_DIR_NAME = "debug_exhibitions_listing_triage"
@@ -496,6 +519,143 @@ def normalize_gallery_name_for_registry(name: str) -> str:
 
 def load_skipped_gallery_lookup(path: Path) -> dict[str, dict[Any, Any]]:
     return build_skip_lookup(load_skip_registry_entries(path))
+
+
+def _build_scope_targets_for_skip_cleanup(targets: list[dict[str, Any]]) -> list[BreakdownScopeTarget]:
+    seen: set[tuple[str, str]] = set()
+    out: list[BreakdownScopeTarget] = []
+    for row in targets:
+        fair_slug = normalize_fair_slug(str(row.get("fair_slug") or ""))
+        gallery_name_en = str(row.get("gallery_name_en") or "").strip()
+        if not fair_slug or not gallery_name_en:
+            continue
+        scope_key = (fair_slug.casefold(), gallery_name_en.casefold())
+        if scope_key in seen:
+            continue
+        seen.add(scope_key)
+        out.append(BreakdownScopeTarget(fair_slug=fair_slug, gallery_name_en=gallery_name_en))
+    return out
+
+
+def execute_auto_skip_registry_cleanup_after_image_collect(
+    *,
+    targets: list[dict[str, Any]],
+    target_year: int,
+    run_id: str,
+    source_scope_file: str,
+) -> dict[str, Any]:
+    scope_targets = _build_scope_targets_for_skip_cleanup(targets)
+    if not scope_targets:
+        return {
+            "status": "planned_contract_only",
+            "registry_path": str(SKIPPED_GALLERIES_REGISTRY_PATH),
+            "target_gallery_row_total": 0,
+            "all_rag_zero_detected_count": 0,
+            "all_rag_zero_detected_rows": [],
+            "exhibition_text_only_detected_count": 0,
+            "exhibition_text_only_detected_rows": [],
+            "skip_registry_apply": {
+                "status": "applied",
+                "registry_path": str(SKIPPED_GALLERIES_REGISTRY_PATH),
+                "added": 0,
+                "updated": 0,
+                "unchanged": 0,
+                "total": len(load_skip_registry_entries(SKIPPED_GALLERIES_REGISTRY_PATH)),
+            },
+            "gallery_list_removal_apply": [],
+            "blocking_errors": [],
+        }
+
+    stats = build_stats(int(target_year))
+    scope_validation = build_scope_source_validation(targets=scope_targets, stats=stats)
+    target_gallery_rows = [
+        row
+        for row in scope_validation.get("target_gallery_rows", [])
+        if isinstance(row, dict)
+    ]
+    all_rag_zero_detected_rows = [row for row in target_gallery_rows if is_all_rag_zero_target_row(row)]
+    exhibition_text_only_detected_rows = [
+        row for row in target_gallery_rows if is_exhibition_text_only_target_row(row)
+    ]
+    all_rag_zero_entries = build_all_rag_zero_skip_entries(
+        target_gallery_rows=all_rag_zero_detected_rows,
+        skip_reason=ALL_RAG_ZERO_SKIP_REASON_PRE_ENRICHMENT,
+        run_id=run_id,
+        source_scope_file=source_scope_file,
+        evidence=AUTO_SKIP_EVIDENCE_PRE_ENRICHMENT,
+    )
+    exhibition_text_only_entries = build_exhibition_text_only_skip_entries(
+        target_gallery_rows=exhibition_text_only_detected_rows,
+        skip_reason=EXHIBITION_TEXT_ONLY_SKIP_REASON_PRE_ENRICHMENT,
+        run_id=run_id,
+        source_scope_file=source_scope_file,
+        evidence=AUTO_SKIP_EVIDENCE_PRE_ENRICHMENT,
+    )
+    combined_entries: list[Any] = []
+    seen_scope_keys: set[tuple[str, str]] = set()
+    for entry in [*all_rag_zero_entries, *exhibition_text_only_entries]:
+        if entry.scope_key in seen_scope_keys:
+            continue
+        seen_scope_keys.add(entry.scope_key)
+        combined_entries.append(entry)
+
+    existing_entries = load_skip_registry_entries(SKIPPED_GALLERIES_REGISTRY_PATH)
+    skip_registry_apply: dict[str, Any] = {
+        "status": "applied",
+        "registry_path": str(SKIPPED_GALLERIES_REGISTRY_PATH),
+        "added": 0,
+        "updated": 0,
+        "unchanged": len(combined_entries),
+        "total": len(existing_entries),
+    }
+    if combined_entries:
+        skip_registry_apply = upsert_skip_registry_entries(SKIPPED_GALLERIES_REGISTRY_PATH, combined_entries)
+        skip_registry_apply["status"] = "applied"
+
+    apply_lookup = build_skip_lookup(load_skip_registry_entries(SKIPPED_GALLERIES_REGISTRY_PATH))
+    target_fair_slugs = sorted(
+        {
+            normalize_fair_slug(str(row.get("fair_slug") or ""))
+            for row in [*all_rag_zero_detected_rows, *exhibition_text_only_detected_rows]
+            if str(row.get("fair_slug") or "").strip()
+        }
+    )
+    gallery_list_removal_apply: list[dict[str, Any]] = []
+    blocking_errors: list[str] = []
+    for fair_slug in target_fair_slugs:
+        gallery_list_path = GALLERY_LIST_PATHS_BY_FAIR.get(fair_slug)
+        if gallery_list_path is None:
+            blocking_errors.append(f"missing_gallery_list_path:{fair_slug}")
+            continue
+        result = remove_skipped_from_gallery_list_csv(
+            path=gallery_list_path,
+            fair_slug=fair_slug,
+            lookup=apply_lookup,
+            apply=True,
+        )
+        gallery_list_removal_apply.append(result)
+        if str(result.get("status") or "").startswith("blocked"):
+            blocking_errors.append(f"gallery_list_cleanup_blocked:{fair_slug}")
+
+    stage_status = "applied" if not blocking_errors else "blocked_gallery_list_cleanup_apply_failed"
+    return {
+        "status": stage_status,
+        "registry_path": str(SKIPPED_GALLERIES_REGISTRY_PATH),
+        "skip_reason_map": {
+            "all_rag_zero": ALL_RAG_ZERO_SKIP_REASON_PRE_ENRICHMENT,
+            "exhibition_text_only": EXHIBITION_TEXT_ONLY_SKIP_REASON_PRE_ENRICHMENT,
+        },
+        "skip_evidence": AUTO_SKIP_EVIDENCE_PRE_ENRICHMENT,
+        "source_scope_file": source_scope_file,
+        "target_gallery_row_total": len(target_gallery_rows),
+        "all_rag_zero_detected_count": len(all_rag_zero_detected_rows),
+        "all_rag_zero_detected_rows": all_rag_zero_detected_rows,
+        "exhibition_text_only_detected_count": len(exhibition_text_only_detected_rows),
+        "exhibition_text_only_detected_rows": exhibition_text_only_detected_rows,
+        "skip_registry_apply": skip_registry_apply,
+        "gallery_list_removal_apply": gallery_list_removal_apply,
+        "blocking_errors": blocking_errors,
+    }
 
 
 def gallery_slug(value: str) -> str:
@@ -2141,6 +2301,13 @@ def main() -> int:
         "generated_at": utc_now_iso(),
         "run_id": utc_timestamp_compact(),
     }
+    auto_skip_cleanup_report = execute_auto_skip_registry_cleanup_after_image_collect(
+        targets=targets,
+        target_year=int(args.target_year),
+        run_id=str(args.run_id or summary["run_id"]),
+        source_scope_file=str(args.targets_csv or ""),
+    )
+    summary["auto_skip_cleanup"] = auto_skip_cleanup_report
     if debug_triage_entries and debug_run_id and debug_output_base:
         triage_path = debug_output_base / DEBUG_TRIAGE_FILENAME_TEMPLATE.format(run_id=debug_run_id)
         write_json(triage_path, debug_triage_entries)
@@ -2163,7 +2330,9 @@ def main() -> int:
         f"seed={summary['seed_exhibition_count']} "
         f"ge1={summary['exhibitions_with_ge_1_image']} "
         f"ge_target={summary['exhibitions_with_ge_target_images']} "
-        f"saved_images_total={summary['saved_images_total']}"
+        f"saved_images_total={summary['saved_images_total']} "
+        f"auto_skip_status={auto_skip_cleanup_report.get('status', '')} "
+        f"auto_skip_detected={int(auto_skip_cleanup_report.get('all_rag_zero_detected_count', 0)) + int(auto_skip_cleanup_report.get('exhibition_text_only_detected_count', 0))}"
     )
     return 0
 

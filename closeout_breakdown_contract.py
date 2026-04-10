@@ -14,8 +14,10 @@ from gallery_skip_registry import (
     SKIPPED_GALLERIES_REGISTRY_PATH,
     SkipGalleryEntry,
     build_all_rag_zero_skip_entries,
+    build_exhibition_text_only_skip_entries,
     build_skip_lookup,
     is_all_rag_zero_target_row,
+    is_exhibition_text_only_target_row,
     load_skip_registry_entries,
     normalize_fair_slug,
     normalize_gallery_name,
@@ -73,6 +75,8 @@ GALLERY_LIST_PATHS_BY_FAIR = {
 }
 ALL_RAG_ZERO_SKIP_REASON = "all_rag_zero_auto_detected_in_block_closeout"
 ALL_RAG_ZERO_SKIP_EVIDENCE = "derived_from_closeout_scope_stats_target_gallery_rows"
+EXHIBITION_TEXT_ONLY_SKIP_REASON = "exhibition_text_only_auto_detected_in_block_closeout"
+EXHIBITION_TEXT_ONLY_SKIP_EVIDENCE = "derived_from_closeout_scope_stats_target_gallery_rows"
 
 
 @dataclass(frozen=True)
@@ -781,25 +785,40 @@ def execute_skip_registry_gallery_list_cleanup_contract(
     mode = "apply" if apply else "dry_run"
     target_gallery_rows = _extract_target_gallery_rows_from_xlsx_report(xlsx_report)
     all_rag_zero_detected_rows = [row for row in target_gallery_rows if is_all_rag_zero_target_row(row)]
+    exhibition_text_only_detected_rows = [row for row in target_gallery_rows if is_exhibition_text_only_target_row(row)]
     source_scope_file = str(current_write_report.get("targets_file") or "").strip()
-    new_entries = build_all_rag_zero_skip_entries(
+    all_rag_zero_entries = build_all_rag_zero_skip_entries(
         target_gallery_rows=all_rag_zero_detected_rows,
         skip_reason=ALL_RAG_ZERO_SKIP_REASON,
         run_id=str(run_id),
         source_scope_file=source_scope_file,
         evidence=ALL_RAG_ZERO_SKIP_EVIDENCE,
     )
+    exhibition_text_only_entries = build_exhibition_text_only_skip_entries(
+        target_gallery_rows=exhibition_text_only_detected_rows,
+        skip_reason=EXHIBITION_TEXT_ONLY_SKIP_REASON,
+        run_id=str(run_id),
+        source_scope_file=source_scope_file,
+        evidence=EXHIBITION_TEXT_ONLY_SKIP_EVIDENCE,
+    )
+    combined_entries: list[SkipGalleryEntry] = []
+    seen_scope_keys: set[tuple[str, str]] = set()
+    for entry in [*all_rag_zero_entries, *exhibition_text_only_entries]:
+        if entry.scope_key in seen_scope_keys:
+            continue
+        seen_scope_keys.add(entry.scope_key)
+        combined_entries.append(entry)
     existing_entries = load_skip_registry_entries(SKIPPED_GALLERIES_REGISTRY_PATH)
     skip_registry_plan, planned_registry_entries = _build_skip_registry_plan(
         existing_entries=existing_entries,
-        new_entries=new_entries,
+        new_entries=combined_entries,
         registry_path=SKIPPED_GALLERIES_REGISTRY_PATH,
     )
     planned_lookup = build_skip_lookup(planned_registry_entries)
     target_fair_slugs = sorted(
         {
             normalize_fair_slug(str(row.get("fair_slug") or ""))
-            for row in all_rag_zero_detected_rows
+            for row in [*all_rag_zero_detected_rows, *exhibition_text_only_detected_rows]
             if str(row.get("fair_slug") or "").strip()
         }
     )
@@ -842,7 +861,7 @@ def execute_skip_registry_gallery_list_cleanup_contract(
         "registry_path": str(SKIPPED_GALLERIES_REGISTRY_PATH),
         "added": 0,
         "updated": 0,
-        "unchanged": len(new_entries),
+        "unchanged": len(combined_entries),
         "total": len(existing_entries),
     }
     gallery_list_removal_apply: list[dict[str, Any]] = []
@@ -852,8 +871,8 @@ def execute_skip_registry_gallery_list_cleanup_contract(
         apply_blocking_errors.extend(plan_blocking_errors)
     elif apply:
         try:
-            if new_entries:
-                skip_registry_apply = upsert_skip_registry_entries(SKIPPED_GALLERIES_REGISTRY_PATH, new_entries)
+            if combined_entries:
+                skip_registry_apply = upsert_skip_registry_entries(SKIPPED_GALLERIES_REGISTRY_PATH, combined_entries)
                 skip_registry_apply["status"] = "applied"
             apply_lookup = build_skip_lookup(load_skip_registry_entries(SKIPPED_GALLERIES_REGISTRY_PATH))
             for fair_slug in target_fair_slugs:
@@ -890,10 +909,20 @@ def execute_skip_registry_gallery_list_cleanup_contract(
         "registry_path": str(SKIPPED_GALLERIES_REGISTRY_PATH),
         "skip_reason": ALL_RAG_ZERO_SKIP_REASON,
         "skip_evidence": ALL_RAG_ZERO_SKIP_EVIDENCE,
+        "skip_reason_map": {
+            "all_rag_zero": ALL_RAG_ZERO_SKIP_REASON,
+            "exhibition_text_only": EXHIBITION_TEXT_ONLY_SKIP_REASON,
+        },
+        "skip_evidence_map": {
+            "all_rag_zero": ALL_RAG_ZERO_SKIP_EVIDENCE,
+            "exhibition_text_only": EXHIBITION_TEXT_ONLY_SKIP_EVIDENCE,
+        },
         "source_scope_file": source_scope_file,
         "target_gallery_row_total": len(target_gallery_rows),
         "all_rag_zero_detected_count": len(all_rag_zero_detected_rows),
         "all_rag_zero_detected_rows": all_rag_zero_detected_rows,
+        "exhibition_text_only_detected_count": len(exhibition_text_only_detected_rows),
+        "exhibition_text_only_detected_rows": exhibition_text_only_detected_rows,
         "skip_registry_plan": skip_registry_plan,
         "gallery_list_removal_plan": gallery_list_removal_plan,
         "skip_registry_apply": skip_registry_apply if apply else {},

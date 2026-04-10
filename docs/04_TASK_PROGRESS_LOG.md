@@ -1,6 +1,6 @@
 # 04_作業進捗ログ
 
-最終更新: 2026-04-07 JST
+最終更新: 2026-04-10 JST
 プロジェクト: ART_PULSE_EDITOR
 
 ## 0. 文書の役割
@@ -139,3 +139,14 @@
 - 次 block の標準運用を正式固定: baseline code をそのまま1回だけ使う -> verify-first -> 70%以上なら apply -> 70%未満なら offline-only で failure class 分析 -> generic patch を1回だけ検討 -> 再実行は承認後のみ。
 - gallery個別対応 / host個別対応 / block母集団別専用コードは通常運用の本番ロジックに追加しない。特殊館は skip を許容するが、block 全体70%以上は必須ラインとして維持する。
 - ①②で行った trial-and-error の教訓を今後の全 block に適用することを、01 / 03 / 04 に同期した。
+
+## 17. 2026-04-10 docs同期（本チャット確定分）
+- true next 進行中に Exhibition image 密度不足が顕在化した。理由は、gallery個別救済では再発しやすく、通常運用の汎用性を阻害するため。
+- HTML fetch / route guard / year/provenance / listing quota を含む generic patch を複数回重ね、Exhibition image を verify-first で十分な密度まで改善した。理由は、母集団依存ではなく汎用ロジック側で再利用可能な改善に寄せるため。
+- true next block は最終的に closeout apply 完了、workbook 人間確認 OK まで到達した。理由は、block 完了判定を人間確認付きで確定するため。
+- true next の最終整理として `City Galerie Wien` を `all_rag_zero` で skip registry 化し、active gallery list から除外した。理由は、以後の通常運用で無駄な下流処理を回避するため。
+- skip 契約を `all_rag_zero` から `exhibition_text_only` まで拡張した。`exhibition_text_only` は `artist_count == 0`、`artist_image_rows == 0`、`artist_image_count == 0`、`exhibition_count > 0`、`exhibition_image_count == 0` を満たす場合に generic skip として扱う。理由は、gallery/host 固定分岐を増やさず shared helper 契約で運用するため。
+- active list / skip registry 反映後の次 real scope 10館 block を実施し、raw verify-first、artists image collect verify-first、exhibitions image collect verify-first、artists enrichment submit/resume、artists text vector verify-first、artist works images vector verify-first、closeout apply、workbook OK まで完了した。理由は、skip 拡張後の主導線が end-to-end で成立することを確認するため。
+- block 完了後に `Copperfield` / `Coulisse Gallery` を `exhibition_text_only` として retroactive に skip registry へ移管し、Liste active list から除外、`data/current/raw/exhibitions_liste_2025.jsonl` から Copperfield 3行・Coulisse Gallery 1行を purge した。理由は、active RAG に不要行を残さないため。
+- `run_block_closeout` 主導線へ `skip_registry_gallery_list_cleanup` を接続し、`current_write -> xlsx_update -> skip_registry_gallery_list_cleanup -> r2_sync` の契約へ拡張した。dry-run report は `all_rag_zero_detected_rows` / `skip_registry_plan` / `gallery_list_removal_plan` を必須化した。理由は、将来の `all_rag_zero` / `exhibition_text_only` を closeout 主導線で自動除外しつつ、最終合格判定を workbook 人間確認で維持するため。
+- 上記 skip/purge 契約追加は offline-only タスクとして実施した（API実行0 / rerun0 / closeout apply0 / R2 apply0 / docs更新0）。理由は、無駄な API lane への流入を pre-enrichment で停止する方針を固定するため。

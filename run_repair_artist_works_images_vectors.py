@@ -15,6 +15,7 @@ from typing import Any
 
 import numpy as np
 
+from gallery_skip_registry import build_skip_lookup, find_skip_entry, load_skip_registry_entries
 from phase2_art_pulse_config import (
     TARGET_YEAR,
     get_current_artist_image_meta_paths,
@@ -154,6 +155,7 @@ def parse_repair_target_spec(raw_value: str) -> RepairTarget:
 def read_repair_targets_file(path: Path) -> list[RepairTarget]:
     if not path.exists():
         raise FileNotFoundError(f"Missing repair targets file: {path}")
+    skip_lookup = build_skip_lookup(load_skip_registry_entries())
     targets: list[RepairTarget] = []
     with path.open("r", encoding="utf-8-sig", newline="") as handle:
         reader = csv.DictReader(handle)
@@ -171,6 +173,8 @@ def read_repair_targets_file(path: Path) -> list[RepairTarget]:
                 raise ValueError(
                     "Each repair target row must include both fair_slug and gallery_name_en"
                 )
+            if find_skip_entry(skip_lookup, fair_slug=fair_slug, gallery_name_en=gallery_name_en) is not None:
+                continue
             targets.append(RepairTarget(fair_slug=fair_slug, gallery_name_en=gallery_name_en))
     return targets
 
@@ -216,6 +220,7 @@ def resolve_repair_targets(
     repair_target_specs: list[str],
     repair_targets_file: Path | None,
 ) -> list[RepairTarget]:
+    explicit_scope_requested = bool(repair_target_specs or repair_targets_file is not None)
     targets: list[RepairTarget] = []
     for raw_value in repair_target_specs:
         targets.append(parse_repair_target_spec(raw_value))
@@ -232,6 +237,8 @@ def resolve_repair_targets(
             continue
         seen_scope_keys.add(target.scope_key)
         deduped_targets.append(target)
+    if explicit_scope_requested and not deduped_targets:
+        raise ValueError("repair_scope_empty_after_skip_registry_filter")
     return deduped_targets
 
 

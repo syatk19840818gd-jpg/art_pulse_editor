@@ -1,5 +1,5 @@
-02_RAG仕様_派生索引
-版: 2026-04-02 JST
+﻿02_RAG仕様_派生索引
+版: 2026-04-10 JST
 参照正本: `docs/01_PROJECT_SPEC_CURRENT_FULL.docx`
 
 目的
@@ -20,69 +20,76 @@
 - Exhibitions Image 系
 - Exhibitions Text 系
 
-fixed10再実行クローズアウト（2026-04-02）
-- fixed10再実行ブロックは条件付きGOでクローズ済み。
-- year gate / 2-digit date extraction の verify-first 改善を経て再実行を実施。
-- Exhibitions Text の delta-only 再実行が完了。
-- Exhibition Image の delta-only 再実行が完了。
-- exhibitions enrichment の apply 件数: 27。
-- artists enrichment の apply 件数: no-op。
-- xlsx 再更新: overwrite=10 / append=0。
-- Exhibition cap は 25 に変更済み。
-- Chris Sharp Gallery は改善反映あり。
-- residual は継続監視とし、Bombon は 403 residual、Callirrhoë は image 0 residual を明記して維持する。
-- 次順序は docs 更新 -> Artist 側タスク -> initial10 Exhibitions delta-only backfill。
+skip 契約（01 派生・2026-04-10 同期）
+- `all_rag_zero` は既存の generic skip 契約として継続する。
+- `exhibition_text_only` を `all_rag_zero` と同列の generic skip 判定として追加する。
+- `exhibition_text_only` の判定条件は以下で固定する。
+  - `artist_count == 0`
+  - `artist_image_rows == 0`
+  - `artist_image_count == 0`
+  - `exhibition_count > 0`
+  - `exhibition_image_count == 0`
+- 判定実装は gallery/host 固定分岐ではなく shared helper 契約で扱う。
+- closeout 契約にも接続し、closeout 主導線で同一ルールを適用する。
 
-enrichment model 統一（artists / exhibitions 共通）
-- `artist_name_kana` は `gpt-5-mini`
-- `headline_ja` は `gpt-5-mini`
-- `summary_ja` は `gpt-5-mini`
+pre-enrichment 自動 skip
+- `run_phase1_seed10_exhibition_image_collect.py` 終了後、raw+image 集計由来で pre-enrichment 判定を実施する。
+- pre-enrichment 判定後は以下を自動実行する。
+  - skip 判定
+  - skip registry upsert
+  - gallery list 除外
+- downstream は skip registry を強制尊重する。
+  - artists enrichment
+  - exhibitions enrichment
+  - artists text vector
+  - artist works images vector
+
+skip registry / active list
+- skip registry 登録済み gallery は以下 3 館。
+  - City Galerie Wien（`all_rag_zero`）
+  - Copperfield（retroactive 追加、最終的に `exhibition_text_only` 扱い）
+  - Coulisse Gallery（retroactive 追加、最終的に `exhibition_text_only` 扱い）
+- 上記 3 館は active gallery list から除外済み。
+- `data/current/raw/exhibitions_liste_2025.jsonl` から以下を purge 済み。
+  - Copperfield 3 行
+  - Coulisse Gallery 1 行
+- 今後の target selection / Gallery list / phase1 runners / closeout 主導線は registry-aware 前提で自動除外する。
+
+closeout 主導線の拡張
+- `run_block_closeout` 主導線に `skip_registry_gallery_list_cleanup` ステージを追加する。
+- 契約上の実行順は以下を含む。
+  - `current_write`
+  - `xlsx_update`
+  - `skip_registry_gallery_list_cleanup`
+  - `r2_sync`
+- dry-run report は以下の出力を必須とする。
+  - `all_rag_zero_detected_rows`
+  - `skip_registry_plan`
+  - `gallery_list_removal_plan`
+- 将来の `all_rag_zero` / `exhibition_text_only` 館も block closeout 主導線で自動 skip される。
+- 最終合格判定は引き続き workbook の人間確認を必須とする。
+
+現在地（圧縮）
+- true next block（`phase3_block_scope_candidate_after_new10.csv`）は完了。
+- true next は closeout apply 完了・人間確認 OK まで到達済み。
+- ただし `City Galerie Wien` は最終的に skip registry 側へ移管済み。
+- 次 real scope block（active list / skip registry 反映後の 10 館）も closeout apply 完了・workbook OK 済み。
+- 同 block 完了後、`Copperfield` / `Coulisse Gallery` は `exhibition_text_only` 契約へ昇格し、retroactive purge 済み。
+
+API 無駄打ち禁止（今回の反映）
+- 今回の skip/purge 契約追加は offline-only で実施する。
+  - API 実行 0
+  - rerun 0
+  - closeout apply 0
+  - R2 apply 0
+  - docs 更新 0
+- 今後も `exhibition_text_only` は pre-enrichment で停止し、無駄な API lane に流さない。
+
+次タスク（短縮）
+- skip registry 反映済み active list から、次の real scope を定義する。
+- 次 block は raw verify-first から開始する。
 
 固定原則
 - app / readonly は current-first を維持する。
 - source / derived / vector / logs のファミリー分離を崩さない。
 - 取得ループ内でLLM加工をしない。Fetch と enrichment は分離する。
-- 画像検索の機能7は既存 Artist Works Images を再利用し、新しいRAGファミリーは追加しない。
-- current は日常参照の正本、history は監査用、R2 は current ファミリーの永続同期先とする。
-
-カード01: current-first runtime
-- app runtime は `data/current/...` を第一参照にする。
-- local は作業用 fallback として扱い、永続の正本役にはしない。
-
-カード02: gallery / fair 分離
-- Frieze London と Liste Art Fair Basel は、raw / derived / vector / logs の各ファミリーで混在させない。
-- CSV由来の gallery list を起点に処理する。
-
-カード03: enrichment 分離
-- Fetch は取得と保存に集中する。
-- `headline_ja` / `summary_ja` / `artist_name_kana` の後処理は enrichment batch に分離する。
-- artists / exhibitions の enrichment model は `gpt-5-mini` 統一を維持する。
-
-カード04: vector ファミリー
-- Artist Text vector family と Artist Works Images vector family は別管理にする。
-- Exhibitions Text / Exhibitions Image も同様にファミリーを分ける。
-- manifest による差分同期を前提にし、個別の存在確認で運用しない。
-
-カード05: アプリ機能ベースライン
-- 機能4 Advisor は accepted baseline として維持する。
-- 機能6 Gallery list は read-only 一覧機能として維持する。
-- 機能7 ArtWork Search は独立機能として維持し、Advisor 系へ吸収しない。
-
-カード06: 保存と同期
-- R2 remote mutation は guarded flow でのみ扱う。
-- R2 の本契約は current-only mirror とし、`data/current` 全体を1 scope で扱う。
-- R2 log canonical path は `logs/r2_sync/` とし、plan / apply / post-check / listing / run log はこの1レーンに統一する。旧 `data/r2_auto_sync/` レーンは retired とする。
-- `data/history` は R2 sync 対象外とし、GitHub 側の保持に寄せる。R2 上の history residue cleanup は 2026-03-31 に完了済み。
-- apply は `sync` 1回で current scope の upload + delete を反映し、例外は current 外の明示 scope に限定する。
-- `phase1_seed10` は R2 mainline 契約外の legacy residue とし、2026-03-31 の実R2 listing で確認された hidden `.bak` object 1件を削除して remote residue cleanup を完了した。`phase1_seed10` は R2 にも GitHub にも保持せず、必要なら local-only に限定する。
-- 新規RAG生成物は `data/current/...` だけを正規出力先とし、`data/phase1_seed10/...` への新規書き込みは read fallback を除いて禁止する。
-- local legacy logs / preview helpers は残りうるが、default R2 sync 本流には含めない。継続利用する場合も canonical output は `data/current/...` に固定し、preview / request report / legacy logs / trial artifacts は `data/runtime/...` の中立 path に寄せる。
-
-カード07: 出力衛生
-- raw heading / source-like label / metadata leak を通常回答へ出さない。
-- UI表示は人間向け本文を優先し、内部メモ文を先頭に出さない。
-
-カード08: 2026-03-30 時点の削除ベースライン
-- 専用の artist-specific advisor lane は廃止済み。
-- その専用 text corpus / config / vector / docs / UI route は現行 baseline から除外済み。
-- 今後の handoff / task planning では、現行構成に含まれないものとして扱う。

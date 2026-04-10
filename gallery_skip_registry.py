@@ -6,7 +6,7 @@ import unicodedata
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Callable, Iterable
 
 SKIPPED_GALLERIES_REGISTRY_PATH = Path("data/gallery_lists/skipped_galleries_registry.csv")
 REGISTRY_FIELDS = (
@@ -298,6 +298,22 @@ def remove_skipped_from_gallery_list_csv(
 
 
 def is_all_rag_zero_target_row(row: dict[str, Any]) -> bool:
+    counts = extract_target_row_counts(row)
+    artist_count = counts["artist_count"]
+    artist_image_rows = counts["artist_image_rows"]
+    artist_image_count = counts["artist_image_count"]
+    exhibition_count = counts["exhibition_count"]
+    exhibition_image_count = counts["exhibition_image_count"]
+    return (
+        artist_count == 0
+        and artist_image_rows == 0
+        and artist_image_count == 0
+        and exhibition_count == 0
+        and exhibition_image_count == 0
+    )
+
+
+def extract_target_row_counts(row: dict[str, Any]) -> dict[str, int]:
     def _int_or_zero(*keys: str) -> int:
         for key in keys:
             value = row.get(key)
@@ -309,23 +325,30 @@ def is_all_rag_zero_target_row(row: dict[str, Any]) -> bool:
                 continue
         return 0
 
-    artist_count = _int_or_zero("artist_count", "artist_text_count")
-    artist_image_rows = _int_or_zero("artist_image_rows", "artist_image_keys_count")
-    artist_image_count = _int_or_zero("artist_image_count")
-    exhibition_count = _int_or_zero("exhibition_count", "exhibition_text_count")
-    exhibition_image_count = _int_or_zero("exhibition_image_count")
+    return {
+        "artist_count": _int_or_zero("artist_count", "artist_text_count"),
+        "artist_image_rows": _int_or_zero("artist_image_rows", "artist_image_keys_count"),
+        "artist_image_count": _int_or_zero("artist_image_count"),
+        "exhibition_count": _int_or_zero("exhibition_count", "exhibition_text_count"),
+        "exhibition_image_count": _int_or_zero("exhibition_image_count"),
+    }
+
+
+def is_exhibition_text_only_target_row(row: dict[str, Any]) -> bool:
+    counts = extract_target_row_counts(row)
     return (
-        artist_count == 0
-        and artist_image_rows == 0
-        and artist_image_count == 0
-        and exhibition_count == 0
-        and exhibition_image_count == 0
+        counts["artist_count"] == 0
+        and counts["artist_image_rows"] == 0
+        and counts["artist_image_count"] == 0
+        and counts["exhibition_count"] > 0
+        and counts["exhibition_image_count"] == 0
     )
 
 
-def build_all_rag_zero_skip_entries(
+def _build_skip_entries_for_predicate(
     *,
     target_gallery_rows: Iterable[dict[str, Any]],
+    predicate: Callable[[dict[str, Any]], bool],
     skip_reason: str,
     run_id: str,
     source_scope_file: str,
@@ -339,7 +362,7 @@ def build_all_rag_zero_skip_entries(
         gallery_name_en = str(row.get("gallery_name_en") or "").strip()
         if not fair_slug or not gallery_name_en:
             continue
-        if not is_all_rag_zero_target_row(row):
+        if not predicate(row):
             continue
         out.append(
             SkipGalleryEntry(
@@ -353,3 +376,43 @@ def build_all_rag_zero_skip_entries(
             )
         )
     return out
+
+
+def build_all_rag_zero_skip_entries(
+    *,
+    target_gallery_rows: Iterable[dict[str, Any]],
+    skip_reason: str,
+    run_id: str,
+    source_scope_file: str,
+    detected_at: str | None = None,
+    evidence: str = "",
+) -> list[SkipGalleryEntry]:
+    return _build_skip_entries_for_predicate(
+        target_gallery_rows=target_gallery_rows,
+        predicate=is_all_rag_zero_target_row,
+        skip_reason=skip_reason,
+        run_id=run_id,
+        source_scope_file=source_scope_file,
+        detected_at=detected_at,
+        evidence=evidence,
+    )
+
+
+def build_exhibition_text_only_skip_entries(
+    *,
+    target_gallery_rows: Iterable[dict[str, Any]],
+    skip_reason: str,
+    run_id: str,
+    source_scope_file: str,
+    detected_at: str | None = None,
+    evidence: str = "",
+) -> list[SkipGalleryEntry]:
+    return _build_skip_entries_for_predicate(
+        target_gallery_rows=target_gallery_rows,
+        predicate=is_exhibition_text_only_target_row,
+        skip_reason=skip_reason,
+        run_id=run_id,
+        source_scope_file=source_scope_file,
+        detected_at=detected_at,
+        evidence=evidence,
+    )
