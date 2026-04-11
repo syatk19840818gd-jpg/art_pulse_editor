@@ -23,6 +23,7 @@ from phase2_art_pulse_config import (
     get_current_artist_text_vector_runtime_paths,
     get_current_raw_paths,
 )
+from phase2_common_readonly import normalize_url
 
 TARGET_YEAR = 2025
 RAG_CATEGORY = "artists_text"
@@ -263,7 +264,7 @@ def build_manifest_files(
 
 
 def build_source_key(fair_slug: str, source_url: str, text_hash: str) -> str:
-    payload = f"{fair_slug}\n{source_url.strip()}\n{text_hash.strip()}"
+    payload = f"{fair_slug}\n{normalize_url(source_url)}\n{text_hash.strip()}"
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
@@ -388,7 +389,7 @@ def build_candidate_from_row(
 ) -> EmbeddingCandidate | None:
     text = str(row.get("text") or "").strip()
     text_hash = str(row.get("text_hash") or "").strip()
-    source_url = str(row.get("source_url") or "").strip()
+    source_url = normalize_url(str(row.get("source_url") or ""))
     headline_ja = str(row.get("headline_ja") or "").strip()
 
     if not text:
@@ -700,6 +701,7 @@ def build_manifest(
         "target_year": TARGET_YEAR,
         "generated_at": completed_at,
         "rag_category": RAG_CATEGORY,
+        "source_key_contract": "fair_slug + normalize_url(source_url) + text_hash",
         "embedding_model": model,
         "embedding_task_type": EMBED_TASK_TYPE,
         "embedding_dim": EMBED_OUTPUT_DIM,
@@ -755,6 +757,7 @@ def build_summary(
         "embedding_task_type": EMBED_TASK_TYPE,
         "embedding_dim": EMBED_OUTPUT_DIM,
         "embed_input_max_chars": EMBED_INPUT_MAX_CHARS,
+        "source_key_contract": "fair_slug + normalize_url(source_url) + text_hash",
         "output_paths": {
             "index": str(INDEX_PATH),
             "meta": str(META_PATH),

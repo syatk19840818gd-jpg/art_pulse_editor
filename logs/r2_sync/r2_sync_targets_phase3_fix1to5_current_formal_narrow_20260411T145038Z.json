@@ -1,0 +1,70 @@
+{
+  "version": "v3",
+  "global_exclude_globs": [
+    "**/__pycache__/**",
+    "**/*.pyc",
+    "**/_trial/**",
+    "**/_trash/**",
+    "**/*.tmp",
+    "**/*.bak*",
+    "**/Thumbs.db"
+  ],
+  "scopes": {
+    "phase3_fix1to5_current_formal_narrow": {
+      "description": "Narrow current formal artifacts sync after Phase3 fixes 1-5 (no workbook/docs/trial).",
+      "enabled_by_default": false,
+      "sync_mode": "mirror",
+      "targets": [
+        {
+          "local_root": "data/current/raw",
+          "r2_prefix": "data/current/raw",
+          "include_globs": [
+            "artists_frieze_london_2025.jsonl",
+            "artists_liste_2025.jsonl",
+            "exhibitions_frieze_london_2025.jsonl",
+            "exhibitions_liste_2025.jsonl"
+          ],
+          "exclude_globs": []
+        },
+        {
+          "local_root": "data/current/enrichment",
+          "r2_prefix": "data/current/enrichment",
+          "include_globs": [
+            "artists_enrichment_apply_output.jsonl",
+            "artists_enrichment_apply_summary.json",
+            "exhibitions_enrichment_apply_output_2025.jsonl",
+            "exhibitions_enrichment_apply_summary_2025.json"
+          ],
+          "exclude_globs": []
+        },
+        {
+          "local_root": "data/current/vector/artists",
+          "r2_prefix": "data/current/vector/artists",
+          "include_globs": [
+            "**/*"
+          ],
+          "exclude_globs": []
+        },
+        {
+          "local_root": "data/current/vector/artist_works_images",
+          "r2_prefix": "data/current/vector/artist_works_images",
+          "include_globs": [
+            "**/*"
+          ],
+          "exclude_globs": []
+        },
+        {
+          "local_root": "data/current/images/metadata",
+          "r2_prefix": "data/current/images/metadata",
+          "include_globs": [
+            "artist_works_images_frieze_london.jsonl",
+            "artist_works_images_liste.jsonl",
+            "exhibitions_images_frieze_london_2025.jsonl",
+            "exhibitions_images_liste_2025.jsonl"
+          ],
+          "exclude_globs": []
+        }
+      ]
+    }
+  }
+}

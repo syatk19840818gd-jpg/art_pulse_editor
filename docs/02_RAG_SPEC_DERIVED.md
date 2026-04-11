@@ -1,10 +1,10 @@
-﻿02_RAG仕様_派生索引
-版: 2026-04-10 JST
+02_RAG仕様_派生索引
+版: 2026-04-11 JST（修正1〜修正5 + skip契約同期）
 参照正本: `docs/01_PROJECT_SPEC_CURRENT_FULL.docx`
 
 目的
-- 01 の運用要点を、実装時に参照しやすい形へ圧縮した索引です。
-- 仕様の正本は常に 01 です。差分があれば 01 を優先します。
+- 本書は 01 正本の運用要点を実装参照向けに圧縮した索引である。
+- 仕様の最終判断は常に 01 を優先する。
 
 現行アプリ構成
 - 機能1: Art Pulse
@@ -14,82 +14,64 @@
 - 機能6: Gallery list
 - 機能7: ArtWork Search
 
-現行RAG / 取得ファミリー
-- Artist Works Images 系
-- Artist Text 系
-- Exhibitions Image 系
-- Exhibitions Text 系
+正本契約（current / history / workbook）
+- source of truth は `data/current` の current formal artifacts とする。
+- runtime current enrichment は `status == APPLIED` のみを保持する。
+- `SKIPPED_*` / `BATCH_PARSE_FAILED` などの非APPLIED行は history/audit 側に保持し、runtime current へ混在させない。
+- summary/path 記録は canonical current path を指す。
 
-skip 契約（01 派生・2026-04-10 同期）
-- `all_rag_zero` は既存の generic skip 契約として継続する。
-- `exhibition_text_only` を `all_rag_zero` と同列の generic skip 判定として追加する。
-- `exhibition_text_only` の判定条件は以下で固定する。
-  - `artist_count == 0`
-  - `artist_image_rows == 0`
-  - `artist_image_count == 0`
-  - `exhibition_count > 0`
-  - `exhibition_image_count == 0`
-- 判定実装は gallery/host 固定分岐ではなく shared helper 契約で扱う。
-- closeout 契約にも接続し、closeout 主導線で同一ルールを適用する。
+修正1〜修正5で確定した契約
+- 修正1（closeout / current-write）
+  - workbook は current formal artifacts から導出する。
+  - closeout 系は `current_write -> skip_registry_gallery_list_cleanup -> xlsx_update -> r2_sync` の順で運用する。
+- 修正2（current enrichment source-of-truth）
+  - Artist / Exhibition とも current runtime は materialized current builder を通す。
+  - raw/current/history の整合を保持し、runtime current と history/audit を分離する。
+- 修正3-A〜3-D（Exhibition Text）
+  - stale request は current raw 基準で自動再同期する。
+  - `openai_output_not_json` は tolerant parse で汎用救済する。
+  - Exhibition Text は `workbook 446 / raw 446 / current enrichment 446 / loader enriched 446` へ到達済み。
+- 修正4（Artist vector / loader）
+  - `artists text vector` は `fair_slug + normalize_url(source_url) + text_hash` を canonical row key とする。
+  - `artist works images vector` は `image_id` を row key とする。
+  - Artist loader dedup は `fair_slug + normalized source_url + text_hash` 契約で固定する。
+- 修正5（workbook Artist一致列）
+  - Artist一致列（総抽出Artist数 / 画像テキストArtist一致数 / Artist一致率）は shared artist match key で算出する。
+  - `テキスト抽出Artist数` は text canonical row key 件数として維持する。
 
-pre-enrichment 自動 skip
-- `run_phase1_seed10_exhibition_image_collect.py` 終了後、raw+image 集計由来で pre-enrichment 判定を実施する。
-- pre-enrichment 判定後は以下を自動実行する。
-  - skip 判定
-  - skip registry upsert
-  - gallery list 除外
-- downstream は skip registry を強制尊重する。
-  - artists enrichment
-  - exhibitions enrichment
-  - artists text vector
-  - artist works images vector
+名前ベース契約（Artist / Exhibition 境界）
+- Artist
+  - cross-gallery same-name skip は収集段の契約として実装済み。
+  - first-write-wins global no-refetch を維持する。
+- Exhibition
+  - 同姓同名アーティスト名 / 同名展覧会名を理由に skip しない。
+  - skip は year判定・source_url既知・text hash重複・gallery skip 契約など別理由でのみ実施する。
 
-skip registry / active list
-- skip registry 登録済み gallery は以下 3 館。
-  - City Galerie Wien（`all_rag_zero`）
-  - Copperfield（retroactive 追加、最終的に `exhibition_text_only` 扱い）
-  - Coulisse Gallery（retroactive 追加、最終的に `exhibition_text_only` 扱い）
-- 上記 3 館は active gallery list から除外済み。
-- `data/current/raw/exhibitions_liste_2025.jsonl` から以下を purge 済み。
-  - Copperfield 3 行
-  - Coulisse Gallery 1 行
-- 今後の target selection / Gallery list / phase1 runners / closeout 主導線は registry-aware 前提で自動除外する。
+dedup と skip の役割分離
+- source_url dedup: 同一URL再訪抑止。
+- canonical key dedup: vector/loader の重複排除。
+- gallery skip: `all_rag_zero` / `exhibition_text_only` の館単位除外。
+- Artist cross-gallery same-name skip: 収集段の global artist identity 契約。
 
-closeout 主導線の拡張
-- `run_block_closeout` 主導線に `skip_registry_gallery_list_cleanup` ステージを追加する。
-- 契約上の実行順は以下を含む。
-  - `current_write`
-  - `xlsx_update`
-  - `skip_registry_gallery_list_cleanup`
-  - `r2_sync`
-- dry-run report は以下の出力を必須とする。
-  - `all_rag_zero_detected_rows`
-  - `skip_registry_plan`
-  - `gallery_list_removal_plan`
-- 将来の `all_rag_zero` / `exhibition_text_only` 館も block closeout 主導線で自動 skip される。
-- 最終合格判定は引き続き workbook の人間確認を必須とする。
+workbook 表示契約（標準デフォルト）
+- `rag_gellery_breakdown_master` は合計数表示を標準デフォルトとする。
+- フェア別合計と全体合計を維持する。
+- 今後の workbook 更新でも合計数表示を消さない。
+- workbook 値は current formal artifacts から機械導出する。
 
-現在地（圧縮）
-- true next block（`phase3_block_scope_candidate_after_new10.csv`）は完了。
-- true next は closeout apply 完了・人間確認 OK まで到達済み。
-- ただし `City Galerie Wien` は最終的に skip registry 側へ移管済み。
-- 次 real scope block（active list / skip registry 反映後の 10 館）も closeout apply 完了・workbook OK 済み。
-- 同 block 完了後、`Copperfield` / `Coulisse Gallery` は `exhibition_text_only` 契約へ昇格し、retroactive purge 済み。
+count の読み方（運用固定）
+- row/slot count
+  - `Artistテキスト数`: raw row count
+  - `Artist画像枚数`: image metadata slot count
+- canonical key count
+  - `テキスト抽出Artist数`: `normalize_url(source_url) + text_hash`
+  - Artist Works vector: `image_id`
 
-API 無駄打ち禁止（今回の反映）
-- 今回の skip/purge 契約追加は offline-only で実施する。
-  - API 実行 0
-  - rerun 0
-  - closeout apply 0
-  - R2 apply 0
-  - docs 更新 0
-- 今後も `exhibition_text_only` は pre-enrichment で停止し、無駄な API lane に流さない。
-
-次タスク（短縮）
-- skip registry 反映済み active list から、次の real scope を定義する。
-- 次 block は raw verify-first から開始する。
+次タスク入口（docs同期後）
+- next real scope 10館 block を再開する。
+- 開始は raw verify-first とする。
 
 固定原則
-- app / readonly は current-first を維持する。
-- source / derived / vector / logs のファミリー分離を崩さない。
-- 取得ループ内でLLM加工をしない。Fetch と enrichment は分離する。
+- app/readonly は current-first を維持する。
+- source/derived/vector/logs のファミリー分離を崩さない。
+- 取得ループ内でLLM加工をしない（fetch と enrichment を分離）。

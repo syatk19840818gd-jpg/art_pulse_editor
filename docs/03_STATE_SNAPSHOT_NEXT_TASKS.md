@@ -1,6 +1,6 @@
-﻿03_状態スナップショット_次タスク
+03_状態スナップショット_次タスク
 プロジェクトスラッグ: ART_PULSE_EDITOR
-最終更新: 2026-04-10 JST
+最終更新: 2026-04-11 JST（docs同期: 修正1〜修正5 + skip契約）
 
 文書パス
 - 正本01: `./docs/01_PROJECT_SPEC_CURRENT_FULL.docx`
@@ -9,33 +9,38 @@
 - 進捗04: `./docs/04_TASK_PROGRESS_LOG.md`
 
 現在地スナップショット
-- true next block（`phase3_block_scope_candidate_after_new10.csv`）は完了。
-- true next は closeout apply 完了 + workbook 人間確認 OK 済み。
-- ただし `City Galerie Wien` は最終的に skip registry へ移管済み（`all_rag_zero`）。
-- active list / skip registry 反映後の次 real scope 10館 block も実施完了。
-- 当該 block は raw verify-first、artists image collect verify-first、exhibitions image collect verify-first が PASS。
-- 当該 block は artists enrichment の preflight clean -> submit_only -> resume_or_check completed（row=1 request collapse 成立）まで完了。
-- 当該 block は artists text vector verify-first、artist works images vector verify-first も PASS。
-- 当該 block は closeout apply 完了 + workbook 人間確認 OK 済み。
-- その後 `Copperfield` / `Coulisse Gallery` は `exhibition_text_only` 契約へ昇格し、skip registry へ移管・active RAG から retroactive purge 済み。
-- skip 契約は `all_rag_zero` と `exhibition_text_only` の汎用契約へ更新済み。
+- 修正1完了: workbook vs current raw divergence 是正済み。
+- 修正2完了: Artist/Exhibition current enrichment の source-of-truth を整理済み。
+- 修正3-A〜3-D完了: Exhibition Text は `446/446` で整合済み。
+- 修正4完了: artists text vector / artist works images vector / Artist loader dedup を canonical key 契約へ是正済み。
+- 修正5完了: workbook の Artist 一致数・一致率列を canonical key 契約で再計算済み。
+- workbook は人間確認 OK。
 
-現行運用ルール（今回同期分）
-- skip 判定は shared helper 契約で扱い、gallery/host 固定分岐は増やさない。
-- `run_phase1_seed10_exhibition_image_collect.py` 後の pre-enrichment で自動判定し、skip registry upsert と gallery list 除外を実行する。
-- downstream（artists/exhibitions enrichment、artists text vector、artist works images vector）は skip registry を強制尊重する。
-- target selection / Gallery list / phase1 runners / closeout 主導線は registry-aware で自動除外する。
-- `run_block_closeout` 主導線には `skip_registry_gallery_list_cleanup` が接続済み。
-- closeout 実行順は `current_write` -> `xlsx_update` -> `skip_registry_gallery_list_cleanup` -> `r2_sync` を含む。
-- dry-run report は `all_rag_zero_detected_rows` / `skip_registry_plan` / `gallery_list_removal_plan` を必須出力とする。
-- 最終合格判定は引き続き workbook の人間確認を必須とする。
-- API 無駄打ち禁止を維持し、`exhibition_text_only` は pre-enrichment で止める。
+確定した運用契約
+- source of truth は `data/current` の current formal artifacts。
+- runtime current enrichment は `APPLIED` のみ、history は audit 用に分離。
+- stale request は current raw 基準で自動再同期。
+- `openai_output_not_json` failure class は tolerant parse で汎用救済。
+- `rag_gellery_breakdown_master` の合計数表示（フェア別合計 + 全体合計）は標準デフォルトとして維持し、今後の更新で消さない。
+
+Artist / Exhibition 名前ベース契約
+- Artist: cross-gallery same-name skip は収集段で実装済み（global first-write-wins）。
+- Exhibition: 同姓同名アーティスト名 / 同名展覧会名を理由に skip しない。
+- dedup と skip は別契約として運用する。
+
+count 契約メモ（引き継ぎ用）
+- row/slot count:
+  - `Artistテキスト数` = raw row count
+  - `Artist画像枚数` = image metadata slot count
+- canonical key count:
+  - `テキスト抽出Artist数` = `normalize_url(source_url) + text_hash`
+  - artist works images vector row key = `image_id`
 
 次タスク
-- [ ] skip registry 反映済み active list から、次の real scope を定義する。
-- [ ] 次 block は raw verify-first から開始する。
+- [ ] next real scope 10館 block を再開する。
+- [ ] 開始順は raw verify-first とする。
+- [ ] block 完了判定は current/workbook 整合 + workbook 人間確認で実施する。
 
 引き継ぎメモ
-- 仕様判断は常に 01 を正本として参照する。
-- 02 は 01 の派生索引として運用差分だけを圧縮参照する。
-- 進捗履歴は 04、現在地と次タスクは本 03 を正とする。
+- 仕様判断は常に 01 を正本とする。
+- 02 は実装参照索引、04 は時系列ログ、03 は現在地と次タスクの正本とする。

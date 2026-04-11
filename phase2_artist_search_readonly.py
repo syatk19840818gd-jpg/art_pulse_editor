@@ -88,11 +88,17 @@ def _artist_record_rank(row: dict) -> tuple[int, int, int, int, int, int]:
 
 
 def _dedup_artist_records(records: List[dict]) -> List[dict]:
-    best_by_key: Dict[tuple[str, str], dict] = {}
+    best_by_key: Dict[tuple[str, str, str], dict] = {}
     for row in records:
         fair_slug = str(row.get("fair_slug") or "").strip()
         source_url = normalize_url(str(row.get("source_url") or ""))
-        dedup_key = (fair_slug, source_url or str(row.get("id") or ""))
+        text_hash = str(row.get("text_hash") or "").strip()
+        fallback_key = str(row.get("id") or "")
+        dedup_key = (
+            fair_slug,
+            source_url or fallback_key,
+            text_hash or fallback_key,
+        )
         existing = best_by_key.get(dedup_key)
         if existing is None or _artist_record_rank(row) > _artist_record_rank(existing):
             best_by_key[dedup_key] = row
@@ -239,6 +245,7 @@ def load_artist_records_readonly() -> ArtistSearchData:
                 "artist_name_key": str(raw_row.get("artist_name_key") or hint.get("artist_name_key") or "").strip(),
                 "year": year if isinstance(year, int) else None,
                 "source_url": source_url,
+                "text_hash": text_hash,
                 "text": str(raw_row.get("text") or ""),
                 "artist_name_kana": artist_name_kana,
                 "headline_ja": headline_ja,
@@ -277,6 +284,7 @@ def load_artist_records_readonly() -> ArtistSearchData:
                     "artist_name_key": str(row.get("artist_name_key") or hint.get("artist_name_key") or "").strip(),
                     "year": row.get("target_year") if isinstance(row.get("target_year"), int) else None,
                     "source_url": source_url,
+                    "text_hash": text_hash,
                     "text": str(row.get("text") or ""),
                     "artist_name_kana": artist_name_kana,
                     "headline_ja": headline_ja,
@@ -325,6 +333,7 @@ def load_artist_records_readonly() -> ArtistSearchData:
                     "artist_name_key": str(row.get("artist_name_key") or "").strip(),
                     "year": None,
                     "source_url": source_url,
+                    "text_hash": str(row.get("text_hash") or "").strip(),
                     "text": "",
                     "artist_name_kana": artist_name_kana,
                     "headline_ja": headline_ja,
@@ -359,6 +368,8 @@ def load_artist_records_readonly() -> ArtistSearchData:
             "headline_ja/summary_ja/artist_name_kana uses current-first enrichment output "
             "(data/current/enrichment/artists_enrichment_apply_output.jsonl), "
             "with strict current-only resolution. "
+            "Listing identity is fixed to fair_slug + normalized source_url + text_hash, "
+            "so multiple text variants on the same artist URL are preserved while exact duplicates are collapsed. "
             "When available, all-years raw current files supplement text/year/identity metadata without pinning runtime to a fixed year. "
             "history is not used as a default query path. "
             "works_image_count_hint is matched by source_url against formal artist works-image metadata. "

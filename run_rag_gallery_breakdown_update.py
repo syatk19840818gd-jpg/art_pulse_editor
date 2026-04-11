@@ -43,6 +43,7 @@ SHEET_BY_FAIR = {
 class GalleryStats:
     artist_image_keys: set[str]
     artist_image_count: int
+    artist_text_match_keys: set[str]
     artist_text_keys: set[str]
     artist_text_count: int
     exhibition_image_keys: set[str]
@@ -143,6 +144,29 @@ def first_non_empty(*values: Any) -> str:
     return ""
 
 
+def build_artist_text_key(row: dict[str, Any]) -> str:
+    source_url = normalize_url(str(row.get("source_url") or ""))
+    text_hash = str(row.get("text_hash") or "").strip()
+    if source_url and text_hash:
+        return f"{source_url}#{text_hash}"
+    return first_non_empty(
+        row.get("artist_key"),
+        row.get("artist_identity_key"),
+        row.get("artist_name_key"),
+        source_url,
+    )
+
+
+def build_artist_match_key(row: dict[str, Any]) -> str:
+    return first_non_empty(
+        normalize_url(str(row.get("artist_key") or "")),
+        normalize_url(str(row.get("artist_canonical_url") or "")),
+        normalize_url(str(row.get("source_url") or "")),
+        row.get("artist_identity_key"),
+        row.get("artist_name_key"),
+    )
+
+
 def read_jsonl(path: Path) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     if not path.exists():
@@ -221,6 +245,7 @@ def build_stats(target_year: int) -> dict[tuple[str, str], GalleryStats]:
             stats[key] = GalleryStats(
                 artist_image_keys=set(),
                 artist_image_count=0,
+                artist_text_match_keys=set(),
                 artist_text_keys=set(),
                 artist_text_count=0,
                 exhibition_image_keys=set(),
@@ -236,14 +261,12 @@ def build_stats(target_year: int) -> dict[tuple[str, str], GalleryStats]:
             if not gallery_name:
                 continue
             item = ensure(fair_slug, gallery_name)
-            artist_key = first_non_empty(
-                row.get("artist_key"),
-                row.get("artist_identity_key"),
-                row.get("artist_name_key"),
-                normalize_url(str(row.get("source_url") or "")),
-            )
-            if artist_key:
-                item.artist_text_keys.add(artist_key)
+            artist_match_key = build_artist_match_key(row)
+            if artist_match_key:
+                item.artist_text_match_keys.add(artist_match_key)
+            artist_text_key = build_artist_text_key(row)
+            if artist_text_key:
+                item.artist_text_keys.add(artist_text_key)
             item.artist_text_count += 1
 
     for fair_slug, path in get_current_artist_image_meta_paths().items():
@@ -252,12 +275,7 @@ def build_stats(target_year: int) -> dict[tuple[str, str], GalleryStats]:
             if not gallery_name:
                 continue
             item = ensure(fair_slug, gallery_name)
-            artist_key = first_non_empty(
-                row.get("artist_key"),
-                row.get("artist_identity_key"),
-                row.get("artist_name_key"),
-                normalize_url(str(row.get("source_url") or "")),
-            )
+            artist_key = build_artist_match_key(row)
             if artist_key:
                 item.artist_image_keys.add(artist_key)
             item.artist_image_count += infer_artist_image_count(row)
@@ -294,7 +312,7 @@ def build_stats(target_year: int) -> dict[tuple[str, str], GalleryStats]:
 
 
 def empty_gallery_stats() -> GalleryStats:
-    return GalleryStats(set(), 0, set(), 0, set(), 0, set(), 0)
+    return GalleryStats(set(), 0, set(), set(), 0, set(), 0, set(), 0)
 
 
 def build_scope_source_validation(
@@ -312,7 +330,7 @@ def build_scope_source_validation(
     for target in targets:
         stat = stats.get(target.scope_key) or empty_gallery_stats()
         artist_image_keys_count = len(stat.artist_image_keys)
-        artist_union_count = len(stat.artist_image_keys | stat.artist_text_keys)
+        artist_union_count = len(stat.artist_image_keys | stat.artist_text_match_keys)
         exhibition_count = int(stat.exhibition_text_count)
         row = {
             "fair_slug": target.fair_slug,
@@ -375,8 +393,8 @@ def sheet_existing_rows(ws: openpyxl.worksheet.worksheet.Worksheet) -> tuple[dic
 
 
 def build_row_values(item: GalleryStats) -> dict[int, Any]:
-    artist_union = item.artist_image_keys | item.artist_text_keys
-    artist_intersection = item.artist_image_keys & item.artist_text_keys
+    artist_union = item.artist_image_keys | item.artist_text_match_keys
+    artist_intersection = item.artist_image_keys & item.artist_text_match_keys
     exhibition_union = item.exhibition_image_keys | item.exhibition_text_keys
     exhibition_intersection = item.exhibition_image_keys & item.exhibition_text_keys
     return {

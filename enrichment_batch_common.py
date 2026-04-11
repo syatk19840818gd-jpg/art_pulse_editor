@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+from collections import Counter
+from collections.abc import Callable, Hashable, Sequence
 import hashlib
 import json
 import os
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -90,6 +93,81 @@ def read_jsonl(path: Path) -> list[dict[str, Any]]:
             if isinstance(obj, dict):
                 rows.append(obj)
     return rows
+
+
+def load_enrichment_history_apply_rows(
+    category: str,
+    *,
+    target_year: int,
+    root: Path | None = None,
+) -> list[dict[str, Any]]:
+    history_dir = get_enrichment_history_dir(category, root=root)
+    if not history_dir.exists():
+        return []
+    rows: list[dict[str, Any]] = []
+    pattern = f"{category}_enrichment_apply_output_{int(target_year)}_*.jsonl"
+    for path in sorted(history_dir.glob(pattern)):
+        rows.extend(read_jsonl(path))
+    return rows
+
+
+def build_materialized_current_runtime_rows(
+    *,
+    raw_rows_in_order: Sequence[dict[str, Any]],
+    current_rows: Sequence[dict[str, Any]],
+    history_rows: Sequence[dict[str, Any]],
+    raw_key_builder: Callable[[dict[str, Any]], Hashable | None],
+    enrichment_key_builder: Callable[[dict[str, Any]], Hashable | None],
+    materialize_row: Callable[[dict[str, Any], dict[str, Any] | None, dict[str, Any] | None], tuple[dict[str, Any] | None, str]],
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    current_by_key: dict[Hashable, dict[str, Any]] = {}
+    history_by_key: dict[Hashable, dict[str, Any]] = {}
+    source_counts: Counter[str] = Counter()
+
+    for row in current_rows:
+        if str(row.get("status") or "").strip() != "APPLIED":
+            continue
+        key = enrichment_key_builder(row)
+        if key is None:
+            continue
+        current_by_key[key] = dict(row)
+
+    for row in history_rows:
+        if str(row.get("status") or "").strip() != "APPLIED":
+            continue
+        key = enrichment_key_builder(row)
+        if key is None:
+            continue
+        history_by_key[key] = dict(row)
+
+    materialized_rows: list[dict[str, Any]] = []
+    seen_keys: set[Hashable] = set()
+    for raw_row in raw_rows_in_order:
+        key = raw_key_builder(raw_row)
+        if key is None or key in seen_keys:
+            continue
+        seen_keys.add(key)
+        row, source = materialize_row(
+            dict(raw_row),
+            current_by_key.get(key),
+            history_by_key.get(key),
+        )
+        if row is None:
+            continue
+        row = dict(row)
+        row["status"] = "APPLIED"
+        materialized_rows.append(row)
+        source_counts[str(source or "unknown")] += 1
+
+    return materialized_rows, {
+        "raw_row_total": len(raw_rows_in_order),
+        "raw_key_total": len(seen_keys),
+        "current_applied_candidate_total": len(current_by_key),
+        "history_applied_candidate_total": len(history_by_key),
+        "materialized_row_total": len(materialized_rows),
+        "materialized_source_counts": dict(source_counts),
+        "materialized_missing_total": max(0, len(seen_keys) - len(materialized_rows)),
+    }
 
 
 def is_truthy_flag(value: str | bool | None) -> bool:
@@ -699,6 +777,89 @@ def extract_response_text_from_body(body: dict[str, Any]) -> str:
                 if chunk_type in {"output_text", "text"} and text:
                     texts.append(text)
     return "\n".join(texts).strip()
+
+
+def _extract_jsonish_object_text(text: str) -> str:
+    candidate = str(text or "").strip()
+    if not candidate:
+        return ""
+    fenced = re.search(r"```(?:json)?\s*(\{.*\})\s*```", candidate, flags=re.DOTALL | re.IGNORECASE)
+    if fenced:
+        return str(fenced.group(1) or "").strip()
+    start = candidate.find("{")
+    end = candidate.rfind("}")
+    if start >= 0 and end > start:
+        return candidate[start : end + 1].strip()
+    return candidate
+
+
+def _decode_jsonish_string_value(text: str) -> str:
+    value = str(text or "")
+    value = value.replace("\\r\\n", "\n").replace("\\n", "\n").replace("\\r", "\n").replace("\\t", "\t")
+    value = value.replace('\\"', '"').replace("\\/", "/").replace("\\\\", "\\")
+    return value
+
+
+def _extract_expected_string_fields_from_jsonish_text(
+    text: str,
+    *,
+    expected_string_fields: Sequence[str],
+) -> dict[str, Any] | None:
+    object_text = _extract_jsonish_object_text(text)
+    if not object_text:
+        return None
+
+    field_matches: list[tuple[int, str, int]] = []
+    for field_name in expected_string_fields:
+        match = re.search(rf'"{re.escape(field_name)}"\s*:\s*"', object_text)
+        if not match:
+            return None
+        field_matches.append((match.start(), field_name, match.end()))
+
+    field_matches.sort(key=lambda item: item[0])
+    out: dict[str, Any] = {}
+    for idx, (_, field_name, value_start) in enumerate(field_matches):
+        next_field_start = field_matches[idx + 1][0] if idx + 1 < len(field_matches) else len(object_text)
+        chunk = object_text[value_start:next_field_start]
+        if idx + 1 < len(field_matches):
+            end_match = re.search(r'"\s*,\s*$', chunk, flags=re.DOTALL)
+        else:
+            end_match = re.search(r'"\s*}\s*$', chunk, flags=re.DOTALL)
+        if end_match:
+            raw_value = chunk[: end_match.start()]
+        elif idx + 1 == len(field_matches):
+            brace_pos = chunk.rfind("}")
+            if brace_pos < 0:
+                return None
+            raw_value = chunk[:brace_pos].rstrip()
+            if raw_value.endswith('"'):
+                raw_value = raw_value[:-1]
+        else:
+            return None
+        out[field_name] = _decode_jsonish_string_value(raw_value)
+    return out
+
+
+def extract_json_like_object(
+    text: str,
+    *,
+    expected_string_fields: Sequence[str] = (),
+) -> dict[str, Any] | None:
+    candidate = _extract_jsonish_object_text(text)
+    if not candidate:
+        return None
+    try:
+        obj = json.loads(candidate)
+        if isinstance(obj, dict):
+            return obj
+    except json.JSONDecodeError:
+        pass
+    if expected_string_fields:
+        return _extract_expected_string_fields_from_jsonish_text(
+            candidate,
+            expected_string_fields=expected_string_fields,
+        )
+    return None
 
 
 def build_bulk_contract_fields(

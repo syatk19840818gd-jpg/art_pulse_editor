@@ -1,0 +1,29 @@
+{
+  "artifact_kind": "r2_sync_run",
+  "schema_version": "v2",
+  "generated_at": "2026-04-10T12:54:10Z",
+  "command": "sync",
+  "run_id": "TASK_PHASE3_SAME_SCOPE9_R2_APPLY_20260410T1250Z",
+  "bucket": "art-pulse-editor",
+  "scope_count": 1,
+  "uploaded_count": 17,
+  "deleted_count": 0,
+  "upload_failed_count": 0,
+  "delete_failed_count": 0,
+  "scopes": [
+    {
+      "scope": "block_closeout_unified_phase3_next_real_scope_ef_r2_07048a363cac",
+      "sync_mode": "mirror",
+      "plan_log_path": "logs/r2_sync/r2_sync_plan_block_closeout_unified_phase3_next_real_scope_ef_r2_07048a363cac_TASK_PHASE3_SAME_SCOPE9_R2_APPLY_20260410T1250Z.json",
+      "apply_log_path": "logs/r2_sync/r2_sync_apply_block_closeout_unified_phase3_next_real_scope_ef_r2_07048a363cac_TASK_PHASE3_SAME_SCOPE9_R2_APPLY_20260410T1250Z.json",
+      "local_roots_missing": [],
+      "would_upload_count": 17,
+      "would_delete_count": 0,
+      "uploaded_count": 17,
+      "deleted_count": 0,
+      "upload_failed_count": 0,
+      "delete_failed_count": 0,
+      "delete_policy": "no_delete_candidates"
+    }
+  ]
+}

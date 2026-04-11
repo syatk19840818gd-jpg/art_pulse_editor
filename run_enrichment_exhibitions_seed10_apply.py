@@ -25,6 +25,7 @@ from enrichment_batch_common import (
     FAILED_BATCH_STATUSES,
     TERMINAL_BATCH_STATUSES,
     acquire_process_lock,
+    build_materialized_current_runtime_rows,
     build_enrichment_request_custom_id,
     build_batch_request_line,
     build_bulk_artifact_paths,
@@ -35,6 +36,7 @@ from enrichment_batch_common import (
     create_responses_batch,
     download_batch_file_rows,
     finalize_runtime_requests_retention,
+    load_enrichment_history_apply_rows,
     load_guard_state,
     normalize_bulk_lifecycle_mode,
     normalize_requested_enrichment_fields,
@@ -60,7 +62,7 @@ from model_routing import (
     EXHIBITIONS_ENRICHMENT_FIELD_MODELS,
     get_enrichment_model_fingerprint,
 )
-from phase2_art_pulse_config import get_current_raw_paths, promote_history_file_to_current
+from phase2_art_pulse_config import get_current_raw_paths
 from run_enrichment_exhibitions_preview import (
     ENRICH_BATCH_COMPLETION_WINDOW,
     ENRICH_PROMPT_VERSION,
@@ -159,14 +161,286 @@ def build_row_index(rows: list[dict[str, Any]]) -> dict[tuple[str, str], int]:
     return index
 
 
-def load_requests(*, requests_path: Path, io_root: Path | None) -> list[dict[str, Any]]:
-    if requests_path.exists():
-        return read_jsonl(requests_path)
+def normalize_exhibition_runtime_source_url(url: str) -> str:
+    return str(url or "").strip().rstrip("/")
+
+
+def exhibition_runtime_key_from_raw(row: dict[str, Any]) -> str | None:
+    key = normalize_exhibition_runtime_source_url(str(row.get("source_url") or ""))
+    return key or None
+
+
+def exhibition_runtime_key_from_enrichment(row: dict[str, Any]) -> str | None:
+    key = normalize_exhibition_runtime_source_url(str(row.get("source_url") or ""))
+    return key or None
+
+
+def raw_exhibition_has_enrichment_values(row: dict[str, Any]) -> bool:
+    return any(str(row.get(key) or "").strip() for key in ("headline_ja", "summary_ja"))
+
+
+def build_exhibition_runtime_row_from_raw(
+    raw_row: dict[str, Any],
+    *,
+    base_row: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    base = dict(base_row or {})
+    headline_ja = str(raw_row.get("headline_ja") or "").strip()
+    summary_ja = str(raw_row.get("summary_ja") or "").strip()
+    enrich_models_by_field = raw_row.get("enrich_models_by_field")
+    if not isinstance(enrich_models_by_field, dict):
+        enrich_models_by_field = base.get("enrich_models_by_field")
+    if not isinstance(enrich_models_by_field, dict):
+        enrich_models_by_field = {}
+    warnings = base.get("warnings")
+    if not isinstance(warnings, list):
+        warnings = []
+    out = dict(base)
+    out.update(
+        {
+            "request_id": str(base.get("request_id") or ""),
+            "record_id": str(raw_row.get("record_id") or base.get("record_id") or raw_row.get("text_hash") or "").strip(),
+            "fair_slug": str(raw_row.get("fair_slug") or base.get("fair_slug") or "").strip(),
+            "text_hash": str(raw_row.get("text_hash") or base.get("text_hash") or "").strip(),
+            "source_url": str(raw_row.get("source_url") or base.get("source_url") or "").strip(),
+            "status": "APPLIED",
+            "headline_ja": headline_ja,
+            "summary_ja": summary_ja,
+            "headline_ja_chars": len(headline_ja),
+            "summary_ja_chars": len(summary_ja),
+            "warnings": warnings,
+            "enrich_model": str(raw_row.get("enrich_model") or base.get("enrich_model") or "").strip(),
+            "enrich_models_by_field": enrich_models_by_field,
+            "enrich_mode": str(raw_row.get("enrich_mode") or base.get("enrich_mode") or "current_raw_carry_forward").strip(),
+            "enrich_use_openai_batch": str(
+                raw_row.get("enrich_use_openai_batch") or base.get("enrich_use_openai_batch") or ""
+            ).strip(),
+            "enrich_completion_window": str(
+                raw_row.get("enrich_completion_window") or base.get("enrich_completion_window") or ""
+            ).strip(),
+            "enrich_prompt_version": str(
+                raw_row.get("enrich_prompt_version") or base.get("enrich_prompt_version") or ""
+            ).strip(),
+            "enrich_input_text_hash": str(
+                raw_row.get("enrich_input_text_hash") or raw_row.get("text_hash") or base.get("enrich_input_text_hash") or ""
+            ).strip(),
+            "enrich_batch_job_id": str(
+                raw_row.get("enrich_batch_job_id") or base.get("enrich_batch_job_id") or ""
+            ).strip(),
+            "enrich_notes": str(raw_row.get("enrich_notes") or base.get("enrich_notes") or "").strip(),
+        }
+    )
+    return out
+
+
+def materialize_exhibition_current_runtime_row(
+    raw_row: dict[str, Any],
+    current_row: dict[str, Any] | None,
+    history_row: dict[str, Any] | None,
+) -> tuple[dict[str, Any] | None, str]:
+    if raw_exhibition_has_enrichment_values(raw_row):
+        return build_exhibition_runtime_row_from_raw(raw_row, base_row=current_row or history_row), "raw"
+    if current_row is not None:
+        return dict(current_row), "current"
+    if history_row is not None:
+        return dict(history_row), "history"
+    return None, ""
+
+
+def build_exhibition_current_runtime_rows(
+    *,
+    raw_rows_by_fair: dict[str, list[dict[str, Any]]],
+    current_output_path: Path,
+    current_rows_override: list[dict[str, Any]] | None = None,
+    io_root: Path | None = None,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    raw_rows_in_order: list[dict[str, Any]] = []
+    for fair_slug in sorted(raw_rows_by_fair):
+        raw_rows_in_order.extend(raw_rows_by_fair[fair_slug])
+    current_rows = current_rows_override if current_rows_override is not None else (
+        read_jsonl(current_output_path) if current_output_path.exists() else []
+    )
+    history_rows = load_enrichment_history_apply_rows("exhibitions", target_year=TARGET_YEAR, root=io_root)
+    return build_materialized_current_runtime_rows(
+        raw_rows_in_order=raw_rows_in_order,
+        current_rows=current_rows,
+        history_rows=history_rows,
+        raw_key_builder=exhibition_runtime_key_from_raw,
+        enrichment_key_builder=exhibition_runtime_key_from_enrichment,
+        materialize_row=materialize_exhibition_current_runtime_row,
+    )
+
+
+def build_exhibition_request_key(row: dict[str, Any]) -> tuple[str, str, str] | None:
+    fair_slug = str(row.get("fair_slug") or "").strip()
+    text_hash = str(row.get("text_hash") or "").strip()
+    source_url = normalize_exhibition_runtime_source_url(str(row.get("source_url") or ""))
+    if not fair_slug or not text_hash or not source_url:
+        return None
+    return fair_slug, text_hash, source_url
+
+
+def build_exhibition_request_key_from_raw(fair_slug: str, row: dict[str, Any]) -> tuple[str, str, str] | None:
+    text_hash = str(row.get("text_hash") or "").strip()
+    source_url = normalize_exhibition_runtime_source_url(str(row.get("source_url") or ""))
+    fair_slug_norm = str(fair_slug or "").strip()
+    if not fair_slug_norm or not text_hash or not source_url:
+        return None
+    return fair_slug_norm, text_hash, source_url
+
+
+def load_requests(
+    *,
+    requests_path: Path,
+    io_root: Path | None,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    requests_exist = requests_path.exists()
+    existing_rows = read_jsonl(requests_path) if requests_exist else []
+    sync_info: dict[str, Any] = {
+        "request_source_of_truth": "runtime_requests_path" if requests_exist else "current_raw",
+        "request_rows_total_from_current_raw": 0,
+        "runtime_requests_existing_rows_total": len(existing_rows),
+        "runtime_requests_loaded_rows_total": len(existing_rows),
+        "runtime_requests_refreshed": False,
+        "runtime_requests_refresh_reason": "",
+        "runtime_requests_stale_missing_rows_pre_refresh": 0,
+        "runtime_requests_stale_extra_rows_pre_refresh": 0,
+    }
     if io_root is not None:
-        raise FileNotFoundError(f"Missing trial exhibitions requests path: {requests_path}")
-    request_rows, _ = build_requests()
-    write_jsonl(requests_path, request_rows)
-    return request_rows
+        if not requests_exist:
+            raise FileNotFoundError(f"Missing trial exhibitions requests path: {requests_path}")
+        return existing_rows, sync_info
+
+    expected_rows, _ = build_requests()
+    expected_by_key = {
+        key: row for row in expected_rows
+        if (key := build_exhibition_request_key(row)) is not None
+    }
+    existing_by_key = {
+        key: row for row in existing_rows
+        if (key := build_exhibition_request_key(row)) is not None
+    }
+    missing_pre_refresh = sum(1 for key in expected_by_key if key not in existing_by_key)
+    extra_pre_refresh = sum(1 for key in existing_by_key if key not in expected_by_key)
+
+    sync_info.update(
+        {
+            "request_source_of_truth": "current_raw",
+            "request_rows_total_from_current_raw": len(expected_rows),
+            "runtime_requests_stale_missing_rows_pre_refresh": missing_pre_refresh,
+            "runtime_requests_stale_extra_rows_pre_refresh": extra_pre_refresh,
+        }
+    )
+
+    refresh_reasons: list[str] = []
+    if not requests_exist:
+        refresh_reasons.append("missing")
+    if requests_exist and not existing_rows:
+        refresh_reasons.append("empty")
+    if missing_pre_refresh or extra_pre_refresh:
+        refresh_reasons.append("stale_key_mismatch")
+    if refresh_reasons:
+        write_jsonl(requests_path, expected_rows)
+        sync_info["runtime_requests_refreshed"] = True
+        sync_info["runtime_requests_refresh_reason"] = ",".join(refresh_reasons)
+        sync_info["runtime_requests_loaded_rows_total"] = len(expected_rows)
+        return expected_rows, sync_info
+
+    return existing_rows, sync_info
+
+
+def build_exhibition_current_completeness_summary(
+    *,
+    raw_rows_by_fair: dict[str, list[dict[str, Any]]],
+    current_runtime_rows: list[dict[str, Any]],
+    request_rows: list[dict[str, Any]],
+    request_sync_info: dict[str, Any],
+    io_root: Path | None = None,
+) -> dict[str, Any]:
+    current_keys = {
+        key for row in current_runtime_rows
+        if (key := exhibition_runtime_key_from_enrichment(row)) is not None
+    }
+    history_rows = load_enrichment_history_apply_rows("exhibitions", target_year=TARGET_YEAR, root=io_root)
+    history_keys = {
+        key for row in history_rows
+        if str(row.get("status") or "").strip() == "APPLIED"
+        and (key := exhibition_runtime_key_from_enrichment(row)) is not None
+    }
+    request_keys = {
+        key for row in request_rows
+        if (key := build_exhibition_request_key(row)) is not None
+    }
+    counters: Counter[str] = Counter()
+    missing_gallery_counts: Counter[tuple[str, str]] = Counter()
+    missing_examples: list[dict[str, Any]] = []
+
+    for fair_slug in sorted(raw_rows_by_fair):
+        for row in raw_rows_by_fair[fair_slug]:
+            text = str(row.get("text") or "").strip()
+            text_hash = str(row.get("text_hash") or "").strip()
+            headline_ja = str(row.get("headline_ja") or "").strip()
+            summary_ja = str(row.get("summary_ja") or "").strip()
+            if headline_ja and summary_ja:
+                counters["raw_rows_with_enrich"] += 1
+                continue
+            if not text:
+                counters["raw_rows_missing_text"] += 1
+                continue
+            if not text_hash:
+                counters["raw_rows_missing_text_hash"] += 1
+                continue
+
+            counters["requestable_missing_rows_total"] += 1
+            source_key = exhibition_runtime_key_from_raw(row)
+            request_key = build_exhibition_request_key_from_raw(fair_slug, row)
+            if source_key in current_keys:
+                counters["requestable_missing_rows_present_in_current_runtime"] += 1
+                continue
+            if source_key in history_keys:
+                counters["requestable_missing_rows_history_applied_not_materialized"] += 1
+                continue
+            if request_key is None or request_key not in request_keys:
+                counters["requestable_missing_rows_missing_from_runtime_requests"] += 1
+                cause = "missing_from_runtime_requests"
+            else:
+                counters["requestable_missing_rows_without_any_applied"] += 1
+                cause = "request_present_without_current_or_history_applied"
+
+            gallery_name = str(row.get("gallery_name_en") or row.get("gallery_name") or "").strip()
+            missing_gallery_counts[(fair_slug, gallery_name)] += 1
+            if len(missing_examples) < 10:
+                missing_examples.append(
+                    {
+                        "fair_slug": fair_slug,
+                        "gallery_name": gallery_name,
+                        "source_url": str(row.get("source_url") or "").strip(),
+                        "text_hash": text_hash,
+                        "text_chars": len(text),
+                        "cause": cause,
+                    }
+                )
+
+    top_missing_galleries = [
+        {"fair_slug": fair_slug, "gallery_name": gallery_name, "missing_rows": count}
+        for (fair_slug, gallery_name), count in missing_gallery_counts.most_common(10)
+    ]
+    return {
+        "request_source_of_truth": str(request_sync_info.get("request_source_of_truth") or "current_raw"),
+        "request_rows_total_from_current_raw": int(request_sync_info.get("request_rows_total_from_current_raw") or 0),
+        "runtime_requests_loaded_rows_total": int(request_sync_info.get("runtime_requests_loaded_rows_total") or 0),
+        "runtime_requests_refreshed": bool(request_sync_info.get("runtime_requests_refreshed")),
+        "runtime_requests_refresh_reason": str(request_sync_info.get("runtime_requests_refresh_reason") or ""),
+        "runtime_requests_stale_missing_rows_pre_refresh": int(
+            request_sync_info.get("runtime_requests_stale_missing_rows_pre_refresh") or 0
+        ),
+        "runtime_requests_stale_extra_rows_pre_refresh": int(
+            request_sync_info.get("runtime_requests_stale_extra_rows_pre_refresh") or 0
+        ),
+        "counts": dict(counters),
+        "top_missing_galleries": top_missing_galleries,
+        "missing_examples": missing_examples,
+    }
 
 
 def build_batch_row_map(rows: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
@@ -246,7 +520,7 @@ def commit_successful_exhibitions_enrichment_updates(
         row["enrich_summary_chars"] = len(update["summary_ja"])
         row["enrich_headline_chars"] = len(update["headline_ja"])
         row["enrich_generated_at"] = utc_now_iso()
-        row["enrich_notes"] = ""
+        row["enrich_notes"] = str(update.get("repair_mode") or "")
         row["enrich_batch_job_id"] = batch_job_id
         committed_rows += 1
         dirty_fairs.add(fair_slug)
@@ -274,7 +548,7 @@ def commit_successful_exhibitions_enrichment_updates(
                 "enrich_prompt_version": ENRICH_PROMPT_VERSION,
                 "enrich_input_text_hash": update["text_hash"],
                 "enrich_batch_job_id": batch_job_id,
-                "enrich_notes": "",
+                "enrich_notes": str(update.get("repair_mode") or ""),
             }
         )
 
@@ -305,7 +579,7 @@ def main() -> int:
         or ENRICH_BATCH_COMPLETION_WINDOW
     )
 
-    request_rows = load_requests(requests_path=requests_path, io_root=io_root)
+    request_rows, request_sync_info = load_requests(requests_path=requests_path, io_root=io_root)
     allowlist = load_gallery_allowlist(args.allowlist_csv) if str(args.allowlist_csv or "").strip() else set()
     allowlist_enabled = bool(allowlist)
     skip_lookup = load_skip_lookup()
@@ -512,6 +786,7 @@ def main() -> int:
             "enrich_completion_window": completion_window,
             "enrich_prompt_version": ENRICH_PROMPT_VERSION,
             "openai_client_available": bool(api_key),
+            **request_sync_info,
             **raw_state,
             **build_bulk_contract_fields(api_mode="bulk_noop", batch_used=False, batch_job_id="", input_bundle_hash=input_bundle_hash, target_rows=0, updated_rows=0, rerun_guard_verdict="no_target_rows", process_lock_id=""),
         }
@@ -533,6 +808,7 @@ def main() -> int:
             "enrich_prompt_version": ENRICH_PROMPT_VERSION,
             "enrich_completion_window": completion_window,
             "openai_client_available": bool(api_key),
+            **request_sync_info,
             **build_bulk_contract_fields(api_mode="bulk_noop", batch_used=False, batch_job_id="", input_bundle_hash=input_bundle_hash, target_rows=0, updated_rows=0, rerun_guard_verdict="no_target_rows", process_lock_id=""),
         }
         write_jsonl(paths["history_output_path"], apply_rows)
@@ -712,6 +988,7 @@ def main() -> int:
                 "enrich_completion_window": completion_window,
                 "enrich_prompt_version": ENRICH_PROMPT_VERSION,
                 "openai_client_available": bool(api_key),
+                **request_sync_info,
                 **raw_state,
                 **build_bulk_contract_fields(api_mode="openai_batch_apply", batch_used=True, batch_job_id=batch_job_id, input_bundle_hash=input_bundle_hash, target_rows=target_rows, updated_rows=0, rerun_guard_verdict=rerun_guard_verdict, process_lock_id=process_lock_id),
             }
@@ -731,6 +1008,7 @@ def main() -> int:
                 "enrich_prompt_version": ENRICH_PROMPT_VERSION,
                 "enrich_completion_window": completion_window,
                 "openai_client_available": bool(api_key),
+                **request_sync_info,
                 **build_bulk_contract_fields(api_mode="openai_batch_apply", batch_used=True, batch_job_id=batch_job_id, input_bundle_hash=input_bundle_hash, target_rows=target_rows, updated_rows=0, rerun_guard_verdict=rerun_guard_verdict, process_lock_id=process_lock_id),
             }
             guard_state["guard_status"] = "terminal_failed"
@@ -801,6 +1079,7 @@ def main() -> int:
                 "enrich_completion_window": completion_window,
                 "enrich_prompt_version": ENRICH_PROMPT_VERSION,
                 "openai_client_available": bool(api_key),
+                **request_sync_info,
                 **raw_state,
                 **build_bulk_contract_fields(api_mode="openai_batch_apply", batch_used=True, batch_job_id=batch_job_id, input_bundle_hash=input_bundle_hash, target_rows=target_rows, updated_rows=0, rerun_guard_verdict=rerun_guard_verdict, process_lock_id=process_lock_id),
             }
@@ -825,6 +1104,7 @@ def main() -> int:
                 "enrich_prompt_version": ENRICH_PROMPT_VERSION,
                 "enrich_completion_window": completion_window,
                 "openai_client_available": bool(api_key),
+                **request_sync_info,
                 **build_bulk_contract_fields(api_mode="openai_batch_apply", batch_used=True, batch_job_id=batch_job_id, input_bundle_hash=input_bundle_hash, target_rows=target_rows, updated_rows=0, rerun_guard_verdict=rerun_guard_verdict, process_lock_id=process_lock_id),
             }
             persist_artifacts(history_output_path=paths["history_output_path"], history_summary_path=paths["history_summary_path"], history_manifest_path=paths["history_manifest_path"], apply_rows=waiting_rows, summary=summary, manifest=manifest, guard_state_path=paths["guard_state_path"], guard_state=guard_state)
@@ -999,6 +1279,7 @@ def main() -> int:
             "enrich_completion_window": completion_window,
             "enrich_prompt_version": ENRICH_PROMPT_VERSION,
             "openai_client_available": bool(api_key),
+            **request_sync_info,
             **raw_state,
             **build_bulk_contract_fields(api_mode="openai_batch_apply", batch_used=True, batch_job_id=batch_job_id, input_bundle_hash=input_bundle_hash, target_rows=target_rows, updated_rows=committed_rows, rerun_guard_verdict=rerun_guard_verdict, process_lock_id=process_lock_id),
         }
@@ -1030,12 +1311,20 @@ def main() -> int:
             "parse_failed_rows": parse_failed_rows,
             "ready_uncommitted_rows": ready_uncommitted_rows,
             "partial_success": partial_success,
+            **request_sync_info,
             **build_bulk_contract_fields(api_mode="openai_batch_apply", batch_used=True, batch_job_id=batch_job_id, input_bundle_hash=input_bundle_hash, target_rows=target_rows, updated_rows=committed_rows, rerun_guard_verdict=rerun_guard_verdict, process_lock_id=process_lock_id),
         }
+        promote_ok = False
         if allow_current_promote:
-            promote_ok, promote_verdict = validate_bulk_promote_summary(summary)
+            full_success = batch_status == "completed" and committed_rows == target_rows and error_count == 0
+            if full_success:
+                promote_ok, promote_verdict = validate_bulk_promote_summary(summary)
+            elif apply_completed_ok:
+                promote_ok, promote_verdict = True, "promote_allowed_partial_success"
+            else:
+                promote_verdict = "promote_blocked_no_committed_rows"
         else:
-            promote_ok, promote_verdict = False, "promote_skipped_non_current_root"
+            promote_verdict = "promote_skipped_non_current_root"
         summary["promote_verdict"] = promote_verdict
         guard_state["guard_status"] = "completed" if apply_completed_ok else "terminal_failed"
         guard_state["updated_rows"] = committed_rows
@@ -1052,9 +1341,35 @@ def main() -> int:
         )
         persist_artifacts(history_output_path=paths["history_output_path"], history_summary_path=paths["history_summary_path"], history_manifest_path=paths["history_manifest_path"], apply_rows=apply_rows, summary=summary, manifest=manifest, guard_state_path=paths["guard_state_path"], guard_state=guard_state)
         release_lock_at_exit = True
+        current_runtime_rows, current_runtime_materialization = build_exhibition_current_runtime_rows(
+            raw_rows_by_fair=raw_rows_by_fair,
+            current_output_path=paths["current_output_path"],
+            io_root=io_root,
+        )
+        summary["current_runtime_rows_total"] = len(current_runtime_rows)
+        summary["current_runtime_status_counts"] = {"APPLIED": len(current_runtime_rows)} if current_runtime_rows else {}
+        summary["current_runtime_rows_dropped_from_current"] = max(
+            0,
+            current_runtime_materialization["raw_key_total"] - len(current_runtime_rows),
+        )
+        summary["current_runtime_rows_dropped_reason"] = "rows_without_current_raw_or_available_applied_or_raw_enrichment_values"
+        summary["current_runtime_source_of_truth"] = "current_raw_then_current_applied_then_history_applied"
+        summary["current_runtime_materialization"] = dict(current_runtime_materialization)
+        completeness_summary = build_exhibition_current_completeness_summary(
+            raw_rows_by_fair=raw_rows_by_fair,
+            current_runtime_rows=current_runtime_rows,
+            request_rows=request_rows,
+            request_sync_info=request_sync_info,
+            io_root=io_root,
+        )
+        summary["current_runtime_completeness"] = completeness_summary
+        manifest["current_runtime_rows_total"] = len(current_runtime_rows)
+        manifest["current_runtime_status_counts"] = summary["current_runtime_status_counts"]
+        manifest["current_runtime_source_of_truth"] = summary["current_runtime_source_of_truth"]
+        manifest["current_runtime_materialization"] = dict(current_runtime_materialization)
+        manifest["current_runtime_completeness"] = completeness_summary
         if allow_current_promote and promote_ok:
-            promote_history_file_to_current(paths["history_output_path"], paths["current_output_path"])
-            promote_history_file_to_current(paths["history_summary_path"], paths["current_summary_path"])
+            write_jsonl(paths["current_output_path"], current_runtime_rows)
             summary["promoted_to_current"] = True
         release_process_lock(paths["lock_path"])
         release_lock_at_exit = False

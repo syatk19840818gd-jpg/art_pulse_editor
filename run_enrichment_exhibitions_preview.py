@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from enrichment_batch_common import extract_response_text_from_body, is_truthy_flag
+from enrichment_batch_common import extract_json_like_object, extract_response_text_from_body, is_truthy_flag
 from model_routing import (
     ENRICH_BATCH_COMPLETION_WINDOW_DEFAULT,
     ENRICH_USE_OPENAI_BATCH_DEFAULT,
@@ -244,23 +244,10 @@ def sanitize_summary(summary: str) -> str:
 
 
 def extract_json_object(text: str) -> dict[str, Any] | None:
-    if not text:
-        return None
-    text = text.strip()
-    try:
-        obj = json.loads(text)
-        return obj if isinstance(obj, dict) else None
-    except json.JSONDecodeError:
-        pass
-
-    match = re.search(r"\{.*\}", text, flags=re.DOTALL)
-    if not match:
-        return None
-    try:
-        obj = json.loads(match.group(0))
-    except json.JSONDecodeError:
-        return None
-    return obj if isinstance(obj, dict) else None
+    return extract_json_like_object(
+        text,
+        expected_string_fields=("headline_ja", "summary_ja"),
+    )
 
 
 def build_openai_request_body(model: str, row: dict[str, Any]) -> dict[str, Any]:

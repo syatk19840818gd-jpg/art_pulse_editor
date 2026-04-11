@@ -1,0 +1,130 @@
+{
+  "artifact_kind": "r2_sync_plan",
+  "schema_version": "v2",
+  "generated_at": "2026-04-11T14:51:50Z",
+  "command": "sync",
+  "scope": "phase3_fix1to5_current_formal_narrow",
+  "description": "Narrow current formal artifacts sync after Phase3 fixes 1-5 (no workbook/docs/trial).",
+  "enabled_by_default": false,
+  "sync_mode": "mirror",
+  "uploads_enabled": true,
+  "deletes_enabled": true,
+  "run_id": "TASK_PHASE3_FIX1TO5_CURRENT_FORMAL_R2_APPLY_20260411T1452Z",
+  "bucket_env_key": "R2_BUCKET",
+  "bucket": "art-pulse-editor",
+  "local_stats": {
+    "roots_missing": [],
+    "local_count": 23,
+    "local_total_size_bytes": 49837056
+  },
+  "remote_scanned_count": 23,
+  "unchanged_count": 17,
+  "would_upload_count": 6,
+  "would_delete_count": 0,
+  "would_prune_count": 0,
+  "scope_hash": "d92aa742dbc89de4dbe5ab203716d00e11d5445b34c2adeceb7f46b483405702",
+  "input_fingerprint": "9224ae7cdd31334a0774c4f97030c52b66b82e2fb93ccf684c8f42e93223109a",
+  "code_fingerprint": "a873d16312eb89e6a5bf513ea1815fafa974593296336eac326e0439acc292ff",
+  "prune_candidates_fingerprint": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "targets": [
+    {
+      "local_root": "data/current/raw",
+      "r2_prefix": "data/current/raw",
+      "include_globs": [
+        "artists_frieze_london_2025.jsonl",
+        "artists_liste_2025.jsonl",
+        "exhibitions_frieze_london_2025.jsonl",
+        "exhibitions_liste_2025.jsonl"
+      ],
+      "exclude_globs": [],
+      "ignore_global_excludes": false
+    },
+    {
+      "local_root": "data/current/enrichment",
+      "r2_prefix": "data/current/enrichment",
+      "include_globs": [
+        "artists_enrichment_apply_output.jsonl",
+        "artists_enrichment_apply_summary.json",
+        "exhibitions_enrichment_apply_output_2025.jsonl",
+        "exhibitions_enrichment_apply_summary_2025.json"
+      ],
+      "exclude_globs": [],
+      "ignore_global_excludes": false
+    },
+    {
+      "local_root": "data/current/vector/artists",
+      "r2_prefix": "data/current/vector/artists",
+      "include_globs": [
+        "**/*"
+      ],
+      "exclude_globs": [],
+      "ignore_global_excludes": false
+    },
+    {
+      "local_root": "data/current/vector/artist_works_images",
+      "r2_prefix": "data/current/vector/artist_works_images",
+      "include_globs": [
+        "**/*"
+      ],
+      "exclude_globs": [],
+      "ignore_global_excludes": false
+    },
+    {
+      "local_root": "data/current/images/metadata",
+      "r2_prefix": "data/current/images/metadata",
+      "include_globs": [
+        "artist_works_images_frieze_london.jsonl",
+        "artist_works_images_liste.jsonl",
+        "exhibitions_images_frieze_london_2025.jsonl",
+        "exhibitions_images_liste_2025.jsonl"
+      ],
+      "exclude_globs": [],
+      "ignore_global_excludes": false
+    }
+  ],
+  "would_upload": [
+    {
+      "r2_key": "data/current/raw/exhibitions_liste_2025.jsonl",
+      "reason": "SIZE_MISMATCH",
+      "size_bytes": 1320369,
+      "remote_size_bytes": 1263272,
+      "local_path": "data/current/raw/exhibitions_liste_2025.jsonl"
+    },
+    {
+      "r2_key": "data/current/vector/artist_works_images/artist_works_images_vectorize_summary_2025.json",
+      "reason": "SIZE_MISMATCH",
+      "size_bytes": 4396,
+      "remote_size_bytes": 4964,
+      "local_path": "data/current/vector/artist_works_images/artist_works_images_vectorize_summary_2025.json"
+    },
+    {
+      "r2_key": "data/current/vector/artists/artists_text_artifact_manifest.json",
+      "reason": "SIZE_MISMATCH",
+      "size_bytes": 2154,
+      "remote_size_bytes": 2209,
+      "local_path": "data/current/vector/artists/artists_text_artifact_manifest.json"
+    },
+    {
+      "r2_key": "data/current/vector/artists/artists_text_index.npy",
+      "reason": "SIZE_MISMATCH",
+      "size_bytes": 6156416,
+      "remote_size_bytes": 6162560,
+      "local_path": "data/current/vector/artists/artists_text_index.npy"
+    },
+    {
+      "r2_key": "data/current/vector/artists/artists_text_meta.jsonl",
+      "reason": "SIZE_MISMATCH",
+      "size_bytes": 560057,
+      "remote_size_bytes": 560923,
+      "local_path": "data/current/vector/artists/artists_text_meta.jsonl"
+    },
+    {
+      "r2_key": "data/current/vector/artists/artists_text_vectorize_summary_2025.json",
+      "reason": "SIZE_MISMATCH",
+      "size_bytes": 4336,
+      "remote_size_bytes": 4686,
+      "local_path": "data/current/vector/artists/artists_text_vectorize_summary_2025.json"
+    }
+  ],
+  "would_prune": []
+}

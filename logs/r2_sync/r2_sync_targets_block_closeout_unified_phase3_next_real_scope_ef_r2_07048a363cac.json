@@ -1,0 +1,51 @@
+{
+  "version": "v3",
+  "global_exclude_globs": [
+    "**/__pycache__/**",
+    "**/*.pyc",
+    "**/_trial/**",
+    "**/_trash/**",
+    "**/*.tmp",
+    "**/*.bak*",
+    "**/Thumbs.db"
+  ],
+  "scopes": {
+    "block_closeout_unified_phase3_next_real_scope_ef_r2_07048a363cac": {
+      "description": "Block closeout required R2 sync for phase3_next_real_scope_effective9_20260410_block_current_formal_artifacts. Current formal artifacts only; xlsx is intentionally excluded.",
+      "enabled_by_default": false,
+      "sync_mode": "mirror",
+      "targets": [
+        {
+          "local_root": "data/current",
+          "r2_prefix": "data/current",
+          "include_globs": [
+            "enrichment/artists_enrichment_apply_output.jsonl",
+            "enrichment/artists_enrichment_apply_summary.json",
+            "enrichment/exhibitions_enrichment_apply_output_2025.jsonl",
+            "enrichment/exhibitions_enrichment_apply_summary_2025.json",
+            "images/metadata/artist_works_images_frieze_london.jsonl",
+            "images/metadata/artist_works_images_liste.jsonl",
+            "images/metadata/exhibitions_images_frieze_london_2025.jsonl",
+            "images/metadata/exhibitions_images_liste_2025.jsonl",
+            "raw/artists_frieze_london_2025.jsonl",
+            "raw/artists_liste_2025.jsonl",
+            "raw/exhibitions_frieze_london_2025.jsonl",
+            "raw/exhibitions_liste_2025.jsonl",
+            "vector/artist_works_images/artist_works_images_artifact_manifest.json",
+            "vector/artist_works_images/artist_works_images_openclip_embeddings.npy",
+            "vector/artist_works_images/artist_works_images_openclip_id_map.jsonl",
+            "vector/artist_works_images/artist_works_images_openclip_search_index.npy",
+            "vector/artist_works_images/artist_works_images_vectorize_failed_2025.jsonl",
+            "vector/artist_works_images/artist_works_images_vectorize_summary_2025.json",
+            "vector/artists/artists_text_artifact_manifest.json",
+            "vector/artists/artists_text_index.npy",
+            "vector/artists/artists_text_meta.jsonl",
+            "vector/artists/artists_text_vectorize_failed_2025.jsonl",
+            "vector/artists/artists_text_vectorize_summary_2025.json"
+          ],
+          "exclude_globs": []
+        }
+      ]
+    }
+  }
+}

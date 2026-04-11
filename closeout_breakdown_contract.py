@@ -50,6 +50,8 @@ from run_r2_sync import (
 from run_rag_gallery_breakdown_update import (
     ScopeTarget as BreakdownScopeTarget,
     build_breakdown_update_report,
+    build_scope_source_validation,
+    build_stats,
 )
 
 CurrentWriteCallback = Callable[[bool], dict[str, Any]]
@@ -64,8 +66,8 @@ SUPPORTED_BLOCK_ARTIFACT_CATEGORIES = (
 )
 BLOCK_COMPLETION_REQUIRED_STAGES = (
     "current_write",
-    "xlsx_update",
     "skip_registry_gallery_list_cleanup",
+    "xlsx_update",
     "r2_sync",
 )
 CURRENT_FORMAL_ARTIFACTS_ROOT = Path("data/current")
@@ -753,14 +755,9 @@ def _build_skip_registry_plan(
     )
 
 
-def _extract_target_gallery_rows_from_xlsx_report(xlsx_report: dict[str, Any]) -> list[dict[str, Any]]:
-    source_validation = xlsx_report.get("source_validation")
-    if not isinstance(source_validation, dict):
-        return []
-    raw_rows = source_validation.get("target_gallery_rows")
-    if not isinstance(raw_rows, list):
-        return []
+def _normalize_target_gallery_rows(raw_rows: Sequence[dict[str, Any]] | list[dict[str, Any]]) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
+    seen_scope_keys: set[tuple[str, str]] = set()
     for raw in raw_rows:
         if not isinstance(raw, dict):
             continue
@@ -768,6 +765,10 @@ def _extract_target_gallery_rows_from_xlsx_report(xlsx_report: dict[str, Any]) -
         gallery_name_en = str(raw.get("gallery_name_en") or "").strip()
         if not fair_slug or not gallery_name_en:
             continue
+        scope_key = (fair_slug, normalize_gallery_name(gallery_name_en))
+        if scope_key in seen_scope_keys:
+            continue
+        seen_scope_keys.add(scope_key)
         row = dict(raw)
         row["fair_slug"] = fair_slug
         row["gallery_name_en"] = gallery_name_en
@@ -775,15 +776,40 @@ def _extract_target_gallery_rows_from_xlsx_report(xlsx_report: dict[str, Any]) -
     return rows
 
 
+def _build_skip_cleanup_projection(
+    *,
+    targets: Sequence[BreakdownScopeTarget],
+    target_year: int,
+    apply: bool,
+    breakdown_stats_override: dict[tuple[str, str], Any] | None,
+) -> dict[str, Any]:
+    effective_stats = (
+        build_stats(int(target_year))
+        if apply or breakdown_stats_override is None
+        else breakdown_stats_override
+    )
+    source_validation = build_scope_source_validation(targets=list(targets), stats=effective_stats)
+    target_gallery_rows = _normalize_target_gallery_rows(source_validation.get("target_gallery_rows", []))
+    all_rag_zero_detected_rows = [row for row in target_gallery_rows if is_all_rag_zero_target_row(row)]
+    exhibition_text_only_detected_rows = [row for row in target_gallery_rows if is_exhibition_text_only_target_row(row)]
+    return {
+        "effective_stats": effective_stats,
+        "source_validation": source_validation,
+        "target_gallery_rows": target_gallery_rows,
+        "all_rag_zero_detected_rows": all_rag_zero_detected_rows,
+        "exhibition_text_only_detected_rows": exhibition_text_only_detected_rows,
+    }
+
+
 def execute_skip_registry_gallery_list_cleanup_contract(
     *,
     apply: bool,
     run_id: str,
     current_write_report: dict[str, Any],
-    xlsx_report: dict[str, Any],
+    target_gallery_rows: Sequence[dict[str, Any]],
 ) -> dict[str, Any]:
     mode = "apply" if apply else "dry_run"
-    target_gallery_rows = _extract_target_gallery_rows_from_xlsx_report(xlsx_report)
+    target_gallery_rows = _normalize_target_gallery_rows(list(target_gallery_rows))
     all_rag_zero_detected_rows = [row for row in target_gallery_rows if is_all_rag_zero_target_row(row)]
     exhibition_text_only_detected_rows = [row for row in target_gallery_rows if is_exhibition_text_only_target_row(row)]
     source_scope_file = str(current_write_report.get("targets_file") or "").strip()
@@ -954,43 +980,27 @@ def execute_closeout_with_breakdown_contract(
     current_write_status = _resolve_stage_status(current_write_report, apply=bool(apply))
 
     if _stage_allows_downstream(current_write_status, apply=bool(apply)):
-        xlsx_report = build_breakdown_update_report(
+        skip_cleanup_projection = _build_skip_cleanup_projection(
             targets=ordered_targets,
-            xlsx_path=Path(xlsx_path),
             target_year=int(target_year),
-            run_id=str(run_id),
             apply=bool(apply),
-            stats=None if apply else breakdown_stats_override,
+            breakdown_stats_override=breakdown_stats_override,
         )
-    else:
-        xlsx_report = _blocked_stage_report(
-            stage_name="xlsx_update",
-            reason=f"current_write_status:{current_write_status}",
-            upstream={"current_write_status": current_write_status},
-        )
-    xlsx_update_status = _resolve_stage_status(xlsx_report, apply=bool(apply))
-
-    if _stage_allows_downstream(current_write_status, apply=bool(apply)) and _stage_allows_downstream(
-        xlsx_update_status,
-        apply=bool(apply),
-    ):
         skip_registry_gallery_list_cleanup_report = execute_skip_registry_gallery_list_cleanup_contract(
             apply=bool(apply),
             run_id=str(run_id),
             current_write_report=current_write_report,
-            xlsx_report=xlsx_report,
+            target_gallery_rows=skip_cleanup_projection["target_gallery_rows"],
         )
     else:
-        blocked_by = "xlsx_update" if not _stage_allows_downstream(xlsx_update_status, apply=bool(apply)) else "current_write"
-        blocked_status = xlsx_update_status if blocked_by == "xlsx_update" else current_write_status
         skip_registry_gallery_list_cleanup_report = _blocked_stage_report(
             stage_name="skip_registry_gallery_list_cleanup",
-            reason=f"{blocked_by}_status:{blocked_status}",
+            reason=f"current_write_status:{current_write_status}",
             upstream={
                 "current_write_status": current_write_status,
-                "xlsx_update_status": xlsx_update_status,
             },
         )
+        skip_cleanup_projection = None
     skip_registry_gallery_list_cleanup_status = _resolve_stage_status(
         skip_registry_gallery_list_cleanup_report,
         apply=bool(apply),
@@ -998,8 +1008,53 @@ def execute_closeout_with_breakdown_contract(
 
     if (
         _stage_allows_downstream(current_write_status, apply=bool(apply))
-        and _stage_allows_downstream(xlsx_update_status, apply=bool(apply))
         and _stage_allows_downstream(skip_registry_gallery_list_cleanup_status, apply=bool(apply))
+    ):
+        xlsx_report = build_breakdown_update_report(
+            targets=ordered_targets,
+            xlsx_path=Path(xlsx_path),
+            target_year=int(target_year),
+            run_id=str(run_id),
+            apply=bool(apply),
+            stats=skip_cleanup_projection["effective_stats"] if skip_cleanup_projection is not None else None,
+        )
+        if skip_cleanup_projection is not None:
+            xlsx_report["skip_cleanup_projection"] = {
+                "source_of_truth": "current_formal_artifacts",
+                "target_gallery_row_total": len(skip_cleanup_projection["target_gallery_rows"]),
+                "all_rag_zero_detected_count": len(skip_cleanup_projection["all_rag_zero_detected_rows"]),
+                "exhibition_text_only_detected_count": len(skip_cleanup_projection["exhibition_text_only_detected_rows"]),
+                "detected_target_total": (
+                    len(skip_cleanup_projection["all_rag_zero_detected_rows"])
+                    + len(skip_cleanup_projection["exhibition_text_only_detected_rows"])
+                ),
+                "pre_cleanup_target_gallery_rows": list(skip_cleanup_projection["target_gallery_rows"]),
+            }
+    else:
+        blocked_by = (
+            "skip_registry_gallery_list_cleanup"
+            if not _stage_allows_downstream(skip_registry_gallery_list_cleanup_status, apply=bool(apply))
+            else "current_write"
+        )
+        blocked_status = (
+            skip_registry_gallery_list_cleanup_status
+            if blocked_by == "skip_registry_gallery_list_cleanup"
+            else current_write_status
+        )
+        xlsx_report = _blocked_stage_report(
+            stage_name="xlsx_update",
+            reason=f"{blocked_by}_status:{blocked_status}",
+            upstream={
+                "current_write_status": current_write_status,
+                "skip_registry_gallery_list_cleanup_status": skip_registry_gallery_list_cleanup_status,
+            },
+        )
+    xlsx_update_status = _resolve_stage_status(xlsx_report, apply=bool(apply))
+
+    if (
+        _stage_allows_downstream(current_write_status, apply=bool(apply))
+        and _stage_allows_downstream(skip_registry_gallery_list_cleanup_status, apply=bool(apply))
+        and _stage_allows_downstream(xlsx_update_status, apply=bool(apply))
     ):
         r2_report = execute_closeout_r2_contract(
             bundle=r2_artifact_bundle,

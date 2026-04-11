@@ -1,0 +1,60 @@
+{
+  "artifact_kind": "r2_sync_apply",
+  "schema_version": "v2",
+  "generated_at": "2026-04-11T14:53:15Z",
+  "scope": "phase3_fix1to5_current_formal_narrow",
+  "run_id": "TASK_PHASE3_FIX1TO5_CURRENT_FORMAL_R2_APPLY_20260411T1452Z",
+  "bucket": "art-pulse-editor",
+  "sync_mode": "mirror",
+  "plan_log_path": "logs/r2_sync/r2_sync_plan_phase3_fix1to5_current_formal_narrow_TASK_PHASE3_FIX1TO5_CURRENT_FORMAL_R2_APPLY_20260411T1452Z.json",
+  "local_roots_missing": [],
+  "would_upload_count": 6,
+  "would_delete_count": 0,
+  "would_prune_count": 0,
+  "uploaded_count": 6,
+  "upload_failed_count": 0,
+  "deleted_count": 0,
+  "delete_failed_count": 0,
+  "delete_policy": "no_delete_candidates",
+  "uploaded": [
+    {
+      "r2_key": "data/current/raw/exhibitions_liste_2025.jsonl",
+      "local_path": "data/current/raw/exhibitions_liste_2025.jsonl",
+      "size_bytes": 1320369,
+      "sha256": "6eda38d3dc857b09073b2c5d2acb6504c32afb83a3362862be728d79fe807b98"
+    },
+    {
+      "r2_key": "data/current/vector/artist_works_images/artist_works_images_vectorize_summary_2025.json",
+      "local_path": "data/current/vector/artist_works_images/artist_works_images_vectorize_summary_2025.json",
+      "size_bytes": 4396,
+      "sha256": "1f95bd340eefb407db737c5c30d08c71e485c465963cfbd21187e83adcf96df0"
+    },
+    {
+      "r2_key": "data/current/vector/artists/artists_text_artifact_manifest.json",
+      "local_path": "data/current/vector/artists/artists_text_artifact_manifest.json",
+      "size_bytes": 2154,
+      "sha256": "6e39645846524016d4c7a31c5e4062993088ffba1f246354d434533c538e4264"
+    },
+    {
+      "r2_key": "data/current/vector/artists/artists_text_index.npy",
+      "local_path": "data/current/vector/artists/artists_text_index.npy",
+      "size_bytes": 6156416,
+      "sha256": "8f98c311bdc4bd6e267ccf9ab45912e9ae1be277125f2ee36ebbae4907582475"
+    },
+    {
+      "r2_key": "data/current/vector/artists/artists_text_meta.jsonl",
+      "local_path": "data/current/vector/artists/artists_text_meta.jsonl",
+      "size_bytes": 560057,
+      "sha256": "b18c8a7fd1e31e38d8274053f695d34d22a30f1755f86015dafe30069443be40"
+    },
+    {
+      "r2_key": "data/current/vector/artists/artists_text_vectorize_summary_2025.json",
+      "local_path": "data/current/vector/artists/artists_text_vectorize_summary_2025.json",
+      "size_bytes": 4336,
+      "sha256": "837dc5b4333bf019ec33b68ced51a4ceffd2707f323fb526981a340a1d150d3e"
+    }
+  ],
+  "upload_failed": [],
+  "deleted": [],
+  "delete_failed": []
+}

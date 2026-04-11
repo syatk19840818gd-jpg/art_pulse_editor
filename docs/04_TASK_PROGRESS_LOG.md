@@ -1,6 +1,6 @@
 # 04_作業進捗ログ
 
-最終更新: 2026-04-10 JST
+最終更新: 2026-04-11 JST
 プロジェクト: ART_PULSE_EDITOR
 
 ## 0. 文書の役割
@@ -145,8 +145,42 @@
 - HTML fetch / route guard / year/provenance / listing quota を含む generic patch を複数回重ね、Exhibition image を verify-first で十分な密度まで改善した。理由は、母集団依存ではなく汎用ロジック側で再利用可能な改善に寄せるため。
 - true next block は最終的に closeout apply 完了、workbook 人間確認 OK まで到達した。理由は、block 完了判定を人間確認付きで確定するため。
 - true next の最終整理として `City Galerie Wien` を `all_rag_zero` で skip registry 化し、active gallery list から除外した。理由は、以後の通常運用で無駄な下流処理を回避するため。
-- skip 契約を `all_rag_zero` から `exhibition_text_only` まで拡張した。`exhibition_text_only` は `artist_count == 0`、`artist_image_rows == 0`、`artist_image_count == 0`、`exhibition_count > 0`、`exhibition_image_count == 0` を満たす場合に generic skip として扱う。理由は、gallery/host 固定分岐を増やさず shared helper 契約で運用するため。
+- skip 契約を `all_rag_zero` から `exhibition_text_only` まで拡張した。`exhibition_text_only`（理由コード互換名）は `artist_count == 0`、`artist_image_rows == 0`、`artist_image_count == 0`、かつ exhibition 側が片側モダリティのみ（textのみ または imageのみ）を満たす場合に generic skip として扱う。理由は、gallery/host 固定分岐を増やさず shared helper 契約で運用するため。
 - active list / skip registry 反映後の次 real scope 10館 block を実施し、raw verify-first、artists image collect verify-first、exhibitions image collect verify-first、artists enrichment submit/resume、artists text vector verify-first、artist works images vector verify-first、closeout apply、workbook OK まで完了した。理由は、skip 拡張後の主導線が end-to-end で成立することを確認するため。
 - block 完了後に `Copperfield` / `Coulisse Gallery` を `exhibition_text_only` として retroactive に skip registry へ移管し、Liste active list から除外、`data/current/raw/exhibitions_liste_2025.jsonl` から Copperfield 3行・Coulisse Gallery 1行を purge した。理由は、active RAG に不要行を残さないため。
 - `run_block_closeout` 主導線へ `skip_registry_gallery_list_cleanup` を接続し、`current_write -> xlsx_update -> skip_registry_gallery_list_cleanup -> r2_sync` の契約へ拡張した。dry-run report は `all_rag_zero_detected_rows` / `skip_registry_plan` / `gallery_list_removal_plan` を必須化した。理由は、将来の `all_rag_zero` / `exhibition_text_only` を closeout 主導線で自動除外しつつ、最終合格判定を workbook 人間確認で維持するため。
 - 上記 skip/purge 契約追加は offline-only タスクとして実施した（API実行0 / rerun0 / closeout apply0 / R2 apply0 / docs更新0）。理由は、無駄な API lane への流入を pre-enrichment で停止する方針を固定するため。
+
+## 18. 2026-04-10 exhibition_text_only 契約境界の固定（本チャット実装）
+- `gallery_skip_registry.py` の shared helper を最小差分で更新し、`exhibition_text_only` 判定を「artist側が空」かつ「exhibition側が片側モダリティのみ（textのみ / imageのみ）」へ統一した。
+- exhibition 側で text と image が両方ある館は、この理由では skip しない境界を明示した。
+- 既存 reason code 名 `exhibition_text_only` は後方互換のため維持し、gallery名分岐は追加していない。
+- 実例確認: Emalin は generic 条件で auto skip 側、Gauli Zitter は exhibition text + exhibition image が両方あるためこの理由では non-skip 側。
+- 最終 accept 判定は従来どおり `rag_gellery_breakdown_master.xlsx` の人間確認で確定する。
+
+## 19. 2026-04-11 Exhibition Text narrow apply 完了 + R2 narrow apply/post-check 完了
+- Exhibition Text の fair差分監査を実施し、`if fair == ...` の固定分岐ではなく、汎用ヒューリスティクス差（候補投入量・year signal・date candidateノイズ）が主因であることを確認した。
+- generic 改善は段階的に実施した。候補投入改善（same_domain -> same_site と root listing fallback）で Liste 候補投入を改善し、続いて year-signal の最小修正を適用した。
+- `_collect_date_candidates` / ISO系の追加改善は複数案を verify-first 比較し、`v7` の source-aware weighting は no-gain（指標同値）としてロールバックした。
+- 最終的な Exhibition Text コード状態は `v3安定版`（候補投入改善 + year-signal 順序修正 + month/two-digit 文脈絞り）で凍結した。
+- `run_block_closeout.py` に `--exhibitions-raw-trial-root` 導線を追加し、既存の bounded merge 契約に沿って Exhibition raw も same scope で narrow 反映できるようにした（gallery/host 固定分岐なし）。
+- same scope narrow apply（`TASK_PHASE3_EXHIB_TEXT_NARROW_APPLY_20260411T2215JST`）を実行し、`current exhibitions raw` を `59 -> 69` へ更新、workbook 更新を完了した。
+- post-apply dry-run（`TASK_PHASE3_EXHIB_TEXT_NARROW_APPLY_POSTCHECK_20260411T2217JST`）で scope 汚染なし、block status planned を確認した。
+- skip 契約は維持された。Emalin は `exhibition_text_only_auto_detected_in_block_closeout` で skip 維持、Stephen Friedman Gallery は既存 `all_rag_zero` skip 維持、Gauli Zitter は non-skip 維持。
+- workbook 人間確認 OK 後、same scope narrow config のみで R2 live apply を実行した（`TASK_PHASE3_EXHIB_TEXT_NARROW_SCOPE_R2_APPLY_20260411T2258JST`）。pre-plan は upload 2 / prune 0、apply は uploaded 2 / deleted 0 / failure 0。
+- R2 post-check（`TASK_PHASE3_EXHIB_TEXT_NARROW_SCOPE_R2_POSTCHECK_20260411T2300JST`）で `would_upload=0 / would_prune=0` を確認し、same scope 反映をクローズした。
+- exhibitions image vector は今回も optional 契約のまま扱い、必須段への昇格はしていない。
+- 次タスク入口は `active list -> 次scope 10館定義 -> raw verify-first` とする。
+
+## 20. 2026-04-11 Phase 3 修正1〜修正5 + skip契約 + workbook表示契約 docs同期
+- タスク種別は docs-only とし、実装変更・currentデータ変更・R2 apply・next block開始は行わなかった。
+- 修正1の確定事項として、workbook は current formal artifacts から導出する契約を維持し、closeout/current-write 契約の順序を文書へ同期した。
+- 修正2の確定事項として、current enrichment の source-of-truth は current formal artifacts、runtime current は APPLIED のみ、history は audit 用分離で固定した。
+- 修正3-A〜3-Dの確定事項として、Exhibition Text は 446/446 到達、stale request 自動再同期、openai_output_not_json failure class の tolerant parse 汎用救済を文書へ同期した。
+- 修正4の確定事項として、artists text vector（fair_slug + normalize_url(source_url) + text_hash）、artist works images vector（image_id）、Artist loader dedup（fair_slug + normalized source_url + text_hash）の canonical key 契約を同期した。
+- 修正5の確定事項として、workbook の Artist 一致数・一致率列は shared artist match key で再計算し、テキスト抽出Artist数は text canonical row key 件数として分離維持する契約を同期した。
+- verify-first 結果として、Artist cross-gallery same-name skip は収集段で実装済み（global first-write-wins）であることを記録した。
+- verify-first 結果として、Exhibition は同姓同名アーティスト名・同名展覧会名を理由に skip しない契約（名前ベース非skip）を記録した。
+- `rag_gellery_breakdown_master` の合計数表示（フェア別合計 + 全体合計）は標準デフォルトとして固定し、今後の更新でも消さないことを運用契約へ明記した。
+- row/slot count と canonical key count を混同しない運用メモを 02/03 に同期した。
+- docs同期後の次タスク入口は `next real scope 10館 block 再開（raw verify-first開始）` として更新した。

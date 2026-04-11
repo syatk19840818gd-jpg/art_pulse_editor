@@ -272,18 +272,12 @@ def _collect_date_candidates(page_url: str, html: str, extracted_text: str) -> l
                 seen.add(d.isoformat())
                 candidates.append(d)
 
-    for match in MONTH_NAME_DATE_RE.finditer(str(extracted_text or "")):
-        d = _parse_month_name_date(match.group(1))
-        if d is None:
-            continue
-        key = d.isoformat()
-        if key in seen:
-            continue
-        seen.add(key)
-        candidates.append(d)
-
+    local_signal_text = _build_local_year_signal_text(page_url, html, extracted_text)
+    event_line_context_re = re.compile(
+        r"(?i)\b(opening|closing|until|through|on view|exhibition|exhibitions|show|from|to)\b"
+    )
     normalized_text = (
-        str(extracted_text or "")
+        local_signal_text
         .replace("\u2013", "-")
         .replace("\u2014", "-")
         .replace("\u2212", "-")
@@ -292,6 +286,19 @@ def _collect_date_candidates(page_url: str, html: str, extracted_text: str) -> l
         line = normalize_whitespace(raw_line)
         if not line or len(line) > 160:
             continue
+        has_range_marker = " - " in line or " to " in line.lower()
+        has_event_context = bool(event_line_context_re.search(line))
+        if not (has_range_marker or has_event_context):
+            continue
+        for match in MONTH_NAME_DATE_RE.finditer(line):
+            d = _parse_month_name_date(match.group(1))
+            if d is None:
+                continue
+            key = d.isoformat()
+            if key in seen:
+                continue
+            seen.add(key)
+            candidates.append(d)
         if not TWO_DIGIT_DATE_RE.search(line):
             continue
         for match in TWO_DIGIT_DATE_RANGE_RE.finditer(line):
@@ -431,27 +438,27 @@ def should_include_target_year_page(*, page_url: str, html: str, target_year: in
     target = int(target_year)
     extracted_text = extract_visible_text(html)
     dates = _collect_date_candidates(page_url, html, extracted_text)
-    if dates:
-        date_years = {entry.year for entry in dates}
-        if target in date_years:
-            return True, "year_signal_present"
-        return False, "explicit_non_target_year"
+    date_years = {entry.year for entry in dates}
     local_year_text = _build_local_year_signal_text(page_url, html, extracted_text)
     title_and_headings = _extract_page_title_and_headings(html)
     title_years = extract_year_tokens(title_and_headings)
     local_years = extract_year_tokens(local_year_text)
+    if target in date_years:
+        return True, "year_signal_present"
     if target in title_years:
         return True, "year_signal_present"
     if _is_local_target_year_signal(local_years, target):
         return True, "year_signal_present"
+    if url_path_contains_year(page_url, target):
+        return True, "year_signal_in_url_path"
     if target == 2025:
         two_digit_years = extract_two_digit_years_in_date_context(local_year_text)
         if 25 in two_digit_years and len(two_digit_years) <= 3:
             return True, "two_digit_year_signal"
+    if dates:
+        return False, "explicit_non_target_year"
     if local_years:
         return False, "explicit_non_target_year"
-    if url_path_contains_year(page_url, target):
-        return True, "year_signal_in_url_path"
     return False, "no_explicit_year_signal"
 
 

@@ -28,6 +28,7 @@ from enrichment_batch_common import (
     FAILED_BATCH_STATUSES,
     TERMINAL_BATCH_STATUSES,
     acquire_process_lock,
+    build_materialized_current_runtime_rows,
     build_enrichment_request_custom_id,
     build_batch_request_line,
     build_bulk_artifact_paths,
@@ -39,6 +40,7 @@ from enrichment_batch_common import (
     download_batch_file_rows,
     finalize_runtime_requests_retention,
     is_optional_output_enabled,
+    load_enrichment_history_apply_rows,
     load_guard_state,
     normalize_bulk_lifecycle_mode,
     normalize_requested_enrichment_fields,
@@ -63,7 +65,6 @@ from model_routing import (
     ENRICH_USE_OPENAI_BATCH_DEFAULT,
     get_enrichment_model_fingerprint,
 )
-from phase2_art_pulse_config import promote_history_file_to_current
 from run_enrichment_artists_preview import (
     ARTIST_NAME_KANA_MAX_CHARS,
     ENRICH_BATCH_COMPLETION_WINDOW,
@@ -290,6 +291,122 @@ def build_current_applied_row_index(current_output_path: Path) -> dict[tuple[str
             continue
         out[(request_id, fair_slug, text_hash, source_url_norm)] = row
     return out
+
+
+def artist_runtime_key_from_raw(row: dict[str, Any]) -> tuple[str, str, str] | None:
+    fair_slug = str(row.get("fair_slug") or "").strip()
+    text_hash = str(row.get("text_hash") or "").strip()
+    source_url_norm = normalize_source_url_for_match(str(row.get("source_url") or ""))
+    if not fair_slug or not text_hash or not source_url_norm:
+        return None
+    return fair_slug, text_hash, source_url_norm
+
+
+def artist_runtime_key_from_enrichment(row: dict[str, Any]) -> tuple[str, str, str] | None:
+    fair_slug = str(row.get("fair_slug") or "").strip()
+    text_hash = str(row.get("text_hash") or "").strip()
+    source_url_norm = normalize_source_url_for_match(str(row.get("source_url") or ""))
+    if not fair_slug or not text_hash or not source_url_norm:
+        return None
+    return fair_slug, text_hash, source_url_norm
+
+
+def raw_artist_has_enrichment_values(row: dict[str, Any]) -> bool:
+    return any(str(row.get(key) or "").strip() for key in ("headline_ja", "summary_ja", "artist_name_kana"))
+
+
+def build_artist_runtime_row_from_raw(
+    raw_row: dict[str, Any],
+    *,
+    base_row: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    base = dict(base_row or {})
+    headline_ja = str(raw_row.get("headline_ja") or "").strip()
+    summary_ja = str(raw_row.get("summary_ja") or "").strip()
+    artist_name_kana = str(raw_row.get("artist_name_kana") or "").strip()
+    enrich_models_by_field = raw_row.get("enrich_models_by_field")
+    if not isinstance(enrich_models_by_field, dict):
+        enrich_models_by_field = base.get("enrich_models_by_field")
+    if not isinstance(enrich_models_by_field, dict):
+        enrich_models_by_field = {}
+    warnings = base.get("warnings")
+    if not isinstance(warnings, list):
+        warnings = []
+    out = dict(base)
+    out.update(
+        {
+            "request_id": str(base.get("request_id") or ""),
+            "fair_slug": str(raw_row.get("fair_slug") or base.get("fair_slug") or "").strip(),
+            "text_hash": str(raw_row.get("text_hash") or base.get("text_hash") or "").strip(),
+            "source_url": str(raw_row.get("source_url") or base.get("source_url") or "").strip(),
+            "status": "APPLIED",
+            "headline_ja": headline_ja,
+            "summary_ja": summary_ja,
+            "artist_name_kana": artist_name_kana,
+            "headline_ja_chars": len(headline_ja),
+            "summary_ja_chars": len(summary_ja),
+            "artist_name_kana_chars": len(artist_name_kana),
+            "warnings": warnings,
+            "enrich_model": str(raw_row.get("enrich_model") or base.get("enrich_model") or "").strip(),
+            "enrich_models_by_field": enrich_models_by_field,
+            "enrich_mode": str(raw_row.get("enrich_mode") or base.get("enrich_mode") or "current_raw_carry_forward").strip(),
+            "enrich_use_openai_batch": str(
+                raw_row.get("enrich_use_openai_batch") or base.get("enrich_use_openai_batch") or ""
+            ).strip(),
+            "enrich_completion_window": str(
+                raw_row.get("enrich_completion_window") or base.get("enrich_completion_window") or ""
+            ).strip(),
+            "enrich_prompt_version": str(
+                raw_row.get("enrich_prompt_version") or base.get("enrich_prompt_version") or ""
+            ).strip(),
+            "enrich_input_text_hash": str(
+                raw_row.get("enrich_input_text_hash") or raw_row.get("text_hash") or base.get("enrich_input_text_hash") or ""
+            ).strip(),
+            "enrich_batch_job_id": str(
+                raw_row.get("enrich_batch_job_id") or base.get("enrich_batch_job_id") or ""
+            ).strip(),
+            "enrich_notes": str(raw_row.get("enrich_notes") or base.get("enrich_notes") or "").strip(),
+        }
+    )
+    return out
+
+
+def materialize_artist_current_runtime_row(
+    raw_row: dict[str, Any],
+    current_row: dict[str, Any] | None,
+    history_row: dict[str, Any] | None,
+) -> tuple[dict[str, Any] | None, str]:
+    if raw_artist_has_enrichment_values(raw_row):
+        return build_artist_runtime_row_from_raw(raw_row, base_row=current_row or history_row), "raw"
+    if current_row is not None:
+        return dict(current_row), "current"
+    if history_row is not None:
+        return dict(history_row), "history"
+    return None, ""
+
+
+def build_artist_current_runtime_rows(
+    *,
+    raw_rows_by_fair: dict[str, list[dict[str, Any]]],
+    current_output_path: Path,
+    current_rows_override: list[dict[str, Any]] | None = None,
+    io_root: Path | None = None,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    raw_rows_in_order: list[dict[str, Any]] = []
+    for fair_slug in sorted(raw_rows_by_fair):
+        raw_rows_in_order.extend(raw_rows_by_fair[fair_slug])
+    current_rows = current_rows_override if current_rows_override is not None else (
+        read_jsonl(current_output_path) if current_output_path.exists() else []
+    )
+    history_rows = load_enrichment_history_apply_rows("artists", target_year=TARGET_YEAR, root=io_root)
+    return build_materialized_current_runtime_rows(
+        raw_rows_in_order=raw_rows_in_order,
+        current_rows=current_rows,
+        history_rows=history_rows,
+        raw_key_builder=artist_runtime_key_from_raw,
+        enrichment_key_builder=artist_runtime_key_from_enrichment,
+        materialize_row=materialize_artist_current_runtime_row,
+    )
 
 
 def diagnostic_path_for_apply(paths: dict[str, Path]) -> Path:
@@ -1583,9 +1700,27 @@ def main() -> int:
         persist_artifacts(history_output_path=paths["history_output_path"], history_summary_path=paths["history_summary_path"], history_manifest_path=paths["history_manifest_path"], apply_rows=apply_rows, summary=summary, manifest=manifest, guard_state_path=paths["guard_state_path"], guard_state=guard_state)
         release_lock_at_exit = True
 
+        current_runtime_rows, current_runtime_materialization = build_artist_current_runtime_rows(
+            raw_rows_by_fair=raw_rows_by_fair,
+            current_output_path=paths["current_output_path"],
+            io_root=io_root,
+        )
+        summary["current_runtime_rows_total"] = len(current_runtime_rows)
+        summary["current_runtime_status_counts"] = {"APPLIED": len(current_runtime_rows)} if current_runtime_rows else {}
+        summary["current_runtime_rows_dropped_from_current"] = max(
+            0,
+            current_runtime_materialization["raw_key_total"] - len(current_runtime_rows),
+        )
+        summary["current_runtime_rows_dropped_reason"] = "rows_without_current_raw_or_available_applied_or_raw_enrichment_values"
+        summary["current_runtime_source_of_truth"] = "current_raw_then_current_applied_then_history_applied"
+        summary["current_runtime_materialization"] = dict(current_runtime_materialization)
+        manifest["current_runtime_rows_total"] = len(current_runtime_rows)
+        manifest["current_runtime_status_counts"] = summary["current_runtime_status_counts"]
+        manifest["current_runtime_source_of_truth"] = summary["current_runtime_source_of_truth"]
+        manifest["current_runtime_materialization"] = dict(current_runtime_materialization)
+
         if allow_current_promote and promote_ready:
-            promote_history_file_to_current(paths["history_output_path"], paths["current_output_path"])
-            promote_history_file_to_current(paths["history_summary_path"], paths["current_summary_path"])
+            write_jsonl(paths["current_output_path"], current_runtime_rows)
             summary["promoted_to_current"] = True
         release_process_lock(paths["lock_path"])
         release_lock_at_exit = False

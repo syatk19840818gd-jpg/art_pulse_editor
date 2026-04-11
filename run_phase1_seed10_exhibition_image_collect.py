@@ -41,7 +41,9 @@ from phase2_art_pulse_config import (
 )
 from phase1_exhibitions_text_utils import should_include_target_year_page
 from run_rag_gallery_breakdown_update import (
+    DEFAULT_XLSX_PATH,
     ScopeTarget as BreakdownScopeTarget,
+    build_breakdown_update_report,
     build_scope_source_validation,
     build_stats,
 )
@@ -656,6 +658,32 @@ def execute_auto_skip_registry_cleanup_after_image_collect(
         "gallery_list_removal_apply": gallery_list_removal_apply,
         "blocking_errors": blocking_errors,
     }
+
+
+def refresh_breakdown_after_auto_skip_cleanup(
+    *,
+    target_gallery_rows: list[dict[str, Any]],
+    target_year: int,
+    run_id: str,
+) -> dict[str, Any]:
+    scope_targets = _build_scope_targets_for_skip_cleanup(target_gallery_rows)
+    xlsx_path = (PROJECT_ROOT / DEFAULT_XLSX_PATH).resolve()
+    if not scope_targets:
+        return {
+            "status": "planned_contract_only",
+            "xlsx_path": str(xlsx_path),
+            "target_total": 0,
+            "source_of_truth": "current_formal_artifacts",
+        }
+    report = build_breakdown_update_report(
+        targets=scope_targets,
+        xlsx_path=xlsx_path,
+        target_year=int(target_year),
+        run_id=str(run_id),
+        apply=True,
+    )
+    report["source_of_truth"] = "current_formal_artifacts"
+    return report
 
 
 def gallery_slug(value: str) -> str:
@@ -2306,6 +2334,19 @@ def main() -> int:
         target_year=int(args.target_year),
         run_id=str(args.run_id or summary["run_id"]),
         source_scope_file=str(args.targets_csv or ""),
+    )
+    detected_skip_rows = [
+        row
+        for row in [
+            *list(auto_skip_cleanup_report.get("all_rag_zero_detected_rows", [])),
+            *list(auto_skip_cleanup_report.get("exhibition_text_only_detected_rows", [])),
+        ]
+        if isinstance(row, dict)
+    ]
+    auto_skip_cleanup_report["xlsx_refresh"] = refresh_breakdown_after_auto_skip_cleanup(
+        target_gallery_rows=detected_skip_rows,
+        target_year=int(args.target_year),
+        run_id=str(args.run_id or summary["run_id"]),
     )
     summary["auto_skip_cleanup"] = auto_skip_cleanup_report
     if debug_triage_entries and debug_run_id and debug_output_base:

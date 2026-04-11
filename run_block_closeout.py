@@ -39,6 +39,7 @@ from run_closeout_new10_artists_from_trial import (
     build_text_vector_summary,
     extract_trial_enrichment_source,
     merge_image_vector_state,
+    merge_jsonl_rows_by_scope,
     merge_text_vector_state,
     read_json,
     read_jsonl,
@@ -59,8 +60,8 @@ DEFAULT_PLAN_ROOT_DIR = Path("_trial")
 BLOCK_CLOSEOUT_FLOW = [
     "current_write",
     "exhibition_images_current",
-    "xlsx_update",
     "skip_registry_gallery_list_cleanup",
+    "xlsx_update",
     "r2_sync",
     "artist_works_images_openclip_current",
     "closeout_report",
@@ -127,6 +128,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="optional trial root for Artist Works Images OpenCLIP artifacts to be bounded-merged into current",
     )
     parser.add_argument(
+        "--exhibitions-raw-trial-root",
+        default="",
+        help="optional trial root for exhibition raw artifacts to be bounded-merged into current by scope",
+    )
+    parser.add_argument(
         "--plan-root",
         default="",
         help="optional staging root for verify-first planned current artifacts; default: _trial/<run_id>",
@@ -135,6 +141,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--r2-live-plan",
         action="store_true",
         help="run remote R2 plan during dry-run; default is contract-only dry-run with no remote access",
+    )
+    parser.add_argument(
+        "--no-r2-remote",
+        action="store_true",
+        help="disable remote R2 plan/apply execution even when --apply is set",
     )
     parser.add_argument(
         "--approval-token",
@@ -505,12 +516,15 @@ def build_mixed_source_trial_roots(args: argparse.Namespace) -> dict[str, Path]:
     artists_enrichment_root = resolve_optional_path(args.artists_enrichment_trial_root)
     artists_text_vector_root = resolve_optional_path(args.artists_text_vector_trial_root)
     artist_image_vector_root = resolve_optional_path(args.artist_works_images_vector_trial_root)
+    exhibitions_raw_root = resolve_optional_path(args.exhibitions_raw_trial_root)
     if artists_enrichment_root is not None:
         out["artists_enrichment"] = artists_enrichment_root
     if artists_text_vector_root is not None:
         out["artists_text_vector"] = artists_text_vector_root
     if artist_image_vector_root is not None:
         out["artist_works_images_vector"] = artist_image_vector_root
+    if exhibitions_raw_root is not None:
+        out["exhibitions_raw"] = exhibitions_raw_root
     return out
 
 
@@ -541,6 +555,67 @@ def prepare_mixed_source_closeout_plan(
     current_paths = build_resolved_current_source_paths(target_year)
     staged_paths = build_staged_source_paths(stage_current_root, target_year)
     merge_plan: dict[str, Any] = {}
+
+    if "exhibitions_raw" in trial_roots:
+        trial_root = trial_roots["exhibitions_raw"]
+        trial_raw_paths = get_current_raw_paths("exhibitions", target_year, root=trial_root)
+        by_fair: dict[str, Any] = {}
+        current_target_rows_before_total = 0
+        trial_target_rows_total = 0
+        retained_non_target_rows_total = 0
+        final_rows_total = 0
+        for fair_slug, current_raw_path in current_paths["exhibition"]["raw"].items():
+            trial_raw_path = Path(trial_raw_paths[fair_slug])
+            if not trial_raw_path.exists():
+                raise FileNotFoundError(f"missing_trial_exhibition_raw:{fair_slug}:{trial_raw_path}")
+            current_rows = read_jsonl(Path(current_raw_path))
+            trial_rows = read_jsonl(trial_raw_path)
+            merged = merge_jsonl_rows_by_scope(
+                current_rows=current_rows,
+                trial_rows=trial_rows,
+                target_scope_keys=target_scope_keys,
+                label=f"exhibition_raw_{fair_slug}",
+            )
+            staged_raw_path = Path(staged_paths["exhibition"]["raw"][fair_slug])
+            write_jsonl_atomic(staged_raw_path, merged["final_rows"])
+            current_target_rows_before_total += int(merged["current_target_rows_total"])
+            trial_target_rows_total += int(merged["trial_target_rows_total"])
+            retained_non_target_rows_total += int(merged["retained_non_target_rows_total"])
+            final_rows_total += int(merged["final_rows_total"])
+            by_fair[fair_slug] = {
+                "current_path": str(current_raw_path),
+                "trial_path": str(trial_raw_path),
+                "output_path": str(staged_raw_path),
+                "current_target_rows_total": int(merged["current_target_rows_total"]),
+                "trial_target_rows_total": int(merged["trial_target_rows_total"]),
+                "retained_non_target_rows_total": int(merged["retained_non_target_rows_total"]),
+                "final_rows_total": int(merged["final_rows_total"]),
+            }
+        merge_plan["exhibition_raw"] = {
+            "source_root": str(trial_root),
+            "current_target_rows_before_total": current_target_rows_before_total,
+            "trial_target_rows_total": trial_target_rows_total,
+            "retained_non_target_rows_total": retained_non_target_rows_total,
+            "final_rows_total": final_rows_total,
+            "by_fair": by_fair,
+        }
+    else:
+        by_fair = {}
+        current_target_rows_before_total = 0
+        for fair_slug, current_raw_path in current_paths["exhibition"]["raw"].items():
+            current_target_rows = count_target_rows(Path(current_raw_path), target_scope_keys)
+            current_target_rows_before_total += int(current_target_rows)
+            by_fair[fair_slug] = {
+                "current_path": str(current_raw_path),
+                "output_path": str(staged_paths["exhibition"]["raw"][fair_slug]),
+                "current_target_rows_total": int(current_target_rows),
+            }
+        merge_plan["exhibition_raw"] = {
+            "source_root": "current",
+            "current_target_rows_before_total": current_target_rows_before_total,
+            "trial_target_rows_total": 0,
+            "by_fair": by_fair,
+        }
 
     if "artists_enrichment" in trial_roots:
         trial_root = trial_roots["artists_enrichment"]
@@ -915,7 +990,7 @@ def main(argv: list[str] | None = None) -> int:
         current_write_callback=current_write_callback,
         breakdown_stats_override=breakdown_stats,
         r2_artifact_bundle=r2_bundle,
-        r2_execute_remote=bool(args.apply or args.r2_live_plan),
+        r2_execute_remote=bool(args.r2_live_plan or (args.apply and not args.no_r2_remote)),
     )
     report = augment_block_closeout_report(report=report, bundle=r2_bundle, targets_path=targets_path)
 

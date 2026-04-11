@@ -34,14 +34,18 @@ from run_rag_gallery_breakdown_update import (
     GalleryStats,
     ScopeTarget,
     SHEET_BY_FAIR,
+    build_artist_match_key,
+    build_artist_text_key,
     first_non_empty,
     infer_artist_image_count,
     load_targets_ordered,
     normalize_gallery_name,
     normalize_url,
 )
+from run_enrichment_artists_seed10_apply import build_artist_current_runtime_rows
 
 DEFAULT_RUN_ID_PREFIX = "TASK_PHASE3_ARTISTS_TRIAL_CLOSEOUT"
+REPO_ROOT = Path(__file__).resolve().parent
 
 
 def utc_now_iso() -> str:
@@ -56,7 +60,7 @@ def resolve_path(path_text: str | Path) -> Path:
     path = Path(path_text)
     if path.is_absolute():
         return path
-    return (Path.cwd() / path).resolve()
+    return (REPO_ROOT / path).resolve()
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -367,6 +371,7 @@ def merge_text_vector_state(
     retained_vectors: list[np.ndarray] = []
     current_non_target_map: dict[str, str] = {}
     removed_meta_total = 0
+    deduped_current_duplicate_source_keys = 0
     for position, row in enumerate(current_rows):
         vector_index = int(row.get("vector_index", position))
         if vector_index < 0 or vector_index >= int(current_index.shape[0]):
@@ -377,9 +382,16 @@ def merge_text_vector_state(
             removed_meta_total += 1
             continue
         vector = current_index[vector_index].astype(np.float32, copy=True)
+        vector_digest = vector_bytes_digest(vector)
+        existing_digest = current_non_target_map.get(source_key)
+        if existing_digest is not None:
+            if existing_digest != vector_digest:
+                raise RuntimeError(f"artists_text duplicate retained source_key with changed vector: {source_key}")
+            deduped_current_duplicate_source_keys += 1
+            continue
         retained_rows.append(dict(row))
         retained_vectors.append(vector)
-        current_non_target_map[source_key] = vector_bytes_digest(vector)
+        current_non_target_map[source_key] = vector_digest
 
     retained_failed_rows = [
         dict(row)
@@ -446,6 +458,7 @@ def merge_text_vector_state(
         "removed_failed_total": removed_failed_total,
         "retained_failed_total": len(retained_failed_rows),
         "trial_failed_total": len(final_failed_rows) - len(retained_failed_rows),
+        "deduped_current_duplicate_source_keys": deduped_current_duplicate_source_keys,
         "final_rows": final_rows,
         "final_index": final_index,
         "final_failed_rows": final_failed_rows,
@@ -489,6 +502,7 @@ def merge_image_vector_state(
     retained_search_index: list[np.ndarray] = []
     current_non_target_map: dict[str, tuple[str, str]] = {}
     removed_total = 0
+    deduped_current_duplicate_image_ids = 0
     for position, row in enumerate(current_rows):
         scope_key = build_scope_key(str(row.get("fair_slug") or ""), str(row.get("gallery_name_en") or ""))
         row_key = build_image_vector_row_key(row)
@@ -497,10 +511,17 @@ def merge_image_vector_state(
             continue
         emb = current_embeddings[position].astype(np.float32, copy=True)
         idx = current_search_index[position].astype(np.float32, copy=True)
+        digests = (vector_bytes_digest(emb), vector_bytes_digest(idx))
+        existing_digests = current_non_target_map.get(row_key)
+        if existing_digests is not None:
+            if existing_digests != digests:
+                raise RuntimeError(f"artist_works_images duplicate retained image_id with changed vectors: {row_key}")
+            deduped_current_duplicate_image_ids += 1
+            continue
         retained_rows.append(dict(row))
         retained_embeddings.append(emb)
         retained_search_index.append(idx)
-        current_non_target_map[row_key] = (vector_bytes_digest(emb), vector_bytes_digest(idx))
+        current_non_target_map[row_key] = digests
 
     retained_failed_rows = [
         dict(row)
@@ -562,6 +583,7 @@ def merge_image_vector_state(
         "retained_non_target_rows_total": len(retained_rows),
         "retained_failed_total": len(retained_failed_rows),
         "trial_failed_total": len(final_failed_rows) - len(retained_failed_rows),
+        "deduped_current_duplicate_image_ids": deduped_current_duplicate_image_ids,
         "final_rows": final_rows,
         "final_embeddings": final_embeddings,
         "final_search_index": final_search_index,
@@ -583,6 +605,7 @@ def build_stats_from_artist_rows(
             stats[key] = GalleryStats(
                 artist_image_keys=set(),
                 artist_image_count=0,
+                artist_text_match_keys=set(),
                 artist_text_keys=set(),
                 artist_text_count=0,
                 exhibition_image_keys=set(),
@@ -598,14 +621,12 @@ def build_stats_from_artist_rows(
             if not gallery_name:
                 continue
             item = ensure(fair_slug, gallery_name)
-            artist_key = first_non_empty(
-                row.get("artist_key"),
-                row.get("artist_identity_key"),
-                row.get("artist_name_key"),
-                normalize_url(str(row.get("source_url") or "")),
-            )
-            if artist_key:
-                item.artist_text_keys.add(artist_key)
+            artist_match_key = build_artist_match_key(row)
+            if artist_match_key:
+                item.artist_text_match_keys.add(artist_match_key)
+            artist_text_key = build_artist_text_key(row)
+            if artist_text_key:
+                item.artist_text_keys.add(artist_text_key)
             item.artist_text_count += 1
 
     for fair_slug, rows in artist_image_by_fair.items():
@@ -614,12 +635,7 @@ def build_stats_from_artist_rows(
             if not gallery_name:
                 continue
             item = ensure(fair_slug, gallery_name)
-            artist_key = first_non_empty(
-                row.get("artist_key"),
-                row.get("artist_identity_key"),
-                row.get("artist_name_key"),
-                normalize_url(str(row.get("source_url") or "")),
-            )
+            artist_key = build_artist_match_key(row)
             if artist_key:
                 item.artist_image_keys.add(artist_key)
             item.artist_image_count += infer_artist_image_count(row)
@@ -673,6 +689,7 @@ def build_text_vector_manifest(
         "embedding_dim": int(trial_summary.get("embedding_dim") or 0),
         "run_mode": "bounded_closeout_from_trial",
         "closeout_source_trial_root": str(trial_summary.get("output_paths", {}).get("meta") or ""),
+        "source_key_contract": "fair_slug + normalize_url(source_url) + text_hash",
         "repair_scope": [target.to_dict() for target in targets],
         "files": build_manifest_files(
             [Path(current_paths["index"]), Path(current_paths["meta"])],
@@ -713,6 +730,7 @@ def build_text_vector_summary(
         "embedding_task_type": str(trial_summary.get("embedding_task_type") or ""),
         "embedding_dim": int(trial_summary.get("embedding_dim") or 0),
         "embed_input_max_chars": int(trial_summary.get("embed_input_max_chars") or 0),
+        "source_key_contract": "fair_slug + normalize_url(source_url) + text_hash",
         "artifact_totals": {
             "existing_meta_removed": int(merge_result["current_target_rows_total"]),
             "existing_failed_removed": int(merge_result["removed_failed_total"]),
@@ -720,6 +738,7 @@ def build_text_vector_summary(
             "retained_failed_total": int(merge_result["retained_failed_total"]),
             "repaired_meta_total": int(merge_result["trial_target_rows_total"]),
             "repaired_failed_total": int(merge_result["trial_failed_total"]),
+            "deduped_current_duplicate_source_keys": int(merge_result.get("deduped_current_duplicate_source_keys") or 0),
             "final_meta_total": len(merge_result["final_rows"]),
             "final_failed_total": len(merge_result["final_failed_rows"]),
             "final_index_rows_total": int(merge_result["final_index"].shape[0]),
@@ -751,6 +770,7 @@ def build_image_vector_manifest(
         "generated_at": completed_at,
         "run_mode": "bounded_closeout_from_trial",
         "closeout_source_trial_root": str(trial_summary.get("io_root") or ""),
+        "row_key_contract": "image_id",
         "repair_scope": [target.to_dict() for target in targets],
         "files": build_manifest_files(
             [
@@ -785,6 +805,7 @@ def build_image_vector_summary(
         "used_empty_base": False,
         "closeout_source_trial_root": str(trial_root),
         "trial_output_paths": dict(trial_summary.get("output_paths") or {}),
+        "row_key_contract": "image_id",
         "output_paths": {
             "embeddings": str(current_paths["embeddings"]),
             "id_map": str(current_paths["id_map"]),
@@ -799,6 +820,7 @@ def build_image_vector_summary(
         "retained_rows_total": int(merge_result["retained_non_target_rows_total"]),
         "repaired_rows_total": int(merge_result["trial_target_rows_total"]),
         "final_rows_total": len(merge_result["final_rows"]),
+        "deduped_current_duplicate_image_ids": int(merge_result.get("deduped_current_duplicate_image_ids") or 0),
         "trial_target_counters": dict(trial_summary.get("target_counters") or {}),
         "failed_total": len(merge_result["final_failed_rows"]),
         "promoted_to_current": True,
@@ -823,6 +845,11 @@ def build_enrichment_summary(
     current_fallback_source_map: dict[str, tuple[str, str]],
 ) -> dict[str, Any]:
     summary = dict(current_summary_before)
+    final_status_counts = Counter(str(row.get("status") or "").strip() for row in final_rows)
+    final_status_counts.pop("", None)
+    non_applied_rows_dropped = sum(
+        1 for row in current_rows_before if str(row.get("status") or "").strip() != "APPLIED"
+    )
     summary.update(
         {
             "started_at": started_at,
@@ -848,6 +875,10 @@ def build_enrichment_summary(
             "current_output_path": str(current_output_path),
             "current_summary_path": str(current_summary_path),
             "total_applied": sum(1 for row in final_rows if str(row.get("status") or "").strip() == "APPLIED"),
+            "current_runtime_rows_total": len(final_rows),
+            "current_runtime_status_counts": dict(final_status_counts),
+            "current_runtime_rows_dropped_from_current": non_applied_rows_dropped,
+            "current_runtime_rows_dropped_reason": "non_applied_rows_are_history_or_diagnostics_only",
             "promoted_to_current": True,
             "promote_verdict": "closeout_merge_applied",
             "closeout_scope": [target.to_dict() for target in targets],
@@ -968,6 +999,7 @@ def main(argv: list[str] | None = None) -> int:
     retained_current_enrichment_rows = [
         dict(row)
         for row in current_enrichment_rows
+        if str(row.get("status") or "").strip() == "APPLIED"
         if resolve_enrichment_scope_key(
             row,
             scoped_source_map=current_scoped_source_map,
@@ -984,9 +1016,15 @@ def main(argv: list[str] | None = None) -> int:
         ) in target_scope_keys
         and str(row.get("status") or "").strip() == "APPLIED"
     ]
-    merged_enrichment_rows = retained_current_enrichment_rows + trial_enrichment_applied_rows
-    if merged_enrichment_rows[: len(retained_current_enrichment_rows)] != retained_current_enrichment_rows:
+    merged_enrichment_candidate_rows = retained_current_enrichment_rows + trial_enrichment_applied_rows
+    if merged_enrichment_candidate_rows[: len(retained_current_enrichment_rows)] != retained_current_enrichment_rows:
         raise RuntimeError("artists_enrichment_non_target_rows_changed")
+    merged_enrichment_rows, enrichment_runtime_materialization = build_artist_current_runtime_rows(
+        raw_rows_by_fair=merged_artist_raw_rows,
+        current_output_path=current_enrichment_output_path,
+        current_rows_override=merged_enrichment_candidate_rows,
+        io_root=None,
+    )
     enrichment_summary_after = build_enrichment_summary(
         started_at=started_at,
         completed_at=utc_now_iso(),
@@ -1002,6 +1040,8 @@ def main(argv: list[str] | None = None) -> int:
         current_scoped_source_map=current_scoped_source_map,
         current_fallback_source_map=current_fallback_source_map,
     )
+    enrichment_summary_after["current_runtime_source_of_truth"] = "current_raw_then_current_applied_then_history_applied"
+    enrichment_summary_after["current_runtime_materialization"] = dict(enrichment_runtime_materialization)
 
     current_text_paths = get_current_artist_text_vector_runtime_paths(root=None, target_year=TARGET_YEAR)
     trial_text_paths = get_current_artist_text_vector_runtime_paths(root=trial_root, target_year=TARGET_YEAR)
@@ -1102,6 +1142,7 @@ def main(argv: list[str] | None = None) -> int:
         "enrichment": {
             "current_rows_before": len(current_enrichment_rows),
             "current_rows_after": len(merged_enrichment_rows),
+            "current_runtime_materialization": dict(enrichment_runtime_materialization),
             "trial_applied_rows_added": len(trial_enrichment_applied_rows),
             "trial_source_output_path": str(trial_enrichment_source["output_path"]),
             "trial_source_summary_path": str(trial_enrichment_source["summary_path"]),

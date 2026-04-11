@@ -647,6 +647,22 @@ def _same_domain(url_a: str, url_b: str) -> bool:
     return _normalized_host(pa) == _normalized_host(pb)
 
 
+def _registrable_domain(url: str) -> str:
+    host = _normalized_host(urlparse(url))
+    parts = [part for part in host.split(".") if part]
+    if len(parts) >= 2:
+        return ".".join(parts[-2:])
+    return host
+
+
+def _same_site(url_a: str, url_b: str) -> bool:
+    if _same_domain(url_a, url_b):
+        return True
+    domain_a = _registrable_domain(url_a)
+    domain_b = _registrable_domain(url_b)
+    return bool(domain_a and domain_b and domain_a == domain_b)
+
+
 def _normalize_url_for_link_compare(url: str) -> str:
     return shared_normalize_url_for_link_compare(url)
 
@@ -881,6 +897,7 @@ def extract_links_from_html(html: str) -> list[tuple[str, str]]:
 
 def extract_candidate_exhibition_urls(list_page_url: str, list_page_html: str) -> list[str]:
     best_by_canonical: dict[str, tuple[int, str]] = {}
+    scope_mode = _exhibition_listing_scope_mode(list_page_url)
 
     for href, anchor_text in extract_links_from_html(list_page_html):
         href = href.strip()
@@ -892,16 +909,22 @@ def extract_candidate_exhibition_urls(list_page_url: str, list_page_html: str) -
         parsed = urlparse(absolute_url)
         if parsed.scheme not in ("http", "https"):
             continue
-        if not _same_domain(absolute_url, list_page_url):
+        if not _same_site(absolute_url, list_page_url):
             continue
         normalized = canonicalize_exhibition_url(absolute_url)
         if not _looks_like_exhibition_link(absolute_url, anchor_text):
+            probable_detail = _is_probable_exhibition_detail_url(normalized)
+            scope_match = _matches_exhibition_listing_scope(normalized, list_page_url, anchor_text)
+            root_listing_detail_fallback = (
+                scope_mode == "root-listing"
+                and probable_detail
+                and not _is_listing_like_exhibition_url(normalized)
+            )
             # Generic fallback: when starting from a listing-like page, allow
             # detail-like URLs even if anchor/url text lacks explicit exhibition keywords.
-            fallback_allowed = (
-                _is_listing_like_exhibition_url(list_page_url)
-                and _is_probable_exhibition_detail_url(normalized)
-                and _matches_exhibition_listing_scope(normalized, list_page_url, anchor_text)
+            fallback_allowed = probable_detail and (
+                scope_match
+                or root_listing_detail_fallback
             )
             if not fallback_allowed:
                 continue

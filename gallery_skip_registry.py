@@ -330,18 +330,42 @@ def extract_target_row_counts(row: dict[str, Any]) -> dict[str, int]:
         "artist_image_rows": _int_or_zero("artist_image_rows", "artist_image_keys_count"),
         "artist_image_count": _int_or_zero("artist_image_count"),
         "exhibition_count": _int_or_zero("exhibition_count", "exhibition_text_count"),
-        "exhibition_image_count": _int_or_zero("exhibition_image_count"),
+        "exhibition_image_rows": _int_or_zero(
+            "exhibition_image_rows",
+            "exhibition_image_keys_count",
+            "exhibition_image_count",
+        ),
+        "exhibition_image_count": _int_or_zero(
+            "exhibition_image_count",
+            "exhibition_image_rows",
+            "exhibition_image_keys_count",
+        ),
     }
 
 
 def is_exhibition_text_only_target_row(row: dict[str, Any]) -> bool:
     counts = extract_target_row_counts(row)
-    return (
+    artist_side_empty = (
         counts["artist_count"] == 0
         and counts["artist_image_rows"] == 0
         and counts["artist_image_count"] == 0
-        and counts["exhibition_count"] > 0
-        and counts["exhibition_image_count"] == 0
+    )
+    if not artist_side_empty:
+        return False
+
+    exhibition_text_count = counts["exhibition_count"]
+    exhibition_image_count = counts["exhibition_image_count"]
+    exhibition_signal_total = exhibition_text_count + exhibition_image_count
+    if exhibition_signal_total <= 0:
+        return False
+    # 互換のため reason code 名は exhibition_text_only を維持しつつ、
+    # 実運用の generic 判定は「exhibition側が片側モダリティのみ」を対象にする。
+    if exhibition_text_count > 0 and exhibition_image_count > 0:
+        return False
+    return (
+        exhibition_text_count > 0 and exhibition_image_count == 0
+    ) or (
+        exhibition_text_count == 0 and exhibition_image_count > 0
     )
 
 
