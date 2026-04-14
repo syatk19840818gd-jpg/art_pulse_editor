@@ -1,6 +1,6 @@
 # 04_作業進捗ログ
 
-最終更新: 2026-04-11 JST
+最終更新: 2026-04-14 JST
 プロジェクト: ART_PULSE_EDITOR
 
 ## 0. 文書の役割
@@ -184,3 +184,40 @@
 - `rag_gellery_breakdown_master` の合計数表示（フェア別合計 + 全体合計）は標準デフォルトとして固定し、今後の更新でも消さないことを運用契約へ明記した。
 - row/slot count と canonical key count を混同しない運用メモを 02/03 に同期した。
 - docs同期後の次タスク入口は `next real scope 10館 block 再開（raw verify-first開始）` として更新した。
+
+## 21. 2026-04-12 block必須工程と順序ゲートの docs固定（再発防止）
+- 本件は docs-only で実施し、実装変更・API実行・rerun/rebuild/promote・R2実行・workbook更新・next block開始は行っていない。
+- 01を正本として、Phase 3 block の必須工程を `1〜20` の正式順序で固定した。
+- 固定順序には `exhibitions enrichment preflight / submit / check / apply` を明示し、closeout 前の必須工程として契約化した。
+- 固定ゲートとして「未完了工程が1つでもある場合は `run_block_closeout apply（R2なし）` に進まない」を明記した。
+- 固定ゲートとして「Exhibition enrichment を飛ばさない（省略・後回し・置換禁止）」を明記した。
+- closeout 前後の順序を `run_block_closeout verify-first -> run_block_closeout apply（R2なし）-> workbook 人間確認 -> R2 narrow sync -> post-check -> 次 block` に固定した。
+- 02へ圧縮版チェックリスト索引を追加し、03の現在地を `9/20: Exhibition enrichment preflight` に更新した。
+- 今後の Codex task 作成ルールとして、毎回「必須工程一覧」「今回段階」「未完了なら次へ進まない」を明記する運用を 01/02/03 に固定した。
+- `rag_gellery_breakdown_master` の合計数表示（フェア別合計 + 全体合計）を標準デフォルトとして維持し、今後も消さないルールを継続明記した。
+
+## 22. 2026-04-14 R2 full required scope 正式運用固定 + Artist作品画像 duplicate gate 固定
+- 本件は再発防止の固定のみを実施し、API実行・R2実行・workbook更新・next block開始は行っていない。
+- `run_r2_sync.py` に target 単位 inventory を plan log として残す拡張を入れ、family ごとの `local_count / remote_count / local_only / remote_only / size_mismatch` を canonical log で追えるようにした。
+- `config/r2_sync_targets.json` に `current_required_rag_full` を正式運用 scope として固定し、app/runtime が実際に参照する current RAG family のみを explicit target 化した。
+- 正式運用の R2 手順は narrow hotfix sync ではなく `current_required_rag_full` の `plan -> apply -> post-check` とし、成功条件を `missing local->R2 = 0`、`remote_only = 0`、`size_mismatch = 0` に固定した。
+- `run_block_closeout verify-first` に current Artist作品画像 duplicate audit を組み込み、duplicate cluster が残っている場合は `blocking_errors` に載せて closeout apply へ進めない構造にした。
+- duplicate gate は gallery/host 固定ではなく class-based とし、`exact_payload_duplicate`、`same_visual_signature_duplicate`、`contextual_near_duplicate` を cluster 理由として扱う。
+- `run_block_closeout` の contract/report には `formal_post_workbook_r2_scope=current_required_rag_full`、required sequence、success criteria を出力するようにし、closeout apply 後の正式導線を code 上でも明示した。
+- 01/02/03 を同期し、block 完了順序を `run_block_closeout verify-first（duplicate gate含む） -> run_block_closeout apply（R2なし） -> workbook 人間確認 -> current_required_rag_full plan/apply/post-check -> docs同期 -> 次 block 再開判定 -> 次 block 開始` に更新した。
+
+## 23. 2026-04-14 current scope 10館 block 完了（remote完了条件到達 + docs同期）
+- scope: `_trial/phase3_next_real_scope_20260412.csv`（Frith Street Gallery / Gagosian / Alexander Gray Associates / Garth Greenan Gallery / Laveronica / Livie Gallery / Lodos / Lodovico Corsini / Lucas Hirsch）。
+- duplicate gate cleanup を実施し、closeout verify-first 再検証で `duplicate_cluster_count=0`、`blocking_errors=[]` を確認した。
+- `run_block_closeout apply（R2なし）` を完了し、`block_completion_status=applied_pending_workbook_and_current_required_rag_full` を確認した。
+- workbook 人間確認は OK。
+- 正式 remote 導線 `current_required_rag_full` を実行した。
+- plan: `would_upload=7`、`would_prune=20`。
+- apply: `uploaded=7`、`deleted=20`、`upload_failed=0`、`delete_failed=0`。
+- post-check: `would_upload=0`、`would_prune=0`。
+- family parity: `images_metadata_artist_works` / `vector_artist_works_images` の size mismatch を解消し、`images_cache_artist_works` の remote_only 20 を解消した。
+- workbook / docs / history / runtime / `_trial` は R2 mirror 対象外のまま維持した。
+- `Goodman Gallery` は対象0/非追加で整合、`Lucas Hirsch` は `exhibition_text_count=0 / exhibition_image_count=0` のまま反映。
+- `Matthew Brown` は duplicate cleanup 後の `1071` 現状を人間受理とし、current fix として採用した（補助修正履歴として記録）。
+- `rag_gellery_breakdown_master` の合計数表示（フェア別合計 + 全体合計）は標準デフォルト維持を継続。
+- 本節は docs 同期のみ。実装変更・API実行・R2再実行・workbook更新・next block開始は行っていない。

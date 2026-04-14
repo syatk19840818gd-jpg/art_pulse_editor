@@ -1,0 +1,44 @@
+{
+  "artifact_kind": "r2_sync_plan",
+  "schema_version": "v2",
+  "generated_at": "2026-04-14T08:41:00Z",
+  "command": "plan",
+  "scope": "phase3_matthew_cleanup_current_narrow",
+  "description": "Narrow sync for accepted Matthew Brown duplicate cleanup artifacts only.",
+  "enabled_by_default": false,
+  "sync_mode": "mirror",
+  "uploads_enabled": true,
+  "deletes_enabled": true,
+  "run_id": "TASK_PHASE3_MATTHEW_CLEANUP_R2_POSTCHECK_20260414",
+  "bucket_env_key": "R2_BUCKET",
+  "bucket": "art-pulse-editor",
+  "local_stats": {
+    "roots_missing": [],
+    "local_count": 38,
+    "local_total_size_bytes": 29267082
+  },
+  "remote_scanned_count": 38,
+  "unchanged_count": 38,
+  "would_upload_count": 0,
+  "would_delete_count": 0,
+  "would_prune_count": 0,
+  "scope_hash": "b1fd1a81f6ec9996fbd64543c49b3c341da6adf48df0d6f0480feef27004b34e",
+  "input_fingerprint": "339a3df96b526944c07f97eed36f8ee307392b20d114a648b8738a4fcfba0ec5",
+  "code_fingerprint": "35bd0f8c047a8cf40a8f4934d753b41a38310b88f7536fb9b12c15cc2d0fd6c3",
+  "prune_candidates_fingerprint": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "targets": [
+    {
+      "local_root": "data/current",
+      "r2_prefix": "data/current",
+      "include_globs": [
+        "images/metadata/artist_works_images_frieze_london.jsonl",
+        "vector/artist_works_images/**",
+        "images/cache/artist_works_images/2025/frieze-london/matthew-brown__*"
+      ],
+      "exclude_globs": [],
+      "ignore_global_excludes": false
+    }
+  ],
+  "would_upload": [],
+  "would_prune": []
+}

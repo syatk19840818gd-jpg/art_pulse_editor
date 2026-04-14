@@ -1,5 +1,5 @@
 02_RAG仕様_派生索引
-版: 2026-04-11 JST（修正1〜修正5 + skip契約同期）
+版: 2026-04-14 JST（current scope 10館 block remote完了同期）
 参照正本: `docs/01_PROJECT_SPEC_CURRENT_FULL.docx`
 
 目的
@@ -67,9 +67,66 @@ count の読み方（運用固定）
   - `テキスト抽出Artist数`: `normalize_url(source_url) + text_hash`
   - Artist Works vector: `image_id`
 
+block必須工程チェックリスト（圧縮索引）
+1. scope 定義
+2. raw verify-first
+3. artists image collect verify-first
+4. exhibitions image collect verify-first
+5. artists enrichment preflight
+6. artists enrichment submit
+7. artists enrichment check
+8. artists enrichment apply
+9. exhibitions enrichment preflight
+10. exhibitions enrichment submit
+11. exhibitions enrichment check
+12. exhibitions enrichment apply
+13. artists text vector verify-first
+14. artist works images vector verify-first
+15. run_block_closeout verify-first（Artist作品画像 duplicate audit gate 含む）
+16. run_block_closeout apply（R2なし）
+17. workbook 人間確認
+18. `current_required_rag_full` plan
+19. `current_required_rag_full` apply
+20. `current_required_rag_full` post-check
+21. docs同期
+22. 次 block 再開判定
+23. 次 block 開始
+
+closeout 前の必須ゲート（索引）
+- 未完了工程が1つでもある場合は `run_block_closeout apply（R2なし）` へ進まない。
+- Exhibition enrichment（preflight / submit / check / apply）を飛ばさない。
+- `run_block_closeout verify-first` は current Artist作品画像 duplicate audit を含み、`duplicate_cluster_count > 0` または `blocking_errors` がある場合は closeout apply へ進まない。
+- workbook 人間確認完了前に `current_required_rag_full` へ進まない。
+- block 完了後の正式 R2 手順は narrow hotfix sync ではなく `current_required_rag_full` を用いる。
+- `current_required_rag_full` は `plan -> apply -> post-check` を必ず順に実行し、`missing local->R2 = 0`、`remote_only = 0`、`size_mismatch = 0` を確認する。
+- `current_required_rag_full` post-check 完了前に次 block を開始しない。
+
+今後の Codex task 作成固定ルール（索引）
+- 毎回「この block の必須工程一覧」を明記する。
+- 毎回「今回がどの段階か」を明記する。
+- 毎回「未完了工程が残るなら次へ進まない」を明記する。
+- closeout 後の R2 手順として毎回 `current_required_rag_full` の `plan / apply / post-check` を task 本文に明記する。
+- `run_block_closeout verify-first` task には「Artist作品画像 duplicate audit gate を含む」ことを毎回明記する。
+- `rag_gellery_breakdown_master` の合計数表示（フェア別合計 + 全体合計）は標準デフォルトとして維持し、今後の更新でも消さない。
+
 次タスク入口（docs同期後）
-- next real scope 10館 block を再開する。
-- 開始は raw verify-first とする。
+- まず `次 block 再開判定` に進む。
+- 再開判定では、直前 block の `current_required_rag_full` 完了ログと duplicate gate 導線固定済みであることを前提確認する。
+- 再開判定完了前に次 block 開始へは進まない。
+
+current scope 10館 block 完了同期（2026-04-14 JST）
+- 対象scope: `_trial/phase3_next_real_scope_20260412.csv`（Frith Street Gallery / Gagosian / Alexander Gray Associates / Garth Greenan Gallery / Laveronica / Livie Gallery / Lodos / Lodovico Corsini / Lucas Hirsch）。
+- duplicate gate cleanup 後、`run_block_closeout verify-first` は `duplicate_cluster_count=0`、`blocking_errors=[]` で通過済み。
+- `run_block_closeout apply（R2なし）` は完了済み。`block_completion_status=applied_pending_workbook_and_current_required_rag_full`。
+- workbook 人間確認は OK。
+- 正式 R2 導線 `current_required_rag_full` は `plan -> apply -> post-check` を完了済み。
+- plan 結果: `would_upload=7`、`would_prune=20`。
+- apply 結果: `uploaded=7`、`deleted=20`、`upload_failed=0`、`delete_failed=0`。
+- post-check 結果: `would_upload=0`、`would_prune=0`。
+- family parity: `images_metadata_artist_works` / `vector_artist_works_images` の size mismatch 解消、`images_cache_artist_works` の remote_only 20 解消。
+- `Goodman Gallery` は今回も対象0/非追加で整合。`Lucas Hirsch` は `exhibition_text_count=0 / exhibition_image_count=0` のまま反映。
+- 補助履歴: `Matthew Brown` は duplicate cleanup 後の `1071` 現状を人間受理として current fix を採用済み。
+- `rag_gellery_breakdown_master` の合計数表示（フェア別合計 + 全体合計）は標準デフォルト維持を継続。
 
 固定原則
 - app/readonly は current-first を維持する。

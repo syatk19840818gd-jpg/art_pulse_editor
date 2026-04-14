@@ -1,0 +1,246 @@
+{
+  "artifact_kind": "r2_sync_apply",
+  "schema_version": "v2",
+  "generated_at": "2026-04-14T08:40:12Z",
+  "scope": "phase3_matthew_cleanup_current_narrow",
+  "run_id": "TASK_PHASE3_MATTHEW_CLEANUP_R2_APPLY_20260414",
+  "bucket": "art-pulse-editor",
+  "sync_mode": "mirror",
+  "plan_log_path": "logs/r2_sync/r2_sync_plan_phase3_matthew_cleanup_current_narrow_TASK_PHASE3_MATTHEW_CLEANUP_R2_APPLY_20260414.json",
+  "local_roots_missing": [],
+  "would_upload_count": 37,
+  "would_delete_count": 0,
+  "would_prune_count": 0,
+  "uploaded_count": 37,
+  "upload_failed_count": 0,
+  "deleted_count": 0,
+  "delete_failed_count": 0,
+  "delete_policy": "no_delete_candidates",
+  "uploaded": [
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__alfonso-gonzalez-jr__92ecdb38__img_04.jpg",
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__alfonso-gonzalez-jr__92ecdb38__img_04.jpg",
+      "size_bytes": 98244,
+      "sha256": "887d021d5e2c21be91a8c4d4c1b7f5ccf1a484530957b16f02ed600b415e5619"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__andrew-kerr__7a686bc1__img_04.jpg",
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__andrew-kerr__7a686bc1__img_04.jpg",
+      "size_bytes": 89373,
+      "sha256": "f299b8782053a486af266775fbe6893ec76785d30f526f949a8fe536095b1cb9"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__blair-whiteford__24e25d3a__img_02.jpg",
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__blair-whiteford__24e25d3a__img_02.jpg",
+      "size_bytes": 97239,
+      "sha256": "afe051364a3e2abebb448004a3823570827bc937d5f47ceabb9fbe7a5516dd9f"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__blair-whiteford__24e25d3a__img_04.jpg",
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__blair-whiteford__24e25d3a__img_04.jpg",
+      "size_bytes": 101976,
+      "sha256": "bb9dd899af5084b769e787b09f63d9a2224e52dde570d8caa2ca9b7b064c1c94"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__blair-whiteford__24e25d3a__img_05.jpg",
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__blair-whiteford__24e25d3a__img_05.jpg",
+      "size_bytes": 98976,
+      "sha256": "3858c47f3bb20fb7af13f4e6240bf6470ce00e642bee4bc48a2c85357cd0f0f7"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__carroll-dunham__225a1984__img_05.jpg",
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__carroll-dunham__225a1984__img_05.jpg",
+      "size_bytes": 95710,
+      "sha256": "2f454c16bcb2109be8566fe5dd48a827e4956d3b9507fde76c2242d162062195"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__dd-herschlein__9e52d886__img_02.jpg",
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__dd-herschlein__9e52d886__img_02.jpg",
+      "size_bytes": 100110,
+      "sha256": "5cea71852a0bfa0b593db65d96542769ae60d633b976598eace6501cf1730b4f"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__fin-simonetti__3469c89b__img_04.jpg",
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__fin-simonetti__3469c89b__img_04.jpg",
+      "size_bytes": 93862,
+      "sha256": "7b9d2d375eae2255a34c0127f0ba6dfff8011b3ce9f29420682489c58beb847e"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__hayley-tompkins__8d521b2e__img_04.jpg",
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__hayley-tompkins__8d521b2e__img_04.jpg",
+      "size_bytes": 93116,
+      "sha256": "c42136bd71b2359cfc8aad52626fa1a5d9a79a443e65216d2d371a8c5f190583"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__heidi-lau__2b947a42__img_05.jpg",
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__heidi-lau__2b947a42__img_05.jpg",
+      "size_bytes": 98656,
+      "sha256": "6daf944fa5ef05617c074922895e5b509792e8e8f468cfc139bcb3df34ffd3d9"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__jack-obrien__75e49d64__img_04.jpg",
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__jack-obrien__75e49d64__img_04.jpg",
+      "size_bytes": 99176,
+      "sha256": "c9181db911c71df745f86e3f8a89a28fa029182745e527a8a64fca1c86911f8e"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__julie-beaufils__c4bf33b4__img_04.jpg",
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__julie-beaufils__c4bf33b4__img_04.jpg",
+      "size_bytes": 99679,
+      "sha256": "37eef9a6d70df8feb89cb94029e08605315ac6abcbc351dcb3c87106e0a5a282"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__justin-john-greene__53099382__img_02.jpg",
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__justin-john-greene__53099382__img_02.jpg",
+      "size_bytes": 95021,
+      "sha256": "ec4255ad9b6641db845b94061f1ef472f867cadd4b6c95dc0be3c5b95632834b"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__justin-john-greene__53099382__img_04.jpg",
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__justin-john-greene__53099382__img_04.jpg",
+      "size_bytes": 101718,
+      "sha256": "894a1db813fc4f7376c29df12be18a76c3df974586fb6889c1723468af0b80c7"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__justin-john-greene__53099382__img_05.jpg",
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__justin-john-greene__53099382__img_05.jpg",
+      "size_bytes": 101546,
+      "sha256": "304e20f552ccda5a0c6e43413be4b85d42129a8364e5ff96f725c6e857d3ff5b"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__kenji-ide__ff13fa48__img_02.jpg",
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__kenji-ide__ff13fa48__img_02.jpg",
+      "size_bytes": 94819,
+      "sha256": "f3d3af0d628a8ddaa1962a259050dac1b2d57ba5f2db153081b99c3121a04d64"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__kenji-ide__ff13fa48__img_04.jpg",
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__kenji-ide__ff13fa48__img_04.jpg",
+      "size_bytes": 101974,
+      "sha256": "950416dd01d9772c73b8c934de8d8208275a2be1ebd6bf3fb10f86e6aa06ac7b"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__kent-oconnor__ff8ab195__img_02.jpg",
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__kent-oconnor__ff8ab195__img_02.jpg",
+      "size_bytes": 99230,
+      "sha256": "40e8648b0be10472fbdf75a80ac60822f1b86fa0d97559c882bace659ce14157"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__kenturah-davis__ff1c9fdc__img_05.jpg",
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__kenturah-davis__ff1c9fdc__img_05.jpg",
+      "size_bytes": 89778,
+      "sha256": "361c4ebb13557f2b3f27b867af83cc8ca804e8a6b71c20182801de1c89157552"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__michelle-uckotter__e3cccbbc__img_02.jpg",
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__michelle-uckotter__e3cccbbc__img_02.jpg",
+      "size_bytes": 100711,
+      "sha256": "c5aff00a8ddedcb7f4c652c6edaf5af9d640409b2f94067b6f28697954735750"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__olivia-van-kuiken__fb8ba8f7__img_02.jpg",
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__olivia-van-kuiken__fb8ba8f7__img_02.jpg",
+      "size_bytes": 98928,
+      "sha256": "1123cad5530b312f7038395070477030de93edc19aa553796c08bbe626be38df"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__omari-douglin__6934f714__img_02.jpg",
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__omari-douglin__6934f714__img_02.jpg",
+      "size_bytes": 92054,
+      "sha256": "2fe67d19e4a8ab242968c7f7025843969f17cd72bfbf94fcde2238cc35c73802"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__patricia-ayres__bacc17d6__img_02.jpg",
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__patricia-ayres__bacc17d6__img_02.jpg",
+      "size_bytes": 97852,
+      "sha256": "6cde098af8c48ca39bc510232811c1ddb1f47f8e55cafa4268d6ddd049fac051"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__sasha-gordon__68bd2bb5__img_02.jpg",
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__sasha-gordon__68bd2bb5__img_02.jpg",
+      "size_bytes": 96987,
+      "sha256": "9ae0df0b158efae9652b93087fd05ecbc17e9d46dad97f0fcaa2762ec57c416a"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__sedrick-chisom__b006d1d5__img_02.jpg",
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__sedrick-chisom__b006d1d5__img_02.jpg",
+      "size_bytes": 86158,
+      "sha256": "cb8227e056c98d0a3c264e8fd298c141a1ba3e9a3b7107d55cbead8e3351f4dd"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__sedrick-chisom__b006d1d5__img_04.jpg",
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__sedrick-chisom__b006d1d5__img_04.jpg",
+      "size_bytes": 100761,
+      "sha256": "1f284298ffc2669e2573df1e312a86b45602fdcb9b46e93947368941110865f2"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__sedrick-chisom__b006d1d5__img_05.jpg",
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__sedrick-chisom__b006d1d5__img_05.jpg",
+      "size_bytes": 101632,
+      "sha256": "87915088982515d0c7cb9120b0ce6636885222bfefc7303afc3b1013cbdd4fbd"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__tarwuk__58a6a1a5__img_05.jpg",
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__tarwuk__58a6a1a5__img_05.jpg",
+      "size_bytes": 101047,
+      "sha256": "9a8e6c7348ca68e8ec2db2777f87e2db6f22baf08e0093bc6afa31359fad8afa"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__uri-aran__1a783516__img_02.jpg",
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__uri-aran__1a783516__img_02.jpg",
+      "size_bytes": 101046,
+      "sha256": "181037131485ae469a2c2bc7e09326ba660b428b48a0f55f106a4cf955a15f2f"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__vincent-valdez__aedbaa7b__img_02.jpg",
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__vincent-valdez__aedbaa7b__img_02.jpg",
+      "size_bytes": 101580,
+      "sha256": "3e8b85cae4179d21153643db146dea0eec7ac2cda9981a569754080b0f8a605e"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__vincent-valdez__aedbaa7b__img_05.jpg",
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__vincent-valdez__aedbaa7b__img_05.jpg",
+      "size_bytes": 92393,
+      "sha256": "2519de19505189686a316c3e87cac5e27ca24fa05bf18544b351bda8e7dfde0d"
+    },
+    {
+      "r2_key": "data/current/images/metadata/artist_works_images_frieze_london.jsonl",
+      "local_path": "data/current/images/metadata/artist_works_images_frieze_london.jsonl",
+      "size_bytes": 3563183,
+      "sha256": "3962c163436ae2d1460af842dc4601aedd111a2e27a8fc4c5902153ca1a98fd8"
+    },
+    {
+      "r2_key": "data/current/vector/artist_works_images/artist_works_images_artifact_manifest.json",
+      "local_path": "data/current/vector/artist_works_images/artist_works_images_artifact_manifest.json",
+      "size_bytes": 1678,
+      "sha256": "6b604d864bbb222a8a0ab6f44e5410884b36944b0484174fbb056d979c48b689"
+    },
+    {
+      "r2_key": "data/current/vector/artist_works_images/artist_works_images_openclip_embeddings.npy",
+      "local_path": "data/current/vector/artist_works_images/artist_works_images_openclip_embeddings.npy",
+      "size_bytes": 8695936,
+      "sha256": "190e8bb015f0a556ca139aa6a287c2c05d9c6b48ad88b5b3f3ef9192c7006ec1"
+    },
+    {
+      "r2_key": "data/current/vector/artist_works_images/artist_works_images_openclip_id_map.jsonl",
+      "local_path": "data/current/vector/artist_works_images/artist_works_images_openclip_id_map.jsonl",
+      "size_bytes": 5287385,
+      "sha256": "82cb4ee2c1e6a6025b8dedfeb2511a2781e091e68a0c6c12ac0a786e3d8d516d"
+    },
+    {
+      "r2_key": "data/current/vector/artist_works_images/artist_works_images_openclip_search_index.npy",
+      "local_path": "data/current/vector/artist_works_images/artist_works_images_openclip_search_index.npy",
+      "size_bytes": 8695936,
+      "sha256": "c5b9248fc35ded2e13550390a3f96cae6c5d3f6bb45907991e2c79421852b1af"
+    },
+    {
+      "r2_key": "data/current/vector/artist_works_images/artist_works_images_vectorize_summary_2025.json",
+      "local_path": "data/current/vector/artist_works_images/artist_works_images_vectorize_summary_2025.json",
+      "size_bytes": 1612,
+      "sha256": "a814b8f57855460f7805a85caa44ac9d2eb30c6a9be1522cdc2b88c52d68c1ed"
+    }
+  ],
+  "upload_failed": [],
+  "deleted": [],
+  "delete_failed": []
+}

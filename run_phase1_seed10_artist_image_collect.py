@@ -19,6 +19,7 @@ from typing import Any
 from urllib.parse import urljoin, urlparse
 
 import requests
+import numpy as np
 from PIL import Image, UnidentifiedImageError
 from gallery_skip_registry import load_skip_registry_entries, normalize_fair_slug as normalize_registry_fair_slug
 from phase1_ledger_contract import (
@@ -146,6 +147,15 @@ WORKS_ONLY_REJECT_URL_TOKENS = (
     "hero",
     "banner",
     "avatar",
+    "logo",
+    "favicon",
+    "mstile",
+    "apple-touch-icon",
+    "android-chrome",
+    "site.webmanifest",
+    "/icon",
+    "-icon",
+    "_icon",
 )
 WORKS_ONLY_REJECT_EVIDENCE_TOKENS = (
     "profile photo",
@@ -209,8 +219,10 @@ YEAR_PATTERN = re.compile(r"(?<!\d)(19\d{2}|20\d{2})(?!\d)")
 YEAR_MIN = 1900
 YEAR_MAX = datetime.now(timezone.utc).year + 1
 YEAR_EVIDENCE_TEXT_MAX_LEN = 120
-IMAGE_SCALE_SUFFIX_RE = re.compile(r"-(\d{2,5})x(\d{2,5})(?=\.[a-z0-9]{2,5}$)", re.IGNORECASE)
+IMAGE_SCALE_SUFFIX_RE = re.compile(r"[-_.](\d{2,5})x(?:\d{1,5})?(?=\.[a-z0-9]{2,5}$)", re.IGNORECASE)
 IMAGE_SCALED_SUFFIX_RE = re.compile(r"-scaled(?=\.[a-z0-9]{2,5}$)", re.IGNORECASE)
+IMAGE_AT_NX_SUFFIX_RE = re.compile(r"@[2-9]x(?=\.[a-z0-9]{2,5}$)", re.IGNORECASE)
+RESOLVE_SCALE_SEGMENT_RE = re.compile(r"/resolve/([a-z0-9-]+)_[1-9][0-9]*x(?=/)", re.IGNORECASE)
 CDN_TRANSFORM_SEGMENT_RE = re.compile(r"^(?:[a-z]{1,4}_[^/]+)(?:,[a-z]{1,4}_[^/]+)*$", re.IGNORECASE)
 WORK_INFO_MEDIUM_PATTERN = re.compile(
     r"\b(oil on|acrylic on|watercolor on|ink on|bronze|charcoal|mixed media|"
@@ -220,6 +232,28 @@ WORK_INFO_MEDIUM_PATTERN = re.compile(
 WORK_INFO_SIZE_PATTERN = re.compile(r"\b\d{2,4}\s?(cm|mm|in|inch|inches)\b", re.IGNORECASE)
 HERO_CONTAINER_TOKENS = ("hero", "header", "profile", "portrait", "headshot", "avatar", "bio", "about")
 HERO_PERSON_TOKENS = ("portrait", "headshot", "profile photo", "artist photo", "photo of")
+BRANDING_ASSET_URL_TOKENS = (
+    "logo",
+    "favicon",
+    "mstile",
+    "apple-touch-icon",
+    "android-chrome",
+    "site.webmanifest",
+    "/icon",
+    "-icon",
+    "_icon",
+)
+BRANDING_ASSET_MAX_DIM_PX = 256
+BRANDING_ASSET_MAX_ASPECT_RATIO_DELTA = 0.08
+VISUAL_PHASH_NEAR_DUP_MAX_DISTANCE = 1
+VISUAL_AHASH_NEAR_DUP_MAX_DISTANCE = 4
+VISUAL_DHASH_NEAR_DUP_MAX_DISTANCE = 4
+VISUAL_PHASH_RELAXED_NEAR_DUP_MAX_DISTANCE = 2
+VISUAL_AHASH_RELAXED_NEAR_DUP_MAX_DISTANCE = 8
+VISUAL_DHASH_RELAXED_NEAR_DUP_MAX_DISTANCE = 8
+PHASH_SIZE = 8
+PHASH_HIGHFREQ_FACTOR = 4
+PHASH_DCT_SIZE = PHASH_SIZE * PHASH_HIGHFREQ_FACTOR
 
 ARTIST_URL_NON_NAME_SEGMENTS = {
     "artist",
@@ -985,6 +1019,156 @@ def candidate_violates_works_only(candidate: dict[str, Any]) -> bool:
     return False
 
 
+_IMAGE_VISUAL_SIGNATURE_CACHE: dict[str, tuple[int, int, int]] = {}
+_PHASH_DCT_MATRIX_CACHE: dict[int, np.ndarray] = {}
+
+
+def _dct_matrix(size: int) -> np.ndarray:
+    cached = _PHASH_DCT_MATRIX_CACHE.get(size)
+    if cached is not None:
+        return cached
+    idx = np.arange(size, dtype=np.float32)
+    matrix = np.cos(np.pi * (2 * idx[:, None] + 1) * idx[None, :] / (2.0 * float(size))).astype(np.float32)
+    matrix[0, :] *= 1.0 / np.sqrt(2.0)
+    matrix = (2.0 / np.sqrt(float(size))) * matrix
+    _PHASH_DCT_MATRIX_CACHE[size] = matrix
+    return matrix
+
+
+def bit_hamming_distance(a: int, b: int) -> int:
+    return int((int(a) ^ int(b)).bit_count())
+
+
+def is_near_duplicate_visual_signature(
+    candidate: tuple[int, int, int],
+    existing_signatures: list[tuple[int, int, int]],
+) -> bool:
+    ahash_candidate, dhash_candidate, phash_candidate = candidate
+    for ahash_existing, dhash_existing, phash_existing in existing_signatures:
+        if bit_hamming_distance(phash_candidate, phash_existing) > VISUAL_PHASH_NEAR_DUP_MAX_DISTANCE:
+            continue
+        if bit_hamming_distance(ahash_candidate, ahash_existing) > VISUAL_AHASH_NEAR_DUP_MAX_DISTANCE:
+            continue
+        if bit_hamming_distance(dhash_candidate, dhash_existing) > VISUAL_DHASH_NEAR_DUP_MAX_DISTANCE:
+            continue
+        return True
+    return False
+
+
+def is_contextual_near_duplicate_visual_signature(
+    candidate_signature: tuple[int, int, int],
+    existing_signature: tuple[int, int, int],
+    *,
+    candidate_url_text: str,
+    existing_url_text: str,
+    candidate_url_base_identity: str,
+    existing_url_base_identity: str,
+) -> bool:
+    if is_near_duplicate_visual_signature(candidate_signature, [existing_signature]):
+        return True
+
+    relaxed_allowed = (
+        not str(candidate_url_text or "").strip()
+        or not str(existing_url_text or "").strip()
+        or (
+            str(candidate_url_base_identity or "").strip()
+            and str(existing_url_base_identity or "").strip()
+            and str(candidate_url_base_identity or "").strip()
+            == str(existing_url_base_identity or "").strip()
+        )
+    )
+    if not relaxed_allowed:
+        return False
+
+    ahash_candidate, dhash_candidate, phash_candidate = candidate_signature
+    ahash_existing, dhash_existing, phash_existing = existing_signature
+    if bit_hamming_distance(phash_candidate, phash_existing) > VISUAL_PHASH_RELAXED_NEAR_DUP_MAX_DISTANCE:
+        return False
+    if bit_hamming_distance(ahash_candidate, ahash_existing) > VISUAL_AHASH_RELAXED_NEAR_DUP_MAX_DISTANCE:
+        return False
+    if bit_hamming_distance(dhash_candidate, dhash_existing) > VISUAL_DHASH_RELAXED_NEAR_DUP_MAX_DISTANCE:
+        return False
+    return True
+
+
+def image_visual_signature(local_path: Path) -> tuple[int, int, int] | None:
+    cache_key = str(local_path.resolve())
+    cached = _IMAGE_VISUAL_SIGNATURE_CACHE.get(cache_key)
+    if cached is not None:
+        return cached
+
+    try:
+        with Image.open(local_path) as image:
+            image.load()
+            gray8 = image.convert("L").resize((8, 8), _resample_filter())
+            gray9 = image.convert("L").resize((9, 8), _resample_filter())
+            gray32 = image.convert("L").resize((PHASH_DCT_SIZE, PHASH_DCT_SIZE), _resample_filter())
+    except (UnidentifiedImageError, OSError, ValueError):
+        return None
+
+    arr8 = list(gray8.getdata())
+    arr9 = list(gray9.getdata())
+    arr32 = np.asarray(gray32, dtype=np.float32)
+    if not arr8 or len(arr9) != 72 or arr32.shape != (PHASH_DCT_SIZE, PHASH_DCT_SIZE):
+        return None
+
+    mean8 = sum(arr8) / float(len(arr8))
+    ahash = 0
+    for value in arr8:
+        ahash = (ahash << 1) | int(value > mean8)
+
+    dhash = 0
+    for y in range(8):
+        base = y * 9
+        for x in range(8):
+            left = arr9[base + x]
+            right = arr9[base + x + 1]
+            dhash = (dhash << 1) | int(right > left)
+
+    dct = _dct_matrix(PHASH_DCT_SIZE) @ arr32 @ _dct_matrix(PHASH_DCT_SIZE).T
+    low = dct[:PHASH_SIZE, :PHASH_SIZE]
+    median = float(np.median(low[1:, :])) if low.size > 1 else float(np.median(low))
+    phash = 0
+    for value in low.flatten():
+        phash = (phash << 1) | int(float(value) > median)
+
+    signature = (int(ahash), int(dhash), int(phash))
+    _IMAGE_VISUAL_SIGNATURE_CACHE[cache_key] = signature
+    return signature
+
+
+def image_visual_dedupe_key(local_path: Path) -> str:
+    signature = image_visual_signature(local_path)
+    if signature is None:
+        return ""
+    ahash, dhash, _phash = signature
+    return f"{ahash:016x}:{dhash:016x}"
+
+
+def looks_like_branding_asset(url_text: str, local_path: Path | None = None) -> bool:
+    haystack = str(url_text or "").lower()
+    if local_path is not None:
+        haystack = f"{haystack} {local_path.name.lower()}".strip()
+    if not any(token in haystack for token in BRANDING_ASSET_URL_TOKENS):
+        return False
+    if local_path is None or not local_path.exists():
+        return True
+    try:
+        with Image.open(local_path) as image:
+            image.load()
+            width, height = image.size
+    except (UnidentifiedImageError, OSError, ValueError):
+        return True
+    max_dim = max(width, height)
+    min_dim = min(width, height)
+    if max_dim <= 0 or min_dim <= 0:
+        return True
+    if max_dim > BRANDING_ASSET_MAX_DIM_PX:
+        return False
+    ratio_delta = abs(float(width - height)) / float(max_dim)
+    return ratio_delta <= BRANDING_ASSET_MAX_ASPECT_RATIO_DELTA
+
+
 def normalize_url_for_link_compare(url: str) -> str:
     return shared_normalize_url_for_link_compare(url)
 
@@ -1023,7 +1207,22 @@ def normalize_image_url_for_dedupe(url: str) -> str:
     # Collapse WordPress-style "scaled" variants:
     # image-scaled.jpg -> image.jpg
     path = IMAGE_SCALED_SUFFIX_RE.sub("", path)
+    # Collapse Retina suffix variants:
+    # image@2x.jpg -> image.jpg
+    path = IMAGE_AT_NX_SUFFIX_RE.sub("", path)
+    # Collapse cached transformer path variants:
+    # /resolve/enlarge_2x/... -> /resolve/enlarge/...
+    path = RESOLVE_SCALE_SEGMENT_RE.sub(r"/resolve/\1", path)
     return f"{scheme}://{netloc}{path}".rstrip("/")
+
+
+def normalize_image_url_base_identity_for_dedupe(url: str) -> str:
+    normalized = normalize_image_url_for_dedupe(url)
+    if not normalized:
+        return ""
+    parsed = urlparse(normalized)
+    path = re.sub(r"\.[a-z0-9]{2,5}$", "", parsed.path or "", flags=re.IGNORECASE)
+    return f"{parsed.netloc.lower()}{path.lower()}".strip()
 
 
 def is_artist_detail_like_path(path: str) -> bool:
@@ -2350,13 +2549,20 @@ def build_valid_existing_metadata_items(
 ) -> list[dict[str, Any]]:
     items: list[dict[str, Any]] = []
     seen_local_paths: set[str] = set()
+    seen_payload_hashes: set[str] = set()
+    seen_url_identities: set[str] = set()
+    seen_url_base_identities: set[str] = set()
+    seen_visual_signatures: list[tuple[tuple[int, int, int], str, str]] = []
     for url_hash in existing_meta_hashes:
         if len(items) >= target_images_per_artist:
             break
         prev = existing_meta_by_hash.get(url_hash, {})
+        url_text = str(prev.get("url") or "")
         local_path_text = str(prev.get("local_path") or "")
         local_path = resolve_image_local_path(local_path_text)
         if local_path is None or not local_path.exists():
+            continue
+        if looks_like_branding_asset(url_text, local_path):
             continue
         local_path_key = str(local_path.resolve())
         if local_path_key in seen_local_paths:
@@ -2364,8 +2570,16 @@ def build_valid_existing_metadata_items(
         ok_cached, _cached_reason = validate_cached_image_file(local_path)
         if not ok_cached:
             continue
+        url_identity = normalize_image_url_for_dedupe(url_text) if url_text else ""
+        url_base_identity = normalize_image_url_base_identity_for_dedupe(url_text) if url_text else ""
+        if url_identity and url_identity in seen_url_identities:
+            continue
+        if url_base_identity and url_base_identity in seen_url_base_identities:
+            continue
         local_payload_hash = payload_hash_from_file(local_path).strip().lower()
         if not local_payload_hash:
+            continue
+        if local_payload_hash in seen_payload_hashes:
             continue
         prev_payload_hash = str(prev.get("payload_hash") or "").strip().lower()
         # Guard against stale metadata pointing to a different payload than
@@ -2373,10 +2587,33 @@ def build_valid_existing_metadata_items(
         # duplicated files across reruns.
         if prev_payload_hash and prev_payload_hash != local_payload_hash:
             continue
+        visual_signature = image_visual_signature(local_path)
+        if visual_signature is not None:
+            should_skip_by_visual_dup = False
+            for existing_signature, existing_url_text, existing_url_base_identity in seen_visual_signatures:
+                if is_contextual_near_duplicate_visual_signature(
+                    visual_signature,
+                    existing_signature,
+                    candidate_url_text=url_text,
+                    existing_url_text=existing_url_text,
+                    candidate_url_base_identity=url_base_identity,
+                    existing_url_base_identity=existing_url_base_identity,
+                ):
+                    should_skip_by_visual_dup = True
+                    break
+            if should_skip_by_visual_dup:
+                continue
         seen_local_paths.add(local_path_key)
+        seen_payload_hashes.add(local_payload_hash)
+        if url_identity:
+            seen_url_identities.add(url_identity)
+        if url_base_identity:
+            seen_url_base_identities.add(url_base_identity)
+        if visual_signature is not None:
+            seen_visual_signatures.append((visual_signature, url_text, url_base_identity))
         items.append(
             {
-                "url": str(prev.get("url") or ""),
+                "url": url_text,
                 "hash": url_hash,
                 "caption": shorten_text(str(prev.get("caption") or ""), YEAR_EVIDENCE_TEXT_MAX_LEN),
                 "year": int(prev.get("year") or 0),
@@ -2390,6 +2627,108 @@ def build_valid_existing_metadata_items(
     return items
 
 
+def dedupe_metadata_items_for_output(
+    metadata_items: list[dict[str, Any]],
+    *,
+    target_images_per_artist: int,
+    global_seen_payload_hashes: set[str] | None = None,
+    global_seen_url_identities: set[str] | None = None,
+    global_seen_url_base_identities: set[str] | None = None,
+    global_seen_visual_signatures: list[tuple[tuple[int, int, int], str, str]] | None = None,
+) -> list[dict[str, Any]]:
+    deduped: list[dict[str, Any]] = []
+    seen_hashes: set[str] = set()
+    seen_payload_hashes: set[str] = set()
+    seen_url_identities: set[str] = set()
+    seen_url_base_identities: set[str] = set()
+    seen_visual_signatures: list[tuple[tuple[int, int, int], str, str]] = []
+
+    for item in metadata_items:
+        if len(deduped) >= target_images_per_artist:
+            break
+        url_hash = str(item.get("hash") or "").strip()
+        url_text = str(item.get("url") or "").strip()
+        payload_hash_value = str(item.get("payload_hash") or "").strip().lower()
+        local_path = resolve_image_local_path(str(item.get("local_path") or ""))
+        url_identity = normalize_image_url_for_dedupe(url_text) if url_text else ""
+        url_base_identity = normalize_image_url_base_identity_for_dedupe(url_text) if url_text else ""
+
+        if looks_like_branding_asset(url_text, local_path):
+            continue
+        if url_hash and url_hash in seen_hashes:
+            continue
+        if payload_hash_value and payload_hash_value in seen_payload_hashes:
+            continue
+        if url_identity and url_identity in seen_url_identities:
+            continue
+        if url_base_identity and url_base_identity in seen_url_base_identities:
+            continue
+        if payload_hash_value and global_seen_payload_hashes is not None and payload_hash_value in global_seen_payload_hashes:
+            continue
+        if url_identity and global_seen_url_identities is not None and url_identity in global_seen_url_identities:
+            continue
+        if (
+            url_base_identity
+            and global_seen_url_base_identities is not None
+            and url_base_identity in global_seen_url_base_identities
+        ):
+            continue
+        visual_signature = image_visual_signature(local_path) if local_path is not None else None
+        if visual_signature is not None:
+            should_skip_by_local_visual_dup = False
+            for existing_signature, existing_url_text, existing_url_base_identity in seen_visual_signatures:
+                if is_contextual_near_duplicate_visual_signature(
+                    visual_signature,
+                    existing_signature,
+                    candidate_url_text=url_text,
+                    existing_url_text=existing_url_text,
+                    candidate_url_base_identity=url_base_identity,
+                    existing_url_base_identity=existing_url_base_identity,
+                ):
+                    should_skip_by_local_visual_dup = True
+                    break
+            if should_skip_by_local_visual_dup:
+                continue
+
+            if global_seen_visual_signatures is not None:
+                should_skip_by_global_visual_dup = False
+                for existing_signature, existing_url_text, existing_url_base_identity in global_seen_visual_signatures:
+                    if is_contextual_near_duplicate_visual_signature(
+                        visual_signature,
+                        existing_signature,
+                        candidate_url_text=url_text,
+                        existing_url_text=existing_url_text,
+                        candidate_url_base_identity=url_base_identity,
+                        existing_url_base_identity=existing_url_base_identity,
+                    ):
+                        should_skip_by_global_visual_dup = True
+                        break
+                if should_skip_by_global_visual_dup:
+                    continue
+
+        deduped.append(item)
+        if url_hash:
+            seen_hashes.add(url_hash)
+        if payload_hash_value:
+            seen_payload_hashes.add(payload_hash_value)
+        if url_identity:
+            seen_url_identities.add(url_identity)
+        if url_base_identity:
+            seen_url_base_identities.add(url_base_identity)
+        if visual_signature is not None:
+            seen_visual_signatures.append((visual_signature, url_text, url_base_identity))
+        if payload_hash_value and global_seen_payload_hashes is not None:
+            global_seen_payload_hashes.add(payload_hash_value)
+        if url_identity and global_seen_url_identities is not None:
+            global_seen_url_identities.add(url_identity)
+        if url_base_identity and global_seen_url_base_identities is not None:
+            global_seen_url_base_identities.add(url_base_identity)
+        if visual_signature is not None and global_seen_visual_signatures is not None:
+            global_seen_visual_signatures.append((visual_signature, url_text, url_base_identity))
+
+    return deduped
+
+
 def build_cache_only_metadata_items(
     existing_images: list[Path],
     *,
@@ -2398,6 +2737,7 @@ def build_cache_only_metadata_items(
     items: list[dict[str, Any]] = []
     seen_payload_hashes: set[str] = set()
     seen_local_paths: set[str] = set()
+    seen_visual_signatures: list[tuple[int, int, int]] = []
     for local_path in existing_images:
         if len(items) >= target_images_per_artist:
             break
@@ -2411,8 +2751,26 @@ def build_cache_only_metadata_items(
         local_payload_hash = payload_hash_from_file(resolved).strip().lower()
         if not local_payload_hash or local_payload_hash in seen_payload_hashes:
             continue
+        visual_signature = image_visual_signature(resolved)
+        if visual_signature is not None:
+            should_skip_by_visual_dup = False
+            for existing_signature in seen_visual_signatures:
+                if is_contextual_near_duplicate_visual_signature(
+                    visual_signature,
+                    existing_signature,
+                    candidate_url_text="",
+                    existing_url_text="",
+                    candidate_url_base_identity="",
+                    existing_url_base_identity="",
+                ):
+                    should_skip_by_visual_dup = True
+                    break
+            if should_skip_by_visual_dup:
+                continue
         seen_local_paths.add(local_key)
         seen_payload_hashes.add(local_payload_hash)
+        if visual_signature is not None:
+            seen_visual_signatures.append(visual_signature)
         items.append(
             {
                 "url": "",
@@ -3116,6 +3474,14 @@ def main() -> int:
         else:
             summary["notes"].append("retry_adapter_unavailable")
 
+        scope_seen_payload_hashes: dict[tuple[str, str], set[str]] = defaultdict(set)
+        scope_seen_url_identities: dict[tuple[str, str], set[str]] = defaultdict(set)
+        scope_seen_url_base_identities: dict[tuple[str, str], set[str]] = defaultdict(set)
+        scope_seen_visual_signatures: dict[
+            tuple[str, str],
+            list[tuple[tuple[int, int, int], str, str]],
+        ] = defaultdict(list)
+
         def maybe_skip_failed_url(raw_url: str, *, case_notes: list[str]) -> tuple[bool, str]:
             entry = failed_fetches_ledger.get(compute_page_url_hash(raw_url))
             if entry is None:
@@ -3178,6 +3544,10 @@ def main() -> int:
             artist_name_key = str(target.get("artist_name_key") or "").strip() or build_artist_name_key(artist_name_en, source_url)
             artist_identity_key = str(target.get("artist_identity_key") or "").strip().lower() or build_artist_identity_key(
                 artist_name_key, artist_name_en, source_url
+            )
+            scope_dedupe_key = (
+                str(fair_slug or "").strip().casefold(),
+                str(gallery_name_en or "").strip().casefold(),
             )
             same_source_yearly_diff_allowed = bool(target.get("same_source_yearly_diff_allowed"))
             domain = normalize_domain(source_url)
@@ -3852,6 +4222,16 @@ def main() -> int:
                         existing_payload_hash_set.add(selected_payload_hash)
             elif valid_existing_metadata_items:
                 metadata_items = list(valid_existing_metadata_items)
+
+            if metadata_items:
+                metadata_items = dedupe_metadata_items_for_output(
+                    metadata_items,
+                    target_images_per_artist=max(target_images_per_artist, len(metadata_items)),
+                    global_seen_payload_hashes=scope_seen_payload_hashes[scope_dedupe_key],
+                    global_seen_url_identities=scope_seen_url_identities[scope_dedupe_key],
+                    global_seen_url_base_identities=scope_seen_url_base_identities[scope_dedupe_key],
+                    global_seen_visual_signatures=scope_seen_visual_signatures[scope_dedupe_key],
+                )
 
             if metadata_items:
                 saved_count = len(metadata_items)

@@ -1,5 +1,5 @@
 {
-  "version": "v3",
+  "version": "v4",
   "global_exclude_globs": [
     "**/__pycache__/**",
     "**/*.pyc",
@@ -11,13 +11,110 @@
   ],
   "scopes": {
     "current_root_mirror": {
-      "description": "Primary and only default R2 mirror contract. data/current is the source-of-truth for all current families.",
+      "description": "Primary broad R2 mirror contract. data/current is the source-of-truth for all current families. For app/runtime required RAG integrity audits, use current_required_rag_full.",
       "enabled_by_default": true,
       "sync_mode": "mirror",
       "targets": [
         {
           "local_root": "data/current",
           "r2_prefix": "data/current",
+          "include_globs": [
+            "**/*"
+          ],
+          "exclude_globs": []
+        }
+      ]
+    },
+    "current_required_rag_full": {
+      "description": "Canonical app/runtime current-required RAG parity scope. Mirrors only the current families that runtime resolves directly, including image cache families required for remote hydration.",
+      "enabled_by_default": false,
+      "sync_mode": "mirror",
+      "targets": [
+        {
+          "name": "raw_artists",
+          "local_root": "data/current/raw",
+          "r2_prefix": "data/current/raw",
+          "include_globs": [
+            "artists_*.jsonl"
+          ],
+          "exclude_globs": []
+        },
+        {
+          "name": "raw_exhibitions",
+          "local_root": "data/current/raw",
+          "r2_prefix": "data/current/raw",
+          "include_globs": [
+            "exhibitions_*.jsonl"
+          ],
+          "exclude_globs": []
+        },
+        {
+          "name": "enrichment_artists_outputs",
+          "local_root": "data/current/enrichment",
+          "r2_prefix": "data/current/enrichment",
+          "include_globs": [
+            "artists_enrichment_apply_output*.jsonl"
+          ],
+          "exclude_globs": []
+        },
+        {
+          "name": "enrichment_exhibitions_outputs",
+          "local_root": "data/current/enrichment",
+          "r2_prefix": "data/current/enrichment",
+          "include_globs": [
+            "exhibitions_enrichment_apply_output_*.jsonl"
+          ],
+          "exclude_globs": []
+        },
+        {
+          "name": "images_metadata_artist_works",
+          "local_root": "data/current/images/metadata",
+          "r2_prefix": "data/current/images/metadata",
+          "include_globs": [
+            "artist_works_images_*.jsonl"
+          ],
+          "exclude_globs": []
+        },
+        {
+          "name": "images_metadata_exhibitions",
+          "local_root": "data/current/images/metadata",
+          "r2_prefix": "data/current/images/metadata",
+          "include_globs": [
+            "exhibitions_images_*_*.jsonl"
+          ],
+          "exclude_globs": []
+        },
+        {
+          "name": "images_cache_artist_works",
+          "local_root": "data/current/images/cache/artist_works_images",
+          "r2_prefix": "data/current/images/cache/artist_works_images",
+          "include_globs": [
+            "**/*"
+          ],
+          "exclude_globs": []
+        },
+        {
+          "name": "images_cache_exhibition_works",
+          "local_root": "data/current/images/cache/exhibition_works_images",
+          "r2_prefix": "data/current/images/cache/exhibition_works_images",
+          "include_globs": [
+            "**/*"
+          ],
+          "exclude_globs": []
+        },
+        {
+          "name": "vector_artists",
+          "local_root": "data/current/vector/artists",
+          "r2_prefix": "data/current/vector/artists",
+          "include_globs": [
+            "**/*"
+          ],
+          "exclude_globs": []
+        },
+        {
+          "name": "vector_artist_works_images",
+          "local_root": "data/current/vector/artist_works_images",
+          "r2_prefix": "data/current/vector/artist_works_images",
           "include_globs": [
             "**/*"
           ],

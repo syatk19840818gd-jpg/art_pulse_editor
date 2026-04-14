@@ -1,0 +1,127 @@
+{
+  "artifact_kind": "r2_sync_apply",
+  "schema_version": "v2",
+  "generated_at": "2026-04-14T12:15:56Z",
+  "scope": "current_required_rag_full",
+  "run_id": "TASK_PHASE3_SCOPE10_CURRENT_REQUIRED_RAG_FULL_APPLY_20260414",
+  "bucket": "art-pulse-editor",
+  "sync_mode": "mirror",
+  "plan_log_path": "logs/r2_sync/r2_sync_plan_current_required_rag_full_TASK_PHASE3_SCOPE10_CURRENT_REQUIRED_RAG_FULL_APPLY_20260414.json",
+  "local_roots_missing": [],
+  "would_upload_count": 7,
+  "would_delete_count": 20,
+  "would_prune_count": 20,
+  "uploaded_count": 7,
+  "upload_failed_count": 0,
+  "deleted_count": 20,
+  "delete_failed_count": 0,
+  "delete_policy": "mirror_apply",
+  "uploaded": [
+    {
+      "r2_key": "data/current/images/metadata/artist_works_images_frieze_london.jsonl",
+      "local_path": "data/current/images/metadata/artist_works_images_frieze_london.jsonl",
+      "size_bytes": 3555774,
+      "sha256": "d7c290b405d3386bab16ea404e4d7216e992a246c10cc53823647455edccba67"
+    },
+    {
+      "r2_key": "data/current/images/metadata/artist_works_images_liste.jsonl",
+      "local_path": "data/current/images/metadata/artist_works_images_liste.jsonl",
+      "size_bytes": 1084590,
+      "sha256": "982f534a4e95452272afee67c49101078c9711abb13c4dcee4f4fb7a15f28159"
+    },
+    {
+      "r2_key": "data/current/vector/artist_works_images/artist_works_images_artifact_manifest.json",
+      "local_path": "data/current/vector/artist_works_images/artist_works_images_artifact_manifest.json",
+      "size_bytes": 2045,
+      "sha256": "d34657e4b7e3ec8995a2e50ff80acfe915450c848cb85825262c35d841903955"
+    },
+    {
+      "r2_key": "data/current/vector/artist_works_images/artist_works_images_openclip_embeddings.npy",
+      "local_path": "data/current/vector/artist_works_images/artist_works_images_openclip_embeddings.npy",
+      "size_bytes": 9494656,
+      "sha256": "efe0e0b97e8e42303a183e965ba55838269e4daf11365c2f342c321735b49271"
+    },
+    {
+      "r2_key": "data/current/vector/artist_works_images/artist_works_images_openclip_id_map.jsonl",
+      "local_path": "data/current/vector/artist_works_images/artist_works_images_openclip_id_map.jsonl",
+      "size_bytes": 5796044,
+      "sha256": "d43b5d7ddc931a1be8c88f1061637d74dd7e465d03543b8d846a7dedc06d5590"
+    },
+    {
+      "r2_key": "data/current/vector/artist_works_images/artist_works_images_openclip_search_index.npy",
+      "local_path": "data/current/vector/artist_works_images/artist_works_images_openclip_search_index.npy",
+      "size_bytes": 9494656,
+      "sha256": "2d3267ecb1c4b01ddbd48f48e15828bb58a11b3a4e13ae013b0d515983774bc9"
+    },
+    {
+      "r2_key": "data/current/vector/artist_works_images/artist_works_images_vectorize_summary_2025.json",
+      "local_path": "data/current/vector/artist_works_images/artist_works_images_vectorize_summary_2025.json",
+      "size_bytes": 1982,
+      "sha256": "dbfbe60c618e68f261d2c287cea34948f3e138a2ce0e58940382a4092b210b2e"
+    }
+  ],
+  "upload_failed": [],
+  "deleted": [
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/frith-street-gallery__callum-innes__2f1a579d__img_05.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/frith-street-gallery__daniel-silver__c53c298e__img_05.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/frith-street-gallery__dayanita-singh__58856fa7__img_03.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/frith-street-gallery__fiona-banner-aka-the-vanity-press__53a6e289__img_01.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/frith-street-gallery__nancy-spero__f3eb0253__img_01.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/frith-street-gallery__polly-apfelbaum__7dbc7fbf__img_01.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/frith-street-gallery__shilpa-gupta__216c8e7a__img_03.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/garth-greenan-gallery__art-green__ec4e29ee__img_02.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/garth-greenan-gallery__mark-greenwold__f9fb32ed__img_02.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/garth-greenan-gallery__peter-blake__e01e44e3__img_02.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/liste/laveronica__giovanni-delazzari__8a0ed9be__img_03.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/liste/livie-gallery__sarah-bogner__e442c499__img_05.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/liste/lodovico-corsini__daisy-sheff__1079ecac__img_01.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/liste/lodovico-corsini__francesca-facciola__ab9bf047__img_02.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/liste/lodovico-corsini__javier-barrios__208646a4__img_01.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/liste/lodovico-corsini__javier-barrios__208646a4__img_03.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/liste/lodovico-corsini__matt-copson__b555729b__img_03.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/liste/lodovico-corsini__nuri-koerfer__ac67526f__img_01.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/liste/lodovico-corsini__peter-wachtler__0071ed8d__img_01.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/liste/lodovico-corsini__peter-wachtler__0071ed8d__img_02.jpg"
+    }
+  ],
+  "delete_failed": []
+}

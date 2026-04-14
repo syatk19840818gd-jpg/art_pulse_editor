@@ -4,7 +4,9 @@ from __future__ import annotations
 import argparse
 import json
 import shutil
+from collections import defaultdict
 from datetime import datetime, timezone
+from itertools import zip_longest
 from pathlib import Path
 from typing import Any
 
@@ -54,17 +56,38 @@ from run_rag_gallery_breakdown_update import (
     build_stats,
     load_targets_ordered,
 )
+from run_phase1_seed10_artist_image_collect import (
+    image_visual_dedupe_key,
+    image_visual_signature,
+    is_contextual_near_duplicate_visual_signature,
+    normalize_image_url_base_identity_for_dedupe,
+)
 
 DEFAULT_RUN_ID_PREFIX = "TASK_PHASE3_BLOCK_CLOSEOUT"
 DEFAULT_PLAN_ROOT_DIR = Path("_trial")
+FORMAL_REQUIRED_R2_SCOPE_NAME = "current_required_rag_full"
+FORMAL_REQUIRED_R2_SEQUENCE = [
+    "current_required_rag_full_plan",
+    "current_required_rag_full_apply",
+    "current_required_rag_full_postcheck",
+]
+FORMAL_REQUIRED_R2_SUCCESS_CRITERIA = [
+    "missing local->R2 = 0",
+    "remote_only = 0",
+    "size_mismatch = 0",
+]
 BLOCK_CLOSEOUT_FLOW = [
     "current_write",
     "exhibition_images_current",
+    "artist_works_images_duplicate_audit",
     "skip_registry_gallery_list_cleanup",
     "xlsx_update",
-    "r2_sync",
     "artist_works_images_openclip_current",
+    "workbook_human_confirmation",
+    *FORMAL_REQUIRED_R2_SEQUENCE,
     "closeout_report",
+    "docs_sync",
+    "next_block_restart_decision",
 ]
 
 
@@ -95,7 +118,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         description=(
             "Unified block closeout runner. Resolve the block scope from a targets CSV, "
             "then orchestrate current verification, bounded current/trial merge planning, "
-            "xlsx update, Artist Works Images OpenCLIP current check, R2 sync, and one closeout report. "
+            "xlsx update, Artist Works Images OpenCLIP current check, duplicate gate verification, "
+            "and one closeout report with the formal post-workbook current_required_rag_full handoff. "
             "Verify-first dry-run is the default; live R2/apply requires explicit approval."
         )
     )
@@ -157,7 +181,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help=(
             "execute the full block closeout contract against current source of truth: "
-            "current write stage, xlsx update, required R2 sync, and closeout report"
+            "current write stage, duplicate gate aware verification, xlsx update, and closeout report "
+            "(formal R2 final sync remains the post-workbook current_required_rag_full lane)"
         ),
     )
     return parser.parse_args(argv)
@@ -340,18 +365,287 @@ def derive_exhibition_images_current_status(scope_counts: dict[str, Any]) -> tup
     return "planned", True
 
 
+def _target_scope_keys_from_report(report: dict[str, Any]) -> set[tuple[str, str]]:
+    keys: set[tuple[str, str]] = set()
+    for raw in report.get("targets", []):
+        if not isinstance(raw, dict):
+            continue
+        fair_slug = str(raw.get("fair_slug") or "").strip().lower().replace("-", "_")
+        gallery_name = str(raw.get("gallery_name_en") or "").strip()
+        if not fair_slug or not gallery_name:
+            continue
+        keys.add(ScopeTarget(fair_slug=fair_slug, gallery_name_en=gallery_name).scope_key)
+    return keys
+
+
+def _iter_target_artist_work_image_records(report: dict[str, Any]) -> list[dict[str, Any]]:
+    current_paths = report.get("current_paths", {})
+    if not isinstance(current_paths, dict):
+        return []
+    artist_paths = current_paths.get("artist", {})
+    if not isinstance(artist_paths, dict):
+        return []
+    image_meta_paths = artist_paths.get("image_metadata", {})
+    if not isinstance(image_meta_paths, dict):
+        return []
+    target_scope_keys = _target_scope_keys_from_report(report)
+    if not target_scope_keys:
+        return []
+
+    out: list[dict[str, Any]] = []
+    for _fair_slug, path_text in image_meta_paths.items():
+        path = Path(path_text)
+        if not path.exists():
+            continue
+        for row in read_jsonl(path):
+            if not isinstance(row, dict):
+                continue
+            fair_slug = str(row.get("fair_slug") or "").strip().lower().replace("-", "_")
+            gallery_name = str(row.get("gallery_name_en") or "").strip()
+            artist_name = str(row.get("artist_name_en") or "").strip()
+            if not fair_slug or not gallery_name:
+                continue
+            scope_key = ScopeTarget(fair_slug=fair_slug, gallery_name_en=gallery_name).scope_key
+            if scope_key not in target_scope_keys:
+                continue
+
+            image_urls = row.get("works_image_urls") if isinstance(row.get("works_image_urls"), list) else []
+            local_paths = (
+                row.get("works_image_local_paths") if isinstance(row.get("works_image_local_paths"), list) else []
+            )
+            payload_hashes = (
+                row.get("works_image_payload_hashes") if isinstance(row.get("works_image_payload_hashes"), list) else []
+            )
+            r2_keys = row.get("works_image_r2_keys") if isinstance(row.get("works_image_r2_keys"), list) else []
+
+            for slot_index, (url_text, local_path_text, payload_hash, r2_key) in enumerate(
+                zip_longest(image_urls, local_paths, payload_hashes, r2_keys, fillvalue=""),
+                start=1,
+            ):
+                url_value = str(url_text or "").strip()
+                local_path_value = str(local_path_text or "").strip()
+                payload_value = str(payload_hash or "").strip()
+                r2_key_value = str(r2_key or "").strip()
+                if not url_value and not local_path_value and not payload_value and not r2_key_value:
+                    continue
+                local_path = Path(local_path_value) if local_path_value else None
+                local_exists = bool(local_path and local_path.exists())
+                out.append(
+                    {
+                        "scope_key": scope_key,
+                        "fair_slug": fair_slug,
+                        "gallery_name_en": gallery_name,
+                        "artist_name_en": artist_name,
+                        "slot_index": slot_index,
+                        "image_url": url_value,
+                        "payload_hash": payload_value,
+                        "r2_key": r2_key_value,
+                        "local_path": local_path.as_posix() if local_path else "",
+                        "local_exists": local_exists,
+                    }
+                )
+    return out
+
+
+def audit_artist_works_image_duplicate_gate(report: dict[str, Any]) -> dict[str, Any]:
+    records = _iter_target_artist_work_image_records(report)
+    gallery_records: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
+    missing_local_path_count = 0
+    for row in records:
+        gallery_records[(str(row["fair_slug"]), str(row["gallery_name_en"]))].append(row)
+        if not bool(row.get("local_exists")):
+            missing_local_path_count += 1
+
+    gallery_reports: list[dict[str, Any]] = []
+    duplicate_cluster_count = 0
+    duplicate_record_count = 0
+    scanned_with_local = 0
+
+    for (fair_slug, gallery_name), gallery_rows in sorted(gallery_records.items()):
+        enriched_rows: list[dict[str, Any]] = []
+        for row in gallery_rows:
+            local_exists = bool(row.get("local_exists"))
+            local_path = Path(str(row.get("local_path") or "")) if local_exists else None
+            visual_key = image_visual_dedupe_key(local_path) if local_path is not None else ""
+            signature = image_visual_signature(local_path) if local_path is not None else None
+            url_text = str(row.get("image_url") or "")
+            enriched_rows.append(
+                {
+                    **row,
+                    "visual_key": visual_key,
+                    "signature": signature,
+                    "url_base_identity": normalize_image_url_base_identity_for_dedupe(url_text) if url_text else "",
+                }
+            )
+            if local_exists:
+                scanned_with_local += 1
+
+        if len(enriched_rows) <= 1:
+            gallery_reports.append(
+                {
+                    "fair_slug": fair_slug,
+                    "gallery_name_en": gallery_name,
+                    "record_count": len(enriched_rows),
+                    "duplicate_cluster_count": 0,
+                    "duplicate_record_count": 0,
+                    "clusters": [],
+                }
+            )
+            continue
+
+        parent = list(range(len(enriched_rows)))
+
+        def find(idx: int) -> int:
+            while parent[idx] != idx:
+                parent[idx] = parent[parent[idx]]
+                idx = parent[idx]
+            return idx
+
+        def union(left: int, right: int) -> None:
+            left_root = find(left)
+            right_root = find(right)
+            if left_root != right_root:
+                parent[right_root] = left_root
+
+        payload_groups: dict[str, list[int]] = defaultdict(list)
+        visual_groups: dict[str, list[int]] = defaultdict(list)
+        for idx, row in enumerate(enriched_rows):
+            payload_hash = str(row.get("payload_hash") or "").strip()
+            visual_key = str(row.get("visual_key") or "").strip()
+            if payload_hash:
+                payload_groups[payload_hash].append(idx)
+            if visual_key:
+                visual_groups[visual_key].append(idx)
+
+        for groups in (payload_groups, visual_groups):
+            for members in groups.values():
+                if len(members) <= 1:
+                    continue
+                head = members[0]
+                for idx in members[1:]:
+                    union(head, idx)
+
+        for left in range(len(enriched_rows)):
+            left_sig = enriched_rows[left].get("signature")
+            if left_sig is None:
+                continue
+            for right in range(left + 1, len(enriched_rows)):
+                right_sig = enriched_rows[right].get("signature")
+                if right_sig is None:
+                    continue
+                if is_contextual_near_duplicate_visual_signature(
+                    left_sig,
+                    right_sig,
+                    candidate_url_text=str(enriched_rows[left].get("image_url") or ""),
+                    existing_url_text=str(enriched_rows[right].get("image_url") or ""),
+                    candidate_url_base_identity=str(enriched_rows[left].get("url_base_identity") or ""),
+                    existing_url_base_identity=str(enriched_rows[right].get("url_base_identity") or ""),
+                ):
+                    union(left, right)
+
+        clusters: dict[int, list[dict[str, Any]]] = defaultdict(list)
+        for idx, row in enumerate(enriched_rows):
+            clusters[find(idx)].append(row)
+
+        cluster_reports: list[dict[str, Any]] = []
+        for members in clusters.values():
+            if len(members) <= 1:
+                continue
+            reason_classes: list[str] = []
+            payloads = [str(item.get("payload_hash") or "").strip() for item in members if str(item.get("payload_hash") or "").strip()]
+            visuals = [str(item.get("visual_key") or "").strip() for item in members if str(item.get("visual_key") or "").strip()]
+            if len(payloads) != len(set(payloads)):
+                reason_classes.append("exact_payload_duplicate")
+            if len(visuals) != len(set(visuals)):
+                reason_classes.append("same_visual_signature_duplicate")
+            if not reason_classes:
+                reason_classes.append("contextual_near_duplicate")
+            cluster_reports.append(
+                {
+                    "cluster_size": len(members),
+                    "reason_classes": reason_classes,
+                    "artists": sorted({str(item.get("artist_name_en") or "").strip() for item in members if str(item.get("artist_name_en") or "").strip()}),
+                    "records": [
+                        {
+                            "artist_name_en": str(item.get("artist_name_en") or ""),
+                            "slot_index": int(item.get("slot_index") or 0),
+                            "file_basename": Path(str(item.get("local_path") or "")).name,
+                            "local_path": str(item.get("local_path") or ""),
+                            "r2_key": str(item.get("r2_key") or ""),
+                        }
+                        for item in sorted(
+                            members,
+                            key=lambda record: (
+                                str(record.get("artist_name_en") or ""),
+                                int(record.get("slot_index") or 0),
+                                str(record.get("local_path") or ""),
+                            ),
+                        )
+                    ],
+                }
+            )
+
+        gallery_reports.append(
+            {
+                "fair_slug": fair_slug,
+                "gallery_name_en": gallery_name,
+                "record_count": len(enriched_rows),
+                "duplicate_cluster_count": len(cluster_reports),
+                "duplicate_record_count": sum(int(item.get("cluster_size") or 0) for item in cluster_reports),
+                "clusters": cluster_reports,
+            }
+        )
+        duplicate_cluster_count += len(cluster_reports)
+        duplicate_record_count += sum(int(item.get("cluster_size") or 0) for item in cluster_reports)
+
+    status = "passed"
+    if duplicate_cluster_count > 0:
+        status = "blocked_duplicate_clusters_detected"
+
+    return {
+        "status": status,
+        "target_gallery_count": len(gallery_records),
+        "scanned_record_count": len(records),
+        "scanned_local_file_count": scanned_with_local,
+        "missing_local_path_count": missing_local_path_count,
+        "duplicate_cluster_count": duplicate_cluster_count,
+        "duplicate_record_count": duplicate_record_count,
+        "galleries_with_duplicates": [
+            {
+                "fair_slug": str(item.get("fair_slug") or ""),
+                "gallery_name_en": str(item.get("gallery_name_en") or ""),
+                "duplicate_cluster_count": int(item.get("duplicate_cluster_count") or 0),
+            }
+            for item in gallery_reports
+            if int(item.get("duplicate_cluster_count") or 0) > 0
+        ],
+        "gallery_reports": gallery_reports,
+    }
+
+
 def finalize_current_write_report(report: dict[str, Any], *, apply: bool) -> dict[str, Any]:
     out = dict(report)
     scope_counts = dict(out.get("scope_counts", {}))
     exhibition_status, exhibition_required = derive_exhibition_images_current_status(scope_counts)
+    duplicate_audit = audit_artist_works_image_duplicate_gate(out)
     blocking_errors = list(out.get("blocking_errors", []))
     if exhibition_status.startswith("blocked"):
         blocking_errors.append("blocked_exhibition_image_source_missing")
+    if int(duplicate_audit.get("duplicate_cluster_count") or 0) > 0:
+        blocking_errors.append(
+            f"blocked_artist_works_images_duplicate_clusters:{int(duplicate_audit.get('duplicate_cluster_count') or 0)}"
+        )
     out["blocking_errors"] = list(dict.fromkeys(str(item) for item in blocking_errors if str(item).strip()))
     out["exhibition_images_current_status"] = exhibition_status
     out["exhibition_images_required_for_block_completion"] = bool(exhibition_required)
+    out["artist_works_images_duplicate_audit"] = duplicate_audit
     if out["blocking_errors"]:
-        out["status"] = "blocked_missing_required_exhibition_image_source"
+        if exhibition_status.startswith("blocked"):
+            out["status"] = "blocked_missing_required_exhibition_image_source"
+        elif int(duplicate_audit.get("duplicate_cluster_count") or 0) > 0:
+            out["status"] = "blocked_artist_works_images_duplicate_clusters"
+        else:
+            out["status"] = "blocked_required_precloseout_gate"
         out["mutation_allowed"] = False
         return out
     out["status"] = "applied" if apply else "planned"
@@ -879,6 +1173,7 @@ def augment_block_closeout_report(
     r2_report = dict(report.get("r2_sync", {}))
     contract = dict(report.get("contract", {}))
     current_write_report = dict(report.get("current_write", {}))
+    duplicate_audit = dict(current_write_report.get("artist_works_images_duplicate_audit", {}))
     openclip_status = derive_openclip_current_status(bundle)
     exhibition_status = str(current_write_report.get("exhibition_images_current_status") or "").strip()
     if not exhibition_status:
@@ -892,6 +1187,11 @@ def augment_block_closeout_report(
     contract["artist_works_images_openclip_required"] = bool(
         current_write_report.get("artist_works_images_openclip_required", True)
     )
+    contract["artist_works_images_duplicate_audit_status"] = str(duplicate_audit.get("status") or "").strip() or "unknown"
+    contract["artist_works_images_duplicate_cluster_count"] = int(duplicate_audit.get("duplicate_cluster_count") or 0)
+    contract["formal_post_workbook_r2_scope"] = FORMAL_REQUIRED_R2_SCOPE_NAME
+    contract["formal_post_workbook_r2_sequence"] = list(FORMAL_REQUIRED_R2_SEQUENCE)
+    contract["formal_post_workbook_r2_success_criteria"] = list(FORMAL_REQUIRED_R2_SUCCESS_CRITERIA)
     contract["closeout_report_status"] = "generated"
     if contract.get("mode") == "dry_run":
         if (
@@ -899,10 +1199,10 @@ def augment_block_closeout_report(
             and exhibition_status in {"planned", "not_required"}
             and contract.get("xlsx_update_status") == "planned"
             and contract.get("skip_registry_gallery_list_cleanup_status") == "planned"
-            and contract.get("r2_sync_status") == "planned"
+            and contract.get("artist_works_images_duplicate_audit_status") == "passed"
             and openclip_status == "planned"
         ):
-            contract["block_completion_status"] = "planned"
+            contract["block_completion_status"] = "planned_pending_workbook_and_current_required_rag_full"
         else:
             contract["block_completion_status"] = "blocked"
     else:
@@ -911,10 +1211,10 @@ def augment_block_closeout_report(
             and exhibition_status in {"planned", "not_required"}
             and contract.get("xlsx_update_status") == "applied"
             and contract.get("skip_registry_gallery_list_cleanup_status") == "applied"
-            and contract.get("r2_sync_status") == "applied"
+            and contract.get("artist_works_images_duplicate_audit_status") == "passed"
             and openclip_status == "planned"
         ):
-            contract["block_completion_status"] = "completed"
+            contract["block_completion_status"] = "applied_pending_workbook_and_current_required_rag_full"
         else:
             contract["block_completion_status"] = "blocked_or_followup_required"
     report["contract"] = contract

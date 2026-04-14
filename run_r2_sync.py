@@ -38,6 +38,7 @@ COMMANDS = {"plan", "sync", *LEGACY_APPLY_COMMANDS}
 
 @dataclass(frozen=True)
 class ScopeTarget:
+    name: str
     local_root: Path
     r2_prefix: str
     include_globs: tuple[str, ...]
@@ -64,6 +65,7 @@ class ScopeConfig:
 
 @dataclass(frozen=True)
 class LocalObject:
+    target_name: str
     local_path: Path
     repo_rel_path: str
     rel_path: str
@@ -74,6 +76,7 @@ class LocalObject:
 
 @dataclass(frozen=True)
 class RemoteObject:
+    target_name: str
     key: str
     size_bytes: int
     etag: str
@@ -227,6 +230,7 @@ def load_scope_config(config_path: Path) -> tuple[dict[str, ScopeConfig], tuple[
         for row in targets_raw:
             if not isinstance(row, dict):
                 raise RuntimeError(f"scope target must be object: {scope_name}")
+            target_name = str(row.get("name", "")).strip() or f"{scope_name}::{len(targets) + 1}"
             local_root = Path(str(row.get("local_root", "")))
             r2_prefix = str(row.get("r2_prefix", "")).strip().strip("/")
             include_globs = tuple(str(x) for x in row.get("include_globs", ["**/*"]))
@@ -238,6 +242,7 @@ def load_scope_config(config_path: Path) -> tuple[dict[str, ScopeConfig], tuple[
                 raise RuntimeError(f"r2_prefix missing in scope={scope_name}")
             targets.append(
                 ScopeTarget(
+                    name=target_name,
                     local_root=local_root,
                     r2_prefix=r2_prefix,
                     include_globs=include_globs,
@@ -306,6 +311,7 @@ def collect_local_objects(
             stat = path.stat()
             objects.append(
                 LocalObject(
+                    target_name=target.name,
                     local_path=path,
                     repo_rel_path=repo_rel,
                     rel_path=rel,
@@ -356,6 +362,7 @@ def list_remote_objects(
                 ):
                     continue
                 remote[key] = RemoteObject(
+                    target_name=target.name,
                     key=key,
                     size_bytes=int(obj.get("Size", 0)),
                     etag=normalize_etag(str(obj.get("ETag", ""))),
@@ -380,6 +387,7 @@ def build_plan(
             would_upload.append(
                 {
                     "r2_key": key,
+                    "target_name": local_obj.target_name,
                     "reason": "REMOTE_MISSING",
                     "size_bytes": local_obj.size_bytes,
                     "local_path": local_obj.repo_rel_path,
@@ -390,6 +398,7 @@ def build_plan(
             would_upload.append(
                 {
                     "r2_key": key,
+                    "target_name": local_obj.target_name,
                     "reason": "SIZE_MISMATCH",
                     "size_bytes": local_obj.size_bytes,
                     "remote_size_bytes": remote_obj.size_bytes,
@@ -400,6 +409,7 @@ def build_plan(
         unchanged.append(
             {
                 "r2_key": key,
+                "target_name": local_obj.target_name,
                 "size_bytes": local_obj.size_bytes,
                 "local_path": local_obj.repo_rel_path,
             }
@@ -411,6 +421,7 @@ def build_plan(
         would_prune.append(
             {
                 "r2_key": key,
+                "target_name": remote_obj.target_name,
                 "reason": "REMOTE_ONLY_NOT_IN_LOCAL_SCOPE",
                 "size_bytes": remote_obj.size_bytes,
                 "etag": remote_obj.etag,
@@ -429,6 +440,7 @@ def fingerprint_scope(scope: ScopeConfig, global_excludes: tuple[str, ...]) -> s
         "deletes_enabled": scope.deletes_enabled,
         "targets": [
             {
+                "name": target.name,
                 "local_root": to_posix(target.local_root),
                 "r2_prefix": target.r2_prefix,
                 "include_globs": list(target.include_globs),
@@ -440,6 +452,62 @@ def fingerprint_scope(scope: ScopeConfig, global_excludes: tuple[str, ...]) -> s
         "global_excludes": list(global_excludes),
     }
     return hash_dict(payload)
+
+
+def build_target_inventory(
+    *,
+    scope: ScopeConfig,
+    local_objects: list[LocalObject],
+    remote_objects: dict[str, RemoteObject],
+    would_upload: list[dict[str, Any]],
+    would_prune: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    local_by_target: dict[str, list[LocalObject]] = {}
+    for row in local_objects:
+        local_by_target.setdefault(row.target_name, []).append(row)
+
+    remote_by_target: dict[str, list[RemoteObject]] = {}
+    for row in remote_objects.values():
+        remote_by_target.setdefault(row.target_name, []).append(row)
+
+    upload_by_target: dict[str, list[dict[str, Any]]] = {}
+    for row in would_upload:
+        upload_by_target.setdefault(str(row.get("target_name", "")), []).append(row)
+
+    prune_by_target: dict[str, list[dict[str, Any]]] = {}
+    for row in would_prune:
+        prune_by_target.setdefault(str(row.get("target_name", "")), []).append(row)
+
+    inventory: list[dict[str, Any]] = []
+    for target in scope.targets:
+        local_rows = local_by_target.get(target.name, [])
+        remote_rows = remote_by_target.get(target.name, [])
+        upload_rows = upload_by_target.get(target.name, [])
+        prune_rows = prune_by_target.get(target.name, [])
+        remote_missing_rows = [row for row in upload_rows if str(row.get("reason", "")) == "REMOTE_MISSING"]
+        size_mismatch_rows = [row for row in upload_rows if str(row.get("reason", "")) == "SIZE_MISMATCH"]
+        inventory.append(
+            {
+                "name": target.name,
+                "local_root": to_posix(target.local_root),
+                "r2_prefix": target.r2_prefix,
+                "include_globs": list(target.include_globs),
+                "exclude_globs": list(target.exclude_globs),
+                "ignore_global_excludes": target.ignore_global_excludes,
+                "local_count": len(local_rows),
+                "local_total_size_bytes": sum(int(row.size_bytes) for row in local_rows),
+                "remote_count": len(remote_rows),
+                "remote_total_size_bytes": sum(int(row.size_bytes) for row in remote_rows),
+                "local_only_count": len(remote_missing_rows),
+                "local_only_total_size_bytes": sum(int(row.get("size_bytes", 0)) for row in remote_missing_rows),
+                "size_mismatch_count": len(size_mismatch_rows),
+                "size_mismatch_local_total_size_bytes": sum(int(row.get("size_bytes", 0)) for row in size_mismatch_rows),
+                "size_mismatch_remote_total_size_bytes": sum(int(row.get("remote_size_bytes", 0)) for row in size_mismatch_rows),
+                "remote_only_count": len(prune_rows),
+                "remote_only_total_size_bytes": sum(int(row.get("size_bytes", 0)) for row in prune_rows),
+            }
+        )
+    return inventory
 
 
 def fingerprint_input(scope_name: str, local_objects: list[LocalObject]) -> str:
@@ -548,6 +616,13 @@ def run_plan(
     input_fingerprint = fingerprint_input(scope.name, local_objects)
     code_fingerprint = fingerprint_code(config_path)
     prune_candidates_fingerprint = fingerprint_prune_candidates(would_prune)
+    target_inventory = build_target_inventory(
+        scope=scope,
+        local_objects=local_objects,
+        remote_objects=remote_objects,
+        would_upload=would_upload,
+        would_prune=would_prune,
+    )
 
     payload = {
         "artifact_kind": "r2_sync_plan",
@@ -575,6 +650,7 @@ def run_plan(
         "prune_candidates_fingerprint": prune_candidates_fingerprint,
         "targets": [
             {
+                "name": target.name,
                 "local_root": to_posix(target.local_root),
                 "r2_prefix": target.r2_prefix,
                 "include_globs": list(target.include_globs),
@@ -583,6 +659,7 @@ def run_plan(
             }
             for target in scope.targets
         ],
+        "target_inventory": target_inventory,
         "would_upload": would_upload,
         "would_prune": would_prune,
     }

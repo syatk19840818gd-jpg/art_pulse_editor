@@ -7,7 +7,7 @@ import json
 import os
 import re
 from collections import Counter
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any
@@ -510,9 +510,21 @@ def append_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
             f.write(json.dumps(row, ensure_ascii=False) + "\n")
 
 
+def _json_default(value: Any) -> Any:
+    if isinstance(value, datetime):
+        return value.isoformat()
+    if isinstance(value, date):
+        return value.isoformat()
+    if isinstance(value, Path):
+        return str(value)
+    if isinstance(value, set):
+        return sorted(value)
+    return str(value)
+
+
 def write_json(path: Path, obj: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(obj, ensure_ascii=False, indent=2), encoding="utf-8")
+    path.write_text(json.dumps(obj, ensure_ascii=False, indent=2, default=_json_default), encoding="utf-8")
 
 
 def normalize_gallery_name_for_registry(name: str) -> str:
