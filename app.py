@@ -63,6 +63,7 @@ except Exception:
 
 APP_TITLE = "Art Pulse Editor"
 FAIR_OPTIONS = ["Frieze London", "Liste Art Fair Basel", "Frieze London + Liste Art Fair Basel"]
+SEARCH_RESULTS_PAGE_SIZE = 30
 MODE_HEADING_FONT_SIZE_PX = 30
 EXPLANATION_OF_MODES_FONT_SIZE_PX = 15
 IMAGE_MARKDOWN_RE = re.compile(r"!\[(?P<alt>[^\]]*)\]\((?P<url>[^)]+)\)")
@@ -522,6 +523,23 @@ def apply_global_font_styles() -> None:
           font-size: 0.88rem !important;
           line-height: 1.55 !important;
           letter-spacing: 0.01em !important;
+        }
+        .stApp .ap-black-caption {
+          color: var(--ap-text) !important;
+          font-size: 0.88rem !important;
+          line-height: 1.55 !important;
+          letter-spacing: 0.01em !important;
+          font-weight: 400 !important;
+          margin: 0 !important;
+        }
+        .stApp [data-testid="stRadio"] label p,
+        .stApp [data-testid="stRadio"] label span,
+        .stApp [data-baseweb="radio"] label p,
+        .stApp [data-baseweb="radio"] label span {
+          font-size: 0.88rem !important;
+          line-height: 1.55 !important;
+          font-weight: 400 !important;
+          color: var(--ap-text) !important;
         }
         .stApp [data-testid="stWidgetLabel"] p,
         .stApp [data-testid="stWidgetLabel"] span,
@@ -1276,6 +1294,15 @@ def _build_standard_search_caption(total_rows: int, hit_rows: int, fair_rows: di
     )
 
 
+def _render_black_caption(text: str, slot=None) -> None:
+    escaped_text = escape(str(text or "")).replace("\n", "<br>")
+    rendered = f'<div class="ap-black-caption">{escaped_text}</div>'
+    if slot is None:
+        st.markdown(rendered, unsafe_allow_html=True)
+        return
+    slot.markdown(rendered, unsafe_allow_html=True)
+
+
 def _build_art_pulse_local_image_lookup(overview: dict) -> dict[str, dict[str, dict[str, str]]]:
     by_source: dict[str, dict[str, str]] = {}
     by_image_url: dict[str, dict[str, str]] = {}
@@ -1510,18 +1537,18 @@ def _build_artist_card_html(row: dict, idx: int) -> str:
     )
 
 
-def _render_exhibition_result_cards(rows: list[dict]) -> None:
+def _render_exhibition_result_cards(rows: list[dict], start_index: int = 1) -> None:
     cards: list[str] = []
-    for idx, row in enumerate(rows, start=1):
+    for idx, row in enumerate(rows, start=start_index):
         cards.append(_build_exhibition_card_html(row, idx))
 
     if cards:
         st.markdown(f'<div class="exh-results-scroll">{"".join(cards)}</div>', unsafe_allow_html=True)
 
 
-def _render_artist_result_cards(rows: list[dict]) -> None:
+def _render_artist_result_cards(rows: list[dict], start_index: int = 1) -> None:
     cards: list[str] = []
-    for idx, row in enumerate(rows, start=1):
+    for idx, row in enumerate(rows, start=start_index):
         row_copy = dict(row)
         if not row_copy.get("summary_display_ja"):
             row_copy["summary_display_ja"] = build_artist_summary_ja(row, max_chars=ARTIST_SEARCH_SUMMARY_MAX_CHARS)
@@ -1529,6 +1556,31 @@ def _render_artist_result_cards(rows: list[dict]) -> None:
 
     if cards:
         st.markdown(f'<div class="artist-search-scroll">{"".join(cards)}</div>', unsafe_allow_html=True)
+
+
+def _slice_rows_by_page(rows: list[dict], page_state_key: str) -> tuple[list[dict], int, int]:
+    total_rows = len(rows)
+    total_pages = max(1, (total_rows + SEARCH_RESULTS_PAGE_SIZE - 1) // SEARCH_RESULTS_PAGE_SIZE)
+    try:
+        current_page = int(st.session_state.get(page_state_key, 1))
+    except Exception:
+        current_page = 1
+    current_page = min(max(current_page, 1), total_pages)
+    st.session_state[page_state_key] = current_page
+
+    start = (current_page - 1) * SEARCH_RESULTS_PAGE_SIZE
+    end = start + SEARCH_RESULTS_PAGE_SIZE
+    return rows[start:end], current_page, total_pages
+
+
+def _render_page_switcher(page_state_key: str, current_page: int, total_pages: int) -> None:
+    if total_pages <= 1:
+        return
+    options = list(range(1, total_pages + 1))
+    if st.session_state.get(page_state_key) not in options:
+        st.session_state[page_state_key] = current_page
+    st.markdown('<p class="ap-black-caption" style="margin:0 0 -0.45rem 0;">Page（30件づつ表示）</p>', unsafe_allow_html=True)
+    st.radio("", options=options, horizontal=True, key=page_state_key, label_visibility="collapsed")
 
 
 @st.cache_data(show_spinner=False)
@@ -1926,6 +1978,7 @@ def render_exhibition_search() -> None:
     results_key = "exh_search_results"
     query_key = "exh_search_query"
     keyword_key = "exh_keyword"
+    page_key = "exh_search_page"
     search_reset_requested_key = "exh_search_reset_requested"
     spinner_complete = None
 
@@ -1933,6 +1986,7 @@ def render_exhibition_search() -> None:
         st.session_state[keyword_key] = ""
         st.session_state.pop(results_key, None)
         st.session_state.pop(query_key, None)
+        st.session_state.pop(page_key, None)
 
     col1, col2 = st.columns([1, 1])
     fair_mode = col1.selectbox(
@@ -1947,7 +2001,7 @@ def render_exhibition_search() -> None:
         placeholder="例 : テーマ / ジャンル / アーティスト名 など",
         key=keyword_key,
     )
-    st.caption("キーワード入力 ＋ Search で「展示情報」を表示します。")
+    _render_black_caption("キーワード入力 ＋ Search で「展示情報」を表示します。")
     search_clicked = st.button("Search", key="exh_search_button")
     if st.button("リセット", key="exh_search_reset_button"):
         st.session_state[search_reset_requested_key] = True
@@ -1969,6 +2023,7 @@ def render_exhibition_search() -> None:
                 progress_line=status_slot,
             )
             st.session_state[results_key] = result_rows
+            st.session_state[page_key] = 1
         except Exception as exc:
             st.error(f"Exhibition 検索エラー: {type(exc).__name__}: {exc}")
             return
@@ -2003,10 +2058,16 @@ def render_exhibition_search() -> None:
         )
         display_rows.append(row_copy)
 
-    _render_exhibition_result_cards(display_rows)
+    page_rows, current_page, total_pages = _slice_rows_by_page(display_rows, page_key)
+    page_start_index = (current_page - 1) * SEARCH_RESULTS_PAGE_SIZE + 1
+    _render_exhibition_result_cards(page_rows, start_index=page_start_index)
+    _render_page_switcher(page_key, current_page, total_pages)
     if spinner_complete:
         spinner_complete()
-    status_slot.caption(_build_standard_search_caption(data.total_rows, len(filtered), data.fair_rows, total_hits))
+    _render_black_caption(
+        _build_standard_search_caption(data.total_rows, len(filtered), data.fair_rows, total_hits),
+        slot=status_slot,
+    )
 
 
 def render_artist_search() -> None:
@@ -2022,6 +2083,7 @@ def render_artist_search() -> None:
     results_key = "artist_search_results"
     query_key = "artist_search_query"
     keyword_key = "artist_keyword"
+    page_key = "artist_search_page"
     search_reset_requested_key = "artist_search_reset_requested"
     spinner_complete = None
 
@@ -2029,6 +2091,7 @@ def render_artist_search() -> None:
         st.session_state[keyword_key] = ""
         st.session_state.pop(results_key, None)
         st.session_state.pop(query_key, None)
+        st.session_state.pop(page_key, None)
 
     col1, col2 = st.columns([1, 1])
     fair_mode = col1.selectbox(
@@ -2043,7 +2106,7 @@ def render_artist_search() -> None:
         placeholder="例 : ジャンル / テーマ / アーティスト名 など",
         key=keyword_key,
     )
-    st.caption("キーワード入力 ＋ Search で「作家情報」を表示します。")
+    _render_black_caption("キーワード入力 ＋ Search で「作家情報」を表示します。")
     search_clicked = st.button("Search", key="artist_search_button")
     if st.button("リセット", key="artist_search_reset_button"):
         st.session_state[search_reset_requested_key] = True
@@ -2065,6 +2128,7 @@ def render_artist_search() -> None:
                 progress_line=status_slot,
             )
             st.session_state[results_key] = result_rows
+            st.session_state[page_key] = 1
         except Exception as exc:
             st.error(f"Artist 検索エラー: {type(exc).__name__}: {exc}")
             return
@@ -2098,10 +2162,16 @@ def render_artist_search() -> None:
         )
         display_rows.append(row_copy)
 
-    _render_artist_result_cards(display_rows)
+    page_rows, current_page, total_pages = _slice_rows_by_page(display_rows, page_key)
+    page_start_index = (current_page - 1) * SEARCH_RESULTS_PAGE_SIZE + 1
+    _render_artist_result_cards(page_rows, start_index=page_start_index)
+    _render_page_switcher(page_key, current_page, total_pages)
     if spinner_complete:
         spinner_complete()
-    status_slot.caption(_build_standard_search_caption(data.total_rows, len(filtered), data.fair_rows, total_hits))
+    _render_black_caption(
+        _build_standard_search_caption(data.total_rows, len(filtered), data.fair_rows, total_hits),
+        slot=status_slot,
+    )
 
 
 def _build_artwork_result_artist_rows(rows: list[dict]) -> list[dict]:
