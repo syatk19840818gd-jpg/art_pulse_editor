@@ -16,18 +16,18 @@ from PIL import Image
 
 from phase2_art_pulse_config import (
     TARGET_YEAR,
-    normalize_image_local_path_text,
 )
 from phase2_common_readonly import (
     FAIR_LABEL_TO_SLUG,
     FAIR_SLUG_TO_LABEL,
     hydrate_path_from_r2,
+    resolve_current_artist_works_local_path,
     resolve_current_artist_works_artifact_paths,
     resolve_current_artist_works_image_meta_paths,
     safe_load_jsonl,
 )
 
-ARTWORK_SEARCH_TOP_K_DEFAULT = 12
+ARTWORK_SEARCH_TOP_K_DEFAULT = 100
 ARTWORK_SEARCH_OPENCLIP_MODEL = os.getenv("ARTWORK_SEARCH_OPENCLIP_MODEL", "ViT-B-32").strip() or "ViT-B-32"
 ARTWORK_SEARCH_OPENCLIP_PRETRAINED = (
     os.getenv("ARTWORK_SEARCH_OPENCLIP_PRETRAINED", "laion2b_s34b_b79k").strip() or "laion2b_s34b_b79k"
@@ -96,6 +96,20 @@ def _normalize_year(value: object) -> str:
     return text
 
 
+def _stabilize_artwork_image_record(record: dict) -> dict | None:
+    row = dict(record)
+    fair_slug = str(row.get("fair_slug") or "").strip()
+    row["local_path"] = resolve_current_artist_works_local_path(
+        row.get("local_path"),
+        fair_slug=fair_slug,
+    )
+    row["r2_key"] = str(row.get("r2_key") or "").strip()
+    row["image_url"] = str(row.get("image_url") or "").strip()
+    if row["r2_key"] or row["image_url"] or row["local_path"]:
+        return row
+    return None
+
+
 def _pick_list_value(values: object, idx: int) -> str:
     if not isinstance(values, list) or idx >= len(values):
         return ""
@@ -132,10 +146,8 @@ def _load_corpus_records_current_first() -> tuple[List[dict], List[str], dict]:
             years = row.get("works_image_years")
 
             for slot_index, local_path_raw in enumerate(local_paths):
-                local_path = normalize_image_local_path_text(local_path_raw or "")
+                local_path = resolve_current_artist_works_local_path(local_path_raw, fair_slug=fair_slug)
                 local_file = Path(local_path) if local_path else None
-                if local_file is not None and not local_file.exists():
-                    hydrate_path_from_r2(local_file)
                 if local_file is None or not local_file.exists():
                     skipped_missing_local_path += 1
                     continue
@@ -162,6 +174,10 @@ def _load_corpus_records_current_first() -> tuple[List[dict], List[str], dict]:
                     "payload_hash": payload_hash,
                     "url_hash": url_hash,
                 }
+                record = _stabilize_artwork_image_record(record)
+                if record is None:
+                    skipped_missing_local_path += 1
+                    continue
                 previous = best_by_image_id.get(image_id)
                 if previous is None:
                     best_by_image_id[image_id] = record
@@ -412,6 +428,25 @@ def _load_existing_state(target_year: int = TARGET_YEAR) -> ArtworkSearchState |
         return None
     if embeddings.ndim != 2 or index_matrix.ndim != 2 or len(records) != embeddings.shape[0] or embeddings.shape != index_matrix.shape:
         return None
+    keep_positions: list[int] = []
+    stabilized_records: list[dict] = []
+    for idx, row in enumerate(records):
+        stabilized = _stabilize_artwork_image_record(row)
+        if stabilized is None:
+            continue
+        keep_positions.append(idx)
+        stabilized_records.append(stabilized)
+    if not stabilized_records:
+        return None
+    if len(stabilized_records) != len(records):
+        keep_index = np.asarray(keep_positions, dtype=np.int64)
+        embeddings = embeddings[keep_index]
+        index_matrix = index_matrix[keep_index]
+        warnings.append(
+            "artwork_search_filtered_undisplayable_rows:"
+            f" removed={len(records) - len(stabilized_records)}"
+        )
+    records = stabilized_records
     return ArtworkSearchState(
         records=records,
         embeddings=embeddings,
@@ -529,7 +564,12 @@ def search_artwork_images_by_text(
     query_vector = _encode_text_query(rewritten_query)
     return {
         "mode": "text",
-        "rows": _score_rows(state, [(query_vector, 1.0)], fair_filter, top_k),
+        "rows": _score_rows(
+            state,
+            [(query_vector, 1.0)],
+            fair_filter,
+            top_k,
+        ),
         "warnings": list(state.warnings) + query_warnings,
         "artifact_status": state.artifact_status,
         "corpus_stats": dict(state.corpus_stats),
@@ -549,7 +589,12 @@ def search_artwork_images_by_image(
     query_vector = _encode_image_query(image_bytes)
     return {
         "mode": "image",
-        "rows": _score_rows(state, [(query_vector, 1.0)], fair_filter, top_k),
+        "rows": _score_rows(
+            state,
+            [(query_vector, 1.0)],
+            fair_filter,
+            top_k,
+        ),
         "warnings": list(state.warnings),
         "artifact_status": state.artifact_status,
         "corpus_stats": dict(state.corpus_stats),

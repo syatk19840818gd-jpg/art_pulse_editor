@@ -16,7 +16,10 @@ except Exception:
 from phase2_art_pulse_config import PERSONAS
 from phase2_art_pulse_draft import generate_art_pulse_draft
 from phase2_art_pulse_readonly import build_art_pulse_overview
-from phase2_common_readonly import resolve_current_exhibitions_available_years
+from phase2_common_readonly import (
+    resolve_current_exhibitions_available_years,
+    resolve_current_artist_works_local_path,
+)
 from phase2_advisor_draft import (
     ADVISOR_TEXT_MAX_CHARS,
     _build_visual_observation_digest,
@@ -2214,7 +2217,10 @@ def _build_artwork_result_artist_rows(rows: list[dict]) -> list[dict]:
                 "artist_image_preview_candidates": [
                     {
                         "r2_key": str(row.get("r2_key") or "").strip(),
-                        "local_path": str(row.get("local_path") or "").strip(),
+                        "local_path": resolve_current_artist_works_local_path(
+                            row.get("local_path"),
+                            fair_slug=str(row.get("fair_slug") or "").strip(),
+                        ),
                         "image_url": str(row.get("image_url") or "").strip(),
                     }
                 ],
@@ -2222,6 +2228,15 @@ def _build_artwork_result_artist_rows(rows: list[dict]) -> list[dict]:
             }
         )
     return display_rows
+
+
+def _count_artwork_hits_by_fair(rows: list[dict]) -> dict[str, int]:
+    counts = {"frieze_london": 0, "liste": 0}
+    for row in rows:
+        fair_slug = str(row.get("fair_slug") or "").strip()
+        if fair_slug in counts:
+            counts[fair_slug] += 1
+    return counts
 
 
 def render_artwork_search() -> None:
@@ -2232,6 +2247,7 @@ def render_artwork_search() -> None:
     query_key = "artwork_search_query"
     text_query_key = "artwork_search_text_query"
     fair_filter_key = "artwork_search_fair_filter"
+    page_key = "artwork_search_page"
     reset_requested_key = "artwork_search_reset_requested"
     uploaded_image_nonce_key = "artwork_search_uploaded_image_nonce"
     spinner_complete = None
@@ -2241,6 +2257,7 @@ def render_artwork_search() -> None:
         st.session_state[text_query_key] = ""
         st.session_state.pop(results_key, None)
         st.session_state.pop(query_key, None)
+        st.session_state.pop(page_key, None)
         st.session_state.pop(f"artwork_search_uploaded_image_{current_nonce}", None)
         st.session_state[uploaded_image_nonce_key] = current_nonce + 1
 
@@ -2263,13 +2280,14 @@ def render_artwork_search() -> None:
         "画像添付で類似検索",
         type=["png", "jpg", "jpeg", "webp"],
         key=uploader_key,
+        label_visibility="collapsed",
     )
     uploaded_image_bytes = uploaded_image.getvalue() if uploaded_image is not None else b""
     if uploaded_image_bytes:
         st.caption("query image: session-only")
         _render_compact_generated_image(uploaded_image_bytes, caption="query image")
 
-    st.caption("キーワード or 画像で類似する「作品」を表示します。")
+    _render_black_caption("キーワード or 画像で類似する「作品」を表示します。")
     search_clicked = st.button("Search", key="artwork_search_button")
     if st.button("リセット", key="artwork_search_reset_button"):
         st.session_state[reset_requested_key] = True
@@ -2308,6 +2326,7 @@ def render_artwork_search() -> None:
                 )
             st.session_state[results_key] = result
             st.session_state[query_key] = current_query
+            st.session_state[page_key] = 1
         except Exception as exc:
             st.error(f"ArtWork Search エラー: {type(exc).__name__}: {exc}")
             return
@@ -2325,26 +2344,38 @@ def render_artwork_search() -> None:
                 st.write(f"- {warning}")
 
     rows = list(result.get("rows") or [])
+    corpus_stats = dict(result.get("corpus_stats") or {})
+    hit_fair_counts = _count_artwork_hits_by_fair(rows)
     if not rows:
         if spinner_complete:
             spinner_complete()
+        _render_black_caption(
+            _build_standard_search_caption(
+                int(corpus_stats.get("images_total", 0) or 0),
+                len(rows),
+                hit_fair_counts,
+                len(rows),
+            ),
+            slot=status_slot,
+        )
         st.warning("条件に一致する作品画像はありません。")
         return
 
     display_rows = _build_artwork_result_artist_rows(rows)
-    _render_artist_result_cards(display_rows)
+    page_rows, current_page, total_pages = _slice_rows_by_page(display_rows, page_key)
+    page_start_index = (current_page - 1) * SEARCH_RESULTS_PAGE_SIZE + 1
+    _render_artist_result_cards(page_rows, start_index=page_start_index)
+    _render_page_switcher(page_key, current_page, total_pages)
     if spinner_complete:
         spinner_complete()
-
-    corpus_stats = dict(result.get("corpus_stats") or {})
-    fair_counts = dict(corpus_stats.get("available_fair_counts") or {})
-    status_slot.caption(
+    _render_black_caption(
         _build_standard_search_caption(
             int(corpus_stats.get("images_total", 0) or 0),
             len(rows),
-            fair_counts,
+            hit_fair_counts,
             len(rows),
-        )
+        ),
+        slot=status_slot,
     )
 
 

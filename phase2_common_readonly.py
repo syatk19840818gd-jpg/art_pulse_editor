@@ -15,6 +15,7 @@ from phase2_art_pulse_config import (
     CURRENT_RAW_R2_PREFIX,
     CURRENT_VECTOR_DIR,
     TARGET_YEAR,
+    get_artist_image_cache_dir,
     get_current_artist_text_vector_artifact_paths as get_current_artist_text_vector_artifact_paths_config,
     get_current_artist_text_paths,
     get_enrichment_current_output_path,
@@ -24,6 +25,7 @@ from phase2_art_pulse_config import (
     get_current_raw_paths,
     get_image_cache_dir,
     get_image_r2_key,
+    normalize_image_local_path_text,
 )
 from phase1_artist_link_utils import (
     build_artist_name_en_from_source_url,
@@ -110,6 +112,53 @@ GALLERY_LIST_PATHS = {
 }
 
 IMAGE_CACHE_ROOT = REPO_ROOT / get_image_cache_dir()
+
+
+@lru_cache(maxsize=8192)
+def resolve_current_artist_works_local_path(
+    path_text: object,
+    *,
+    fair_slug: str = "",
+    target_year: int = TARGET_YEAR,
+) -> str:
+    normalized = normalize_image_local_path_text(path_text or "")
+    if not normalized:
+        return ""
+
+    original = Path(normalized)
+    basename = original.name.strip()
+    current_cache_root = REPO_ROOT / get_artist_image_cache_dir() / str(int(target_year or TARGET_YEAR))
+    candidate_paths: list[Path] = []
+    fair_dir = str(fair_slug or "").strip().replace("_", "-")
+
+    if basename:
+        if fair_dir:
+            candidate_paths.append(current_cache_root / fair_dir / basename)
+        else:
+            candidate_paths.extend(
+                (
+                    current_cache_root / "frieze-london" / basename,
+                    current_cache_root / "liste" / basename,
+                )
+            )
+
+    for candidate in candidate_paths:
+        try:
+            if candidate.exists() and candidate.is_file():
+                return str(candidate)
+            if hydrate_path_from_r2(candidate) and candidate.is_file():
+                return str(candidate)
+        except Exception:
+            continue
+
+    try:
+        if original.exists() and original.is_file():
+            return str(original)
+        if hydrate_path_from_r2(original) and original.is_file():
+            return str(original)
+    except Exception:
+        return ""
+    return ""
 
 
 def resolve_current_first_enrichment_output_path(
