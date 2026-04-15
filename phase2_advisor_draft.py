@@ -1,8 +1,10 @@
 ﻿from __future__ import annotations
 
 import ast
+import hashlib
 import json
 import os
+import random
 import re
 from base64 import b64encode
 from typing import Dict, List, Tuple
@@ -274,6 +276,30 @@ def _question_targets_uploaded_image(question_text: str, has_uploaded_image: boo
 
 
 def _build_evidence_digest(context: Dict[str, object], per_kind: int = 3) -> str:
+    selection = context.get("selection", {}) if isinstance(context, dict) else {}
+    question_focus = str(selection.get("intent_focus") or "").strip()
+    broad_reference_mode = bool(
+        selection.get("broad_query_mode")
+        or selection.get("ideation_query")
+        or question_focus in {"concept", "material", "color", "spatial"}
+    )
+    if broad_reference_mode:
+        lines: List[str] = []
+        for entity in _select_reference_entities_for_output(context, [])[: max(2, per_kind * 2)]:
+            fair = str(entity.get("fair_label") or "").strip() or "フェア不明"
+            gallery = str(entity.get("gallery") or "").strip() or "ギャラリー不明"
+            label = str(entity.get("display_label") or entity.get("label") or "").strip() or "名称不明"
+            note = _snippet(entity.get("summary_ja") or entity.get("headline_ja") or entity.get("text") or "", limit=58)
+            url = str(entity.get("source_url") or "").strip()
+            kind_label = "作家" if str(entity.get("kind") or "").strip() == "artist" else "展示"
+            body = f"[{kind_label}] [{fair}] {gallery} / {label}"
+            if note:
+                body += f" | 要点: {note}"
+            if url:
+                body += f" | URL: {url}"
+            lines.append(body)
+        return "\n".join(f"- {line}" for line in lines)
+
     lines: List[str] = []
     for row in list(context.get("exhibition_evidence", []))[:per_kind]:
         fair = str(row.get("fair_label") or "").strip() or "フェア不明"
@@ -968,31 +994,211 @@ def _select_reference_entities_for_output(
     selected_entities: List[dict],
 ) -> List[dict]:
     # 本文リンク(selected_entities)と分離し、参照例/参照画像は evidence 起点で組む。
-    candidates: List[dict] = list(selected_entities) + _build_selected_entity_candidates(context)
-    selected: List[dict] = []
-    seen = set()
-    for candidate in candidates:
-        kind = str(candidate.get("kind") or "").strip()
-        label = str(candidate.get("display_label") or candidate.get("label") or "").strip()
+    selection = context.get("selection", {}) if isinstance(context, dict) else {}
+    question_focus = str(selection.get("intent_focus") or "").strip()
+    broad_reference_mode = bool(
+        selection.get("broad_query_mode")
+        or selection.get("ideation_query")
+        or question_focus in {"concept", "material", "color", "spatial"}
+    )
+    cross_fair_mode, _ = _detect_cross_fair_mode(context)
+    candidate_pool: List[dict] = []
+    mention_order_map: Dict[tuple[str, str, str, str], int] = {}
+    for idx, candidate in enumerate(selected_entities, start=1):
+        dedup_key = (
+            str(candidate.get("kind") or "").strip(),
+            str(candidate.get("display_label") or candidate.get("label") or "").strip(),
+            str(candidate.get("link_url") or "").strip(),
+            str(candidate.get("source_url") or "").strip(),
+        )
+        current = mention_order_map.get(dedup_key)
+        if current is None or idx < current:
+            mention_order_map[dedup_key] = idx
+
+    for candidate in _build_selected_entity_candidates(context):
+        item = dict(candidate)
+        kind = str(item.get("kind") or "").strip()
+        label = str(item.get("display_label") or item.get("label") or "").strip()
         if kind == "artist" and is_invalid_artist_name(label):
             continue
-        link_url = str(candidate.get("link_url") or "").strip()
-        source_url = str(candidate.get("source_url") or "").strip()
-        local_path = str(candidate.get("local_path") or "").strip()
-        r2_key = str(candidate.get("r2_key") or "").strip()
-        image_url = str(candidate.get("image_url") or "").strip()
+        link_url = str(item.get("link_url") or "").strip()
+        source_url = str(item.get("source_url") or "").strip()
+        local_path = str(item.get("local_path") or "").strip()
+        r2_key = str(item.get("r2_key") or "").strip()
+        image_url = str(item.get("image_url") or "").strip()
         has_image = bool(local_path or r2_key or image_url)
         if not (kind and label and link_url and has_image):
             continue
         dedup_key = (kind, label, link_url, source_url)
+        if dedup_key in mention_order_map:
+            item["mention_order"] = mention_order_map[dedup_key]
+        item["display_label"] = label
+        item["_tiebreak_seed"] = int.from_bytes(
+            hashlib.blake2b(
+                "\n".join(
+                    [
+                        kind.lower(),
+                        str(item.get("fair_label") or "").strip().lower(),
+                        str(item.get("gallery") or "").strip().lower(),
+                        label.lower(),
+                        source_url.lower(),
+                    ]
+                ).encode("utf-8", "ignore"),
+                digest_size=8,
+            ).digest(),
+            "big",
+        )
+        candidate_pool.append(item)
+
+    remaining: List[dict] = []
+    seen = set()
+    for candidate in candidate_pool:
+        dedup_key = (
+            str(candidate.get("kind") or "").strip(),
+            str(candidate.get("display_label") or candidate.get("label") or "").strip(),
+            str(candidate.get("link_url") or "").strip(),
+            str(candidate.get("source_url") or "").strip(),
+        )
         if dedup_key in seen:
             continue
         seen.add(dedup_key)
-        item = dict(candidate)
-        item["display_label"] = label
-        selected.append(item)
-        if len(selected) >= ADVISOR_REF_IMAGE_TOTAL:
+        remaining.append(candidate)
+
+    selected: List[dict] = []
+    source_counts: Dict[str, int] = {}
+    gallery_counts: Dict[str, int] = {}
+    fair_counts: Dict[str, int] = {}
+    kind_counts: Dict[str, int] = {}
+    available_kinds = {
+        str(candidate.get("kind") or "").strip()
+        for candidate in remaining
+        if str(candidate.get("kind") or "").strip()
+    }
+
+    def _base_score(candidate: dict) -> int:
+        kind = str(candidate.get("kind") or "").strip()
+        label = str(candidate.get("display_label") or candidate.get("label") or "").strip()
+        mention_order = int(candidate.get("mention_order") or 0)
+        evidence_rank = max(1, int(candidate.get("evidence_rank") or 999))
+        gallery_cohort_index = int(candidate.get("gallery_cohort_index")) if candidate.get("gallery_cohort_index") is not None else -1
+        text_blob = " ".join(
+            [
+                label,
+                str(candidate.get("headline_ja") or "").strip(),
+                str(candidate.get("summary_ja") or "").strip(),
+                str(candidate.get("text") or "").strip()[:1200],
+            ]
+        ).lower()
+        focus_score = _focus_signal_score(text_blob, question_focus) if question_focus else 0
+        score = 0
+        if mention_order > 0:
+            if broad_reference_mode and question_focus in {"concept", "material", "color", "spatial"}:
+                score += max(18, 78 - ((mention_order - 1) * 12))
+            elif broad_reference_mode:
+                score += max(28, 108 - ((mention_order - 1) * 16))
+            else:
+                score += max(40, 180 - ((mention_order - 1) * 24))
+        score += max(0, 80 - (evidence_rank * 5))
+        score += focus_score * 24
+        if str(candidate.get("summary_ja") or "").strip():
+            score += 10
+        if str(candidate.get("headline_ja") or "").strip():
+            score += 6
+        if question_focus == "material" and broad_reference_mode:
+            if kind == "artist":
+                score += 8
+            elif kind == "exhibition":
+                score += 10
+        elif question_focus in {"artist", "material"} and kind == "artist":
+            score += 16
+        elif question_focus == "concept" and kind == "artist":
+            score += 10
+        elif question_focus in {"spatial", "color"} and kind == "exhibition":
+            score += 12
+        if broad_reference_mode and gallery_cohort_index >= 0:
+            if question_focus in {"concept", "material", "color", "spatial"}:
+                score -= max(0, 16 - (min(gallery_cohort_index, 8) * 2))
+            else:
+                score -= max(0, 8 - min(gallery_cohort_index, 8))
+        return score
+
+    while remaining and len(selected) < ADVISOR_REF_IMAGE_TOTAL:
+        scored_candidates: List[tuple[int, dict, int, tuple[int, ...]]] = []
+        for idx, candidate in enumerate(remaining):
+            kind = str(candidate.get("kind") or "").strip()
+            source_url = str(candidate.get("source_url") or "").strip()
+            gallery = str(candidate.get("gallery") or "").strip()
+            fair = str(candidate.get("fair_label") or "").strip()
+            score = _base_score(candidate)
+            if source_url:
+                score -= source_counts.get(source_url, 0) * 80
+            if gallery:
+                score -= gallery_counts.get(gallery, 0) * (55 if broad_reference_mode else 35)
+            if broad_reference_mode:
+                if len(available_kinds) >= 2:
+                    kind_penalty = 46 if question_focus in {"concept", "material", "color", "spatial"} else 28
+                    score -= kind_counts.get(kind, 0) * kind_penalty
+                if cross_fair_mode and fair:
+                    score -= fair_counts.get(fair, 0) * 18
+            if broad_reference_mode:
+                sort_key = (
+                    score,
+                    -(int(candidate.get("evidence_rank") or 999)),
+                    -(int(candidate.get("mention_order") or 999)),
+                    -(int(candidate.get("gallery_cohort_index")) if candidate.get("gallery_cohort_index") is not None else -1),
+                    -int(candidate.get("_tiebreak_seed") or 0),
+                )
+            else:
+                sort_key = (
+                    score,
+                    -(int(candidate.get("mention_order") or 999)),
+                    -(int(candidate.get("evidence_rank") or 999)),
+                    -int(candidate.get("_tiebreak_seed") or 0),
+                )
+            scored_candidates.append((idx, candidate, score, sort_key))
+        if not scored_candidates:
             break
+        scored_candidates.sort(key=lambda item: item[3], reverse=True)
+        best_index = scored_candidates[0][0]
+        if broad_reference_mode:
+            top_score = scored_candidates[0][2]
+            near_score_band = max(6, min(16, (max(top_score, 0) // 12) + 4))
+            weighted_band = [
+                item for item in scored_candidates if (top_score - item[2]) <= near_score_band
+            ]
+            band_size = min(len(scored_candidates), max(6, min(12, ADVISOR_REF_IMAGE_TOTAL * 2)))
+            if len(weighted_band) < band_size:
+                weighted_band = list(scored_candidates[:band_size])
+            if len(weighted_band) >= 2:
+                band_floor = min(item[2] for item in weighted_band)
+                total_weight = 0.0
+                weighted_rows: List[tuple[float, int]] = []
+                for idx, candidate, score, _sort_key in weighted_band:
+                    weight = float(max(1, (score - band_floor) + 1))
+                    total_weight += weight
+                    weighted_rows.append((total_weight, idx))
+                if total_weight > 0:
+                    draw = random.random() * total_weight
+                    for cumulative_weight, idx in weighted_rows:
+                        if draw <= cumulative_weight:
+                            best_index = idx
+                            break
+        if best_index < 0:
+            break
+        chosen = remaining.pop(best_index)
+        selected.append(chosen)
+        source_url = str(chosen.get("source_url") or "").strip()
+        gallery = str(chosen.get("gallery") or "").strip()
+        fair = str(chosen.get("fair_label") or "").strip()
+        kind = str(chosen.get("kind") or "").strip()
+        if source_url:
+            source_counts[source_url] = source_counts.get(source_url, 0) + 1
+        if gallery:
+            gallery_counts[gallery] = gallery_counts.get(gallery, 0) + 1
+        if fair:
+            fair_counts[fair] = fair_counts.get(fair, 0) + 1
+        if kind:
+            kind_counts[kind] = kind_counts.get(kind, 0) + 1
     return selected
 
 
@@ -1004,7 +1210,7 @@ def _build_selected_entity_candidates(context: Dict[str, object]) -> List[dict]:
     candidates: List[dict] = []
     known_artist_labels: set[str] = set()
 
-    for row in list(context.get("exhibition_evidence", [])):
+    for idx, row in enumerate(list(context.get("exhibition_evidence", [])), start=1):
         title = str(row.get("title") or "").strip()
         source_url = str(row.get("source_url") or "").strip()
         if not (title and source_url):
@@ -1019,13 +1225,18 @@ def _build_selected_entity_candidates(context: Dict[str, object]) -> List[dict]:
                 "source_url": source_url,
                 "fair_label": str(row.get("fair_label") or "").strip(),
                 "gallery": str(row.get("gallery") or "").strip(),
+                "headline_ja": str(row.get("headline_ja") or "").strip(),
+                "summary_ja": str(row.get("summary_ja") or "").strip(),
+                "text": str(row.get("text") or "").strip(),
+                "evidence_rank": idx,
+                "gallery_cohort_index": int(row.get("_gallery_cohort_index")) if row.get("_gallery_cohort_index") is not None else -1,
                 "local_path": str(image_item.get("local_path") or "").strip(),
                 "r2_key": str(image_item.get("r2_key") or "").strip(),
                 "image_url": str(image_item.get("image_url") or "").strip(),
             }
         )
 
-    for row in list(context.get("artist_evidence", [])):
+    for idx, row in enumerate(list(context.get("artist_evidence", [])), start=1):
         artist = str(row.get("artist_name") or "").strip()
         if not artist or is_invalid_artist_name(artist):
             continue
@@ -1044,6 +1255,11 @@ def _build_selected_entity_candidates(context: Dict[str, object]) -> List[dict]:
                 "artist_name_kana": str(row.get("artist_name_kana") or "").strip(),
                 "fair_label": str(row.get("fair_label") or "").strip(),
                 "gallery": str(row.get("gallery") or "").strip(),
+                "headline_ja": str(row.get("headline_ja") or "").strip(),
+                "summary_ja": str(row.get("summary_ja") or "").strip(),
+                "text": str(row.get("text") or "").strip(),
+                "evidence_rank": idx,
+                "gallery_cohort_index": int(row.get("_gallery_cohort_index")) if row.get("_gallery_cohort_index") is not None else -1,
                 "local_path": str(image_item.get("local_path") or "").strip(),
                 "r2_key": str(image_item.get("r2_key") or "").strip(),
                 "image_url": str(image_item.get("image_url") or "").strip(),
@@ -1063,6 +1279,11 @@ def _build_selected_entity_candidates(context: Dict[str, object]) -> List[dict]:
                 "artist_name_kana": "",
                 "fair_label": "",
                 "gallery": "",
+                "headline_ja": "",
+                "summary_ja": "",
+                "text": "",
+                "evidence_rank": 999,
+                "gallery_cohort_index": -1,
                 "local_path": "",
                 "r2_key": "",
                 "image_url": "",
@@ -2018,6 +2239,104 @@ def _salvage_openai_snippet_only_answer(
     return _ensure_natural_ending(merged)
 
 
+def _looks_like_broad_quality_failure(
+    answer: str,
+    question_text: str,
+    context: Dict[str, object],
+) -> bool:
+    question_focus = _detect_question_focus(question_text)
+    broad_query_mode = _is_broad_query_mode(context) or _is_broad_ideation_query(question_text, context, question_focus)
+    if not broad_query_mode:
+        return False
+    body = _plain_answer_text(answer)
+    if not body:
+        return True
+    if _looks_like_snippet_only_answer(body, question_text, context):
+        return True
+    compact_body = _compact_compare_text(body)
+    if re.search(r"(その要素|その例)\s*[-‐‑–—]+\s*(その要素|その例)", body):
+        return True
+    if "その要素その要素" in compact_body or "その例その例" in compact_body:
+        return True
+
+    sentences = [part.strip() for part in re.split(r"[。！？!?]\s*", body) if part.strip()]
+    if not sentences:
+        return True
+    connector_hits = sum(
+        body.count(token)
+        for token in [
+            "ので",
+            "から",
+            "ため",
+            "一方",
+            "ただ",
+            "なら",
+            "そこで",
+            "制作では",
+            "展示では",
+            "たとえば",
+        ]
+    )
+    reference_mentions = 0
+    seen_labels = set()
+    for row in list(context.get("artist_evidence", []))[:6] + list(context.get("exhibition_evidence", []))[:6]:
+        label = _plain_answer_text(str(row.get("artist_name") or row.get("title") or "").strip())
+        if not label or label in seen_labels:
+            continue
+        seen_labels.add(label)
+        if label in body:
+            reference_mentions += 1
+
+    if len(sentences) <= 2 and reference_mentions >= 3 and connector_hits <= 0:
+        return True
+    if _answer_leads_with_reference_entity(body, context) and len(sentences) <= 2 and connector_hits <= 0:
+        return True
+    if len(sentences) <= 2 and _visible_answer_chars(body) < 150:
+        if question_focus == "general" and reference_mentions >= 2:
+            return True
+        if question_focus != "general" and _focus_signal_score(body, question_focus) <= 0:
+            return True
+    return False
+
+
+def _retry_openai_broad_quality_answer(
+    client: object,
+    model: str,
+    answer: str,
+    question_text: str,
+    context: Dict[str, object],
+    fair_labels: List[str],
+) -> str:
+    if not _looks_like_broad_quality_failure(answer, question_text, context):
+        return _clean_answer_text_for_display(answer, question_text, context, fair_labels)
+    question_focus = _detect_question_focus(question_text)
+    focus_instruction = "Answer the question directly and keep the prose coherent."
+    if question_focus == "concept":
+        focus_instruction = "Answer with a coherent concept proposal or idea direction, not a list of names or fragments."
+    elif question_focus == "material":
+        focus_instruction = "Answer by explaining what kind of material direction fits and why, not by only naming examples."
+    elif question_focus == "color":
+        focus_instruction = "Answer by explaining a usable color direction and why it works, not by only naming references."
+    prompt = (
+        "Rewrite the draft so it becomes a natural Japanese answer to the user's question. "
+        + focus_instruction
+        + " "
+        "Keep the same grounded evidence and do not swap references. "
+        "Avoid broken fragments, repeated placeholders, and bare name-listing. "
+        "Do not use headings or bullet points. "
+        "Return JSON only as {\"answer\":\"...\"}.\n\n"
+        f"Question:\n{question_text}\n\n"
+        f"Current draft:\n{answer}\n\n"
+        f"Grounded evidence digest:\n{_build_evidence_digest(context, per_kind=3) or '- none'}"
+    )
+    response = client.responses.create(model=model, input=prompt)
+    body = _ensure_plain_answer_text(str(getattr(response, "output_text", "") or ""))
+    body = _clean_answer_text_for_display(body, question_text, context, fair_labels)
+    body = _expand_broad_answer_if_short(body, question_text, context)
+    body = _trim_trailing_fragment(body, question_focus)
+    return _ensure_natural_ending(body)
+
+
 def _salvage_openai_image_subject_answer(
     client: object,
     model: str,
@@ -2390,6 +2709,22 @@ def generate_advisor_grounded_draft(
             if fallback_candidate and not _looks_like_snippet_only_answer(fallback_candidate, question_text, context):
                 warnings.append("snippet_only_like_output_detected: fallback_used")
                 answer = fallback_candidate
+    if mode == "openai" and client is not None and _looks_like_broad_quality_failure(answer, question_text, context):
+        warnings.append("broad_quality_failure_detected")
+        try:
+            rescued_answer = _retry_openai_broad_quality_answer(
+                client=client,
+                model=model,
+                answer=answer,
+                question_text=question_text,
+                context=context,
+                fair_labels=fair_labels,
+            )
+            if rescued_answer and not _looks_like_broad_quality_failure(rescued_answer, question_text, context):
+                warnings.append("broad_quality_failure_detected: openai_retried")
+                answer = rescued_answer
+        except Exception as exc:
+            warnings.append(f"broad_quality_retry_failed:{type(exc).__name__}")
     answer = _trim_trailing_fragment(answer, _detect_question_focus(question_text))
     answer = _soft_limit_answer_text(answer, ADVISOR_TEXT_MAX_CHARS)
     answer = _ensure_natural_ending(answer)

@@ -2782,6 +2782,8 @@ def render_advisor() -> None:
         st.session_state.pop("advisor_fair_filter", None)
         st.session_state.pop("advisor_wants_image_generation", None)
         st.session_state.pop("advisor_question_text", None)
+        st.session_state.pop("advisor_broad_query_rotation", None)
+        st.session_state.pop("advisor_broad_query_history", None)
         st.session_state.pop(f"advisor_uploaded_image_{current_nonce}", None)
         st.session_state[uploaded_image_nonce_key] = current_nonce + 1
         st.session_state.pop("advisor_context", None)
@@ -2804,7 +2806,9 @@ def render_advisor() -> None:
         st.session_state.pop("advisor_followup_reference_examples", None)
         st.session_state.pop("advisor_followup_reference_images", None)
         st.session_state.pop("advisor_followup_input", None)
+        st.session_state.pop(question_clear_input_key, None)
         st.session_state.pop(followup_clear_input_key, None)
+        st.session_state.pop(uploaded_image_clear_key, None)
 
     col1, col2 = st.columns([3, 2])
     fair_mode = col1.selectbox(
@@ -2825,14 +2829,16 @@ def render_advisor() -> None:
         "相談内容",
         height=140,
         key="advisor_question_text",
-        placeholder="例 : 素材の選び方を教えて。",
+        placeholder="例 : 面白い作品コンセプトの作家をおしえて",
     )
     effective_fair = str(fair_mode or FAIR_OPTIONS[0])
     uploader_key = f"advisor_uploaded_image_{int(st.session_state.get(uploaded_image_nonce_key, 0) or 0)}"
+    st.markdown("**画像添付**（任意 / テキスト+画像添付で質問可）")
     uploaded_image = st.file_uploader(
         "画像添付（任意 / テキスト+画像添付で質問可）",
         type=["png", "jpg", "jpeg", "webp"],
         key=uploader_key,
+        label_visibility="collapsed",
     )
     upload_valid = False
     uploaded_image_payload = None
@@ -3051,7 +3057,7 @@ def render_advisor() -> None:
         "追加質問",
         key="advisor_followup_input",
         label_visibility="collapsed",
-        placeholder="例 : 他に素材の選び方はありますか？",
+        placeholder="例 : 他に面白い作品コンセプトの作家いますか？",
     )
     followup_run = st.button("質問する", key="advisor_followup_run")
     followup_status_slot = st.empty()

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import re
 from typing import Dict, List
 
@@ -10,266 +11,11 @@ from phase2_common_readonly import normalize_url, resolve_current_first_enrichme
 from phase2_exhibition_search_readonly import load_exhibition_records_readonly
 
 
-def _tokenize_query(query_text: str) -> List[str]:
-    tokens: List[str] = []
-    seen = set()
-
-    def _push(token: str) -> None:
-        low = str(token or "").strip().lower()
-        if len(low) < 2 or len(low) > 24 or low in seen:
-            return
-        seen.add(low)
-        tokens.append(low)
-
-    q = (query_text or "").strip()
-    for token in re.split(r"[\s,、。|;:()\[\]{}]+", q):
-        _push(token)
-    for token in re.findall(r"[一-龯]{2,4}|[ァ-ンー]{2,12}|[a-z]{3,12}", q.lower()):
-        _push(token)
-    return tokens[:20]
-
-
-def _is_broad_query(question_text: str, tokens: List[str]) -> bool:
-    q = (question_text or "").strip().lower()
-    if not q:
-        return False
-    starter_hints = ["どんな", "何を", "なにを", "どう", "どうやって"]
-    ideation_hints = [
-        "考え方",
-        "発想",
-        "問い",
-        "設計",
-        "立てる",
-        "見せたい",
-        "強くしたい",
-        "感じさせたい",
-        "意味を変えたい",
-        "したくない",
-    ]
-    if not any(hint in q for hint in starter_hints) and not any(hint in q for hint in ideation_hints):
-        return False
-    narrow_hints = [
-        "この作家",
-        "この展示",
-        "この作品",
-        "誰を見る",
-        "作家を教えて",
-        "artist to watch",
-        "which artist",
-    ]
-    if any(hint in q for hint in narrow_hints):
-        return False
-    return len(tokens) <= 18 and len(q) <= 90
-
-
 def _score_text(haystack: str, tokens: List[str]) -> int:
     if not tokens:
         return 0
     low = (haystack or "").lower()
     return sum(2 if len(t) >= 3 else 1 for t in tokens if t in low)
-
-
-def _is_ideation_query(question_text: str) -> bool:
-    q = (question_text or "").strip().lower()
-    if not q:
-        return False
-    hints = [
-        "考え方",
-        "発想",
-        "問い",
-        "設計",
-        "導線",
-        "動線",
-        "順番",
-        "距離",
-        "どうするといい",
-        "どう考える",
-        "どう発想",
-        "どう問い",
-        "見せたい",
-        "強くしたい",
-        "感じさせたい",
-        "意味を変えたい",
-    ]
-    return any(hint in q for hint in hints)
-
-
-def _page_description_score(text: str) -> int:
-    low = (text or "").lower()
-    if not low:
-        return 0
-    markers = [
-        "installation view",
-        "gallery view",
-        "view of the exhibition",
-        "会場の様子",
-        "展示風景",
-        "インスタレーションビュー",
-        "掲載され",
-        "掲載ページ",
-        "複数写真",
-        "ウェブページ",
-        "overview page",
-        "プレスリリース",
-        "press release",
-        "photo documentation",
-        "documentation",
-    ]
-    return sum(1 for marker in markers if marker in low)
-
-
-INTENT_FOCUS_ORDER = (
-    "video",
-    "sound",
-    "sculpture",
-    "photography",
-    "painting",
-    "spatial",
-    "performance",
-    "concept",
-    "material",
-    "color",
-    "artist",
-)
-
-INTENT_FOCUS_HINTS = {
-    "video": [
-        "映像",
-        "動画",
-        "ビデオ",
-        "video",
-        "film",
-        "projection",
-        "moving image",
-        "アニメーション",
-        "animation",
-        "screen",
-        "上映",
-        "映写",
-    ],
-    "sound": [
-        "音",
-        "sound",
-        "audio",
-        "acoustic",
-        "sonic",
-        "listening",
-        "noise",
-        "voice",
-        "vibration",
-        "録音",
-    ],
-    "sculpture": [
-        "彫刻",
-        "sculpture",
-        "立体",
-        "object",
-        "ceramic",
-        "ceramics",
-        "clay",
-        "陶",
-        "陶器",
-        "オブジェ",
-        "物体",
-    ],
-    "photography": [
-        "写真",
-        "photography",
-        "photo",
-        "photographic",
-        "staged",
-        "fiction",
-        "fictional",
-        "虚構",
-        "演出写真",
-        "イメージ",
-    ],
-    "painting": [
-        "絵画",
-        "painting",
-        "paint",
-        "canvas",
-        "油彩",
-        "油絵",
-        "acrylic",
-        "アクリル",
-        "絵具",
-    ],
-    "spatial": [
-        "インスタレーション",
-        "installation",
-        "展示空間",
-        "spatial",
-        "site-specific",
-        "site specific",
-        "導線",
-        "動線",
-        "歩かせ",
-        "歩く",
-        "空間",
-        "room",
-        "architecture",
-    ],
-    "performance": [
-        "パフォーマンス",
-        "performance",
-        "lecture-performance",
-        "lecture performance",
-        "身体",
-        "body",
-        "gesture",
-        "choreography",
-        "行為",
-        "朗読",
-    ],
-    "concept": [
-        "コンセプト",
-        "concept",
-        "テーマ",
-        "主題",
-        "着想",
-        "発想",
-        "思想",
-        "問い",
-        "問題意識",
-    ],
-    "material": [
-        "素材",
-        "マテリアル",
-        "material",
-        "質感",
-        "手触り",
-        "布",
-        "木",
-        "紙",
-        "金属",
-    ],
-    "color": [
-        "色",
-        "カラー",
-        "色彩",
-        "配色",
-        "トーン",
-        "彩度",
-        "明度",
-        "グレー",
-        "鮮やか",
-    ],
-    "artist": [
-        "artist",
-        "アーティスト",
-        "作家",
-        "誰",
-        "who",
-    ],
-}
-
-STRICT_INTENT_FOCI = {"video", "sound", "sculpture", "photography", "painting", "spatial", "performance"}
-
-
-def _intent_signal_score(text: str, focus: str) -> int:
-    low = (text or "").lower()
-    return sum(1 for hint in INTENT_FOCUS_HINTS.get(focus, []) if hint and hint in low)
 
 
 def _detect_intent_focus(question_text: str, tokens: List[str]) -> str:
@@ -287,111 +33,6 @@ def _detect_intent_focus(question_text: str, tokens: List[str]) -> str:
             best_focus = focus
             best_score = score
     return best_focus if best_score > 0 else ""
-
-
-def _trim_rows_by_intent(
-    rows: List[dict],
-    intent_focus: str,
-    limit: int,
-    warnings: List[str],
-    warning_tag: str,
-) -> tuple[List[dict], int]:
-    if intent_focus not in STRICT_INTENT_FOCI or not rows:
-        return rows, limit
-
-    ordered = sorted(
-        rows,
-        key=lambda r: (
-            -int(r.get("_intent_score", 0)),
-            -int(r.get("_score", 0)),
-            str(r.get("artist_name") or r.get("title") or ""),
-            str(r.get("source_url") or ""),
-        ),
-    )
-    strong = [row for row in ordered if int(row.get("_intent_score", 0)) >= 2]
-    weak = [row for row in ordered if int(row.get("_intent_score", 0)) == 1]
-    keep_cap = max(1, min(limit, 3))
-
-    if strong:
-        kept = strong[:keep_cap]
-        if len(kept) < keep_cap:
-            kept.extend(weak[: keep_cap - len(kept)])
-        return kept, max(1, min(limit, len(kept)))
-
-    if weak:
-        kept = weak[:keep_cap]
-        warnings.append(f"{warning_tag}_intent_medium_confidence: weak_{intent_focus}_signals_only")
-        return kept, max(1, min(limit, len(kept)))
-
-    warnings.append(f"{warning_tag}_intent_low_confidence: no_{intent_focus}_signal")
-    return ordered[:1], 1
-
-
-def _pick_top_by_score(
-    rows: List[dict],
-    limit: int,
-    prefer_cross_fair_diversity: bool = False,
-    per_fair_gallery_cap: int = 2,
-) -> List[dict]:
-    sorted_rows = sorted(
-        rows,
-        key=lambda r: (
-            -int(r.get("_rank_score", r.get("_score", 0))),
-            int(r.get("_reuse_penalty", 0)),
-            str(r.get("fair_label") or ""),
-            str(r.get("gallery") or ""),
-            str(r.get("source_url") or ""),
-        ),
-    )
-    if not prefer_cross_fair_diversity or limit <= 1:
-        return sorted_rows[:limit]
-
-    selected: List[dict] = []
-    selected_ids: set[int] = set()
-    fair_seen: set[str] = set()
-    gallery_counts: Dict[tuple[str, str], int] = {}
-
-    # Pass 1: ensure at least one evidence row per fair when available.
-    for idx, row in enumerate(sorted_rows):
-        fair_key = str(row.get("fair_slug") or row.get("fair_label") or "").strip()
-        gallery_key = str(row.get("gallery") or "").strip()
-        if not fair_key or fair_key in fair_seen:
-            continue
-        fair_gallery_key = (fair_key, gallery_key)
-        if gallery_key and gallery_counts.get(fair_gallery_key, 0) >= per_fair_gallery_cap:
-            continue
-        selected.append(row)
-        selected_ids.add(idx)
-        fair_seen.add(fair_key)
-        if gallery_key:
-            gallery_counts[fair_gallery_key] = gallery_counts.get(fair_gallery_key, 0) + 1
-        if len(selected) >= limit:
-            return selected
-
-    # Pass 2: fill by score while capping concentration by same fair+gallery.
-    for idx, row in enumerate(sorted_rows):
-        if idx in selected_ids:
-            continue
-        fair_key = str(row.get("fair_slug") or row.get("fair_label") or "").strip()
-        gallery_key = str(row.get("gallery") or "").strip()
-        fair_gallery_key = (fair_key, gallery_key)
-        if gallery_key and gallery_counts.get(fair_gallery_key, 0) >= per_fair_gallery_cap:
-            continue
-        selected.append(row)
-        selected_ids.add(idx)
-        if gallery_key:
-            gallery_counts[fair_gallery_key] = gallery_counts.get(fair_gallery_key, 0) + 1
-        if len(selected) >= limit:
-            return selected
-
-    # Pass 3: if cap filtered too much, backfill remaining by score.
-    for idx, row in enumerate(sorted_rows):
-        if idx in selected_ids:
-            continue
-        selected.append(row)
-        if len(selected) >= limit:
-            return selected
-    return selected
 
 
 def _dedup_urls(urls: List[str]) -> List[str]:
@@ -514,6 +155,47 @@ def _count_history_values(history: List[dict], key: str) -> Dict[str, int]:
     return counts
 
 
+def _resolve_gallery_cohort_index(
+    cohort_map: Dict[str, int],
+    fair_slug: str,
+    gallery: str,
+    source_url: str,
+) -> int:
+    fair_key = str(fair_slug or "").strip().lower()
+    gallery_key = str(gallery or "").strip().lower()
+    source_key = normalize_url(str(source_url or ""))
+    key = f"{fair_key}::{gallery_key}" if fair_key and gallery_key else source_key
+    if not key:
+        return -1
+    cohort_index = cohort_map.get(key)
+    if cohort_index is None:
+        cohort_index = len(cohort_map)
+        cohort_map[key] = cohort_index
+    return cohort_index
+
+
+def _cohort_penalty_value(cohort_index: int, intent_focus: str = "") -> int:
+    if cohort_index < 0:
+        return 0
+    if intent_focus in {"concept", "material", "color", "spatial"}:
+        return max(0, 18 - (min(cohort_index, 9) * 2))
+    return max(0, 10 - min(cohort_index, 9))
+
+
+def _apply_broad_cohort_penalty(rows: List[dict], intent_focus: str = "") -> List[dict]:
+    penalized: List[dict] = []
+    for row in rows:
+        penalty = _cohort_penalty_value(
+            int(row.get("_gallery_cohort_index")) if row.get("_gallery_cohort_index") is not None else -1,
+            intent_focus=intent_focus,
+        )
+        updated = dict(row)
+        updated["_reuse_penalty"] = int(updated.get("_reuse_penalty", 0) or 0) + penalty
+        updated["_rank_score"] = int(updated.get("_score", 0)) * 10 - int(updated.get("_reuse_penalty", 0) or 0)
+        penalized.append(updated)
+    return penalized
+
+
 def _apply_broad_history_penalty(
     rows: List[dict],
     history: List[dict],
@@ -548,8 +230,8 @@ def _apply_broad_history_penalty(
             penalty += selected_artist_counts.get(artist, 0) * (6 * focus_multiplier)
 
         updated = dict(row)
-        updated["_reuse_penalty"] = penalty
-        updated["_rank_score"] = int(updated.get("_score", 0)) * 10 - penalty
+        updated["_reuse_penalty"] = int(updated.get("_reuse_penalty", 0) or 0) + penalty
+        updated["_rank_score"] = int(updated.get("_score", 0)) * 10 - int(updated.get("_reuse_penalty", 0) or 0)
         penalized.append(updated)
     return penalized
 
@@ -576,6 +258,7 @@ def _select_evidence_with_rotation(
             per_fair_gallery_cap = 1
         if recent_broad_history:
             working_rows = _apply_broad_history_penalty(rows, recent_broad_history, kind=kind, intent_focus=intent_focus)
+        working_rows = _apply_broad_cohort_penalty(working_rows, intent_focus=intent_focus)
 
     selected = _pick_top_by_score(
         working_rows,
@@ -712,6 +395,380 @@ def _build_artist_image_hints(rows: List[dict], selected_urls: set[str], limit: 
     return hints[:limit]
 
 
+_QUERY_SPLIT_RE = re.compile(r"[\s,;:()\[\]{}\/\\|]+")
+_JA_PARTICLE_SPLIT_RE = re.compile(
+    r"(?:[\u3000\u3001\u3002\u30fb\u30fb\uff0c\uff0e\uff1f\uff01]|"
+    r"(?<=[\u3041-\u3096\u30a1-\u30ff\u4e00-\u9fff])(?:\u306e|\u3092|\u306b|\u3078|\u3068|\u3067|\u304c|\u306f|\u3082|\u3084|\u304b\u3089|\u307e\u3067|"
+    r"\u3068\u304b|\u306a\u3069|\u3088\u308a|\u307b\u304b))"
+)
+_ASCII_TOKEN_RE = re.compile(r"[a-z0-9][a-z0-9'._-]{1,23}")
+_JA_CORE_TOKEN_RE = re.compile(r"[\u4e00-\u9fff]{2,6}|[\u30a1-\u30ff\u30fc]{2,12}")
+_JA_SEGMENT_RE = re.compile(r"[\u3041-\u3096\u30a1-\u30ff\u30fc\u4e00-\u9fff]{2,24}")
+_QUERY_TOKEN_STOPWORDS = {
+    "\u3042\u308a",
+    "\u3044\u3044",
+    "\u3044\u3044\u304b",
+    "\u3044\u304f\u3064\u304b",
+    "\u304a\u3057\u3048\u3066",
+    "\u3053\u306e",
+    "\u3053\u3068",
+    "\u3057\u305f\u3044",
+    "\u3057\u3088\u3046",
+    "\u3059\u308b",
+    "\u305f\u3081",
+    "\u3069\u3046",
+    "\u3069\u3053",
+    "\u3069\u3093\u306a",
+    "\u306a\u308b",
+    "\u306b\u3064\u3044\u3066",
+    "\u307b\u3057\u3044",
+    "\u307e\u3059",
+    "\u3082\u306e",
+    "\u3088\u3046",
+    "\u308f\u304b\u308b",
+    "\u6559\u3048\u3066",
+    "\u77e5\u308a\u305f\u3044",
+}
+
+
+def _tokenize_query(query_text: str) -> List[str]:
+    q = str(query_text or "").strip()
+    if not q:
+        return []
+
+    tokens: List[str] = []
+    seen = set()
+
+    def _push(token: str) -> None:
+        low = str(token or "").strip().lower()
+        if not low or low in seen or low in _QUERY_TOKEN_STOPWORDS:
+            return
+        if len(low) > 24:
+            low = low[:24]
+        if len(low) < 2 and not re.fullmatch(r"[\u4e00-\u9fff]", low):
+            return
+        seen.add(low)
+        tokens.append(low)
+
+    for part in _QUERY_SPLIT_RE.split(q):
+        text = str(part or "").strip()
+        if not text:
+            continue
+        _push(text)
+        for segment in _JA_PARTICLE_SPLIT_RE.split(text):
+            chunk = str(segment or "").strip()
+            if not chunk:
+                continue
+            _push(chunk)
+            for token in _JA_CORE_TOKEN_RE.findall(chunk):
+                _push(token)
+        for token in _ASCII_TOKEN_RE.findall(text.lower()):
+            _push(token)
+
+    for segment in _JA_SEGMENT_RE.findall(q):
+        for chunk in _JA_PARTICLE_SPLIT_RE.split(segment):
+            text = str(chunk or "").strip()
+            if not text:
+                continue
+            _push(text)
+            for token in _JA_CORE_TOKEN_RE.findall(text):
+                _push(token)
+
+    return tokens[:20]
+
+
+def _is_broad_query(question_text: str, tokens: List[str]) -> bool:
+    q = (question_text or "").strip().lower()
+    if not q:
+        return False
+    starter_hints = [
+        "\u3069\u3093\u306a",
+        "\u3069\u3046",
+        "\u306a\u306b",
+        "\u4f55\u3092",
+        "\u4f55\u304c",
+        "\u6559\u3048\u3066",
+        "\u304a\u3057\u3048\u3066",
+        "\u77e5\u308a\u305f\u3044",
+        "what kind of",
+        "which direction",
+        "how should",
+    ]
+    ideation_hints = [
+        "\u8003\u3048\u65b9",
+        "\u767a\u60f3",
+        "\u554f\u3044",
+        "\u8a2d\u8a08",
+        "\u65b9\u5411",
+        "\u53c2\u8003",
+        "\u30b3\u30f3\u30bb\u30d7\u30c8",
+        "\u4f5c\u54c1\u30b3\u30f3\u30bb\u30d7\u30c8",
+        "\u7d20\u6750",
+        "\u9078\u3073\u65b9",
+        "\u6bd4\u8f03",
+        "\u8907\u6570",
+        "\u3044\u304f\u3064\u304b",
+        "\u9762\u767d\u3044",
+        "\u304a\u3082\u3057\u308d\u3044",
+        "\u898b\u305b\u305f\u3044",
+        "\u5f37\u304f\u3057\u305f\u3044",
+        "\u611f\u3058\u3055\u305b\u305f\u3044",
+        "idea",
+        "reference",
+        "compare",
+    ]
+    if not any(hint in q for hint in starter_hints) and not any(hint in q for hint in ideation_hints):
+        return False
+    narrow_hints = [
+        "\u3053\u306e\u4f5c\u5bb6",
+        "\u3053\u306e\u4f5c\u54c1",
+        "\u3053\u306e\u5c55\u793a",
+        "\u8ab0\u3092\u898b\u308b",
+        "artist to watch",
+        "which artist",
+        "who is",
+    ]
+    if any(hint in q for hint in narrow_hints):
+        return False
+    return len(tokens) <= 18 and len(q) <= 120
+
+
+def _is_ideation_query(question_text: str) -> bool:
+    q = (question_text or "").strip().lower()
+    if not q:
+        return False
+    hints = [
+        "\u8003\u3048\u65b9",
+        "\u767a\u60f3",
+        "\u554f\u3044",
+        "\u8a2d\u8a08",
+        "\u69cb\u6210",
+        "\u30b3\u30f3\u30bb\u30d7\u30c8",
+        "\u4f5c\u54c1\u30b3\u30f3\u30bb\u30d7\u30c8",
+        "\u7d20\u6750",
+        "\u9078\u3073\u65b9",
+        "\u65b9\u5411",
+        "\u898b\u305b\u305f\u3044",
+        "\u5f37\u304f\u3057\u305f\u3044",
+        "\u611f\u3058\u3055\u305b\u305f\u3044",
+        "\u610f\u5473\u3092\u5909\u3048\u305f\u3044",
+        "\u53c2\u8003",
+        "\u9762\u767d\u3044",
+        "\u304a\u3082\u3057\u308d\u3044",
+        "\u3069\u3046\u3059\u308b\u3068\u3044\u3044",
+        "\u3069\u3046\u8003\u3048\u308b",
+        "\u7a7a\u9593\u5168\u4f53",
+        "idea",
+        "concept",
+        "direction",
+        "reference",
+    ]
+    return any(hint in q for hint in hints)
+
+
+def _page_description_score(text: str) -> int:
+    low = (text or "").lower()
+    if not low:
+        return 0
+    markers = [
+        "installation view",
+        "gallery view",
+        "view of the exhibition",
+        "\u4f1a\u5834\u306e\u69d8\u5b50",
+        "\u5c55\u793a\u98a8\u666f",
+        "\u30a4\u30f3\u30b9\u30bf\u30ec\u30fc\u30b7\u30e7\u30f3\u30d3\u30e5\u30fc",
+        "\u63b2\u8f09\u30da\u30fc\u30b8",
+        "\u6982\u8981\u30da\u30fc\u30b8",
+        "overview page",
+        "\u30d7\u30ec\u30b9\u30ea\u30ea\u30fc\u30b9",
+        "press release",
+        "photo documentation",
+        "documentation",
+    ]
+    return sum(1 for marker in markers if marker in low)
+
+
+INTENT_FOCUS_ORDER = (
+    "video",
+    "sound",
+    "sculpture",
+    "photography",
+    "painting",
+    "spatial",
+    "performance",
+    "concept",
+    "material",
+    "color",
+    "artist",
+)
+
+INTENT_FOCUS_HINTS = {
+    "video": ["\u6620\u50cf", "\u52d5\u753b", "\u30d3\u30c7\u30aa", "video", "film", "projection", "moving image", "\u4e0a\u6620", "\u6620\u5199", "animation"],
+    "sound": ["\u97f3", "sound", "audio", "acoustic", "sonic", "listening", "noise", "voice", "vibration", "\u9332\u97f3"],
+    "sculpture": ["\u5f6b\u523b", "sculpture", "\u7acb\u4f53", "object", "ceramic", "ceramics", "clay", "\u9676", "\u9676\u5668", "\u30aa\u30d6\u30b8\u30a7", "\u7269\u4f53"],
+    "photography": ["\u5199\u771f", "photography", "photo", "photographic", "staged", "fiction", "fictional", "\u865a\u69cb", "\u6f14\u51fa\u5199\u771f", "\u30a4\u30e1\u30fc\u30b8"],
+    "painting": ["\u7d75\u753b", "painting", "paint", "canvas", "\u6cb9\u5f69", "\u6cb9\u7d75", "acrylic", "\u30a2\u30af\u30ea\u30eb", "\u7d75\u5177"],
+    "spatial": ["\u30a4\u30f3\u30b9\u30bf\u30ec\u30fc\u30b7\u30e7\u30f3", "installation", "\u5c55\u793a\u7a7a\u9593", "spatial", "site-specific", "site specific", "\u5c0e\u7dda", "\u52d5\u7dda", "\u6b69\u304b\u305b", "\u7a7a\u9593", "room", "architecture"],
+    "performance": ["\u30d1\u30d5\u30a9\u30fc\u30de\u30f3\u30b9", "performance", "lecture-performance", "lecture performance", "\u8eab\u4f53", "body", "gesture", "choreography", "\u884c\u70ba", "\u6717\u8aad"],
+    "concept": ["\u30b3\u30f3\u30bb\u30d7\u30c8", "concept", "\u30c6\u30fc\u30de", "\u4e3b\u984c", "\u7740\u60f3", "\u767a\u60f3", "\u601d\u60f3", "\u554f\u3044", "\u554f\u984c\u610f\u8b58", "\u8003\u3048\u65b9", "\u610f\u5473"],
+    "material": ["\u7d20\u6750", "\u6750", "\u30de\u30c6\u30ea\u30a2\u30eb", "material", "\u8cea\u611f", "\u624b\u89e6\u308a", "\u5e03", "\u7d19", "\u6728", "\u91d1\u5c5e", "\u6a39\u8102", "\u30d5\u30a3\u30eb\u30e0", "\u5c64"],
+    "color": ["\u8272", "\u30ab\u30e9\u30fc", "\u8272\u5f69", "\u914d\u8272", "\u8272\u8abf", "\u30c8\u30fc\u30f3", "\u660e\u5ea6", "\u5f69\u5ea6", "\u30b0\u30ec\u30fc", "\u9752", "\u8d64", "\u9ec4", "\u7dd1", "\u9ed2", "\u767d"],
+    "artist": ["artist", "\u30a2\u30fc\u30c6\u30a3\u30b9\u30c8", "\u4f5c\u5bb6", "\u8ab0", "who"],
+}
+
+STRICT_INTENT_FOCI = {"video", "sound", "sculpture", "photography", "painting", "spatial", "performance"}
+
+
+def _intent_signal_score(text: str, focus: str) -> int:
+    low = (text or "").lower()
+    return sum(1 for hint in INTENT_FOCUS_HINTS.get(focus, []) if hint and hint in low)
+
+
+def _normalize_broad_intent_score(intent_score: int, intent_focus: str, broad_query_mode: bool, ideation_query: bool) -> int:
+    if intent_score <= 0:
+        return 0
+    if broad_query_mode and (ideation_query or intent_focus in {"concept", "material", "color", "spatial"}):
+        return min(intent_score, 2)
+    return intent_score
+
+
+def _candidate_quality_score(row: dict) -> int:
+    score = 0
+    if str(row.get("summary_ja") or "").strip():
+        score += 3
+    if str(row.get("headline_ja") or "").strip():
+        score += 2
+    if str(row.get("text") or "").strip():
+        score += min(4, max(1, len(str(row.get("text") or "").strip()) // 280))
+    if str(row.get("kind") or "").strip() == "exhibition":
+        if str(row.get("image_preview") or "").strip() or str(row.get("image_preview_r2_key") or "").strip():
+            score += 1
+    elif list(row.get("artist_image_preview_candidates") or []):
+        score += 1
+    if int(row.get("_page_description_score", 0) or 0) <= 0:
+        score += 1
+    return score
+
+
+def _question_tiebreak_value(question_text: str, row: dict) -> int:
+    seed = "\n".join(
+        [
+            str(question_text or "").strip().lower(),
+            str(row.get("kind") or "").strip().lower(),
+            str(row.get("fair_slug") or row.get("fair_label") or "").strip().lower(),
+            str(row.get("gallery") or "").strip().lower(),
+            str(row.get("artist_name") or row.get("title") or "").strip().lower(),
+            normalize_url(str(row.get("source_url") or "")),
+        ]
+    )
+    digest = hashlib.blake2b(seed.encode("utf-8", "ignore"), digest_size=8).digest()
+    return int.from_bytes(digest, "big")
+
+
+def _trim_rows_by_intent(
+    rows: List[dict],
+    intent_focus: str,
+    limit: int,
+    warnings: List[str],
+    warning_tag: str,
+) -> tuple[List[dict], int]:
+    if intent_focus not in STRICT_INTENT_FOCI or not rows:
+        return rows, limit
+
+    ordered = sorted(
+        rows,
+        key=lambda r: (
+            -int(r.get("_intent_score", 0)),
+            -int(r.get("_score", 0)),
+            -int(r.get("_quality_score", 0)),
+            int(r.get("_query_tiebreak", 0)),
+            str(r.get("source_url") or ""),
+        ),
+    )
+    strong = [row for row in ordered if int(row.get("_intent_score", 0)) >= 2]
+    weak = [row for row in ordered if int(row.get("_intent_score", 0)) == 1]
+    keep_cap = max(1, min(limit, 3))
+
+    if strong:
+        kept = strong[:keep_cap]
+        if len(kept) < keep_cap:
+            kept.extend(weak[: keep_cap - len(kept)])
+        return kept, max(1, min(limit, len(kept)))
+
+    if weak:
+        kept = weak[:keep_cap]
+        warnings.append(f"{warning_tag}_intent_medium_confidence: weak_{intent_focus}_signals_only")
+        return kept, max(1, min(limit, len(kept)))
+
+    warnings.append(f"{warning_tag}_intent_low_confidence: no_{intent_focus}_signal")
+    return ordered[:1], 1
+
+
+def _pick_top_by_score(
+    rows: List[dict],
+    limit: int,
+    prefer_cross_fair_diversity: bool = False,
+    per_fair_gallery_cap: int = 2,
+) -> List[dict]:
+    sorted_rows = sorted(
+        rows,
+        key=lambda r: (
+            -int(r.get("_rank_score", r.get("_score", 0))),
+            int(r.get("_reuse_penalty", 0)),
+            -int(r.get("_quality_score", 0)),
+            -int(r.get("_gallery_cohort_index", -1)),
+            int(r.get("_query_tiebreak", 0)),
+            str(r.get("source_url") or ""),
+        ),
+    )
+    if not prefer_cross_fair_diversity or limit <= 1:
+        return sorted_rows[:limit]
+
+    selected: List[dict] = []
+    selected_ids: set[int] = set()
+    fair_seen: set[str] = set()
+    gallery_counts: Dict[tuple[str, str], int] = {}
+
+    for idx, row in enumerate(sorted_rows):
+        fair_key = str(row.get("fair_slug") or row.get("fair_label") or "").strip()
+        gallery_key = str(row.get("gallery") or "").strip()
+        if not fair_key or fair_key in fair_seen:
+            continue
+        fair_gallery_key = (fair_key, gallery_key)
+        if gallery_key and gallery_counts.get(fair_gallery_key, 0) >= per_fair_gallery_cap:
+            continue
+        selected.append(row)
+        selected_ids.add(idx)
+        fair_seen.add(fair_key)
+        if gallery_key:
+            gallery_counts[fair_gallery_key] = gallery_counts.get(fair_gallery_key, 0) + 1
+        if len(selected) >= limit:
+            return selected
+
+    for idx, row in enumerate(sorted_rows):
+        if idx in selected_ids:
+            continue
+        fair_key = str(row.get("fair_slug") or row.get("fair_label") or "").strip()
+        gallery_key = str(row.get("gallery") or "").strip()
+        fair_gallery_key = (fair_key, gallery_key)
+        if gallery_key and gallery_counts.get(fair_gallery_key, 0) >= per_fair_gallery_cap:
+            continue
+        selected.append(row)
+        selected_ids.add(idx)
+        if gallery_key:
+            gallery_counts[fair_gallery_key] = gallery_counts.get(fair_gallery_key, 0) + 1
+        if len(selected) >= limit:
+            return selected
+
+    for idx, row in enumerate(sorted_rows):
+        if idx in selected_ids:
+            continue
+        selected.append(row)
+        if len(selected) >= limit:
+            return selected
+    return selected
+
+
 def build_advisor_grounded_context(
     fair_label: str,
     question_text: str,
@@ -749,6 +806,7 @@ def build_advisor_grounded_context(
         reference_year_display = f"Exhibitions:{exhibitions_latest_year} / Artists:{artists_latest_year}"
 
     exhibition_rows: List[dict] = []
+    exhibition_gallery_cohorts: Dict[str, int] = {}
     for row in exhibitions:
         row_year = _coerce_year(row.get("year"))
         if row_year is None:
@@ -767,6 +825,12 @@ def build_advisor_grounded_context(
             "image_preview_r2_key": str(row.get("image_preview_r2_key") or "").strip(),
             "year": row_year,
         }
+        candidate["_gallery_cohort_index"] = _resolve_gallery_cohort_index(
+            exhibition_gallery_cohorts,
+            candidate["fair_slug"],
+            candidate["gallery"],
+            candidate["source_url"],
+        )
         hay = " ".join(
             [
                 candidate["gallery"],
@@ -777,13 +841,17 @@ def build_advisor_grounded_context(
             ]
         )
         intent_score = _intent_signal_score(hay, intent_focus) if intent_focus else 0
+        intent_score = _normalize_broad_intent_score(intent_score, intent_focus, broad_query_mode, ideation_query)
         page_score = _page_description_score(hay)
         candidate["_intent_score"] = intent_score
         candidate["_page_description_score"] = page_score
         candidate["_score"] = _score_text(hay, tokens) + (intent_score * 3) - (page_score * 2 if ideation_query else 0)
+        candidate["_quality_score"] = _candidate_quality_score(candidate)
+        candidate["_query_tiebreak"] = _question_tiebreak_value(question_text, candidate)
         exhibition_rows.append(candidate)
 
     artist_rows: List[dict] = []
+    artist_gallery_cohorts: Dict[str, int] = {}
     for row in artists:
         artist_name = str(row.get("artist_name") or "").strip()
         if is_invalid_artist_name(artist_name):
@@ -805,6 +873,12 @@ def build_advisor_grounded_context(
             "artist_image_preview_candidates": list(row.get("artist_image_preview_candidates") or []),
             "year": row_year,
         }
+        candidate["_gallery_cohort_index"] = _resolve_gallery_cohort_index(
+            artist_gallery_cohorts,
+            candidate["fair_slug"],
+            candidate["gallery"],
+            candidate["source_url"],
+        )
         hay = " ".join(
             [
                 candidate["gallery"],
@@ -816,10 +890,13 @@ def build_advisor_grounded_context(
             ]
         )
         intent_score = _intent_signal_score(hay, intent_focus) if intent_focus else 0
+        intent_score = _normalize_broad_intent_score(intent_score, intent_focus, broad_query_mode, ideation_query)
         page_score = _page_description_score(hay)
         candidate["_intent_score"] = intent_score
         candidate["_page_description_score"] = page_score
         candidate["_score"] = _score_text(hay, tokens) + (intent_score * 3) - (page_score * 2 if ideation_query else 0)
+        candidate["_quality_score"] = _candidate_quality_score(candidate)
+        candidate["_query_tiebreak"] = _question_tiebreak_value(question_text, candidate)
         artist_rows.append(candidate)
 
     matched_exhibition_count = len([r for r in exhibition_rows if int(r.get("_score", 0)) > 0])
@@ -1019,6 +1096,7 @@ def build_advisor_followup_reference_patch(
     reference_year = max(available_years) if available_years else 2025
 
     exhibition_rows: List[dict] = []
+    exhibition_gallery_cohorts: Dict[str, int] = {}
     for row in exhibitions:
         source_url = str(row.get("source_url") or "").strip()
         if existing_norm_urls and normalize_url(source_url) in existing_norm_urls:
@@ -1040,6 +1118,12 @@ def build_advisor_followup_reference_patch(
             "image_preview_r2_key": str(row.get("image_preview_r2_key") or "").strip(),
             "year": row_year,
         }
+        candidate["_gallery_cohort_index"] = _resolve_gallery_cohort_index(
+            exhibition_gallery_cohorts,
+            candidate["fair_slug"],
+            candidate["gallery"],
+            candidate["source_url"],
+        )
         hay = " ".join(
             [
                 candidate["gallery"],
@@ -1050,12 +1134,17 @@ def build_advisor_followup_reference_patch(
             ]
         )
         intent_score = _intent_signal_score(hay, intent_focus) if intent_focus else 0
+        intent_score = _normalize_broad_intent_score(intent_score, intent_focus, broad_query_mode, ideation_query)
         page_score = _page_description_score(hay)
         candidate["_intent_score"] = intent_score
+        candidate["_page_description_score"] = page_score
         candidate["_score"] = _score_text(hay, tokens) + (intent_score * 3) - (page_score * 2 if ideation_query else 0)
+        candidate["_quality_score"] = _candidate_quality_score(candidate)
+        candidate["_query_tiebreak"] = _question_tiebreak_value(question_text, candidate)
         exhibition_rows.append(candidate)
 
     artist_rows: List[dict] = []
+    artist_gallery_cohorts: Dict[str, int] = {}
     for row in artists:
         artist_name = str(row.get("artist_name") or "").strip()
         if is_invalid_artist_name(artist_name):
@@ -1080,6 +1169,12 @@ def build_advisor_followup_reference_patch(
             "artist_image_preview_candidates": list(row.get("artist_image_preview_candidates") or []),
             "year": row_year,
         }
+        candidate["_gallery_cohort_index"] = _resolve_gallery_cohort_index(
+            artist_gallery_cohorts,
+            candidate["fair_slug"],
+            candidate["gallery"],
+            candidate["source_url"],
+        )
         hay = " ".join(
             [
                 candidate["gallery"],
@@ -1091,9 +1186,13 @@ def build_advisor_followup_reference_patch(
             ]
         )
         intent_score = _intent_signal_score(hay, intent_focus) if intent_focus else 0
+        intent_score = _normalize_broad_intent_score(intent_score, intent_focus, broad_query_mode, ideation_query)
         page_score = _page_description_score(hay)
         candidate["_intent_score"] = intent_score
+        candidate["_page_description_score"] = page_score
         candidate["_score"] = _score_text(hay, tokens) + (intent_score * 3) - (page_score * 2 if ideation_query else 0)
+        candidate["_quality_score"] = _candidate_quality_score(candidate)
+        candidate["_query_tiebreak"] = _question_tiebreak_value(question_text, candidate)
         artist_rows.append(candidate)
 
     ex_scored = [r for r in exhibition_rows if int(r.get("_score", 0)) > 0] or exhibition_rows
