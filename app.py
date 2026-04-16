@@ -1850,7 +1850,7 @@ def _render_compact_generated_image(image_source, caption: str = "AI generated")
 
 def render_art_pulse() -> None:
     _render_mode_heading("Art Pulse")
-    _render_mode_explanation("8名の記者が「世界トップのアートフェア」を取材し、記事を執筆する")
+    _render_mode_explanation("8名の記者が「世界トップのアートフェア」を取材し、トレンド記事を執筆する")
 
     available_years = get_art_pulse_available_years()
     col1, col2 = st.columns([1, 1])
