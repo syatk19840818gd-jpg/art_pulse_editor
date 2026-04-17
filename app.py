@@ -1910,7 +1910,7 @@ def render_art_pulse() -> None:
             return
         progress_line = st.empty()
         waiting_line = st.empty()
-        waiting_line.caption("担当記者が執筆中...数分おまちください。")
+        waiting_line.caption("担当記者が執筆中...")
 
         def _render_progress_row(text: str, active: bool) -> None:
             if active:
@@ -1966,7 +1966,7 @@ def render_art_pulse() -> None:
     local_lookup = _build_art_pulse_local_image_lookup(overview if isinstance(overview, dict) else {})
     st.markdown(f"### {draft.get('title', 'Art Pulse')}")
     _render_markdown_with_galleries(draft.get("body", ""), local_lookup)
-    st.caption(f"本文文字数（Source行を除く）: {int(draft.get('body_chars', 0))} / 2000")
+    st.caption(f"本文文字数（Source行を除く）: {int(draft.get('body_chars', 0))} / 1000")
 
 
 def render_exhibition_search() -> None:
