@@ -40,20 +40,6 @@ KANA_WORD_MAP = {
     "LEO": "レオ",
     "REN": "レン",
     "NADIA": "ナディア",
-    "CONNY": "コニー",
-    "PURTILL": "パーティル",
-    "AGUS": "アグス",
-    "SUWAGE": "スワゲ",
-    "ANTONIA": "アントニア",
-    "KUO": "クオ",
-    "PETER": "ピーター",
-    "GALLO": "ガロ",
-    "JOAN": "ジョアン",
-    "NELSON": "ネルソン",
-    "JAY": "ジェイ",
-    "HEIKES": "ハイクス",
-    "MARINA": "マリナ",
-    "GRIZE": "グリゼ",
 }
 
 
