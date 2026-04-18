@@ -1897,7 +1897,7 @@ def render_art_pulse() -> None:
         st.warning("この記者に切り口が定義されていません。")
         angle_keys = []
 
-    st.caption("条件を選んで「Art Pulse」を押すと担当記者が記事を書きます。")
+    _render_black_caption("条件を選んで「Art Pulse」を押すと担当記者が記事を書きます。")
     run = st.button("Art Pulse", key="artpulse_generate")
     reset_article = st.button("リセット", key="artpulse_reset_result")
     if reset_article:
