@@ -1091,20 +1091,24 @@ def _render_mode_explanation(text: str) -> None:
     )
 
 
+def _render_progress_spinner(progress_line, text: str) -> None:
+    progress_line.markdown(
+        (
+            '<div class="ap-progress-row">'
+            '<span class="ap-progress-spinner"></span>'
+            f"<span>{escape(text)}</span>"
+            "</div>"
+        ),
+        unsafe_allow_html=True,
+    )
+
+
 def _run_search_with_spinner(search_fn, progress_line=None):
     if progress_line is None:
         progress_line = st.empty()
 
     def _render_searching() -> None:
-        progress_line.markdown(
-            (
-                '<div class="ap-progress-row">'
-                '<span class="ap-progress-spinner"></span>'
-                f"<span>{escape('探しています...')}</span>"
-                "</div>"
-            ),
-            unsafe_allow_html=True,
-        )
+        _render_progress_spinner(progress_line, "探しています...")
 
     def _complete() -> None:
         progress_line.empty()
@@ -3418,18 +3422,31 @@ def render_phase2_sections() -> None:
         ("About", "about", render_about),
     ]
     open_key = "top_level_open_section"
+    pending_open_spinner_key = "top_level_open_section_spinner_pending"
     current_open = str(st.session_state.get(open_key) or "")
 
     st.markdown('<div class="ap-top-nav-list-spacer"></div>', unsafe_allow_html=True)
 
     for label, slug, renderer in sections:
         if st.button(label, key=f"top_level_section_button_{slug}", use_container_width=True, type="tertiary"):
-            st.session_state[open_key] = "" if current_open == slug else slug
+            next_open = "" if current_open == slug else slug
+            st.session_state[open_key] = next_open
+            st.session_state[pending_open_spinner_key] = next_open
             st.rerun()
 
         if str(st.session_state.get(open_key) or "") == slug:
             with st.container(border=True):
-                renderer()
+                show_opening_spinner = str(st.session_state.get(pending_open_spinner_key) or "") == slug
+                opening_progress_line = st.empty() if show_opening_spinner else None
+                try:
+                    if opening_progress_line is not None:
+                        _render_progress_spinner(opening_progress_line, "少々お待ちください")
+                    renderer()
+                finally:
+                    if opening_progress_line is not None:
+                        opening_progress_line.empty()
+                    if show_opening_spinner and str(st.session_state.get(pending_open_spinner_key) or "") == slug:
+                        st.session_state[pending_open_spinner_key] = ""
             st.markdown('<div class="ap-top-nav-open-gap"></div>', unsafe_allow_html=True)
 
 
