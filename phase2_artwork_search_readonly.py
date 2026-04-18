@@ -96,13 +96,16 @@ def _normalize_year(value: object) -> str:
     return text
 
 
-def _stabilize_artwork_image_record(record: dict) -> dict | None:
+def _stabilize_artwork_image_record(record: dict, *, resolve_local_path: bool = True) -> dict | None:
     row = dict(record)
     fair_slug = str(row.get("fair_slug") or "").strip()
-    row["local_path"] = resolve_current_artist_works_local_path(
-        row.get("local_path"),
-        fair_slug=fair_slug,
-    )
+    if resolve_local_path:
+        row["local_path"] = resolve_current_artist_works_local_path(
+            row.get("local_path"),
+            fair_slug=fair_slug,
+        )
+    else:
+        row["local_path"] = str(row.get("local_path") or "").strip()
     row["r2_key"] = str(row.get("r2_key") or "").strip()
     row["image_url"] = str(row.get("image_url") or "").strip()
     if row["r2_key"] or row["image_url"] or row["local_path"]:
@@ -431,7 +434,7 @@ def _load_existing_state(target_year: int = TARGET_YEAR) -> ArtworkSearchState |
     keep_positions: list[int] = []
     stabilized_records: list[dict] = []
     for idx, row in enumerate(records):
-        stabilized = _stabilize_artwork_image_record(row)
+        stabilized = _stabilize_artwork_image_record(row, resolve_local_path=False)
         if stabilized is None:
             continue
         keep_positions.append(idx)
@@ -498,11 +501,16 @@ def _build_state_from_local_corpus(target_year: int = TARGET_YEAR) -> ArtworkSea
     )
 
 
-def load_or_build_artwork_search_state(target_year: int = TARGET_YEAR) -> ArtworkSearchState:
+@lru_cache(maxsize=4)
+def _load_or_build_artwork_search_state_cached(target_year: int) -> ArtworkSearchState:
     existing = _load_existing_state(target_year)
     if existing is not None:
         return existing
     return _build_state_from_local_corpus(target_year)
+
+
+def load_or_build_artwork_search_state(target_year: int = TARGET_YEAR) -> ArtworkSearchState:
+    return _load_or_build_artwork_search_state_cached(int(target_year or TARGET_YEAR))
 
 
 def _normalize_fair_filter(fair_filter: str) -> str:
