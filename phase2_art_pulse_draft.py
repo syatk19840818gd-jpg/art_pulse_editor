@@ -629,13 +629,101 @@ def _ensure_article_paragraph_breaks(body: str) -> str:
     return text
 
 
-def _replace_first_plain_occurrence(text: str, token: str, replacement: str) -> Tuple[str, bool]:
+def _build_entity_text_variants(token: str, include_last_ascii_word: bool = False) -> List[str]:
+    base = re.sub(r"\s+", " ", str(token or "").strip())
+    if not base:
+        return []
+
+    variants: List[str] = []
+    seen = set()
+
+    def _push(value: str, strict_len: bool = True) -> None:
+        cleaned = re.sub(r"\s+", " ", str(value or "").strip())
+        cleaned = cleaned.strip(" \t\r\n-‐‑‒–—―|@:：/\\")
+        if not cleaned:
+            return
+        key = cleaned.casefold()
+        if key in seen:
+            return
+        if strict_len:
+            normalized = _normalize_exact_match_text(cleaned)
+            if not normalized:
+                return
+            min_len = 2 if _contains_cjk(cleaned) else 6
+            if len(normalized) < min_len:
+                return
+        seen.add(key)
+        variants.append(cleaned)
+
+    _push(base, strict_len=False)
+
+    without_brackets = re.sub(r"\([^)]{1,80}\)|（[^）]{1,80}）|\[[^\]]{1,80}\]|［[^］]{1,80}］", " ", base)
+    without_brackets = re.sub(r"「[^」]{1,80}」|『[^』]{1,80}』", " ", without_brackets)
+    _push(without_brackets)
+
+    for sep in ("|", "@", ":", "：", "/", "／"):
+        if sep in base:
+            left = str(base.split(sep, 1)[0]).strip()
+            _push(left)
+
+    dash_split = re.split(r"\s[-–—]\s", base, maxsplit=1)
+    if len(dash_split) == 2:
+        _push(dash_split[0])
+
+    if include_last_ascii_word:
+        words = re.findall(r"[A-Za-z][A-Za-z'`.-]*", base)
+        if len(words) >= 2:
+            _push(words[-1])
+
+    return variants
+
+
+def _build_plain_token_pattern(token: str) -> re.Pattern[str]:
     target = str(token or "").strip()
-    if not text or not target or replacement in text:
-        return text, False
-    pattern = re.compile(rf"(?<!\[){re.escape(target)}(?!\]\()")
-    updated, count = pattern.subn(replacement, text, count=1)
-    return updated, count > 0
+    escaped = re.escape(target)
+    if re.search(r"[A-Za-z]", target) and not _contains_cjk(target):
+        return re.compile(rf"(?<![A-Za-z0-9]){escaped}(?![A-Za-z0-9])")
+    return re.compile(escaped)
+
+
+def _replace_plain_occurrences_outside_markdown_links(
+    text: str,
+    token: str,
+    replacement: str,
+    replace_all: bool = False,
+) -> Tuple[str, int]:
+    target = str(token or "").strip()
+    if not text or not target or not replacement:
+        return text, 0
+
+    pattern = _build_plain_token_pattern(target)
+    cursor = 0
+    chunks: List[str] = []
+    total = 0
+    limit = 0 if replace_all else 1
+
+    for match in MARKDOWN_LINK_PATTERN.finditer(text):
+        segment = text[cursor : match.start()]
+        if segment and (replace_all or total == 0):
+            segment, count = pattern.subn(replacement, segment, count=limit)
+            total += count
+        chunks.append(segment)
+        chunks.append(match.group(0))
+        cursor = match.end()
+
+    tail = text[cursor:]
+    if tail and (replace_all or total == 0):
+        tail, count = pattern.subn(replacement, tail, count=limit)
+        total += count
+    chunks.append(tail)
+    return "".join(chunks), total
+
+
+def _artist_last_ascii_word(name: str) -> str:
+    words = re.findall(r"[A-Za-z][A-Za-z'`.-]*", str(name or ""))
+    if len(words) < 2:
+        return ""
+    return words[-1]
 
 
 def _linkify_artist_label(row: Dict[str, object]) -> str:
@@ -675,21 +763,77 @@ def _linkify_article_body(
     exhibition_rows.sort(key=lambda row: len(str(row.get("title") or "")), reverse=True)
     artist_rows.sort(key=lambda row: len(str(row.get("artist_name_en") or row.get("artist") or "")), reverse=True)
 
+    artist_last_name_counts: Dict[str, int] = {}
+    for row in artist_rows:
+        artist_name = _clean_artist_name(str(row.get("artist_name_en") or row.get("artist") or ""))
+        last_word = _artist_last_ascii_word(artist_name)
+        if not last_word:
+            continue
+        key = last_word.casefold()
+        artist_last_name_counts[key] = int(artist_last_name_counts.get(key) or 0) + 1
+
     for row in exhibition_rows:
         title = str(row.get("title") or "").strip()
         source_url = str(row.get("source_url") or "").strip()
         if not title or not source_url:
             continue
-        text, _ = _replace_first_plain_occurrence(text, title, f"[{title}]({source_url})")
+        title_variants = _build_entity_text_variants(title)
+        if not title_variants:
+            continue
+        replaced_any = 0
+        text, replaced_any = _replace_plain_occurrences_outside_markdown_links(
+            text,
+            title_variants[0],
+            f"[{title_variants[0]}]({source_url})",
+            replace_all=True,
+        )
+        if replaced_any > 0:
+            continue
+        for variant in title_variants[1:]:
+            text, replaced_any = _replace_plain_occurrences_outside_markdown_links(
+                text,
+                variant,
+                f"[{variant}]({source_url})",
+                replace_all=True,
+            )
+            if replaced_any > 0:
+                break
 
     for row in artist_rows:
         artist_name = _clean_artist_name(str(row.get("artist_name_en") or row.get("artist") or ""))
         if not artist_name:
             continue
+        artist_url = _google_image_search_url(artist_name)
         label = _linkify_artist_label(row)
-        if not label:
+        if not label or not artist_url:
             continue
-        text, _ = _replace_first_plain_occurrence(text, artist_name, label)
+        last_word = _artist_last_ascii_word(artist_name)
+        include_last_ascii_word = bool(last_word and artist_last_name_counts.get(last_word.casefold(), 0) == 1)
+        artist_variants = _build_entity_text_variants(artist_name, include_last_ascii_word=include_last_ascii_word)
+        if not artist_variants:
+            continue
+        total_replaced = 0
+        text, replaced = _replace_plain_occurrences_outside_markdown_links(
+            text,
+            artist_variants[0],
+            label,
+            replace_all=True,
+        )
+        total_replaced += replaced
+        for variant in artist_variants[1:]:
+            if total_replaced <= 0:
+                replacement = f"[{variant}]({artist_url})"
+            elif not (include_last_ascii_word and variant.casefold() == last_word.casefold()):
+                continue
+            else:
+                replacement = f"[{variant}]({artist_url})"
+            text, replaced = _replace_plain_occurrences_outside_markdown_links(
+                text,
+                variant,
+                replacement,
+                replace_all=True,
+            )
+            total_replaced += replaced
 
     return text
 
@@ -698,21 +842,37 @@ def _select_used_evidence_urls(body: str, payload: Dict[str, object]) -> Tuple[L
     text = str(body or "")
     ex_urls: List[str] = []
     ar_urls: List[str] = []
+    artist_last_name_counts: Dict[str, int] = {}
+
+    for row in list(payload.get("artist_rows", []) or []):
+        artist_name = _clean_artist_name(str(row.get("artist_name_en") or row.get("artist") or ""))
+        last_word = _artist_last_ascii_word(artist_name)
+        if not last_word:
+            continue
+        key = last_word.casefold()
+        artist_last_name_counts[key] = int(artist_last_name_counts.get(key) or 0) + 1
 
     for row in list(payload.get("exhibition_rows", []) or []):
         source_url = str(row.get("source_url") or "").strip()
         title = str(row.get("title") or "").strip()
         if not source_url:
             continue
-        if source_url in text or _text_contains_exactish_token(text, title):
+        title_variants = _build_entity_text_variants(title)
+        if source_url in text or any(_text_contains_exactish_token(text, token) for token in title_variants):
             ex_urls.append(source_url)
 
     for row in list(payload.get("artist_rows", []) or []):
         source_url = str(row.get("source_url") or "").strip()
-        artist_name = str(row.get("artist_name_en") or row.get("artist") or "").strip()
+        artist_name = _clean_artist_name(str(row.get("artist_name_en") or row.get("artist") or ""))
         if not source_url:
             continue
-        if source_url in text or _text_contains_exactish_token(text, artist_name):
+        last_word = _artist_last_ascii_word(artist_name)
+        include_last_ascii_word = bool(last_word and artist_last_name_counts.get(last_word.casefold(), 0) == 1)
+        artist_variants = _build_entity_text_variants(
+            artist_name,
+            include_last_ascii_word=include_last_ascii_word,
+        )
+        if source_url in text or any(_text_contains_exactish_token(text, token) for token in artist_variants):
             ar_urls.append(source_url)
 
     if not ex_urls:
