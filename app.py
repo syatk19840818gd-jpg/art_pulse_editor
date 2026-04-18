@@ -1590,6 +1590,45 @@ def _render_page_switcher(page_state_key: str, current_page: int, total_pages: i
     st.radio("", options=options, horizontal=True, key=page_state_key, label_visibility="collapsed")
 
 
+def _consume_text_search_reset(reset_requested_key: str, keyword_key: str, results_key: str, page_key: str) -> None:
+    if st.session_state.pop(reset_requested_key, False):
+        st.session_state[keyword_key] = ""
+        st.session_state.pop(results_key, None)
+        st.session_state.pop(page_key, None)
+
+
+def _render_standard_text_search_controls(
+    *,
+    fair_filter_key: str,
+    keyword_key: str,
+    keyword_placeholder: str,
+    caption_text: str,
+    search_button_key: str,
+    reset_button_key: str,
+    reset_requested_key: str,
+) -> tuple[str, str, bool, object]:
+    col1, col2 = st.columns([1, 1])
+    fair_mode = col1.selectbox(
+        "対象範囲",
+        FAIR_OPTIONS,
+        index=2,
+        key=fair_filter_key,
+    )
+    keyword = col2.text_input(
+        "キーワード",
+        value="",
+        placeholder=keyword_placeholder,
+        key=keyword_key,
+    )
+    _render_black_caption(caption_text)
+    search_clicked = st.button("Search", key=search_button_key)
+    if st.button("リセット", key=reset_button_key):
+        st.session_state[reset_requested_key] = True
+        st.rerun()
+    status_slot = st.empty()
+    return fair_mode, (keyword or "").strip(), search_clicked, status_slot
+
+
 @st.cache_data(show_spinner=False)
 def get_exhibition_search_data():
     return load_exhibition_records_readonly()
@@ -1983,48 +2022,28 @@ def render_exhibition_search() -> None:
         return
 
     results_key = "exh_search_results"
-    query_key = "exh_search_query"
     keyword_key = "exh_keyword"
     page_key = "exh_search_page"
     search_reset_requested_key = "exh_search_reset_requested"
     spinner_complete = None
 
-    if st.session_state.pop(search_reset_requested_key, False):
-        st.session_state[keyword_key] = ""
-        st.session_state.pop(results_key, None)
-        st.session_state.pop(query_key, None)
-        st.session_state.pop(page_key, None)
-
-    col1, col2 = st.columns([1, 1])
-    fair_mode = col1.selectbox(
-        "対象範囲",
-        FAIR_OPTIONS,
-        index=2,
-        key="exh_fair_filter",
+    _consume_text_search_reset(search_reset_requested_key, keyword_key, results_key, page_key)
+    fair_mode, keyword, search_clicked, status_slot = _render_standard_text_search_controls(
+        fair_filter_key="exh_fair_filter",
+        keyword_key=keyword_key,
+        keyword_placeholder="例 : テーマ / ジャンル / アーティスト名 など",
+        caption_text="キーワード入力 ＋ Search で「展示情報」を表示します。",
+        search_button_key="exh_search_button",
+        reset_button_key="exh_search_reset_button",
+        reset_requested_key=search_reset_requested_key,
     )
-    keyword = col2.text_input(
-        "キーワード",
-        value="",
-        placeholder="例 : テーマ / ジャンル / アーティスト名 など",
-        key=keyword_key,
-    )
-    _render_black_caption("キーワード入力 ＋ Search で「展示情報」を表示します。")
-    search_clicked = st.button("Search", key="exh_search_button")
-    if st.button("リセット", key="exh_search_reset_button"):
-        st.session_state[search_reset_requested_key] = True
-        st.rerun()
-    status_slot = st.empty()
-    current_query = {
-        "fair": fair_mode,
-        "keyword": (keyword or "").strip(),
-    }
     if search_clicked:
         try:
             result_rows, spinner_complete = _run_search_with_spinner(
                 lambda: search_exhibitions(
                     data.records,
                     fair_mode,
-                    current_query["keyword"],
+                    keyword,
                     limit=max(1, len(data.records)),
                 ),
                 progress_line=status_slot,
@@ -2034,7 +2053,6 @@ def render_exhibition_search() -> None:
         except Exception as exc:
             st.error(f"Exhibition 検索エラー: {type(exc).__name__}: {exc}")
             return
-        st.session_state[query_key] = current_query
 
     filtered = st.session_state.get(results_key)
     if filtered is None:
@@ -2088,48 +2106,28 @@ def render_artist_search() -> None:
         return
 
     results_key = "artist_search_results"
-    query_key = "artist_search_query"
     keyword_key = "artist_keyword"
     page_key = "artist_search_page"
     search_reset_requested_key = "artist_search_reset_requested"
     spinner_complete = None
 
-    if st.session_state.pop(search_reset_requested_key, False):
-        st.session_state[keyword_key] = ""
-        st.session_state.pop(results_key, None)
-        st.session_state.pop(query_key, None)
-        st.session_state.pop(page_key, None)
-
-    col1, col2 = st.columns([1, 1])
-    fair_mode = col1.selectbox(
-        "対象範囲",
-        FAIR_OPTIONS,
-        index=2,
-        key="artist_fair_filter",
+    _consume_text_search_reset(search_reset_requested_key, keyword_key, results_key, page_key)
+    fair_mode, keyword, search_clicked, status_slot = _render_standard_text_search_controls(
+        fair_filter_key="artist_fair_filter",
+        keyword_key=keyword_key,
+        keyword_placeholder="例 : ジャンル / テーマ / アーティスト名 など",
+        caption_text="キーワード入力 ＋ Search で「作家情報」を表示します。",
+        search_button_key="artist_search_button",
+        reset_button_key="artist_search_reset_button",
+        reset_requested_key=search_reset_requested_key,
     )
-    keyword = col2.text_input(
-        "キーワード",
-        value="",
-        placeholder="例 : ジャンル / テーマ / アーティスト名 など",
-        key=keyword_key,
-    )
-    _render_black_caption("キーワード入力 ＋ Search で「作家情報」を表示します。")
-    search_clicked = st.button("Search", key="artist_search_button")
-    if st.button("リセット", key="artist_search_reset_button"):
-        st.session_state[search_reset_requested_key] = True
-        st.rerun()
-    status_slot = st.empty()
-    current_query = {
-        "fair": fair_mode,
-        "keyword": (keyword or "").strip(),
-    }
     if search_clicked:
         try:
             result_rows, spinner_complete = _run_search_with_spinner(
                 lambda: search_artists(
                     data.records,
                     fair_mode,
-                    current_query["keyword"],
+                    keyword,
                     limit=max(1, len(data.records)),
                 ),
                 progress_line=status_slot,
@@ -2139,7 +2137,6 @@ def render_artist_search() -> None:
         except Exception as exc:
             st.error(f"Artist 検索エラー: {type(exc).__name__}: {exc}")
             return
-        st.session_state[query_key] = current_query
 
     filtered = st.session_state.get(results_key)
     if filtered is None:
@@ -2248,7 +2245,6 @@ def render_artwork_search() -> None:
     _render_mode_explanation("全アーティストの「作品」検索")
 
     results_key = "artwork_search_results"
-    query_key = "artwork_search_query"
     text_query_key = "artwork_search_text_query"
     fair_filter_key = "artwork_search_fair_filter"
     page_key = "artwork_search_page"
@@ -2260,7 +2256,6 @@ def render_artwork_search() -> None:
         current_nonce = int(st.session_state.get(uploaded_image_nonce_key, 0) or 0)
         st.session_state[text_query_key] = ""
         st.session_state.pop(results_key, None)
-        st.session_state.pop(query_key, None)
         st.session_state.pop(page_key, None)
         st.session_state.pop(f"artwork_search_uploaded_image_{current_nonce}", None)
         st.session_state[uploaded_image_nonce_key] = current_nonce + 1
@@ -2298,15 +2293,10 @@ def render_artwork_search() -> None:
         st.rerun()
 
     status_slot = st.empty()
-    current_query = {
-        "mode": "image" if uploaded_image_bytes else "text",
-        "fair_filter": fair_filter,
-        "text_query": (text_query or "").strip(),
-        "has_uploaded_image": bool(uploaded_image_bytes),
-    }
+    text_query_value = (text_query or "").strip()
 
     if search_clicked:
-        if not uploaded_image_bytes and not current_query["text_query"]:
+        if not uploaded_image_bytes and not text_query_value:
             st.warning("text query または image query を入力してください。")
             return
         try:
@@ -2322,14 +2312,13 @@ def render_artwork_search() -> None:
             else:
                 result, spinner_complete = _run_search_with_spinner(
                     lambda: search_artwork_images_by_text(
-                        current_query["text_query"],
+                        text_query_value,
                         fair_filter=fair_filter,
                         top_k=ARTWORK_SEARCH_TOP_K_DEFAULT,
                     ),
                     progress_line=status_slot,
                 )
             st.session_state[results_key] = result
-            st.session_state[query_key] = current_query
             st.session_state[page_key] = 1
         except Exception as exc:
             st.error(f"ArtWork Search エラー: {type(exc).__name__}: {exc}")
