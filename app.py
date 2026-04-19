@@ -2358,12 +2358,6 @@ def render_artwork_search() -> None:
             spinner_complete()
         return
 
-    warnings = list(result.get("warnings") or [])
-    if warnings:
-        with st.expander("警告（ArtWork Search）", expanded=False):
-            for warning in warnings[:20]:
-                st.write(f"- {warning}")
-
     rows = list(result.get("rows") or [])
     corpus_stats = dict(result.get("corpus_stats") or {})
     hit_fair_counts = _count_artwork_hits_by_fair(rows)
