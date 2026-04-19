@@ -16,6 +16,7 @@ from PIL import Image
 
 from phase2_art_pulse_config import (
     TARGET_YEAR,
+    get_image_r2_key,
 )
 from phase2_common_readonly import (
     FAIR_LABEL_TO_SLUG,
@@ -225,6 +226,119 @@ def _load_id_map(path: Path) -> tuple[List[dict], List[str]]:
     return safe_load_jsonl(path)
 
 
+def _path_basename(path_text: object) -> str:
+    raw = str(path_text or "").strip()
+    if not raw:
+        return ""
+    try:
+        return Path(raw).name.lower()
+    except Exception:
+        return ""
+
+
+@lru_cache(maxsize=1)
+def _load_current_metadata_slots_by_payload_hash() -> tuple[dict[str, list[dict]], List[str]]:
+    lookup: dict[str, list[dict]] = {}
+    warnings: List[str] = []
+    for fair_slug, path in resolve_current_artist_works_image_meta_paths().items():
+        image_rows, image_warnings = safe_load_jsonl(path, hydrate_r2=False)
+        warnings.extend(image_warnings)
+        for row in image_rows:
+            local_paths = row.get("works_image_local_paths")
+            if not isinstance(local_paths, list) or not local_paths:
+                continue
+            payload_hashes = row.get("works_image_payload_hashes")
+            r2_keys = row.get("works_image_r2_keys")
+            image_urls = row.get("works_image_urls")
+            source_url = str(row.get("source_url") or "").strip()
+            for slot_index, local_path_raw in enumerate(local_paths):
+                payload_hash = _pick_list_value(payload_hashes, slot_index)
+                if not payload_hash:
+                    continue
+                lookup.setdefault(payload_hash, []).append(
+                    {
+                        "payload_hash": payload_hash,
+                        "fair_slug": fair_slug,
+                        "source_url": source_url,
+                        "local_path": str(local_path_raw or "").strip(),
+                        "r2_key": _pick_list_value(r2_keys, slot_index),
+                        "image_url": _pick_list_value(image_urls, slot_index),
+                        "slot_index": int(slot_index),
+                    }
+                )
+    return lookup, sorted(set(warnings))
+
+
+def _pick_best_metadata_slot_for_row(row: dict, slots: list[dict]) -> dict | None:
+    if not slots:
+        return None
+    fair_slug = str(row.get("fair_slug") or "").strip()
+    source_url = str(row.get("source_url") or "").strip()
+    local_basename = _path_basename(row.get("local_path"))
+    best_slot: dict | None = None
+    best_score = -1
+    for slot in slots:
+        score = 0
+        if fair_slug and str(slot.get("fair_slug") or "").strip() == fair_slug:
+            score += 4
+        if source_url and str(slot.get("source_url") or "").strip() == source_url:
+            score += 3
+        if local_basename and _path_basename(slot.get("local_path")) == local_basename:
+            score += 2
+        if str(slot.get("r2_key") or "").strip():
+            score += 1
+        if best_slot is None or score > best_score:
+            best_slot = slot
+            best_score = score
+    return best_slot
+
+
+def _repair_existing_record_with_payload_hash_join(
+    row: dict,
+    payload_lookup: dict[str, list[dict]],
+) -> tuple[dict, dict[str, bool]]:
+    repaired = dict(row)
+    payload_hash = str(repaired.get("payload_hash") or repaired.get("image_id") or "").strip()
+    slot = _pick_best_metadata_slot_for_row(repaired, payload_lookup.get(payload_hash) or [])
+    fair_slug = str(repaired.get("fair_slug") or "").strip()
+    if not fair_slug and slot is not None:
+        fair_slug = str(slot.get("fair_slug") or "").strip()
+        if fair_slug:
+            repaired["fair_slug"] = fair_slug
+
+    local_before = str(repaired.get("local_path") or "").strip()
+    local_candidates = [local_before]
+    if slot is not None:
+        local_candidates.append(str(slot.get("local_path") or "").strip())
+    resolved_local_path = ""
+    for candidate in local_candidates:
+        resolved_local_path = resolve_current_artist_works_local_path(candidate, fair_slug=fair_slug)
+        if resolved_local_path:
+            break
+    if resolved_local_path:
+        repaired["local_path"] = resolved_local_path
+    else:
+        repaired["local_path"] = local_before
+
+    r2_before = str(repaired.get("r2_key") or "").strip()
+    if not r2_before:
+        r2_candidate = str(slot.get("r2_key") or "").strip() if slot is not None else ""
+        if not r2_candidate and resolved_local_path:
+            r2_candidate = str(get_image_r2_key(resolved_local_path) or "").strip()
+        repaired["r2_key"] = r2_candidate
+    else:
+        repaired["r2_key"] = r2_before
+
+    # Keep direct URL exactly as existing id_map value in this load-time repair.
+    repaired["image_url"] = str(repaired.get("image_url") or "").strip()
+    return repaired, {
+        "has_payload": bool(payload_hash),
+        "payload_joined": slot is not None,
+        "local_relinked": bool(resolved_local_path and resolved_local_path != local_before),
+        "r2_relinked": bool((not r2_before) and str(repaired.get("r2_key") or "").strip()),
+    }
+
+
 def _normalize_matrix(vectors: np.ndarray) -> np.ndarray:
     if vectors.size == 0:
         return vectors.astype(np.float32)
@@ -431,16 +545,38 @@ def _load_existing_state(target_year: int = TARGET_YEAR) -> ArtworkSearchState |
         return None
     if embeddings.ndim != 2 or index_matrix.ndim != 2 or len(records) != embeddings.shape[0] or embeddings.shape != index_matrix.shape:
         return None
+    payload_lookup, metadata_warnings = _load_current_metadata_slots_by_payload_hash()
+    warnings.extend(metadata_warnings)
+    payload_rows = 0
+    payload_joined_rows = 0
+    local_relinked_rows = 0
+    r2_relinked_rows = 0
     keep_positions: list[int] = []
     stabilized_records: list[dict] = []
     for idx, row in enumerate(records):
-        stabilized = _stabilize_artwork_image_record(row, resolve_local_path=False)
+        repaired_row, repair_stats = _repair_existing_record_with_payload_hash_join(row, payload_lookup)
+        if repair_stats["has_payload"]:
+            payload_rows += 1
+        if repair_stats["payload_joined"]:
+            payload_joined_rows += 1
+        if repair_stats["local_relinked"]:
+            local_relinked_rows += 1
+        if repair_stats["r2_relinked"]:
+            r2_relinked_rows += 1
+        stabilized = _stabilize_artwork_image_record(repaired_row, resolve_local_path=False)
         if stabilized is None:
             continue
         keep_positions.append(idx)
         stabilized_records.append(stabilized)
     if not stabilized_records:
         return None
+    warnings.append(
+        "artwork_search_payload_join_repair:"
+        f" payload_rows={payload_rows}"
+        f" joined={payload_joined_rows}"
+        f" local_relinked={local_relinked_rows}"
+        f" r2_relinked={r2_relinked_rows}"
+    )
     if len(stabilized_records) != len(records):
         keep_index = np.asarray(keep_positions, dtype=np.int64)
         embeddings = embeddings[keep_index]
