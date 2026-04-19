@@ -6,7 +6,9 @@ import io
 import json
 import os
 import re
+import tempfile
 import unicodedata
+from datetime import datetime, timezone
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -48,6 +50,9 @@ SAFE_FULL_RELINK_ROWS_CSV_PATH = (
 )
 UNRESOLVED_PROMOTE_ROWS_CSV_PATH = (
     Path(__file__).resolve().parent / "_trial" / "artwork_unresolved150_promote_rows.csv"
+)
+LISTE_VECTORIZE_APPEND_ROWS_CSV_PATH = (
+    Path(__file__).resolve().parent / "_trial" / "artwork_liste40_vectorize_audit_rows_20260419T142502Z.csv"
 )
 
 
@@ -234,6 +239,270 @@ def _load_id_map(path: Path) -> tuple[List[dict], List[str]]:
 
 def _parse_csv_bool(value: object) -> bool:
     return str(value or "").strip().lower() in {"1", "true", "yes"}
+
+
+def _atomic_save_npy(path: Path, values: np.ndarray) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = Path()
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, dir=str(path.parent), suffix=".tmp.npy") as tmp:
+            tmp_path = Path(tmp.name)
+        np.save(tmp_path, values)
+        os.replace(tmp_path, path)
+    finally:
+        if tmp_path and tmp_path.exists():
+            try:
+                tmp_path.unlink()
+            except OSError:
+                pass
+
+
+def _atomic_save_id_map(path: Path, records: List[dict]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = Path()
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, dir=str(path.parent), suffix=".tmp.jsonl") as tmp:
+            tmp_path = Path(tmp.name)
+        _save_id_map(tmp_path, records)
+        os.replace(tmp_path, path)
+    finally:
+        if tmp_path and tmp_path.exists():
+            try:
+                tmp_path.unlink()
+            except OSError:
+                pass
+
+
+def _load_liste_vectorize_append_allowlist(
+    path: Path = LISTE_VECTORIZE_APPEND_ROWS_CSV_PATH,
+) -> tuple[List[dict], List[str]]:
+    warnings: List[str] = []
+    rows: List[dict] = []
+    if not path.exists():
+        warnings.append(f"artwork_search_liste40_allowlist_missing: {path}")
+        return rows, warnings
+    seen_payload_hashes: set[str] = set()
+    seen_image_ids: set[str] = set()
+    try:
+        with path.open("r", encoding="utf-8", newline="") as f:
+            reader = csv.DictReader(f)
+            for raw in reader:
+                if str(raw.get("fair_slug") or "").strip() != "liste":
+                    continue
+                if not _parse_csv_bool(raw.get("vectorizable_now")):
+                    continue
+                if not _parse_csv_bool(raw.get("safe_for_bounded_append")):
+                    continue
+                payload_hash = str(raw.get("payload_hash") or "").strip()
+                image_id = str(raw.get("image_id") or "").strip()
+                if not payload_hash or not image_id:
+                    continue
+                if payload_hash in seen_payload_hashes or image_id in seen_image_ids:
+                    warnings.append(f"artwork_search_liste40_allowlist_duplicate_skipped: {payload_hash}")
+                    continue
+                seen_payload_hashes.add(payload_hash)
+                seen_image_ids.add(image_id)
+                rows.append(
+                    {
+                        "payload_hash": payload_hash,
+                        "image_id": image_id,
+                        "fair_slug": "liste",
+                        "source_url": str(raw.get("source_url") or "").strip(),
+                        "current_local_path": str(raw.get("current_local_path") or "").strip(),
+                    }
+                )
+    except Exception as exc:
+        warnings.append(f"artwork_search_liste40_allowlist_read_failed: {type(exc).__name__}")
+        return [], warnings
+    return rows, warnings
+
+
+def bounded_vectorize_append_liste_gap_rows(
+    *,
+    target_year: int = TARGET_YEAR,
+    allowlist_csv_path: Path = LISTE_VECTORIZE_APPEND_ROWS_CSV_PATH,
+) -> dict:
+    started_at_utc = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    trial_dir = Path(__file__).resolve().parent / "_trial"
+    trial_dir.mkdir(parents=True, exist_ok=True)
+    manifest_path = trial_dir / (
+        f"artwork_liste40_bounded_append_result_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}.json"
+    )
+
+    paths = _artifact_paths(target_year)
+    missing_artifacts = [name for name, path in paths.items() if not hydrate_path_from_r2(path)]
+    result = {
+        "started_at_utc": started_at_utc,
+        "target_year": int(target_year or TARGET_YEAR),
+        "allowlist_csv_path": str(allowlist_csv_path),
+        "artifact_paths": {name: str(path) for name, path in paths.items()},
+        "missing_artifacts": missing_artifacts,
+        "status": "started",
+        "warnings": [],
+    }
+    if missing_artifacts:
+        result["status"] = "skipped_missing_artifacts"
+        result["completed_at_utc"] = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+        result["manifest_path"] = str(manifest_path)
+        with manifest_path.open("w", encoding="utf-8") as f:
+            json.dump(result, f, ensure_ascii=False, indent=2)
+        return result
+
+    existing_embeddings = np.load(paths["embeddings"]).astype(np.float32)
+    existing_index = np.load(paths["index"]).astype(np.float32)
+    existing_records, id_map_warnings = _load_id_map(paths["id_map"])
+    result["warnings"].extend(id_map_warnings)
+
+    if (
+        existing_embeddings.ndim != 2
+        or existing_index.ndim != 2
+        or existing_embeddings.shape != existing_index.shape
+        or len(existing_records) != existing_embeddings.shape[0]
+    ):
+        result["status"] = "failed_invalid_artifact_shape"
+        result["shape_before"] = {
+            "id_map_rows": len(existing_records),
+            "embeddings_shape": list(existing_embeddings.shape),
+            "index_shape": list(existing_index.shape),
+        }
+        result["completed_at_utc"] = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+        result["manifest_path"] = str(manifest_path)
+        with manifest_path.open("w", encoding="utf-8") as f:
+            json.dump(result, f, ensure_ascii=False, indent=2)
+        return result
+
+    allowlist_rows, allowlist_warnings = _load_liste_vectorize_append_allowlist(Path(allowlist_csv_path))
+    result["warnings"].extend(allowlist_warnings)
+    result["allowlist_rows"] = len(allowlist_rows)
+
+    corpus_records, corpus_warnings, _ = _load_corpus_records_current_first()
+    result["warnings"].extend(corpus_warnings)
+    corpus_by_payload: dict[str, dict] = {}
+    corpus_by_image_id: dict[str, dict] = {}
+    for record in corpus_records:
+        payload_hash = str(record.get("payload_hash") or "").strip()
+        image_id = str(record.get("image_id") or "").strip()
+        if payload_hash and payload_hash not in corpus_by_payload:
+            corpus_by_payload[payload_hash] = record
+        if image_id and image_id not in corpus_by_image_id:
+            corpus_by_image_id[image_id] = record
+
+    existing_payload_hashes = {
+        str(row.get("payload_hash") or "").strip() for row in existing_records if str(row.get("payload_hash") or "").strip()
+    }
+    existing_image_ids = {str(row.get("image_id") or "").strip() for row in existing_records if str(row.get("image_id") or "").strip()}
+
+    append_candidates: List[dict] = []
+    candidate_keys: List[str] = []
+    skipped: List[dict] = []
+    for raw in allowlist_rows:
+        payload_hash = str(raw.get("payload_hash") or "").strip()
+        image_id = str(raw.get("image_id") or "").strip()
+        source_url = str(raw.get("source_url") or "").strip()
+        if payload_hash in existing_payload_hashes or image_id in existing_image_ids:
+            skipped.append({"payload_hash": payload_hash, "image_id": image_id, "reason": "already_in_artifact"})
+            continue
+        source_record = corpus_by_payload.get(payload_hash) or corpus_by_image_id.get(image_id)
+        if source_record is None:
+            skipped.append({"payload_hash": payload_hash, "image_id": image_id, "reason": "missing_in_current_corpus"})
+            continue
+        if source_url and source_url != str(source_record.get("source_url") or "").strip():
+            skipped.append({"payload_hash": payload_hash, "image_id": image_id, "reason": "source_url_mismatch"})
+            continue
+        normalized = dict(source_record)
+        normalized["local_path"] = resolve_current_artist_works_local_path(
+            normalized.get("local_path"),
+            fair_slug=str(normalized.get("fair_slug") or "").strip(),
+        )
+        stabilized = _stabilize_artwork_image_record(normalized, resolve_local_path=False)
+        if stabilized is None or not Path(str(stabilized.get("local_path") or "")).exists():
+            skipped.append({"payload_hash": payload_hash, "image_id": image_id, "reason": "local_path_unavailable"})
+            continue
+        append_candidates.append(stabilized)
+        candidate_keys.append(image_id)
+        existing_payload_hashes.add(payload_hash)
+        existing_image_ids.add(image_id)
+
+    encoded_rows, append_embeddings = _encode_corpus_images(append_candidates)
+    encoded_image_ids = {str(row.get("image_id") or "").strip() for row in encoded_rows}
+    for row in append_candidates:
+        row_image_id = str(row.get("image_id") or "").strip()
+        if row_image_id and row_image_id not in encoded_image_ids:
+            skipped.append(
+                {
+                    "payload_hash": str(row.get("payload_hash") or "").strip(),
+                    "image_id": row_image_id,
+                    "reason": "encode_failed_or_unreadable",
+                }
+            )
+
+    append_count = len(encoded_rows)
+    if append_count and append_embeddings.ndim == 2 and append_embeddings.shape[1] == existing_embeddings.shape[1]:
+        append_index = _normalize_matrix(append_embeddings)
+        final_embeddings = np.vstack([existing_embeddings, append_embeddings.astype(np.float32)]).astype(np.float32)
+        final_index = np.vstack([existing_index, append_index]).astype(np.float32)
+        final_records = list(existing_records) + list(encoded_rows)
+        _atomic_save_npy(paths["embeddings"], final_embeddings)
+        _atomic_save_npy(paths["index"], final_index)
+        _atomic_save_id_map(paths["id_map"], final_records)
+        status = "appended"
+    elif append_count == 0:
+        final_embeddings = existing_embeddings
+        final_index = existing_index
+        final_records = existing_records
+        status = "no_rows_appended"
+    else:
+        final_embeddings = existing_embeddings
+        final_index = existing_index
+        final_records = existing_records
+        skipped.append({"payload_hash": "", "image_id": "", "reason": "append_embedding_dimension_mismatch"})
+        status = "failed_append_dimension_mismatch"
+
+    appended_rows = [
+        {
+            "payload_hash": str(row.get("payload_hash") or "").strip(),
+            "image_id": str(row.get("image_id") or "").strip(),
+            "fair_slug": str(row.get("fair_slug") or "").strip(),
+            "source_url": str(row.get("source_url") or "").strip(),
+            "local_path": str(row.get("local_path") or "").strip(),
+            "r2_key": str(row.get("r2_key") or "").strip(),
+            "image_url": str(row.get("image_url") or "").strip(),
+        }
+        for row in encoded_rows
+    ]
+
+    result.update(
+        {
+            "status": status,
+            "append_target_rows": len(append_candidates),
+            "append_success_rows": append_count,
+            "skipped_rows": len(skipped),
+            "read_or_encode_failed_rows": sum(
+                1 for row in skipped if str(row.get("reason") or "").startswith(("local_path_", "encode_failed"))
+            ),
+            "shape_before": {
+                "id_map_rows": len(existing_records),
+                "embeddings_shape": list(existing_embeddings.shape),
+                "index_shape": list(existing_index.shape),
+            },
+            "shape_after": {
+                "id_map_rows": len(final_records),
+                "embeddings_shape": list(final_embeddings.shape),
+                "index_shape": list(final_index.shape),
+            },
+            "added_rows": appended_rows,
+            "added_payload_hashes": [row["payload_hash"] for row in appended_rows],
+            "added_image_ids": [row["image_id"] for row in appended_rows],
+            "skipped_details": skipped,
+            "candidate_image_ids": candidate_keys,
+        }
+    )
+
+    result["completed_at_utc"] = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    result["manifest_path"] = str(manifest_path)
+    with manifest_path.open("w", encoding="utf-8") as f:
+        json.dump(result, f, ensure_ascii=False, indent=2)
+    return result
 
 
 @lru_cache(maxsize=1)
