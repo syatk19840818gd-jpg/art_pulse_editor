@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import csv
 import hashlib
 import io
 import json
@@ -42,6 +43,9 @@ ARTWORK_SEARCH_QUERY_REWRITE_MAX_OUTPUT_TOKENS = max(
 )
 JAPANESE_CHAR_RE = re.compile(r"[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff]")
 QUERY_SEP_RE = re.compile(r"[\s/|,;:()\[\]{}<>]+")
+SAFE_FULL_RELINK_ROWS_CSV_PATH = (
+    Path(__file__).resolve().parent / "_trial" / "artwork_payload_relink_rows_20260419T133258Z.csv"
+)
 
 
 @dataclass
@@ -223,6 +227,50 @@ def _save_id_map(path: Path, records: List[dict]) -> None:
 
 def _load_id_map(path: Path) -> tuple[List[dict], List[str]]:
     return safe_load_jsonl(path)
+
+
+def _parse_csv_bool(value: object) -> bool:
+    return str(value or "").strip().lower() in {"1", "true", "yes"}
+
+
+@lru_cache(maxsize=1)
+def _load_safe_full_relink_allowlist() -> tuple[dict[int, dict[str, str]], List[str]]:
+    warnings: List[str] = []
+    allowlist: dict[int, dict[str, str]] = {}
+    path = SAFE_FULL_RELINK_ROWS_CSV_PATH
+    if not path.exists():
+        warnings.append(f"artwork_search_safe_full_manifest_missing: {path}")
+        return allowlist, warnings
+    try:
+        with path.open("r", encoding="utf-8", newline="") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                if str(row.get("repair_class") or "").strip() != "SAFE_FULL":
+                    continue
+                if not _parse_csv_bool(row.get("would_change")):
+                    continue
+                row_index_raw = str(row.get("row_index") or "").strip()
+                if not row_index_raw:
+                    continue
+                try:
+                    row_index = int(row_index_raw)
+                except ValueError:
+                    continue
+                new_local = str(row.get("new_local_path_candidate") or "").strip()
+                new_r2 = str(row.get("new_r2_key_candidate") or "").strip()
+                if not new_local and not new_r2:
+                    continue
+                allowlist[row_index] = {
+                    "row_index": row_index_raw,
+                    "image_id": str(row.get("image_id") or "").strip(),
+                    "payload_hash": str(row.get("payload_hash") or "").strip(),
+                    "new_local_path_candidate": new_local,
+                    "new_r2_key_candidate": new_r2,
+                }
+    except Exception as exc:
+        warnings.append(f"artwork_search_safe_full_manifest_read_failed: {type(exc).__name__}")
+        return {}, warnings
+    return allowlist, warnings
 
 
 def _normalize_matrix(vectors: np.ndarray) -> np.ndarray:
@@ -431,16 +479,49 @@ def _load_existing_state(target_year: int = TARGET_YEAR) -> ArtworkSearchState |
         return None
     if embeddings.ndim != 2 or index_matrix.ndim != 2 or len(records) != embeddings.shape[0] or embeddings.shape != index_matrix.shape:
         return None
+    relink_allowlist, relink_warnings = _load_safe_full_relink_allowlist()
+    warnings.extend(relink_warnings)
+    relink_applied_rows = 0
+    relink_mismatch_rows = 0
     keep_positions: list[int] = []
     stabilized_records: list[dict] = []
     for idx, row in enumerate(records):
-        stabilized = _stabilize_artwork_image_record(row, resolve_local_path=False)
+        row_to_stabilize = row
+        patch = relink_allowlist.get(idx)
+        if patch:
+            payload_hash = str(row.get("payload_hash") or "").strip()
+            image_id = str(row.get("image_id") or "").strip()
+            if payload_hash == str(patch.get("payload_hash") or "").strip() and image_id == str(patch.get("image_id") or "").strip():
+                patched = dict(row)
+                new_local = str(patch.get("new_local_path_candidate") or "").strip()
+                new_r2 = str(patch.get("new_r2_key_candidate") or "").strip()
+                changed = False
+                if new_local and new_local != str(row.get("local_path") or "").strip():
+                    patched["local_path"] = new_local
+                    changed = True
+                if new_r2 and new_r2 != str(row.get("r2_key") or "").strip():
+                    patched["r2_key"] = new_r2
+                    changed = True
+                if changed:
+                    relink_applied_rows += 1
+                row_to_stabilize = patched
+            else:
+                relink_mismatch_rows += 1
+
+        stabilized = _stabilize_artwork_image_record(row_to_stabilize, resolve_local_path=False)
         if stabilized is None:
             continue
         keep_positions.append(idx)
         stabilized_records.append(stabilized)
     if not stabilized_records:
         return None
+    if relink_allowlist:
+        warnings.append(
+            "artwork_search_safe_full_manifest_relink:"
+            f" allowlist={len(relink_allowlist)}"
+            f" applied={relink_applied_rows}"
+            f" mismatched={relink_mismatch_rows}"
+        )
     if len(stabilized_records) != len(records):
         keep_index = np.asarray(keep_positions, dtype=np.int64)
         embeddings = embeddings[keep_index]
