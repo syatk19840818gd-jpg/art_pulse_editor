@@ -530,6 +530,35 @@ def _filter_indices_by_fair(records: List[dict], fair_filter: str) -> np.ndarray
     )
 
 
+def _has_http_image_url(value: str) -> bool:
+    url = str(value or "").strip().lower()
+    return url.startswith("http://") or url.startswith("https://")
+
+
+def _resolve_preview_local_path(row: dict) -> str:
+    local_path = resolve_current_artist_works_local_path(
+        row.get("local_path"),
+        fair_slug=str(row.get("fair_slug") or "").strip(),
+    )
+    if not local_path:
+        return ""
+    try:
+        return local_path if Path(local_path).exists() else ""
+    except OSError:
+        return ""
+
+
+def _has_resolvable_preview(row: dict) -> tuple[bool, str]:
+    resolved_local_path = _resolve_preview_local_path(row)
+    if resolved_local_path:
+        return True, resolved_local_path
+    if str(row.get("r2_key") or "").strip():
+        return True, ""
+    if _has_http_image_url(str(row.get("image_url") or "").strip()):
+        return True, ""
+    return False, ""
+
+
 def _score_rows(
     state: ArtworkSearchState,
     query_vectors: list[tuple[np.ndarray, float]],
@@ -549,14 +578,30 @@ def _score_rows(
         column = candidate_matrix @ query_vector.astype(np.float32)
         score_columns.append(column * float(weight))
     scores = np.max(np.stack(score_columns, axis=1), axis=1)
-    order = np.argsort(scores)[::-1][: max(1, int(top_k or ARTWORK_SEARCH_TOP_K_DEFAULT))]
-    rows: List[dict] = []
-    for rank, pos in enumerate(order, start=1):
-        corpus_idx = int(candidate_indices[int(pos)])
-        row = dict(state.records[corpus_idx])
-        row["score"] = float(scores[int(pos)])
+    limit = max(1, int(top_k or ARTWORK_SEARCH_TOP_K_DEFAULT))
+    order = np.argsort(scores)[::-1]
+    preview_rows: List[dict] = []
+    fallback_rows: List[dict] = []
+    for pos in order:
+        pos_int = int(pos)
+        corpus_idx = int(candidate_indices[pos_int])
+        source_row = state.records[corpus_idx]
+        has_preview, resolved_local_path = _has_resolvable_preview(source_row)
+        row = dict(source_row)
+        if resolved_local_path:
+            row["local_path"] = resolved_local_path
+        row["score"] = float(scores[pos_int])
+        if has_preview:
+            preview_rows.append(row)
+            if len(preview_rows) >= limit:
+                break
+        else:
+            fallback_rows.append(row)
+    rows = preview_rows[:limit]
+    if len(rows) < limit:
+        rows.extend(fallback_rows[: limit - len(rows)])
+    for rank, row in enumerate(rows, start=1):
         row["rank"] = rank
-        rows.append(row)
     return rows
 
 
