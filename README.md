@@ -28,7 +28,8 @@
 
 ## セットアップ（後で埋める：今は空でOK）
 - Python: <<例 3.11>>
-- Install: `pip install -r requirements.txt`
+- Install: `pip install -r requirements.lock`
+- Dependency definition/runtime baseline: keep `requirements.txt` as source of truth, regenerate `requirements.lock` when deps change, and use `runtime.txt` (`python-3.11.9`) as Python baseline.
 - Run: <<例 streamlit run app.py / python main.py>>
 
 ---
