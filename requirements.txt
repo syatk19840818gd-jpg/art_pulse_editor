@@ -12,5 +12,7 @@ playwright
 boto3
 google-genai
 openai
+openpyxl
+numpy
 torch
 open-clip-torch
