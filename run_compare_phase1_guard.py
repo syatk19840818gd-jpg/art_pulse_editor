@@ -4,12 +4,10 @@ from __future__ import annotations
 import argparse
 import json
 import re
-import sys
 from pathlib import Path
 from typing import Any
 
 from phase1_ledger_contract import (
-    FAILED_FETCH_REQUIRED_FIELDS,
     GUARD_BASE_REQUIRED_SUMMARY_KEYS,
     LedgerLoadResult,
     get_phase1_logs_dir,

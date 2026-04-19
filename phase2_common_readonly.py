@@ -152,6 +152,13 @@ def resolve_current_artist_works_local_path(
             continue
 
     try:
+        original_rel = original.resolve().relative_to(REPO_ROOT).as_posix()
+    except Exception:
+        original_rel = ""
+    if not original_rel.startswith("data/current/images/cache/"):
+        return ""
+
+    try:
         if original.exists() and original.is_file():
             return str(original)
         if hydrate_path_from_r2(original) and original.is_file():
@@ -346,14 +353,6 @@ def _local_path_to_r2_key(path: Path) -> str:
         return image_cache_r2_key
     if rel.startswith("data/current/enrichment/"):
         return "data/current/enrichment/" + rel[len("data/current/enrichment/") :]
-    if rel.startswith("data/history/enrichment/artists/"):
-        return "data/history/enrichment/artists/" + rel[len("data/history/enrichment/artists/") :]
-    if rel.startswith("data/history/enrichment/exhibitions/"):
-        return "data/history/enrichment/exhibitions/" + rel[len("data/history/enrichment/exhibitions/") :]
-    if rel.startswith("data/gallery_lists/"):
-        return rel
-    if rel.startswith("docs/"):
-        return rel
     return ""
 
 

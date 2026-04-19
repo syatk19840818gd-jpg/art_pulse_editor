@@ -65,6 +65,7 @@ except Exception:
     pass
 
 APP_TITLE = "Art Pulse Editor"
+APP_REPO_ROOT = Path(__file__).resolve().parent
 FAIR_OPTIONS = ["Frieze London", "Liste Art Fair Basel", "Frieze London + Liste Art Fair Basel"]
 SEARCH_RESULTS_PAGE_SIZE = 30
 MODE_HEADING_FONT_SIZE_PX = 30
@@ -1234,12 +1235,26 @@ def _resolve_existing_r2_key(r2_key: str) -> str:
     bucket = settings.get("bucket", "")
     if client is None or not bucket:
         return ""
-    candidates = [key]
-    if key.startswith("data/phase1_seed10/"):
+    candidates: list[str] = []
+    if key.startswith("data/current/"):
+        candidates.append(key)
         candidates.append(key[len("data/") :])
-    elif key.startswith("data/"):
-        candidates.append(key[len("data/") :])
+    elif key.startswith("current/"):
+        candidates.append("data/" + key)
+        candidates.append(key)
+    else:
+        return ""
+
+    deduped_candidates: list[str] = []
+    seen: set[str] = set()
     for cand in candidates:
+        normalized = str(cand or "").strip().lstrip("/")
+        if not normalized or normalized in seen:
+            continue
+        seen.add(normalized)
+        deduped_candidates.append(normalized)
+
+    for cand in deduped_candidates:
         try:
             client.head_object(Bucket=bucket, Key=cand)
             return cand
@@ -1272,7 +1287,20 @@ def _presign_r2_get_url(r2_key: str) -> str:
 
 @st.cache_data(show_spinner=False, ttl=1800)
 def _local_image_path_to_data_uri(path_text: str) -> str:
-    path = Path(str(path_text or "").strip())
+    raw = str(path_text or "").strip()
+    if not raw:
+        return ""
+    path = Path(raw).expanduser()
+    if not path.is_absolute():
+        path = (APP_REPO_ROOT / path).resolve()
+    else:
+        path = path.resolve()
+    try:
+        rel = path.relative_to(APP_REPO_ROOT).as_posix()
+    except Exception:
+        return ""
+    if not rel.startswith("data/current/images/cache/"):
+        return ""
     if not path.exists() or not path.is_file():
         return ""
     try:

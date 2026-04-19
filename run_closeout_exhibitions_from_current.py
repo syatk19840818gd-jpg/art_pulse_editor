@@ -2,189 +2,93 @@
 from __future__ import annotations
 
 import argparse
-import json
-from datetime import datetime, timezone
-from pathlib import Path
-from typing import Any
-
-from closeout_breakdown_contract import (
-    BLOCK_ARTIFACT_CATEGORY_EXHIBITION,
-    execute_closeout_with_breakdown_contract,
-    resolve_current_formal_artifact_bundle,
-)
-from phase2_art_pulse_config import (
-    TARGET_YEAR,
-    get_current_exhibitions_image_meta_paths,
-    get_current_raw_paths,
-    get_enrichment_current_output_path,
-    get_enrichment_current_summary_path,
-)
-from run_rag_gallery_breakdown_update import (
-    DEFAULT_XLSX_PATH,
-    ScopeTarget,
-    build_stats,
-    load_targets_ordered,
-)
-
-DEFAULT_TARGETS_CSV = Path("data/gallery_lists/phase3_initial10_targets.csv")
-DEFAULT_RUN_ID_PREFIX = "TASK_PHASE3_EXHIBITIONS_BLOCK_CLOSEOUT"
-
-
-def utc_now_compact() -> str:
-    return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-
-
-def resolve_path(path_text: str | Path) -> Path:
-    path = Path(path_text)
-    if path.is_absolute():
-        return path
-    return (Path.cwd() / path).resolve()
+import sys
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Close out an exhibitions block from current formal artifacts through "
-            "xlsx update and required R2 sync."
+            "Retired runner. Use run_block_closeout.py for official closeout flow."
         )
     )
     parser.add_argument(
         "--targets-file",
-        default=str(DEFAULT_TARGETS_CSV),
-        help=f"gallery scope CSV (default: {DEFAULT_TARGETS_CSV})",
+        default="",
+        help="gallery scope CSV to pass to run_block_closeout.py",
     )
     parser.add_argument(
         "--xlsx-path",
-        default=str(DEFAULT_XLSX_PATH),
-        help=f"xlsx path (default: {DEFAULT_XLSX_PATH})",
+        default="",
+        help="optional xlsx path to pass to run_block_closeout.py",
     )
     parser.add_argument(
         "--target-year",
-        type=int,
-        default=TARGET_YEAR,
-        help=f"default: {TARGET_YEAR}",
+        default="",
+        help="optional target year to pass to run_block_closeout.py",
     )
     parser.add_argument(
         "--run-id",
         default="",
-        help=f"run_id for closeout contract (default: {DEFAULT_RUN_ID_PREFIX}_<UTCSTAMP>)",
+        help="optional run_id to pass to run_block_closeout.py",
+    )
+    parser.add_argument(
+        "--approval-token",
+        default="",
+        help="optional approval token for live run_block_closeout.py execution",
     )
     parser.add_argument(
         "--apply",
         action="store_true",
-        help=(
-            "treat current formal artifacts as canonical source, then update xlsx "
-            "and execute required R2 sync for the exhibitions block"
-        ),
+        help="include --apply in the suggested run_block_closeout.py command",
     )
     return parser.parse_args(argv)
 
 
-def count_target_rows(path: Path, target_scope_keys: set[tuple[str, str]]) -> int:
-    if not path.exists():
-        return 0
-    count = 0
-    with path.open("r", encoding="utf-8") as handle:
-        for line in handle:
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                row = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-            if not isinstance(row, dict):
-                continue
-            fair_slug = str(row.get("fair_slug") or "").strip().lower().replace("-", "_")
-            gallery_name = str(row.get("gallery_name_en") or "").strip()
-            scope_key = ScopeTarget(fair_slug=fair_slug, gallery_name_en=gallery_name).scope_key
-            if scope_key in target_scope_keys:
-                count += 1
-    return count
+def build_mainline_command(args: argparse.Namespace) -> str:
+    parts: list[str] = ["python", "run_block_closeout.py", "--targets-file"]
+    targets_file = str(args.targets_file or "").strip() or "<path/to/targets.csv>"
+    parts.append(targets_file)
 
+    xlsx_path = str(args.xlsx_path or "").strip()
+    if xlsx_path:
+        parts.extend(["--xlsx-path", xlsx_path])
 
-def build_current_write_report(
-    *,
-    targets: list[ScopeTarget],
-    targets_path: Path,
-    target_year: int,
-) -> dict[str, Any]:
-    target_scope_keys = {target.scope_key for target in targets}
-    current_raw_paths = get_current_raw_paths("exhibitions", target_year)
-    current_image_meta_paths = get_current_exhibitions_image_meta_paths(target_year)
-    current_enrichment_output_path = get_enrichment_current_output_path("exhibitions", target_year)
-    current_enrichment_summary_path = get_enrichment_current_summary_path("exhibitions", target_year)
-    stats = build_stats(int(target_year))
+    target_year = str(args.target_year or "").strip()
+    if target_year:
+        parts.extend(["--target-year", target_year])
 
-    target_gallery_rows: list[dict[str, Any]] = []
-    for target in targets:
-        stat = stats.get(target.scope_key)
-        target_gallery_rows.append(
-            {
-                "fair_slug": target.fair_slug,
-                "gallery_name_en": target.gallery_name_en,
-                "current_exhibition_text_count": int(stat.exhibition_text_count if stat is not None else 0),
-                "current_exhibition_image_count": int(stat.exhibition_image_count if stat is not None else 0),
-            }
-        )
+    run_id = str(args.run_id or "").strip()
+    if run_id:
+        parts.extend(["--run-id", run_id])
 
-    return {
-        "source_of_truth": "current_formal_artifacts",
-        "write_strategy": "no_op_current_source_bundle",
-        "mutation_required": False,
-        "targets_file": str(targets_path),
-        "target_total": len(targets),
-        "targets": [target.to_dict() for target in targets],
-        "current_paths": {
-            "raw": {fair_slug: str(path) for fair_slug, path in current_raw_paths.items()},
-            "image_metadata": {fair_slug: str(path) for fair_slug, path in current_image_meta_paths.items()},
-            "enrichment_output": str(current_enrichment_output_path),
-            "enrichment_summary": str(current_enrichment_summary_path),
-        },
-        "scope_counts": {
-            "raw_rows_total": sum(count_target_rows(path, target_scope_keys) for path in current_raw_paths.values()),
-            "image_metadata_rows_total": sum(
-                count_target_rows(path, target_scope_keys) for path in current_image_meta_paths.values()
-            ),
-            "enrichment_output_rows_total": count_target_rows(current_enrichment_output_path, target_scope_keys),
-        },
-        "target_gallery_rows": target_gallery_rows,
-    }
+    if args.apply:
+        parts.append("--apply")
+        approval_token = str(args.approval_token or "").strip()
+        if approval_token:
+            parts.extend(["--approval-token", approval_token])
+        else:
+            parts.extend(["--approval-token", "<user-approved-note>"])
+
+    return " ".join(parts)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
-    targets_path = resolve_path(args.targets_file)
-    xlsx_path = resolve_path(args.xlsx_path)
-    target_year = int(args.target_year)
-    run_id = str(args.run_id or "").strip() or f"{DEFAULT_RUN_ID_PREFIX}_{utc_now_compact()}"
-    targets = load_targets_ordered(targets_path)
-    breakdown_stats = build_stats(target_year)
-    current_write_report = build_current_write_report(
-        targets=targets,
-        targets_path=targets_path,
-        target_year=target_year,
-    )
+    message_lines = [
+        "retired_runner: run_closeout_exhibitions_from_current.py",
+        "This exhibition-only closeout runner is retired to prevent old closeout flow usage.",
+        "Use the official mainline runner instead:",
+        build_mainline_command(args),
+    ]
+    if args.apply:
+        message_lines.append(
+            "Note: live execution requires explicit approval token on run_block_closeout.py."
+        )
+    else:
+        message_lines.append("Note: verify-first dry-run remains available on run_block_closeout.py by default.")
 
-    report = execute_closeout_with_breakdown_contract(
-        contract_name="exhibitions_current_block_closeout",
-        apply=bool(args.apply),
-        run_id=run_id,
-        xlsx_path=xlsx_path,
-        target_year=target_year,
-        targets=targets,
-        current_write_callback=lambda _apply: current_write_report,
-        breakdown_stats_override=breakdown_stats,
-        r2_artifact_bundle=resolve_current_formal_artifact_bundle(
-            bundle_name=f"{targets_path.stem}_exhibitions_current_formal_artifacts",
-            categories=(BLOCK_ARTIFACT_CATEGORY_EXHIBITION,),
-            target_year=target_year,
-        ),
-        r2_execute_remote=bool(args.apply),
-    )
-
-    print(json.dumps(report, ensure_ascii=True, indent=2, default=str))
-    return 0
+    print("\n".join(message_lines), file=sys.stderr)
+    return 2
 
 
 if __name__ == "__main__":
