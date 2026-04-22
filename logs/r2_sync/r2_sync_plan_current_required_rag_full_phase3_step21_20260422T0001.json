@@ -1,0 +1,345 @@
+{
+  "artifact_kind": "r2_sync_plan",
+  "schema_version": "v2",
+  "generated_at": "2026-04-22T03:34:48Z",
+  "command": "plan",
+  "scope": "current_required_rag_full",
+  "description": "Canonical app/runtime current-required RAG parity scope. Mirrors only the current families that runtime resolves directly, including image cache families required for remote hydration.",
+  "enabled_by_default": false,
+  "sync_mode": "mirror",
+  "uploads_enabled": true,
+  "deletes_enabled": true,
+  "run_id": "phase3_step21_20260422T0001",
+  "bucket_env_key": "R2_BUCKET",
+  "bucket": "art-pulse-editor",
+  "local_stats": {
+    "roots_missing": [],
+    "local_count": 4677,
+    "local_total_size_bytes": 453712634
+  },
+  "remote_scanned_count": 4677,
+  "unchanged_count": 4677,
+  "would_upload_count": 0,
+  "would_delete_count": 0,
+  "would_prune_count": 0,
+  "scope_hash": "4d5f36775aface17e12355b590ac520462f14012e3abd7db8a5a6a647981881d",
+  "input_fingerprint": "410d774b22c0095a00a6b75c13be56fd6a343027fabf8e712eabd060cd0feefd",
+  "code_fingerprint": "183ae1eb0066d7f7eb0139a93b1ea3ee2de3b83cfc382add6eb8c2b8089592e1",
+  "prune_candidates_fingerprint": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "targets": [
+    {
+      "name": "raw_artists",
+      "local_root": "data/current/raw",
+      "r2_prefix": "data/current/raw",
+      "include_globs": [
+        "artists_*.jsonl"
+      ],
+      "exclude_globs": [],
+      "ignore_global_excludes": false
+    },
+    {
+      "name": "raw_exhibitions",
+      "local_root": "data/current/raw",
+      "r2_prefix": "data/current/raw",
+      "include_globs": [
+        "exhibitions_*.jsonl"
+      ],
+      "exclude_globs": [],
+      "ignore_global_excludes": false
+    },
+    {
+      "name": "enrichment_artists_outputs",
+      "local_root": "data/current/enrichment",
+      "r2_prefix": "data/current/enrichment",
+      "include_globs": [
+        "artists_enrichment_apply_output*.jsonl"
+      ],
+      "exclude_globs": [],
+      "ignore_global_excludes": false
+    },
+    {
+      "name": "enrichment_exhibitions_outputs",
+      "local_root": "data/current/enrichment",
+      "r2_prefix": "data/current/enrichment",
+      "include_globs": [
+        "exhibitions_enrichment_apply_output_*.jsonl"
+      ],
+      "exclude_globs": [],
+      "ignore_global_excludes": false
+    },
+    {
+      "name": "images_metadata_artist_works",
+      "local_root": "data/current/images/metadata",
+      "r2_prefix": "data/current/images/metadata",
+      "include_globs": [
+        "artist_works_images_*.jsonl"
+      ],
+      "exclude_globs": [],
+      "ignore_global_excludes": false
+    },
+    {
+      "name": "images_metadata_exhibitions",
+      "local_root": "data/current/images/metadata",
+      "r2_prefix": "data/current/images/metadata",
+      "include_globs": [
+        "exhibitions_images_*_*.jsonl"
+      ],
+      "exclude_globs": [],
+      "ignore_global_excludes": false
+    },
+    {
+      "name": "images_cache_artist_works",
+      "local_root": "data/current/images/cache/artist_works_images",
+      "r2_prefix": "data/current/images/cache/artist_works_images",
+      "include_globs": [
+        "**/*"
+      ],
+      "exclude_globs": [],
+      "ignore_global_excludes": false
+    },
+    {
+      "name": "images_cache_exhibition_works",
+      "local_root": "data/current/images/cache/exhibition_works_images",
+      "r2_prefix": "data/current/images/cache/exhibition_works_images",
+      "include_globs": [
+        "**/*"
+      ],
+      "exclude_globs": [],
+      "ignore_global_excludes": false
+    },
+    {
+      "name": "vector_artists",
+      "local_root": "data/current/vector/artists",
+      "r2_prefix": "data/current/vector/artists",
+      "include_globs": [
+        "**/*"
+      ],
+      "exclude_globs": [],
+      "ignore_global_excludes": false
+    },
+    {
+      "name": "vector_artist_works_images",
+      "local_root": "data/current/vector/artist_works_images",
+      "r2_prefix": "data/current/vector/artist_works_images",
+      "include_globs": [
+        "**/*"
+      ],
+      "exclude_globs": [],
+      "ignore_global_excludes": false
+    }
+  ],
+  "target_inventory": [
+    {
+      "name": "raw_artists",
+      "local_root": "data/current/raw",
+      "r2_prefix": "data/current/raw",
+      "include_globs": [
+        "artists_*.jsonl"
+      ],
+      "exclude_globs": [],
+      "ignore_global_excludes": false,
+      "local_count": 2,
+      "local_total_size_bytes": 17187232,
+      "remote_count": 2,
+      "remote_total_size_bytes": 17187232,
+      "local_only_count": 0,
+      "local_only_total_size_bytes": 0,
+      "size_mismatch_count": 0,
+      "size_mismatch_local_total_size_bytes": 0,
+      "size_mismatch_remote_total_size_bytes": 0,
+      "remote_only_count": 0,
+      "remote_only_total_size_bytes": 0
+    },
+    {
+      "name": "raw_exhibitions",
+      "local_root": "data/current/raw",
+      "r2_prefix": "data/current/raw",
+      "include_globs": [
+        "exhibitions_*.jsonl"
+      ],
+      "exclude_globs": [],
+      "ignore_global_excludes": false,
+      "local_count": 2,
+      "local_total_size_bytes": 7067011,
+      "remote_count": 2,
+      "remote_total_size_bytes": 7067011,
+      "local_only_count": 0,
+      "local_only_total_size_bytes": 0,
+      "size_mismatch_count": 0,
+      "size_mismatch_local_total_size_bytes": 0,
+      "size_mismatch_remote_total_size_bytes": 0,
+      "remote_only_count": 0,
+      "remote_only_total_size_bytes": 0
+    },
+    {
+      "name": "enrichment_artists_outputs",
+      "local_root": "data/current/enrichment",
+      "r2_prefix": "data/current/enrichment",
+      "include_globs": [
+        "artists_enrichment_apply_output*.jsonl"
+      ],
+      "exclude_globs": [],
+      "ignore_global_excludes": false,
+      "local_count": 1,
+      "local_total_size_bytes": 2791773,
+      "remote_count": 1,
+      "remote_total_size_bytes": 2791773,
+      "local_only_count": 0,
+      "local_only_total_size_bytes": 0,
+      "size_mismatch_count": 0,
+      "size_mismatch_local_total_size_bytes": 0,
+      "size_mismatch_remote_total_size_bytes": 0,
+      "remote_only_count": 0,
+      "remote_only_total_size_bytes": 0
+    },
+    {
+      "name": "enrichment_exhibitions_outputs",
+      "local_root": "data/current/enrichment",
+      "r2_prefix": "data/current/enrichment",
+      "include_globs": [
+        "exhibitions_enrichment_apply_output_*.jsonl"
+      ],
+      "exclude_globs": [],
+      "ignore_global_excludes": false,
+      "local_count": 1,
+      "local_total_size_bytes": 817403,
+      "remote_count": 1,
+      "remote_total_size_bytes": 817403,
+      "local_only_count": 0,
+      "local_only_total_size_bytes": 0,
+      "size_mismatch_count": 0,
+      "size_mismatch_local_total_size_bytes": 0,
+      "size_mismatch_remote_total_size_bytes": 0,
+      "remote_only_count": 0,
+      "remote_only_total_size_bytes": 0
+    },
+    {
+      "name": "images_metadata_artist_works",
+      "local_root": "data/current/images/metadata",
+      "r2_prefix": "data/current/images/metadata",
+      "include_globs": [
+        "artist_works_images_*.jsonl"
+      ],
+      "exclude_globs": [],
+      "ignore_global_excludes": false,
+      "local_count": 2,
+      "local_total_size_bytes": 5961568,
+      "remote_count": 2,
+      "remote_total_size_bytes": 5961568,
+      "local_only_count": 0,
+      "local_only_total_size_bytes": 0,
+      "size_mismatch_count": 0,
+      "size_mismatch_local_total_size_bytes": 0,
+      "size_mismatch_remote_total_size_bytes": 0,
+      "remote_only_count": 0,
+      "remote_only_total_size_bytes": 0
+    },
+    {
+      "name": "images_metadata_exhibitions",
+      "local_root": "data/current/images/metadata",
+      "r2_prefix": "data/current/images/metadata",
+      "include_globs": [
+        "exhibitions_images_*_*.jsonl"
+      ],
+      "exclude_globs": [],
+      "ignore_global_excludes": false,
+      "local_count": 2,
+      "local_total_size_bytes": 408955,
+      "remote_count": 2,
+      "remote_total_size_bytes": 408955,
+      "local_only_count": 0,
+      "local_only_total_size_bytes": 0,
+      "size_mismatch_count": 0,
+      "size_mismatch_local_total_size_bytes": 0,
+      "size_mismatch_remote_total_size_bytes": 0,
+      "remote_only_count": 0,
+      "remote_only_total_size_bytes": 0
+    },
+    {
+      "name": "images_cache_artist_works",
+      "local_root": "data/current/images/cache/artist_works_images",
+      "r2_prefix": "data/current/images/cache/artist_works_images",
+      "include_globs": [
+        "**/*"
+      ],
+      "exclude_globs": [],
+      "ignore_global_excludes": false,
+      "local_count": 4359,
+      "local_total_size_bytes": 352366897,
+      "remote_count": 4359,
+      "remote_total_size_bytes": 352366897,
+      "local_only_count": 0,
+      "local_only_total_size_bytes": 0,
+      "size_mismatch_count": 0,
+      "size_mismatch_local_total_size_bytes": 0,
+      "size_mismatch_remote_total_size_bytes": 0,
+      "remote_only_count": 0,
+      "remote_only_total_size_bytes": 0
+    },
+    {
+      "name": "images_cache_exhibition_works",
+      "local_root": "data/current/images/cache/exhibition_works_images",
+      "r2_prefix": "data/current/images/cache/exhibition_works_images",
+      "include_globs": [
+        "**/*"
+      ],
+      "exclude_globs": [],
+      "ignore_global_excludes": false,
+      "local_count": 297,
+      "local_total_size_bytes": 25754241,
+      "remote_count": 297,
+      "remote_total_size_bytes": 25754241,
+      "local_only_count": 0,
+      "local_only_total_size_bytes": 0,
+      "size_mismatch_count": 0,
+      "size_mismatch_local_total_size_bytes": 0,
+      "size_mismatch_remote_total_size_bytes": 0,
+      "remote_only_count": 0,
+      "remote_only_total_size_bytes": 0
+    },
+    {
+      "name": "vector_artists",
+      "local_root": "data/current/vector/artists",
+      "r2_prefix": "data/current/vector/artists",
+      "include_globs": [
+        "**/*"
+      ],
+      "exclude_globs": [],
+      "ignore_global_excludes": false,
+      "local_count": 5,
+      "local_total_size_bytes": 8491026,
+      "remote_count": 5,
+      "remote_total_size_bytes": 8491026,
+      "local_only_count": 0,
+      "local_only_total_size_bytes": 0,
+      "size_mismatch_count": 0,
+      "size_mismatch_local_total_size_bytes": 0,
+      "size_mismatch_remote_total_size_bytes": 0,
+      "remote_only_count": 0,
+      "remote_only_total_size_bytes": 0
+    },
+    {
+      "name": "vector_artist_works_images",
+      "local_root": "data/current/vector/artist_works_images",
+      "r2_prefix": "data/current/vector/artist_works_images",
+      "include_globs": [
+        "**/*"
+      ],
+      "exclude_globs": [],
+      "ignore_global_excludes": false,
+      "local_count": 6,
+      "local_total_size_bytes": 32866528,
+      "remote_count": 6,
+      "remote_total_size_bytes": 32866528,
+      "local_only_count": 0,
+      "local_only_total_size_bytes": 0,
+      "size_mismatch_count": 0,
+      "size_mismatch_local_total_size_bytes": 0,
+      "size_mismatch_remote_total_size_bytes": 0,
+      "remote_only_count": 0,
+      "remote_only_total_size_bytes": 0
+    }
+  ],
+  "would_upload": [],
+  "would_prune": []
+}

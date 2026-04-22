@@ -1,0 +1,1540 @@
+{
+  "artifact_kind": "r2_sync_plan",
+  "schema_version": "v2",
+  "generated_at": "2026-04-22T03:17:23Z",
+  "command": "plan",
+  "scope": "current_required_rag_full",
+  "description": "Canonical app/runtime current-required RAG parity scope. Mirrors only the current families that runtime resolves directly, including image cache families required for remote hydration.",
+  "enabled_by_default": false,
+  "sync_mode": "mirror",
+  "uploads_enabled": true,
+  "deletes_enabled": true,
+  "run_id": "phase3_step19_20260422T0001",
+  "bucket_env_key": "R2_BUCKET",
+  "bucket": "art-pulse-editor",
+  "local_stats": {
+    "roots_missing": [],
+    "local_count": 4677,
+    "local_total_size_bytes": 453712634
+  },
+  "remote_scanned_count": 4527,
+  "unchanged_count": 4509,
+  "would_upload_count": 168,
+  "would_delete_count": 0,
+  "would_prune_count": 0,
+  "scope_hash": "4d5f36775aface17e12355b590ac520462f14012e3abd7db8a5a6a647981881d",
+  "input_fingerprint": "410d774b22c0095a00a6b75c13be56fd6a343027fabf8e712eabd060cd0feefd",
+  "code_fingerprint": "183ae1eb0066d7f7eb0139a93b1ea3ee2de3b83cfc382add6eb8c2b8089592e1",
+  "prune_candidates_fingerprint": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "targets": [
+    {
+      "name": "raw_artists",
+      "local_root": "data/current/raw",
+      "r2_prefix": "data/current/raw",
+      "include_globs": [
+        "artists_*.jsonl"
+      ],
+      "exclude_globs": [],
+      "ignore_global_excludes": false
+    },
+    {
+      "name": "raw_exhibitions",
+      "local_root": "data/current/raw",
+      "r2_prefix": "data/current/raw",
+      "include_globs": [
+        "exhibitions_*.jsonl"
+      ],
+      "exclude_globs": [],
+      "ignore_global_excludes": false
+    },
+    {
+      "name": "enrichment_artists_outputs",
+      "local_root": "data/current/enrichment",
+      "r2_prefix": "data/current/enrichment",
+      "include_globs": [
+        "artists_enrichment_apply_output*.jsonl"
+      ],
+      "exclude_globs": [],
+      "ignore_global_excludes": false
+    },
+    {
+      "name": "enrichment_exhibitions_outputs",
+      "local_root": "data/current/enrichment",
+      "r2_prefix": "data/current/enrichment",
+      "include_globs": [
+        "exhibitions_enrichment_apply_output_*.jsonl"
+      ],
+      "exclude_globs": [],
+      "ignore_global_excludes": false
+    },
+    {
+      "name": "images_metadata_artist_works",
+      "local_root": "data/current/images/metadata",
+      "r2_prefix": "data/current/images/metadata",
+      "include_globs": [
+        "artist_works_images_*.jsonl"
+      ],
+      "exclude_globs": [],
+      "ignore_global_excludes": false
+    },
+    {
+      "name": "images_metadata_exhibitions",
+      "local_root": "data/current/images/metadata",
+      "r2_prefix": "data/current/images/metadata",
+      "include_globs": [
+        "exhibitions_images_*_*.jsonl"
+      ],
+      "exclude_globs": [],
+      "ignore_global_excludes": false
+    },
+    {
+      "name": "images_cache_artist_works",
+      "local_root": "data/current/images/cache/artist_works_images",
+      "r2_prefix": "data/current/images/cache/artist_works_images",
+      "include_globs": [
+        "**/*"
+      ],
+      "exclude_globs": [],
+      "ignore_global_excludes": false
+    },
+    {
+      "name": "images_cache_exhibition_works",
+      "local_root": "data/current/images/cache/exhibition_works_images",
+      "r2_prefix": "data/current/images/cache/exhibition_works_images",
+      "include_globs": [
+        "**/*"
+      ],
+      "exclude_globs": [],
+      "ignore_global_excludes": false
+    },
+    {
+      "name": "vector_artists",
+      "local_root": "data/current/vector/artists",
+      "r2_prefix": "data/current/vector/artists",
+      "include_globs": [
+        "**/*"
+      ],
+      "exclude_globs": [],
+      "ignore_global_excludes": false
+    },
+    {
+      "name": "vector_artist_works_images",
+      "local_root": "data/current/vector/artist_works_images",
+      "r2_prefix": "data/current/vector/artist_works_images",
+      "include_globs": [
+        "**/*"
+      ],
+      "exclude_globs": [],
+      "ignore_global_excludes": false
+    }
+  ],
+  "target_inventory": [
+    {
+      "name": "raw_artists",
+      "local_root": "data/current/raw",
+      "r2_prefix": "data/current/raw",
+      "include_globs": [
+        "artists_*.jsonl"
+      ],
+      "exclude_globs": [],
+      "ignore_global_excludes": false,
+      "local_count": 2,
+      "local_total_size_bytes": 17187232,
+      "remote_count": 2,
+      "remote_total_size_bytes": 13347678,
+      "local_only_count": 0,
+      "local_only_total_size_bytes": 0,
+      "size_mismatch_count": 2,
+      "size_mismatch_local_total_size_bytes": 17187232,
+      "size_mismatch_remote_total_size_bytes": 13347678,
+      "remote_only_count": 0,
+      "remote_only_total_size_bytes": 0
+    },
+    {
+      "name": "raw_exhibitions",
+      "local_root": "data/current/raw",
+      "r2_prefix": "data/current/raw",
+      "include_globs": [
+        "exhibitions_*.jsonl"
+      ],
+      "exclude_globs": [],
+      "ignore_global_excludes": false,
+      "local_count": 2,
+      "local_total_size_bytes": 7067011,
+      "remote_count": 2,
+      "remote_total_size_bytes": 5281720,
+      "local_only_count": 0,
+      "local_only_total_size_bytes": 0,
+      "size_mismatch_count": 2,
+      "size_mismatch_local_total_size_bytes": 7067011,
+      "size_mismatch_remote_total_size_bytes": 5281720,
+      "remote_only_count": 0,
+      "remote_only_total_size_bytes": 0
+    },
+    {
+      "name": "enrichment_artists_outputs",
+      "local_root": "data/current/enrichment",
+      "r2_prefix": "data/current/enrichment",
+      "include_globs": [
+        "artists_enrichment_apply_output*.jsonl"
+      ],
+      "exclude_globs": [],
+      "ignore_global_excludes": false,
+      "local_count": 1,
+      "local_total_size_bytes": 2791773,
+      "remote_count": 1,
+      "remote_total_size_bytes": 1915339,
+      "local_only_count": 0,
+      "local_only_total_size_bytes": 0,
+      "size_mismatch_count": 1,
+      "size_mismatch_local_total_size_bytes": 2791773,
+      "size_mismatch_remote_total_size_bytes": 1915339,
+      "remote_only_count": 0,
+      "remote_only_total_size_bytes": 0
+    },
+    {
+      "name": "enrichment_exhibitions_outputs",
+      "local_root": "data/current/enrichment",
+      "r2_prefix": "data/current/enrichment",
+      "include_globs": [
+        "exhibitions_enrichment_apply_output_*.jsonl"
+      ],
+      "exclude_globs": [],
+      "ignore_global_excludes": false,
+      "local_count": 1,
+      "local_total_size_bytes": 817403,
+      "remote_count": 1,
+      "remote_total_size_bytes": 817403,
+      "local_only_count": 0,
+      "local_only_total_size_bytes": 0,
+      "size_mismatch_count": 0,
+      "size_mismatch_local_total_size_bytes": 0,
+      "size_mismatch_remote_total_size_bytes": 0,
+      "remote_only_count": 0,
+      "remote_only_total_size_bytes": 0
+    },
+    {
+      "name": "images_metadata_artist_works",
+      "local_root": "data/current/images/metadata",
+      "r2_prefix": "data/current/images/metadata",
+      "include_globs": [
+        "artist_works_images_*.jsonl"
+      ],
+      "exclude_globs": [],
+      "ignore_global_excludes": false,
+      "local_count": 2,
+      "local_total_size_bytes": 5961568,
+      "remote_count": 2,
+      "remote_total_size_bytes": 4640364,
+      "local_only_count": 0,
+      "local_only_total_size_bytes": 0,
+      "size_mismatch_count": 2,
+      "size_mismatch_local_total_size_bytes": 5961568,
+      "size_mismatch_remote_total_size_bytes": 4640364,
+      "remote_only_count": 0,
+      "remote_only_total_size_bytes": 0
+    },
+    {
+      "name": "images_metadata_exhibitions",
+      "local_root": "data/current/images/metadata",
+      "r2_prefix": "data/current/images/metadata",
+      "include_globs": [
+        "exhibitions_images_*_*.jsonl"
+      ],
+      "exclude_globs": [],
+      "ignore_global_excludes": false,
+      "local_count": 2,
+      "local_total_size_bytes": 408955,
+      "remote_count": 2,
+      "remote_total_size_bytes": 360218,
+      "local_only_count": 0,
+      "local_only_total_size_bytes": 0,
+      "size_mismatch_count": 2,
+      "size_mismatch_local_total_size_bytes": 408955,
+      "size_mismatch_remote_total_size_bytes": 360218,
+      "remote_only_count": 0,
+      "remote_only_total_size_bytes": 0
+    },
+    {
+      "name": "images_cache_artist_works",
+      "local_root": "data/current/images/cache/artist_works_images",
+      "r2_prefix": "data/current/images/cache/artist_works_images",
+      "include_globs": [
+        "**/*"
+      ],
+      "exclude_globs": [],
+      "ignore_global_excludes": false,
+      "local_count": 4359,
+      "local_total_size_bytes": 352366897,
+      "remote_count": 4209,
+      "remote_total_size_bytes": 338853983,
+      "local_only_count": 150,
+      "local_only_total_size_bytes": 13512914,
+      "size_mismatch_count": 0,
+      "size_mismatch_local_total_size_bytes": 0,
+      "size_mismatch_remote_total_size_bytes": 0,
+      "remote_only_count": 0,
+      "remote_only_total_size_bytes": 0
+    },
+    {
+      "name": "images_cache_exhibition_works",
+      "local_root": "data/current/images/cache/exhibition_works_images",
+      "r2_prefix": "data/current/images/cache/exhibition_works_images",
+      "include_globs": [
+        "**/*"
+      ],
+      "exclude_globs": [],
+      "ignore_global_excludes": false,
+      "local_count": 297,
+      "local_total_size_bytes": 25754241,
+      "remote_count": 297,
+      "remote_total_size_bytes": 25754241,
+      "local_only_count": 0,
+      "local_only_total_size_bytes": 0,
+      "size_mismatch_count": 0,
+      "size_mismatch_local_total_size_bytes": 0,
+      "size_mismatch_remote_total_size_bytes": 0,
+      "remote_only_count": 0,
+      "remote_only_total_size_bytes": 0
+    },
+    {
+      "name": "vector_artists",
+      "local_root": "data/current/vector/artists",
+      "r2_prefix": "data/current/vector/artists",
+      "include_globs": [
+        "**/*"
+      ],
+      "exclude_globs": [],
+      "ignore_global_excludes": false,
+      "local_count": 5,
+      "local_total_size_bytes": 8491026,
+      "remote_count": 5,
+      "remote_total_size_bytes": 6722963,
+      "local_only_count": 0,
+      "local_only_total_size_bytes": 0,
+      "size_mismatch_count": 4,
+      "size_mismatch_local_total_size_bytes": 8491026,
+      "size_mismatch_remote_total_size_bytes": 6722963,
+      "remote_only_count": 0,
+      "remote_only_total_size_bytes": 0
+    },
+    {
+      "name": "vector_artist_works_images",
+      "local_root": "data/current/vector/artist_works_images",
+      "r2_prefix": "data/current/vector/artist_works_images",
+      "include_globs": [
+        "**/*"
+      ],
+      "exclude_globs": [],
+      "ignore_global_excludes": false,
+      "local_count": 6,
+      "local_total_size_bytes": 32866528,
+      "remote_count": 6,
+      "remote_total_size_bytes": 24789383,
+      "local_only_count": 0,
+      "local_only_total_size_bytes": 0,
+      "size_mismatch_count": 5,
+      "size_mismatch_local_total_size_bytes": 32866528,
+      "size_mismatch_remote_total_size_bytes": 24789383,
+      "remote_only_count": 0,
+      "remote_only_total_size_bytes": 0
+    }
+  ],
+  "would_upload": [
+    {
+      "r2_key": "data/current/enrichment/artists_enrichment_apply_output.jsonl",
+      "target_name": "enrichment_artists_outputs",
+      "reason": "SIZE_MISMATCH",
+      "size_bytes": 2791773,
+      "remote_size_bytes": 1915339,
+      "local_path": "data/current/enrichment/artists_enrichment_apply_output.jsonl"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__annabelle-agbo-godeau__4e302a80__img_01.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 90858,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__annabelle-agbo-godeau__4e302a80__img_01.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__annabelle-agbo-godeau__4e302a80__img_02.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 99479,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__annabelle-agbo-godeau__4e302a80__img_02.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__annabelle-agbo-godeau__4e302a80__img_03.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 82445,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__annabelle-agbo-godeau__4e302a80__img_03.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__annabelle-agbo-godeau__4e302a80__img_04.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 95547,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__annabelle-agbo-godeau__4e302a80__img_04.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__annabelle-agbo-godeau__4e302a80__img_05.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 70442,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__annabelle-agbo-godeau__4e302a80__img_05.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__asemahle-ntlonti-1__0d00205b__img_01.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 86494,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__asemahle-ntlonti-1__0d00205b__img_01.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__asemahle-ntlonti-1__0d00205b__img_02.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 82804,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__asemahle-ntlonti-1__0d00205b__img_02.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__asemahle-ntlonti-1__0d00205b__img_03.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 88492,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__asemahle-ntlonti-1__0d00205b__img_03.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__asemahle-ntlonti-1__0d00205b__img_04.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 89470,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__asemahle-ntlonti-1__0d00205b__img_04.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__asemahle-ntlonti-1__0d00205b__img_05.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 93866,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__asemahle-ntlonti-1__0d00205b__img_05.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__dineo-seshee-bopape__d433a144__img_01.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 86562,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__dineo-seshee-bopape__d433a144__img_01.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__dineo-seshee-bopape__d433a144__img_02.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 94452,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__dineo-seshee-bopape__d433a144__img_02.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__dineo-seshee-bopape__d433a144__img_03.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 99621,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__dineo-seshee-bopape__d433a144__img_03.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__dineo-seshee-bopape__d433a144__img_04.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 97635,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__dineo-seshee-bopape__d433a144__img_04.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__dineo-seshee-bopape__d433a144__img_05.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 93981,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__dineo-seshee-bopape__d433a144__img_05.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__donna-kukama__e7abaf2f__img_01.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 97176,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__donna-kukama__e7abaf2f__img_01.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__donna-kukama__e7abaf2f__img_02.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 88336,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__donna-kukama__e7abaf2f__img_02.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__donna-kukama__e7abaf2f__img_03.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 98289,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__donna-kukama__e7abaf2f__img_03.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__donna-kukama__e7abaf2f__img_04.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 96818,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__donna-kukama__e7abaf2f__img_04.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__donna-kukama__e7abaf2f__img_05.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 99657,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__donna-kukama__e7abaf2f__img_05.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__gerda-scheepers__7f39a446__img_01.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 63256,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__gerda-scheepers__7f39a446__img_01.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__gerda-scheepers__7f39a446__img_02.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 95631,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__gerda-scheepers__7f39a446__img_02.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__gerda-scheepers__7f39a446__img_03.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 82903,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__gerda-scheepers__7f39a446__img_03.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__gerda-scheepers__7f39a446__img_04.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 90194,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__gerda-scheepers__7f39a446__img_04.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__gerda-scheepers__7f39a446__img_05.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 83530,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__gerda-scheepers__7f39a446__img_05.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__gregory-olympio__133ce668__img_01.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 90427,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__gregory-olympio__133ce668__img_01.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__gregory-olympio__133ce668__img_02.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 75471,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__gregory-olympio__133ce668__img_02.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__gregory-olympio__133ce668__img_03.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 101509,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__gregory-olympio__133ce668__img_03.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__gregory-olympio__133ce668__img_04.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 72675,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__gregory-olympio__133ce668__img_04.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__gregory-olympio__133ce668__img_05.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 76967,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__gregory-olympio__133ce668__img_05.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__igshaan-adams__7694db69__img_01.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 95053,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__igshaan-adams__7694db69__img_01.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__igshaan-adams__7694db69__img_02.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 96577,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__igshaan-adams__7694db69__img_02.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__igshaan-adams__7694db69__img_03.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 100209,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__igshaan-adams__7694db69__img_03.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__igshaan-adams__7694db69__img_04.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 97743,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__igshaan-adams__7694db69__img_04.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__igshaan-adams__7694db69__img_05.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 98316,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__igshaan-adams__7694db69__img_05.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__james-webb__65e0214c__img_01.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 95032,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__james-webb__65e0214c__img_01.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__james-webb__65e0214c__img_02.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 97499,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__james-webb__65e0214c__img_02.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__james-webb__65e0214c__img_03.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 63601,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__james-webb__65e0214c__img_03.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__james-webb__65e0214c__img_04.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 98376,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__james-webb__65e0214c__img_04.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__james-webb__65e0214c__img_05.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 71192,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__james-webb__65e0214c__img_05.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__jared-ginsburg__aa62cbcb__img_01.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 87510,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__jared-ginsburg__aa62cbcb__img_01.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__jared-ginsburg__aa62cbcb__img_02.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 88400,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__jared-ginsburg__aa62cbcb__img_02.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__jared-ginsburg__aa62cbcb__img_03.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 95432,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__jared-ginsburg__aa62cbcb__img_03.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__jared-ginsburg__aa62cbcb__img_04.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 96068,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__jared-ginsburg__aa62cbcb__img_04.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__jared-ginsburg__aa62cbcb__img_05.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 99128,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__jared-ginsburg__aa62cbcb__img_05.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__kemang-wa-lehulere-1__c52c6fea__img_01.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 99572,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__kemang-wa-lehulere-1__c52c6fea__img_01.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__kemang-wa-lehulere-1__c52c6fea__img_02.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 100435,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__kemang-wa-lehulere-1__c52c6fea__img_02.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__kemang-wa-lehulere-1__c52c6fea__img_03.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 97023,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__kemang-wa-lehulere-1__c52c6fea__img_03.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__kemang-wa-lehulere-1__c52c6fea__img_04.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 95884,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__kemang-wa-lehulere-1__c52c6fea__img_04.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__kemang-wa-lehulere-1__c52c6fea__img_05.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 94414,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__kemang-wa-lehulere-1__c52c6fea__img_05.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__kresiah-mukwazhi-1__bba924b3__img_01.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 94335,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__kresiah-mukwazhi-1__bba924b3__img_01.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__kresiah-mukwazhi-1__bba924b3__img_02.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 96459,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__kresiah-mukwazhi-1__bba924b3__img_02.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__kresiah-mukwazhi-1__bba924b3__img_03.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 83317,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__kresiah-mukwazhi-1__bba924b3__img_03.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__kresiah-mukwazhi-1__bba924b3__img_04.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 101087,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__kresiah-mukwazhi-1__bba924b3__img_04.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__kresiah-mukwazhi-1__bba924b3__img_05.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 91938,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__kresiah-mukwazhi-1__bba924b3__img_05.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__kyle-morland__5b519c85__img_01.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 91477,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__kyle-morland__5b519c85__img_01.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__kyle-morland__5b519c85__img_02.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 59303,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__kyle-morland__5b519c85__img_02.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__kyle-morland__5b519c85__img_03.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 66643,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__kyle-morland__5b519c85__img_03.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__kyle-morland__5b519c85__img_04.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 62843,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__kyle-morland__5b519c85__img_04.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__kyle-morland__5b519c85__img_05.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 83053,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__kyle-morland__5b519c85__img_05.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__sabelo-mlangeni__c086f536__img_01.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 92741,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__sabelo-mlangeni__c086f536__img_01.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__sabelo-mlangeni__c086f536__img_02.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 101519,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__sabelo-mlangeni__c086f536__img_02.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__sabelo-mlangeni__c086f536__img_03.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 101103,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__sabelo-mlangeni__c086f536__img_03.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__sabelo-mlangeni__c086f536__img_04.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 95943,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__sabelo-mlangeni__c086f536__img_04.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__sabelo-mlangeni__c086f536__img_05.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 98760,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__sabelo-mlangeni__c086f536__img_05.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__zoe-paul-1__4be0b158__img_01.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 92211,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__zoe-paul-1__4be0b158__img_01.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__zoe-paul-1__4be0b158__img_02.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 95159,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__zoe-paul-1__4be0b158__img_02.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__zoe-paul-1__4be0b158__img_03.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 94484,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__zoe-paul-1__4be0b158__img_03.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__zoe-paul-1__4be0b158__img_04.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 98212,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__zoe-paul-1__4be0b158__img_04.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__zoe-paul-1__4be0b158__img_05.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 95633,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/blank__zoe-paul-1__4be0b158__img_05.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__andres-pereira-paz__fdfb5b3f__img_01.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 99095,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__andres-pereira-paz__fdfb5b3f__img_01.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__andres-pereira-paz__fdfb5b3f__img_02.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 86531,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__andres-pereira-paz__fdfb5b3f__img_02.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__andres-pereira-paz__fdfb5b3f__img_03.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 100335,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__andres-pereira-paz__fdfb5b3f__img_03.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__antonis-donef__11708bba__img_01.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 98335,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__antonis-donef__11708bba__img_01.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__brus-rubio-churay__cf78ee70__img_01.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 97984,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__brus-rubio-churay__cf78ee70__img_01.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__chonon-bensho__02610302__img_01.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 100053,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__chonon-bensho__02610302__img_01.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__chonon-bensho__02610302__img_02.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 97429,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__chonon-bensho__02610302__img_02.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__chonon-bensho__02610302__img_03.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 89082,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__chonon-bensho__02610302__img_03.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__chonon-bensho__02610302__img_04.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 100344,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__chonon-bensho__02610302__img_04.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__chonon-bensho__02610302__img_05.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 99779,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__chonon-bensho__02610302__img_05.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__daniel-de-la-barra__6aae3b25__img_01.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 95695,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__daniel-de-la-barra__6aae3b25__img_01.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__daniel-de-la-barra__6aae3b25__img_02.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 56494,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__daniel-de-la-barra__6aae3b25__img_02.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__daniel-de-la-barra__6aae3b25__img_03.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 52564,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__daniel-de-la-barra__6aae3b25__img_03.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__dario-escobar__72682ca6__img_01.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 64944,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__dario-escobar__72682ca6__img_01.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__david-zink-yi__e2a177fa__img_01.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 88604,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__david-zink-yi__e2a177fa__img_01.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__elena-damiani__f806d5af__img_01.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 98447,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__elena-damiani__f806d5af__img_01.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__elena-tejada-herrera__e3da93e1__img_01.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 84903,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__elena-tejada-herrera__e3da93e1__img_01.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__elena-tejada-herrera__e3da93e1__img_02.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 90404,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__elena-tejada-herrera__e3da93e1__img_02.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__elena-tejada-herrera__e3da93e1__img_03.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 96643,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__elena-tejada-herrera__e3da93e1__img_03.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__elena-tejada-herrera__e3da93e1__img_04.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 67536,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__elena-tejada-herrera__e3da93e1__img_04.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__fatima-rodrigo__da521f67__img_01.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 96053,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__fatima-rodrigo__da521f67__img_01.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__fernando-bryce__f5b83027__img_01.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 100797,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__fernando-bryce__f5b83027__img_01.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__fernando-bryce__f5b83027__img_02.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 101501,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__fernando-bryce__f5b83027__img_02.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__fernando-bryce__f5b83027__img_03.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 99810,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__fernando-bryce__f5b83027__img_03.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__fernando-bryce__f5b83027__img_04.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 95594,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__fernando-bryce__f5b83027__img_04.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__fernando-bryce__f5b83027__img_05.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 68696,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__fernando-bryce__f5b83027__img_05.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__gilda-mantilla__595faa08__img_01.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 94316,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__gilda-mantilla__595faa08__img_01.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__iosu-aramburu__af70b68d__img_01.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 97964,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__iosu-aramburu__af70b68d__img_01.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__iosu-aramburu__af70b68d__img_02.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 92125,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__iosu-aramburu__af70b68d__img_02.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__iosu-aramburu__af70b68d__img_03.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 92252,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__iosu-aramburu__af70b68d__img_03.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__iosu-aramburu__af70b68d__img_04.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 101085,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__iosu-aramburu__af70b68d__img_04.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__iosu-aramburu__af70b68d__img_05.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 98125,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__iosu-aramburu__af70b68d__img_05.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__ishmael-randall-weeks__ac163317__img_01.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 100216,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__ishmael-randall-weeks__ac163317__img_01.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__javier-bravo-de-rueda__bfb8a992__img_01.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 97552,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__javier-bravo-de-rueda__bfb8a992__img_01.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__javier-bravo-de-rueda__bfb8a992__img_02.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 97017,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__javier-bravo-de-rueda__bfb8a992__img_02.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__javier-bravo-de-rueda__bfb8a992__img_03.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 63761,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__javier-bravo-de-rueda__bfb8a992__img_03.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__javier-bravo-de-rueda__bfb8a992__img_04.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 41360,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__javier-bravo-de-rueda__bfb8a992__img_04.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__javier-bravo-de-rueda__bfb8a992__img_05.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 95545,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__javier-bravo-de-rueda__bfb8a992__img_05.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__jose-vera-matos__a79da57d__img_01.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 77381,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__jose-vera-matos__a79da57d__img_01.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__jose-vera-matos__a79da57d__img_02.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 100975,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__jose-vera-matos__a79da57d__img_02.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__jose-vera-matos__a79da57d__img_03.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 89252,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__jose-vera-matos__a79da57d__img_03.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__marco-pando__29eb2cae__img_01.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 102162,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__marco-pando__29eb2cae__img_01.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__maria-jose-murillo__7d5b91c7__img_01.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 97042,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__maria-jose-murillo__7d5b91c7__img_01.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__martha-vertiz__39e67a07__img_01.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 98090,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__martha-vertiz__39e67a07__img_01.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__maya-watanabe__ecf0b30a__img_01.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 91253,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__maya-watanabe__ecf0b30a__img_01.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__maya-watanabe__ecf0b30a__img_02.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 82435,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__maya-watanabe__ecf0b30a__img_02.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__maya-watanabe__ecf0b30a__img_03.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 52042,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__maya-watanabe__ecf0b30a__img_03.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__oscar-santillan__dd959da6__img_01.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 76117,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__oscar-santillan__dd959da6__img_01.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__oscar-santillan__dd959da6__img_02.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 72873,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__oscar-santillan__dd959da6__img_02.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__paolo-salvador__15238ae4__img_01.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 67334,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__paolo-salvador__15238ae4__img_01.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__paolo-salvador__15238ae4__img_02.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 72675,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__paolo-salvador__15238ae4__img_02.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__paolo-salvador__15238ae4__img_03.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 87120,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__paolo-salvador__15238ae4__img_03.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__paolo-salvador__15238ae4__img_04.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 83755,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__paolo-salvador__15238ae4__img_04.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__paolo-salvador__15238ae4__img_05.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 91301,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__paolo-salvador__15238ae4__img_05.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__rita-ponce-de-leon__d4cb9007__img_01.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 90061,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__rita-ponce-de-leon__d4cb9007__img_01.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__rita-ponce-de-leon__d4cb9007__img_02.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 75286,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__rita-ponce-de-leon__d4cb9007__img_02.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__rita-ponce-de-leon__d4cb9007__img_03.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 76325,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__rita-ponce-de-leon__d4cb9007__img_03.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__rita-ponce-de-leon__d4cb9007__img_04.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 93967,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__rita-ponce-de-leon__d4cb9007__img_04.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__rita-ponce-de-leon__d4cb9007__img_05.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 86746,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__rita-ponce-de-leon__d4cb9007__img_05.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__william-cordova__55913c42__img_01.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 99116,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__william-cordova__55913c42__img_01.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__william-cordova__55913c42__img_02.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 98541,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__william-cordova__55913c42__img_02.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__william-cordova__55913c42__img_03.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 97667,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__william-cordova__55913c42__img_03.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__william-cordova__55913c42__img_04.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 95409,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__william-cordova__55913c42__img_04.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__william-cordova__55913c42__img_05.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 94046,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__william-cordova__55913c42__img_05.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__ximena-garrido-lecca__e0288b76__img_01.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 88416,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/livia-benavides__ximena-garrido-lecca__e0288b76__img_01.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__alfonso-gonzalez-jr__92ecdb38__img_05.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 98808,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__alfonso-gonzalez-jr__92ecdb38__img_05.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__andrew-kerr__7a686bc1__img_03.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 97384,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__andrew-kerr__7a686bc1__img_03.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__dd-herschlein__9e52d886__img_03.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 98545,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__dd-herschlein__9e52d886__img_03.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__fin-simonetti__3469c89b__img_03.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 98813,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__fin-simonetti__3469c89b__img_03.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__hayley-tompkins__8d521b2e__img_03.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 97121,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__hayley-tompkins__8d521b2e__img_03.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__heidi-lau__2b947a42__img_04.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 99332,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__heidi-lau__2b947a42__img_04.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__jack-obrien__75e49d64__img_03.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 100559,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__jack-obrien__75e49d64__img_03.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__julie-beaufils__c4bf33b4__img_03.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 97467,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__julie-beaufils__c4bf33b4__img_03.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__kent-oconnor__ff8ab195__img_01.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 89596,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__kent-oconnor__ff8ab195__img_01.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__michelle-uckotter__e3cccbbc__img_03.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 98433,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__michelle-uckotter__e3cccbbc__img_03.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__olivia-van-kuiken__fb8ba8f7__img_01.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 96140,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__olivia-van-kuiken__fb8ba8f7__img_01.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__patricia-ayres__bacc17d6__img_05.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 97210,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__patricia-ayres__bacc17d6__img_05.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__sasha-gordon__68bd2bb5__img_03.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 97079,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__sasha-gordon__68bd2bb5__img_03.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__tarwuk__58a6a1a5__img_02.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 91061,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__tarwuk__58a6a1a5__img_02.jpg"
+    },
+    {
+      "r2_key": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__uri-aran__1a783516__img_05.jpg",
+      "target_name": "images_cache_artist_works",
+      "reason": "REMOTE_MISSING",
+      "size_bytes": 90338,
+      "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/matthew-brown__uri-aran__1a783516__img_05.jpg"
+    },
+    {
+      "r2_key": "data/current/images/metadata/artist_works_images_frieze_london.jsonl",
+      "target_name": "images_metadata_artist_works",
+      "reason": "SIZE_MISMATCH",
+      "size_bytes": 4470625,
+      "remote_size_bytes": 3555774,
+      "local_path": "data/current/images/metadata/artist_works_images_frieze_london.jsonl"
+    },
+    {
+      "r2_key": "data/current/images/metadata/artist_works_images_liste.jsonl",
+      "target_name": "images_metadata_artist_works",
+      "reason": "SIZE_MISMATCH",
+      "size_bytes": 1490943,
+      "remote_size_bytes": 1084590,
+      "local_path": "data/current/images/metadata/artist_works_images_liste.jsonl"
+    },
+    {
+      "r2_key": "data/current/images/metadata/exhibitions_images_frieze_london_2025.jsonl",
+      "target_name": "images_metadata_exhibitions",
+      "reason": "SIZE_MISMATCH",
+      "size_bytes": 240036,
+      "remote_size_bytes": 221236,
+      "local_path": "data/current/images/metadata/exhibitions_images_frieze_london_2025.jsonl"
+    },
+    {
+      "r2_key": "data/current/images/metadata/exhibitions_images_liste_2025.jsonl",
+      "target_name": "images_metadata_exhibitions",
+      "reason": "SIZE_MISMATCH",
+      "size_bytes": 168919,
+      "remote_size_bytes": 138982,
+      "local_path": "data/current/images/metadata/exhibitions_images_liste_2025.jsonl"
+    },
+    {
+      "r2_key": "data/current/raw/artists_frieze_london_2025.jsonl",
+      "target_name": "raw_artists",
+      "reason": "SIZE_MISMATCH",
+      "size_bytes": 14210177,
+      "remote_size_bytes": 11140512,
+      "local_path": "data/current/raw/artists_frieze_london_2025.jsonl"
+    },
+    {
+      "r2_key": "data/current/raw/artists_liste_2025.jsonl",
+      "target_name": "raw_artists",
+      "reason": "SIZE_MISMATCH",
+      "size_bytes": 2977055,
+      "remote_size_bytes": 2207166,
+      "local_path": "data/current/raw/artists_liste_2025.jsonl"
+    },
+    {
+      "r2_key": "data/current/raw/exhibitions_frieze_london_2025.jsonl",
+      "target_name": "raw_exhibitions",
+      "reason": "SIZE_MISMATCH",
+      "size_bytes": 4837895,
+      "remote_size_bytes": 3775929,
+      "local_path": "data/current/raw/exhibitions_frieze_london_2025.jsonl"
+    },
+    {
+      "r2_key": "data/current/raw/exhibitions_liste_2025.jsonl",
+      "target_name": "raw_exhibitions",
+      "reason": "SIZE_MISMATCH",
+      "size_bytes": 2229116,
+      "remote_size_bytes": 1505791,
+      "local_path": "data/current/raw/exhibitions_liste_2025.jsonl"
+    },
+    {
+      "r2_key": "data/current/vector/artist_works_images/artist_works_images_artifact_manifest.json",
+      "target_name": "vector_artist_works_images",
+      "reason": "SIZE_MISMATCH",
+      "size_bytes": 3150,
+      "remote_size_bytes": 2045,
+      "local_path": "data/current/vector/artist_works_images/artist_works_images_artifact_manifest.json"
+    },
+    {
+      "r2_key": "data/current/vector/artist_works_images/artist_works_images_openclip_embeddings.npy",
+      "target_name": "vector_artist_works_images",
+      "reason": "SIZE_MISMATCH",
+      "size_bytes": 12634240,
+      "remote_size_bytes": 9494656,
+      "local_path": "data/current/vector/artist_works_images/artist_works_images_openclip_embeddings.npy"
+    },
+    {
+      "r2_key": "data/current/vector/artist_works_images/artist_works_images_openclip_id_map.jsonl",
+      "target_name": "vector_artist_works_images",
+      "reason": "SIZE_MISMATCH",
+      "size_bytes": 7589972,
+      "remote_size_bytes": 5796044,
+      "local_path": "data/current/vector/artist_works_images/artist_works_images_openclip_id_map.jsonl"
+    },
+    {
+      "r2_key": "data/current/vector/artist_works_images/artist_works_images_openclip_search_index.npy",
+      "target_name": "vector_artist_works_images",
+      "reason": "SIZE_MISMATCH",
+      "size_bytes": 12634240,
+      "remote_size_bytes": 9494656,
+      "local_path": "data/current/vector/artist_works_images/artist_works_images_openclip_search_index.npy"
+    },
+    {
+      "r2_key": "data/current/vector/artist_works_images/artist_works_images_vectorize_summary_2025.json",
+      "target_name": "vector_artist_works_images",
+      "reason": "SIZE_MISMATCH",
+      "size_bytes": 4926,
+      "remote_size_bytes": 1982,
+      "local_path": "data/current/vector/artist_works_images/artist_works_images_vectorize_summary_2025.json"
+    },
+    {
+      "r2_key": "data/current/vector/artists/artists_text_artifact_manifest.json",
+      "target_name": "vector_artists",
+      "reason": "SIZE_MISMATCH",
+      "size_bytes": 2272,
+      "remote_size_bytes": 2154,
+      "local_path": "data/current/vector/artists/artists_text_artifact_manifest.json"
+    },
+    {
+      "r2_key": "data/current/vector/artists/artists_text_index.npy",
+      "target_name": "vector_artists",
+      "reason": "SIZE_MISMATCH",
+      "size_bytes": 7772288,
+      "remote_size_bytes": 6156416,
+      "local_path": "data/current/vector/artists/artists_text_index.npy"
+    },
+    {
+      "r2_key": "data/current/vector/artists/artists_text_meta.jsonl",
+      "target_name": "vector_artists",
+      "reason": "SIZE_MISMATCH",
+      "size_bytes": 711678,
+      "remote_size_bytes": 560057,
+      "local_path": "data/current/vector/artists/artists_text_meta.jsonl"
+    },
+    {
+      "r2_key": "data/current/vector/artists/artists_text_vectorize_summary_2025.json",
+      "target_name": "vector_artists",
+      "reason": "SIZE_MISMATCH",
+      "size_bytes": 4788,
+      "remote_size_bytes": 4336,
+      "local_path": "data/current/vector/artists/artists_text_vectorize_summary_2025.json"
+    }
+  ],
+  "would_prune": []
+}

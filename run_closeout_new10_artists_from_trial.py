@@ -231,20 +231,23 @@ def resolve_enrichment_scope_key(
     return ("", "")
 
 
-def extract_trial_enrichment_source(trial_root: Path) -> dict[str, Any]:
-    artists_dir = trial_root / "eh" / "artists"
-    if not artists_dir.exists():
-        raise FileNotFoundError(f"Missing trial enrichment dir: {artists_dir}")
+def extract_trial_enrichment_source(trial_root: Path, *, category: str = "artists", target_year: int = TARGET_YEAR) -> dict[str, Any]:
+    category = str(category or "").strip()
+    if category not in {"artists", "exhibitions"}:
+        raise ValueError(f"unsupported_enrichment_category:{category}")
+    enrichment_dir = trial_root / "eh" / category
+    if not enrichment_dir.exists():
+        raise FileNotFoundError(f"Missing trial enrichment dir: {enrichment_dir}")
     nonempty_outputs = sorted(
-        (path for path in artists_dir.glob("artists_out_2025_*.jsonl") if path.stat().st_size > 0),
+        (path for path in enrichment_dir.glob(f"{category}_out_{target_year}_*.jsonl") if path.stat().st_size > 0),
         key=lambda path: path.stat().st_mtime,
     )
     if not nonempty_outputs:
-        raise FileNotFoundError(f"No non-empty trial artists apply output found in {artists_dir}")
+        raise FileNotFoundError(f"No non-empty trial {category} apply output found in {enrichment_dir}")
     output_path = nonempty_outputs[-1]
     stamp = output_path.stem.split("_")[-1]
-    summary_path = artists_dir / f"artists_summary_2025_{stamp}.json"
-    manifest_path = artists_dir / f"artists_manifest_2025_{stamp}.json"
+    summary_path = enrichment_dir / f"{category}_summary_{target_year}_{stamp}.json"
+    manifest_path = enrichment_dir / f"{category}_manifest_{target_year}_{stamp}.json"
     if not summary_path.exists():
         raise FileNotFoundError(f"Missing trial enrichment summary matching {output_path.name}")
     return {
@@ -843,6 +846,7 @@ def build_enrichment_summary(
     final_rows: list[dict[str, Any]],
     current_scoped_source_map: dict[tuple[str, str], tuple[str, str]],
     current_fallback_source_map: dict[str, tuple[str, str]],
+    category: str = "artists",
 ) -> dict[str, Any]:
     summary = dict(current_summary_before)
     final_status_counts = Counter(str(row.get("status") or "").strip() for row in final_rows)
@@ -854,7 +858,7 @@ def build_enrichment_summary(
         {
             "started_at": started_at,
             "completed_at": completed_at,
-            "category": "artists",
+            "category": category,
             "target_year": TARGET_YEAR,
             "execution_mode": "closeout_merge_from_trial",
             "delta_mode": "no_rerun_trial_to_current_bounded_merge",

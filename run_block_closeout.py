@@ -136,6 +136,16 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help=f"run_id for block closeout report (default: {DEFAULT_RUN_ID_PREFIX}_<UTCSTAMP>)",
     )
     parser.add_argument(
+        "--artists-raw-trial-root",
+        default="",
+        help="optional trial root for artist raw artifacts to be bounded-merged into current by scope",
+    )
+    parser.add_argument(
+        "--artists-image-metadata-trial-root",
+        default="",
+        help="optional trial root for artist image metadata artifacts to be bounded-merged into current by scope",
+    )
+    parser.add_argument(
         "--artists-enrichment-trial-root",
         default="",
         help="optional trial root for artist enrichment output/summary to be bounded-merged into current",
@@ -155,6 +165,16 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--exhibitions-raw-trial-root",
         default="",
         help="optional trial root for exhibition raw artifacts to be bounded-merged into current by scope",
+    )
+    parser.add_argument(
+        "--exhibitions-image-metadata-trial-root",
+        default="",
+        help="optional trial root for exhibition image metadata artifacts to be bounded-merged into current by scope",
+    )
+    parser.add_argument(
+        "--exhibitions-enrichment-trial-root",
+        default="",
+        help="optional trial root for exhibition enrichment output/summary to be bounded-merged into current",
     )
     parser.add_argument(
         "--plan-root",
@@ -222,6 +242,50 @@ def count_target_rows(path: Path, target_scope_keys: set[tuple[str, str]]) -> in
             if scope_key in target_scope_keys:
                 count += 1
     return count
+
+
+def normalize_enrichment_source_url(value: str) -> str:
+    return str(value or "").strip().rstrip("/")
+
+
+def enrichment_audit_key(row: dict[str, Any]) -> tuple[str, str, str] | None:
+    fair_slug = str(row.get("fair_slug") or "").strip().lower().replace("-", "_")
+    text_hash = str(row.get("text_hash") or row.get("enrich_input_text_hash") or row.get("record_id") or "").strip()
+    source_url = normalize_enrichment_source_url(str(row.get("source_url") or ""))
+    if not fair_slug or not source_url:
+        return None
+    return fair_slug, text_hash, source_url
+
+
+def canonicalize_applied_enrichment_rows(rows: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    rows_by_key: dict[tuple[str, str, str], dict[str, Any]] = {}
+    ordered_keys: list[tuple[str, str, str]] = []
+    skipped_non_applied = 0
+    skipped_missing_key = 0
+    duplicate_key_total = 0
+
+    for row in rows:
+        if str(row.get("status") or "").strip() != "APPLIED":
+            skipped_non_applied += 1
+            continue
+        key = enrichment_audit_key(row)
+        if key is None:
+            skipped_missing_key += 1
+            continue
+        if key in rows_by_key:
+            duplicate_key_total += 1
+        else:
+            ordered_keys.append(key)
+        rows_by_key[key] = dict(row)
+
+    canonical_rows = [rows_by_key[key] for key in ordered_keys]
+    return canonical_rows, {
+        "input_rows_total": len(rows),
+        "canonical_rows_total": len(canonical_rows),
+        "duplicate_key_total": duplicate_key_total,
+        "skipped_non_applied_total": skipped_non_applied,
+        "skipped_missing_key_total": skipped_missing_key,
+    }
 
 
 def build_resolved_current_source_paths(target_year: int) -> dict[str, dict[str, Any]]:
@@ -807,10 +871,18 @@ def mark_summary_for_closeout_plan(summary: dict[str, Any], *, apply: bool) -> d
 
 def build_mixed_source_trial_roots(args: argparse.Namespace) -> dict[str, Path]:
     out: dict[str, Path] = {}
+    artists_raw_root = resolve_optional_path(args.artists_raw_trial_root)
+    artists_image_metadata_root = resolve_optional_path(args.artists_image_metadata_trial_root)
     artists_enrichment_root = resolve_optional_path(args.artists_enrichment_trial_root)
     artists_text_vector_root = resolve_optional_path(args.artists_text_vector_trial_root)
     artist_image_vector_root = resolve_optional_path(args.artist_works_images_vector_trial_root)
     exhibitions_raw_root = resolve_optional_path(args.exhibitions_raw_trial_root)
+    exhibitions_image_metadata_root = resolve_optional_path(args.exhibitions_image_metadata_trial_root)
+    exhibitions_enrichment_root = resolve_optional_path(args.exhibitions_enrichment_trial_root)
+    if artists_raw_root is not None:
+        out["artists_raw"] = artists_raw_root
+    if artists_image_metadata_root is not None:
+        out["artists_image_metadata"] = artists_image_metadata_root
     if artists_enrichment_root is not None:
         out["artists_enrichment"] = artists_enrichment_root
     if artists_text_vector_root is not None:
@@ -819,6 +891,10 @@ def build_mixed_source_trial_roots(args: argparse.Namespace) -> dict[str, Path]:
         out["artist_works_images_vector"] = artist_image_vector_root
     if exhibitions_raw_root is not None:
         out["exhibitions_raw"] = exhibitions_raw_root
+    if exhibitions_image_metadata_root is not None:
+        out["exhibitions_image_metadata"] = exhibitions_image_metadata_root
+    if exhibitions_enrichment_root is not None:
+        out["exhibitions_enrichment"] = exhibitions_enrichment_root
     return out
 
 
@@ -849,6 +925,218 @@ def prepare_mixed_source_closeout_plan(
     current_paths = build_resolved_current_source_paths(target_year)
     staged_paths = build_staged_source_paths(stage_current_root, target_year)
     merge_plan: dict[str, Any] = {}
+
+    def merge_enrichment_trial_to_stage(
+        *,
+        category: str,
+        report_key: str,
+        current_key: str,
+        trial_root: Path,
+    ) -> None:
+        trial_source = extract_trial_enrichment_source(trial_root, category=category, target_year=target_year)
+        current_enrichment_rows = read_jsonl(Path(current_paths[current_key]["enrichment_output"]))
+        current_summary_before = (
+            read_json(Path(current_paths[current_key]["enrichment_summary"]))
+            if Path(current_paths[current_key]["enrichment_summary"]).exists()
+            else {}
+        )
+        current_scoped_source_map, current_fallback_source_map = build_source_scope_maps(
+            {fair_slug: read_jsonl(path) for fair_slug, path in current_paths[current_key]["raw"].items()}
+        )
+        trial_raw_paths = get_current_raw_paths(category, target_year, root=trial_root)
+        trial_scoped_source_map, trial_fallback_source_map = build_source_scope_maps(
+            {fair_slug: read_jsonl(path) for fair_slug, path in trial_raw_paths.items()}
+        )
+        retained_current_rows = [
+            dict(row)
+            for row in current_enrichment_rows
+            if resolve_enrichment_scope_key(
+                row,
+                scoped_source_map=current_scoped_source_map,
+                fallback_source_map=current_fallback_source_map,
+            )
+            not in target_scope_keys
+        ]
+        trial_rows_added = [
+            dict(row)
+            for row in read_jsonl(Path(trial_source["output_path"]))
+            if resolve_enrichment_scope_key(
+                row,
+                scoped_source_map=trial_scoped_source_map,
+                fallback_source_map=trial_fallback_source_map,
+            )
+            in target_scope_keys
+            and str(row.get("status") or "").strip() == "APPLIED"
+        ]
+        merged_rows, canonicalization = canonicalize_applied_enrichment_rows(retained_current_rows + trial_rows_added)
+        staged_scoped_source_map, staged_fallback_source_map = build_source_scope_maps(
+            {fair_slug: read_jsonl(path) for fair_slug, path in staged_paths[current_key]["raw"].items()}
+        )
+        final_target_rows_total = sum(
+            1
+            for row in merged_rows
+            if resolve_enrichment_scope_key(
+                row,
+                scoped_source_map=staged_scoped_source_map,
+                fallback_source_map=staged_fallback_source_map,
+            )
+            in target_scope_keys
+        )
+        summary_after = build_enrichment_summary(
+            started_at=utc_now_iso(),
+            completed_at=utc_now_iso(),
+            trial_root=trial_root,
+            current_output_path=Path(staged_paths[current_key]["enrichment_output"]),
+            current_summary_path=Path(staged_paths[current_key]["enrichment_summary"]),
+            current_summary_before=current_summary_before,
+            trial_source=trial_source,
+            targets=targets,
+            current_rows_before=current_enrichment_rows,
+            trial_rows_added=trial_rows_added,
+            final_rows=merged_rows,
+            current_scoped_source_map=current_scoped_source_map,
+            current_fallback_source_map=current_fallback_source_map,
+            category=category,
+        )
+        summary_after["current_runtime_canonicalization"] = dict(canonicalization)
+        summary_after = mark_summary_for_closeout_plan(summary_after, apply=apply)
+        write_jsonl_atomic(Path(staged_paths[current_key]["enrichment_output"]), merged_rows)
+        write_json_atomic(Path(staged_paths[current_key]["enrichment_summary"]), summary_after)
+        merge_plan[report_key] = {
+            "source_root": str(trial_root),
+            "trial_output_path": str(trial_source["output_path"]),
+            "trial_summary_path": str(trial_source["summary_path"]),
+            "current_rows_before": len(current_enrichment_rows),
+            "current_rows_after": len(merged_rows),
+            "trial_target_rows_added": len(trial_rows_added),
+            "retained_non_target_rows_total": len(retained_current_rows),
+            "final_target_rows_total": final_target_rows_total,
+            "canonicalization": dict(canonicalization),
+            "output_path": str(staged_paths[current_key]["enrichment_output"]),
+            "summary_path": str(staged_paths[current_key]["enrichment_summary"]),
+        }
+
+    if "artists_raw" in trial_roots:
+        trial_root = trial_roots["artists_raw"]
+        trial_raw_paths = get_current_raw_paths("artists", target_year, root=trial_root)
+        by_fair: dict[str, Any] = {}
+        current_target_rows_before_total = 0
+        trial_target_rows_total = 0
+        retained_non_target_rows_total = 0
+        final_rows_total = 0
+        for fair_slug, current_raw_path in current_paths["artist"]["raw"].items():
+            trial_raw_path = Path(trial_raw_paths[fair_slug])
+            if not trial_raw_path.exists():
+                raise FileNotFoundError(f"missing_trial_artist_raw:{fair_slug}:{trial_raw_path}")
+            current_rows = read_jsonl(Path(current_raw_path))
+            trial_rows = read_jsonl(trial_raw_path)
+            merged = merge_jsonl_rows_by_scope(
+                current_rows=current_rows,
+                trial_rows=trial_rows,
+                target_scope_keys=target_scope_keys,
+                label=f"artist_raw_{fair_slug}",
+            )
+            staged_raw_path = Path(staged_paths["artist"]["raw"][fair_slug])
+            write_jsonl_atomic(staged_raw_path, merged["final_rows"])
+            current_target_rows_before_total += int(merged["current_target_rows_total"])
+            trial_target_rows_total += int(merged["trial_target_rows_total"])
+            retained_non_target_rows_total += int(merged["retained_non_target_rows_total"])
+            final_rows_total += int(merged["final_rows_total"])
+            by_fair[fair_slug] = {
+                "current_path": str(current_raw_path),
+                "trial_path": str(trial_raw_path),
+                "output_path": str(staged_raw_path),
+                "current_target_rows_total": int(merged["current_target_rows_total"]),
+                "trial_target_rows_total": int(merged["trial_target_rows_total"]),
+                "retained_non_target_rows_total": int(merged["retained_non_target_rows_total"]),
+                "final_rows_total": int(merged["final_rows_total"]),
+            }
+        merge_plan["artist_raw"] = {
+            "source_root": str(trial_root),
+            "current_target_rows_before_total": current_target_rows_before_total,
+            "trial_target_rows_total": trial_target_rows_total,
+            "retained_non_target_rows_total": retained_non_target_rows_total,
+            "final_rows_total": final_rows_total,
+            "by_fair": by_fair,
+        }
+    else:
+        by_fair = {}
+        current_target_rows_before_total = 0
+        for fair_slug, current_raw_path in current_paths["artist"]["raw"].items():
+            current_target_rows = count_target_rows(Path(current_raw_path), target_scope_keys)
+            current_target_rows_before_total += int(current_target_rows)
+            by_fair[fair_slug] = {
+                "current_path": str(current_raw_path),
+                "output_path": str(staged_paths["artist"]["raw"][fair_slug]),
+                "current_target_rows_total": int(current_target_rows),
+            }
+        merge_plan["artist_raw"] = {
+            "source_root": "current",
+            "current_target_rows_before_total": current_target_rows_before_total,
+            "trial_target_rows_total": 0,
+            "by_fair": by_fair,
+        }
+
+    if "artists_image_metadata" in trial_roots:
+        trial_root = trial_roots["artists_image_metadata"]
+        trial_meta_paths = get_current_artist_image_meta_paths(root=trial_root)
+        by_fair = {}
+        current_target_rows_before_total = 0
+        trial_target_rows_total = 0
+        retained_non_target_rows_total = 0
+        final_rows_total = 0
+        for fair_slug, current_meta_path in current_paths["artist"]["image_metadata"].items():
+            trial_meta_path = Path(trial_meta_paths[fair_slug])
+            if not trial_meta_path.exists():
+                raise FileNotFoundError(f"missing_trial_artist_image_metadata:{fair_slug}:{trial_meta_path}")
+            current_rows = read_jsonl(Path(current_meta_path))
+            trial_rows = read_jsonl(trial_meta_path)
+            merged = merge_jsonl_rows_by_scope(
+                current_rows=current_rows,
+                trial_rows=trial_rows,
+                target_scope_keys=target_scope_keys,
+                label=f"artist_image_metadata_{fair_slug}",
+            )
+            staged_meta_path = Path(staged_paths["artist"]["image_metadata"][fair_slug])
+            write_jsonl_atomic(staged_meta_path, merged["final_rows"])
+            current_target_rows_before_total += int(merged["current_target_rows_total"])
+            trial_target_rows_total += int(merged["trial_target_rows_total"])
+            retained_non_target_rows_total += int(merged["retained_non_target_rows_total"])
+            final_rows_total += int(merged["final_rows_total"])
+            by_fair[fair_slug] = {
+                "current_path": str(current_meta_path),
+                "trial_path": str(trial_meta_path),
+                "output_path": str(staged_meta_path),
+                "current_target_rows_total": int(merged["current_target_rows_total"]),
+                "trial_target_rows_total": int(merged["trial_target_rows_total"]),
+                "retained_non_target_rows_total": int(merged["retained_non_target_rows_total"]),
+                "final_rows_total": int(merged["final_rows_total"]),
+            }
+        merge_plan["artist_image_metadata"] = {
+            "source_root": str(trial_root),
+            "current_target_rows_before_total": current_target_rows_before_total,
+            "trial_target_rows_total": trial_target_rows_total,
+            "retained_non_target_rows_total": retained_non_target_rows_total,
+            "final_rows_total": final_rows_total,
+            "by_fair": by_fair,
+        }
+    else:
+        by_fair = {}
+        current_target_rows_before_total = 0
+        for fair_slug, current_meta_path in current_paths["artist"]["image_metadata"].items():
+            current_target_rows = count_target_rows(Path(current_meta_path), target_scope_keys)
+            current_target_rows_before_total += int(current_target_rows)
+            by_fair[fair_slug] = {
+                "current_path": str(current_meta_path),
+                "output_path": str(staged_paths["artist"]["image_metadata"][fair_slug]),
+                "current_target_rows_total": int(current_target_rows),
+            }
+        merge_plan["artist_image_metadata"] = {
+            "source_root": "current",
+            "current_target_rows_before_total": current_target_rows_before_total,
+            "trial_target_rows_total": 0,
+            "by_fair": by_fair,
+        }
 
     if "exhibitions_raw" in trial_roots:
         trial_root = trial_roots["exhibitions_raw"]
@@ -911,74 +1199,74 @@ def prepare_mixed_source_closeout_plan(
             "by_fair": by_fair,
         }
 
-    if "artists_enrichment" in trial_roots:
-        trial_root = trial_roots["artists_enrichment"]
-        trial_source = extract_trial_enrichment_source(trial_root)
-        current_enrichment_rows = read_jsonl(Path(current_paths["artist"]["enrichment_output"]))
-        current_summary_before = (
-            read_json(Path(current_paths["artist"]["enrichment_summary"]))
-            if Path(current_paths["artist"]["enrichment_summary"]).exists()
-            else {}
-        )
-        current_scoped_source_map, current_fallback_source_map = build_source_scope_maps(
-            {fair_slug: read_jsonl(path) for fair_slug, path in current_paths["artist"]["raw"].items()}
-        )
-        trial_raw_paths = get_current_raw_paths("artists", target_year, root=trial_root)
-        trial_scoped_source_map, trial_fallback_source_map = build_source_scope_maps(
-            {fair_slug: read_jsonl(path) for fair_slug, path in trial_raw_paths.items()}
-        )
-        retained_current_rows = [
-            dict(row)
-            for row in current_enrichment_rows
-            if resolve_enrichment_scope_key(
-                row,
-                scoped_source_map=current_scoped_source_map,
-                fallback_source_map=current_fallback_source_map,
+    if "exhibitions_image_metadata" in trial_roots:
+        trial_root = trial_roots["exhibitions_image_metadata"]
+        trial_meta_paths = get_current_exhibitions_image_meta_paths(target_year, root=trial_root)
+        by_fair = {}
+        current_target_rows_before_total = 0
+        trial_target_rows_total = 0
+        retained_non_target_rows_total = 0
+        final_rows_total = 0
+        for fair_slug, current_meta_path in current_paths["exhibition"]["image_metadata"].items():
+            trial_meta_path = Path(trial_meta_paths[fair_slug])
+            if not trial_meta_path.exists():
+                raise FileNotFoundError(f"missing_trial_exhibition_image_metadata:{fair_slug}:{trial_meta_path}")
+            current_rows = read_jsonl(Path(current_meta_path))
+            trial_rows = read_jsonl(trial_meta_path)
+            merged = merge_jsonl_rows_by_scope(
+                current_rows=current_rows,
+                trial_rows=trial_rows,
+                target_scope_keys=target_scope_keys,
+                label=f"exhibition_image_metadata_{fair_slug}",
             )
-            not in target_scope_keys
-        ]
-        trial_rows_added = [
-            dict(row)
-            for row in read_jsonl(Path(trial_source["output_path"]))
-            if resolve_enrichment_scope_key(
-                row,
-                scoped_source_map=trial_scoped_source_map,
-                fallback_source_map=trial_fallback_source_map,
-            )
-            in target_scope_keys
-            and str(row.get("status") or "").strip() == "APPLIED"
-        ]
-        merged_rows = retained_current_rows + trial_rows_added
-        summary_after = build_enrichment_summary(
-            started_at=utc_now_iso(),
-            completed_at=utc_now_iso(),
-            trial_root=trial_root,
-            current_output_path=Path(staged_paths["artist"]["enrichment_output"]),
-            current_summary_path=Path(staged_paths["artist"]["enrichment_summary"]),
-            current_summary_before=current_summary_before,
-            trial_source=trial_source,
-            targets=targets,
-            current_rows_before=current_enrichment_rows,
-            trial_rows_added=trial_rows_added,
-            final_rows=merged_rows,
-            current_scoped_source_map=current_scoped_source_map,
-            current_fallback_source_map=current_fallback_source_map,
-        )
-        summary_after = mark_summary_for_closeout_plan(summary_after, apply=apply)
-        write_jsonl_atomic(Path(staged_paths["artist"]["enrichment_output"]), merged_rows)
-        write_json_atomic(Path(staged_paths["artist"]["enrichment_summary"]), summary_after)
-        merge_plan["artist_enrichment"] = {
+            staged_meta_path = Path(staged_paths["exhibition"]["image_metadata"][fair_slug])
+            write_jsonl_atomic(staged_meta_path, merged["final_rows"])
+            current_target_rows_before_total += int(merged["current_target_rows_total"])
+            trial_target_rows_total += int(merged["trial_target_rows_total"])
+            retained_non_target_rows_total += int(merged["retained_non_target_rows_total"])
+            final_rows_total += int(merged["final_rows_total"])
+            by_fair[fair_slug] = {
+                "current_path": str(current_meta_path),
+                "trial_path": str(trial_meta_path),
+                "output_path": str(staged_meta_path),
+                "current_target_rows_total": int(merged["current_target_rows_total"]),
+                "trial_target_rows_total": int(merged["trial_target_rows_total"]),
+                "retained_non_target_rows_total": int(merged["retained_non_target_rows_total"]),
+                "final_rows_total": int(merged["final_rows_total"]),
+            }
+        merge_plan["exhibition_image_metadata"] = {
             "source_root": str(trial_root),
-            "trial_output_path": str(trial_source["output_path"]),
-            "trial_summary_path": str(trial_source["summary_path"]),
-            "current_rows_before": len(current_enrichment_rows),
-            "current_rows_after": len(merged_rows),
-            "trial_target_rows_added": len(trial_rows_added),
-            "retained_non_target_rows_total": len(retained_current_rows),
-            "final_target_rows_total": len(merged_rows) - len(retained_current_rows),
-            "output_path": str(staged_paths["artist"]["enrichment_output"]),
-            "summary_path": str(staged_paths["artist"]["enrichment_summary"]),
+            "current_target_rows_before_total": current_target_rows_before_total,
+            "trial_target_rows_total": trial_target_rows_total,
+            "retained_non_target_rows_total": retained_non_target_rows_total,
+            "final_rows_total": final_rows_total,
+            "by_fair": by_fair,
         }
+    else:
+        by_fair = {}
+        current_target_rows_before_total = 0
+        for fair_slug, current_meta_path in current_paths["exhibition"]["image_metadata"].items():
+            current_target_rows = count_target_rows(Path(current_meta_path), target_scope_keys)
+            current_target_rows_before_total += int(current_target_rows)
+            by_fair[fair_slug] = {
+                "current_path": str(current_meta_path),
+                "output_path": str(staged_paths["exhibition"]["image_metadata"][fair_slug]),
+                "current_target_rows_total": int(current_target_rows),
+            }
+        merge_plan["exhibition_image_metadata"] = {
+            "source_root": "current",
+            "current_target_rows_before_total": current_target_rows_before_total,
+            "trial_target_rows_total": 0,
+            "by_fair": by_fair,
+        }
+
+    if "artists_enrichment" in trial_roots:
+        merge_enrichment_trial_to_stage(
+            category="artists",
+            report_key="artist_enrichment",
+            current_key="artist",
+            trial_root=trial_roots["artists_enrichment"],
+        )
     else:
         merge_plan["artist_enrichment"] = {
             "source_root": "current",
@@ -987,6 +1275,23 @@ def prepare_mixed_source_closeout_plan(
             "trial_target_rows_added": 0,
             "output_path": str(staged_paths["artist"]["enrichment_output"]),
             "summary_path": str(staged_paths["artist"]["enrichment_summary"]),
+        }
+
+    if "exhibitions_enrichment" in trial_roots:
+        merge_enrichment_trial_to_stage(
+            category="exhibitions",
+            report_key="exhibition_enrichment",
+            current_key="exhibition",
+            trial_root=trial_roots["exhibitions_enrichment"],
+        )
+    else:
+        merge_plan["exhibition_enrichment"] = {
+            "source_root": "current",
+            "current_rows_before": count_target_rows(Path(current_paths["exhibition"]["enrichment_output"]), target_scope_keys),
+            "current_rows_after": count_target_rows(Path(staged_paths["exhibition"]["enrichment_output"]), target_scope_keys),
+            "trial_target_rows_added": 0,
+            "output_path": str(staged_paths["exhibition"]["enrichment_output"]),
+            "summary_path": str(staged_paths["exhibition"]["enrichment_summary"]),
         }
 
     if "artists_text_vector" in trial_roots:
@@ -1111,10 +1416,16 @@ def prepare_mixed_source_closeout_plan(
         }
 
     scope_counts = build_scope_counts_from_paths(source_paths=staged_paths, target_scope_keys=target_scope_keys)
-    if "artist_enrichment" in merge_plan:
+    if "artist_enrichment" in merge_plan and "final_target_rows_total" in merge_plan["artist_enrichment"]:
         scope_counts["artist"]["enrichment_output_rows_total"] = int(
             merge_plan["artist_enrichment"].get("final_target_rows_total")
             or merge_plan["artist_enrichment"].get("trial_target_rows_added")
+            or 0
+        )
+    if "exhibition_enrichment" in merge_plan and "final_target_rows_total" in merge_plan["exhibition_enrichment"]:
+        scope_counts["exhibition"]["enrichment_output_rows_total"] = int(
+            merge_plan["exhibition_enrichment"].get("final_target_rows_total")
+            or merge_plan["exhibition_enrichment"].get("trial_target_rows_added")
             or 0
         )
     current_write_report = {

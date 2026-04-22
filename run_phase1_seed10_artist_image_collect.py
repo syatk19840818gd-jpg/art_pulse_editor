@@ -1865,11 +1865,10 @@ def extract_works_candidate_urls(detail_url: str, detail_html: str, max_links: i
 
     parsed_detail = urlparse(detail_url)
     detail_path = (parsed_detail.path or "").rstrip("/")
+    _append(detail_url, artist_scoped=True)
     if not detail_path.endswith("/works"):
         works_url = parsed_detail._replace(path=f"{detail_path}/works").geturl()
         _append(works_url, artist_scoped=True)
-    else:
-        _append(detail_url, artist_scoped=True)
 
     for match in A_TAG_RE.finditer(detail_html):
         tag_html = match.group(0)

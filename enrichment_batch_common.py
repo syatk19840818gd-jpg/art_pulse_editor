@@ -123,21 +123,31 @@ def build_materialized_current_runtime_rows(
     current_by_key: dict[Hashable, dict[str, Any]] = {}
     history_by_key: dict[Hashable, dict[str, Any]] = {}
     source_counts: Counter[str] = Counter()
+    current_applied_rows_seen = 0
+    current_duplicate_key_total = 0
+    history_applied_rows_seen = 0
+    history_duplicate_key_total = 0
 
     for row in current_rows:
         if str(row.get("status") or "").strip() != "APPLIED":
             continue
+        current_applied_rows_seen += 1
         key = enrichment_key_builder(row)
         if key is None:
             continue
+        if key in current_by_key:
+            current_duplicate_key_total += 1
         current_by_key[key] = dict(row)
 
     for row in history_rows:
         if str(row.get("status") or "").strip() != "APPLIED":
             continue
+        history_applied_rows_seen += 1
         key = enrichment_key_builder(row)
         if key is None:
             continue
+        if key in history_by_key:
+            history_duplicate_key_total += 1
         history_by_key[key] = dict(row)
 
     materialized_rows: list[dict[str, Any]] = []
@@ -162,8 +172,12 @@ def build_materialized_current_runtime_rows(
     return materialized_rows, {
         "raw_row_total": len(raw_rows_in_order),
         "raw_key_total": len(seen_keys),
+        "current_applied_rows_seen": current_applied_rows_seen,
         "current_applied_candidate_total": len(current_by_key),
+        "current_duplicate_key_total": current_duplicate_key_total,
+        "history_applied_rows_seen": history_applied_rows_seen,
         "history_applied_candidate_total": len(history_by_key),
+        "history_duplicate_key_total": history_duplicate_key_total,
         "materialized_row_total": len(materialized_rows),
         "materialized_source_counts": dict(source_counts),
         "materialized_missing_total": max(0, len(seen_keys) - len(materialized_rows)),
