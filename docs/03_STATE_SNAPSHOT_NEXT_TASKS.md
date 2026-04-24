@@ -8020,3 +8020,11 @@ TASK A-3A-CLOSE-1 実施結果（2026-02-27 / Adams and Ollman）
 - enrichment 適用出力は正規監査出力として整理済み。artists は 1459 件、exhibitions は 609 件。
 - artists の `rag_gellery_breakdown_master.xlsx` 1471 件との差分 12 件は、raw 重複 6 件 + 未適用元レコード 6 件で説明可能。
 - 次は次 block 再開判定待ち。次にやることは未定で、人間指示待ちとする。
+
+## 2026-04-24 現在地更新（Phase 3）
+- 現在地: Phase 3 の当該 block は工程23（docs同期）まで完了。
+- 直前 block の remote parity は current_required_rag_full post-check で 0差分を確認（would_upload=0 / would_prune=0 / missing=0 / remote_only=0 / size_mismatch=0）。
+- exhibitions 迂回処理は full stuck batch cancel、completed canary A/B 再利用、delta-only 75件（25+50）で回復し、apply 85件完了。
+- 運用固定: exhibition_text_only は非skip、exhibition_image_only のみ skip。
+- 状態固定: Silke Lindner は未skip維持、Petrine は skip 維持。
+- 次にやること: 次 block 再開判定から開始（本更新では次 block 未開始）。

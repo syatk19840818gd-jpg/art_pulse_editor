@@ -14,10 +14,10 @@ from gallery_skip_registry import (
     SKIPPED_GALLERIES_REGISTRY_PATH,
     SkipGalleryEntry,
     build_all_rag_zero_skip_entries,
-    build_exhibition_text_only_skip_entries,
+    build_exhibition_image_only_skip_entries,
     build_skip_lookup,
     is_all_rag_zero_target_row,
-    is_exhibition_text_only_target_row,
+    is_exhibition_image_only_target_row,
     load_skip_registry_entries,
     normalize_fair_slug,
     normalize_gallery_name,
@@ -77,8 +77,8 @@ GALLERY_LIST_PATHS_BY_FAIR = {
 }
 ALL_RAG_ZERO_SKIP_REASON = "all_rag_zero_auto_detected_in_block_closeout"
 ALL_RAG_ZERO_SKIP_EVIDENCE = "derived_from_closeout_scope_stats_target_gallery_rows"
-EXHIBITION_TEXT_ONLY_SKIP_REASON = "exhibition_text_only_auto_detected_in_block_closeout"
-EXHIBITION_TEXT_ONLY_SKIP_EVIDENCE = "derived_from_closeout_scope_stats_target_gallery_rows"
+EXHIBITION_IMAGE_ONLY_SKIP_REASON = "exhibition_image_only_auto_detected_in_block_closeout"
+EXHIBITION_IMAGE_ONLY_SKIP_EVIDENCE = "derived_from_closeout_scope_stats_target_gallery_rows"
 
 
 @dataclass(frozen=True)
@@ -791,13 +791,13 @@ def _build_skip_cleanup_projection(
     source_validation = build_scope_source_validation(targets=list(targets), stats=effective_stats)
     target_gallery_rows = _normalize_target_gallery_rows(source_validation.get("target_gallery_rows", []))
     all_rag_zero_detected_rows = [row for row in target_gallery_rows if is_all_rag_zero_target_row(row)]
-    exhibition_text_only_detected_rows = [row for row in target_gallery_rows if is_exhibition_text_only_target_row(row)]
+    exhibition_image_only_detected_rows = [row for row in target_gallery_rows if is_exhibition_image_only_target_row(row)]
     return {
         "effective_stats": effective_stats,
         "source_validation": source_validation,
         "target_gallery_rows": target_gallery_rows,
         "all_rag_zero_detected_rows": all_rag_zero_detected_rows,
-        "exhibition_text_only_detected_rows": exhibition_text_only_detected_rows,
+        "exhibition_image_only_detected_rows": exhibition_image_only_detected_rows,
     }
 
 
@@ -811,7 +811,7 @@ def execute_skip_registry_gallery_list_cleanup_contract(
     mode = "apply" if apply else "dry_run"
     target_gallery_rows = _normalize_target_gallery_rows(list(target_gallery_rows))
     all_rag_zero_detected_rows = [row for row in target_gallery_rows if is_all_rag_zero_target_row(row)]
-    exhibition_text_only_detected_rows = [row for row in target_gallery_rows if is_exhibition_text_only_target_row(row)]
+    exhibition_image_only_detected_rows = [row for row in target_gallery_rows if is_exhibition_image_only_target_row(row)]
     source_scope_file = str(current_write_report.get("targets_file") or "").strip()
     all_rag_zero_entries = build_all_rag_zero_skip_entries(
         target_gallery_rows=all_rag_zero_detected_rows,
@@ -820,16 +820,16 @@ def execute_skip_registry_gallery_list_cleanup_contract(
         source_scope_file=source_scope_file,
         evidence=ALL_RAG_ZERO_SKIP_EVIDENCE,
     )
-    exhibition_text_only_entries = build_exhibition_text_only_skip_entries(
-        target_gallery_rows=exhibition_text_only_detected_rows,
-        skip_reason=EXHIBITION_TEXT_ONLY_SKIP_REASON,
+    exhibition_image_only_entries = build_exhibition_image_only_skip_entries(
+        target_gallery_rows=exhibition_image_only_detected_rows,
+        skip_reason=EXHIBITION_IMAGE_ONLY_SKIP_REASON,
         run_id=str(run_id),
         source_scope_file=source_scope_file,
-        evidence=EXHIBITION_TEXT_ONLY_SKIP_EVIDENCE,
+        evidence=EXHIBITION_IMAGE_ONLY_SKIP_EVIDENCE,
     )
     combined_entries: list[SkipGalleryEntry] = []
     seen_scope_keys: set[tuple[str, str]] = set()
-    for entry in [*all_rag_zero_entries, *exhibition_text_only_entries]:
+    for entry in [*all_rag_zero_entries, *exhibition_image_only_entries]:
         if entry.scope_key in seen_scope_keys:
             continue
         seen_scope_keys.add(entry.scope_key)
@@ -844,7 +844,7 @@ def execute_skip_registry_gallery_list_cleanup_contract(
     target_fair_slugs = sorted(
         {
             normalize_fair_slug(str(row.get("fair_slug") or ""))
-            for row in [*all_rag_zero_detected_rows, *exhibition_text_only_detected_rows]
+            for row in [*all_rag_zero_detected_rows, *exhibition_image_only_detected_rows]
             if str(row.get("fair_slug") or "").strip()
         }
     )
@@ -898,7 +898,11 @@ def execute_skip_registry_gallery_list_cleanup_contract(
     elif apply:
         try:
             if combined_entries:
-                skip_registry_apply = upsert_skip_registry_entries(SKIPPED_GALLERIES_REGISTRY_PATH, combined_entries)
+                skip_registry_apply = upsert_skip_registry_entries(
+                    SKIPPED_GALLERIES_REGISTRY_PATH,
+                    combined_entries,
+                    official_apply=True,
+                )
                 skip_registry_apply["status"] = "applied"
             apply_lookup = build_skip_lookup(load_skip_registry_entries(SKIPPED_GALLERIES_REGISTRY_PATH))
             for fair_slug in target_fair_slugs:
@@ -911,6 +915,7 @@ def execute_skip_registry_gallery_list_cleanup_contract(
                         fair_slug=fair_slug,
                         lookup=apply_lookup,
                         apply=True,
+                        official_apply=True,
                     )
                 )
             apply_blocking_errors.extend(
@@ -937,18 +942,18 @@ def execute_skip_registry_gallery_list_cleanup_contract(
         "skip_evidence": ALL_RAG_ZERO_SKIP_EVIDENCE,
         "skip_reason_map": {
             "all_rag_zero": ALL_RAG_ZERO_SKIP_REASON,
-            "exhibition_text_only": EXHIBITION_TEXT_ONLY_SKIP_REASON,
+            "exhibition_image_only": EXHIBITION_IMAGE_ONLY_SKIP_REASON,
         },
         "skip_evidence_map": {
             "all_rag_zero": ALL_RAG_ZERO_SKIP_EVIDENCE,
-            "exhibition_text_only": EXHIBITION_TEXT_ONLY_SKIP_EVIDENCE,
+            "exhibition_image_only": EXHIBITION_IMAGE_ONLY_SKIP_EVIDENCE,
         },
         "source_scope_file": source_scope_file,
         "target_gallery_row_total": len(target_gallery_rows),
         "all_rag_zero_detected_count": len(all_rag_zero_detected_rows),
         "all_rag_zero_detected_rows": all_rag_zero_detected_rows,
-        "exhibition_text_only_detected_count": len(exhibition_text_only_detected_rows),
-        "exhibition_text_only_detected_rows": exhibition_text_only_detected_rows,
+        "exhibition_image_only_detected_count": len(exhibition_image_only_detected_rows),
+        "exhibition_image_only_detected_rows": exhibition_image_only_detected_rows,
         "skip_registry_plan": skip_registry_plan,
         "gallery_list_removal_plan": gallery_list_removal_plan,
         "skip_registry_apply": skip_registry_apply if apply else {},
@@ -1016,6 +1021,7 @@ def execute_closeout_with_breakdown_contract(
             target_year=int(target_year),
             run_id=str(run_id),
             apply=bool(apply),
+            official_apply=bool(apply),
             stats=skip_cleanup_projection["effective_stats"] if skip_cleanup_projection is not None else None,
         )
         if skip_cleanup_projection is not None:
@@ -1023,10 +1029,10 @@ def execute_closeout_with_breakdown_contract(
                 "source_of_truth": "current_formal_artifacts",
                 "target_gallery_row_total": len(skip_cleanup_projection["target_gallery_rows"]),
                 "all_rag_zero_detected_count": len(skip_cleanup_projection["all_rag_zero_detected_rows"]),
-                "exhibition_text_only_detected_count": len(skip_cleanup_projection["exhibition_text_only_detected_rows"]),
+                "exhibition_image_only_detected_count": len(skip_cleanup_projection["exhibition_image_only_detected_rows"]),
                 "detected_target_total": (
                     len(skip_cleanup_projection["all_rag_zero_detected_rows"])
-                    + len(skip_cleanup_projection["exhibition_text_only_detected_rows"])
+                    + len(skip_cleanup_projection["exhibition_image_only_detected_rows"])
                 ),
                 "pre_cleanup_target_gallery_rows": list(skip_cleanup_projection["target_gallery_rows"]),
             }
@@ -1118,3 +1124,4 @@ def execute_closeout_with_breakdown_contract(
         "skip_registry_gallery_list_cleanup": skip_registry_gallery_list_cleanup_report,
         "r2_sync": r2_report,
     }
+

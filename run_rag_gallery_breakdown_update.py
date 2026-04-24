@@ -23,6 +23,7 @@ from gallery_skip_registry import (
     is_all_rag_zero_target_row,
     is_exhibition_text_only_target_row,
     load_skip_registry_entries,
+    require_official_apply,
 )
 from phase2_art_pulse_config import (
     get_current_artist_image_meta_paths,
@@ -94,6 +95,11 @@ def parse_args() -> argparse.Namespace:
         "--apply",
         action="store_true",
         help="apply xlsx value updates; default is dry-run",
+    )
+    parser.add_argument(
+        "--official-apply",
+        action="store_true",
+        help="required for apply against official rag_gellery_breakdown_master.xlsx",
     )
     parser.add_argument(
         "--output-json",
@@ -448,6 +454,7 @@ def build_breakdown_update_report(
     target_year: int,
     run_id: str,
     apply: bool,
+    official_apply: bool = False,
     stats: dict[tuple[str, str], GalleryStats] | None = None,
 ) -> dict[str, Any]:
     effective_stats = stats if stats is not None else build_stats(int(target_year))
@@ -468,6 +475,12 @@ def build_breakdown_update_report(
             "before": {},
             "updates": [],
         }
+    if apply:
+        require_official_apply(
+            xlsx_path,
+            official_apply=official_apply,
+            operation="rag_gallery_breakdown_xlsx_update",
+        )
     before = read_xlsx_target_snapshot(xlsx_path, targets)
     wb = openpyxl.load_workbook(xlsx_path, keep_links=False)
     jst_today = datetime.now(ZoneInfo("Asia/Tokyo")).date()
@@ -564,6 +577,7 @@ def main() -> int:
         target_year=int(args.target_year),
         run_id=run_id,
         apply=bool(args.apply),
+        official_apply=bool(args.official_apply),
     )
     report["targets_csv"] = str(targets_csv_path)
     report["fixed_scope_check_bypassed"] = bool(args.allow_nonstandard_scope)

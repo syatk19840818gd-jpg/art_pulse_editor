@@ -1058,3 +1058,17 @@ Art Pulse 調整時の運用ルール
 - `data/current/enrichment/*_enrichment_apply_output*.jsonl` は、`current` に採用済みの enrichment 結果を示す正規監査出力とする。成功した `current` 採用 1 元レコード = 1 JSONL 行で扱い、同一 `fair_slug + text_hash + source_url` の二重追加を禁止する。
 - artists 正規監査出力は 1459 件、exhibitions 正規監査出力は 609 件。artists は `rag_gellery_breakdown_master.xlsx` の 1471 件と 12 件差があるが、raw 重複 6 件 + 未適用元レコード 6 件で説明可能であり、監査上の意味は整合している。
 - `current_required_rag_full` は plan / apply / post-check まで完了し、post-check は `would_upload=0` / `would_prune=0` で完了した。
+
+## 2026-04-24 Phase 3 block 完了ログ（工程18〜23）
+- 現在地: Phase 3 の当該 block は工程23（docs同期）まで完了。
+- 直前 block の remote parity は current_required_rag_full post-check で 0差分を確認（would_upload=0 / would_prune=0 / missing=0 / remote_only=0 / size_mismatch=0）。
+- exhibitions 迂回処理は full stuck batch cancel、completed canary A/B 再利用、delta-only 75件（25+50）で回復し、apply 85件完了。
+- 運用固定: exhibition_text_only は非skip、exhibition_image_only のみ skip。
+- 状態固定: Silke Lindner は未skip維持、Petrine は skip 維持。
+- 5（exhibitions image collect verify-first）で発生した公式更新副作用事故を起点に、verify-first で公式4ファイルを更新しない恒久ガードを導入して再発防止を固定。
+- 今後方針: enrichment は delta-only（既取得・既適用済みの再送禁止、未取得・欠損・未適用・失敗分のみ処理）。
+- 18. run_block_closeout apply（R2なし）完了。
+- 19. rag_gellery_breakdown_master.xlsx 人間確認 OK。
+- 20. current_required_rag_full plan 完了（would_upload=19 / would_prune=0 / missing=0 / remote_only=0 / size_mismatch=19）。
+- 21. current_required_rag_full apply 完了（uploaded_count=19 / deleted_count=0 / upload_failed_count=0 / delete_failed_count=0）。
+- 22. current_required_rag_full post-check 完了（would_upload=0 / would_prune=0 / missing=0 / remote_only=0 / size_mismatch=0）。

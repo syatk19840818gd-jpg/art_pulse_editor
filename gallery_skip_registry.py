@@ -8,7 +8,26 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Iterable
 
+PROJECT_ROOT = Path(__file__).resolve().parent
 SKIPPED_GALLERIES_REGISTRY_PATH = Path("data/gallery_lists/skipped_galleries_registry.csv")
+OFFICIAL_GALLERY_LIST_FRIEZE_LONDON_PATH = (
+    PROJECT_ROOT / "data" / "gallery_lists" / "gallery_list_frieze_london.csv"
+).resolve()
+OFFICIAL_GALLERY_LIST_LISTE_PATH = (
+    PROJECT_ROOT / "data" / "gallery_lists" / "gallery_list_liste.csv"
+).resolve()
+OFFICIAL_SKIPPED_GALLERIES_REGISTRY_PATH = (PROJECT_ROOT / SKIPPED_GALLERIES_REGISTRY_PATH).resolve()
+OFFICIAL_RAG_GALLERY_BREAKDOWN_XLSX_PATH = (
+    PROJECT_ROOT / "data" / "gallery_lists" / "rag_gellery_breakdown_master.xlsx"
+).resolve()
+OFFICIAL_MUTATION_PROTECTED_PATHS = frozenset(
+    {
+        OFFICIAL_GALLERY_LIST_FRIEZE_LONDON_PATH,
+        OFFICIAL_GALLERY_LIST_LISTE_PATH,
+        OFFICIAL_SKIPPED_GALLERIES_REGISTRY_PATH,
+        OFFICIAL_RAG_GALLERY_BREAKDOWN_XLSX_PATH,
+    }
+)
 REGISTRY_FIELDS = (
     "fair_slug",
     "gallery_name_en",
@@ -19,6 +38,29 @@ REGISTRY_FIELDS = (
     "evidence",
 )
 KNOWN_FAIR_SLUGS = {"frieze_london", "liste"}
+
+
+def resolve_repo_path(path: Path) -> Path:
+    if path.is_absolute():
+        return path.resolve()
+    return (PROJECT_ROOT / path).resolve()
+
+
+def is_official_mutation_protected_path(path: Path) -> bool:
+    return resolve_repo_path(path) in OFFICIAL_MUTATION_PROTECTED_PATHS
+
+
+def require_official_apply(
+    path: Path,
+    *,
+    official_apply: bool,
+    operation: str,
+) -> None:
+    resolved_path = resolve_repo_path(path)
+    if resolved_path in OFFICIAL_MUTATION_PROTECTED_PATHS and not official_apply:
+        raise RuntimeError(
+            f"official_apply_required_for_{operation}: {resolved_path}"
+        )
 
 
 def utc_now_iso() -> str:
@@ -46,8 +88,8 @@ def extract_gallery_name_en_from_list_cell(value: str) -> str:
     normalized = unicodedata.normalize("NFKC", text)
     if " (" in normalized:
         return normalized.split(" (", 1)[0].strip()
-    if "（" in text:
-        return text.split("（", 1)[0].strip()
+    if "（" in normalized:
+        return normalized.split("（", 1)[0].strip()
     return normalized.strip()
 
 
@@ -184,8 +226,16 @@ def is_skipped(
 def upsert_skip_registry_entries(
     path: Path,
     new_entries: Iterable[SkipGalleryEntry],
+    *,
+    official_apply: bool = False,
 ) -> dict[str, Any]:
-    existing_entries = load_skip_registry_entries(path)
+    resolved_path = resolve_repo_path(path)
+    require_official_apply(
+        resolved_path,
+        official_apply=official_apply,
+        operation="skip_registry_upsert",
+    )
+    existing_entries = load_skip_registry_entries(resolved_path)
     registry: dict[tuple[str, str], SkipGalleryEntry] = {entry.scope_key: entry for entry in existing_entries}
     added = 0
     updated = 0
@@ -222,15 +272,15 @@ def upsert_skip_registry_entries(
             normalize_gallery_name(item.gallery_name_en),
         ),
     )
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8", newline="") as handle:
+    resolved_path.parent.mkdir(parents=True, exist_ok=True)
+    with resolved_path.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=list(REGISTRY_FIELDS))
         writer.writeheader()
         for entry in final_entries:
             writer.writerow(entry.to_row())
 
     return {
-        "registry_path": str(path),
+        "registry_path": str(resolved_path),
         "added": added,
         "updated": updated,
         "unchanged": unchanged,
@@ -244,13 +294,15 @@ def remove_skipped_from_gallery_list_csv(
     fair_slug: str,
     lookup: dict[str, dict[Any, SkipGalleryEntry]],
     apply: bool = True,
+    official_apply: bool = False,
 ) -> dict[str, Any]:
     mode = "apply" if apply else "dry_run"
-    if not path.exists():
+    resolved_path = resolve_repo_path(path)
+    if not resolved_path.exists():
         return {
             "mode": mode,
             "status": "blocked_missing_gallery_list",
-            "gallery_list_path": str(path),
+            "gallery_list_path": str(resolved_path),
             "fair_slug": normalize_fair_slug(fair_slug),
             "removed_count": 0,
             "removed_galleries": [],
@@ -261,7 +313,7 @@ def remove_skipped_from_gallery_list_csv(
             "missing": True,
         }
     rows: list[list[str]] = []
-    with path.open("r", encoding="utf-8", newline="") as handle:
+    with resolved_path.open("r", encoding="utf-8", newline="") as handle:
         rows = list(csv.reader(handle))
     kept_rows: list[list[str]] = []
     removed_galleries: list[str] = []
@@ -279,13 +331,18 @@ def remove_skipped_from_gallery_list_csv(
         kept_rows.append(row)
     changed = len(kept_rows) != len(rows)
     if changed and apply:
-        with path.open("w", encoding="utf-8", newline="") as handle:
+        require_official_apply(
+            resolved_path,
+            official_apply=official_apply,
+            operation="gallery_list_cleanup",
+        )
+        with resolved_path.open("w", encoding="utf-8", newline="") as handle:
             writer = csv.writer(handle)
             writer.writerows(kept_rows)
     return {
         "mode": mode,
         "status": "applied" if apply else "planned",
-        "gallery_list_path": str(path),
+        "gallery_list_path": str(resolved_path),
         "fair_slug": normalize_fair_slug(fair_slug),
         "removed_count": len(removed_galleries),
         "removed_galleries": removed_galleries,
@@ -355,19 +412,22 @@ def is_exhibition_text_only_target_row(row: dict[str, Any]) -> bool:
 
     exhibition_text_count = counts["exhibition_count"]
     exhibition_image_count = counts["exhibition_image_count"]
-    exhibition_signal_total = exhibition_text_count + exhibition_image_count
-    if exhibition_signal_total <= 0:
-        return False
-    # 互換のため reason code 名は exhibition_text_only を維持しつつ、
-    # 実運用の generic 判定は「exhibition側が片側モダリティのみ」を対象にする。
-    if exhibition_text_count > 0 and exhibition_image_count > 0:
-        return False
-    return (
-        exhibition_text_count > 0 and exhibition_image_count == 0
-    ) or (
-        exhibition_text_count == 0 and exhibition_image_count > 0
-    )
+    return exhibition_text_count > 0 and exhibition_image_count == 0
 
+
+def is_exhibition_image_only_target_row(row: dict[str, Any]) -> bool:
+    counts = extract_target_row_counts(row)
+    artist_side_empty = (
+        counts["artist_count"] == 0
+        and counts["artist_image_rows"] == 0
+        and counts["artist_image_count"] == 0
+    )
+    if not artist_side_empty:
+        return False
+
+    exhibition_text_count = counts["exhibition_count"]
+    exhibition_image_count = counts["exhibition_image_count"]
+    return exhibition_text_count == 0 and exhibition_image_count > 0
 
 def _build_skip_entries_for_predicate(
     *,
@@ -440,3 +500,24 @@ def build_exhibition_text_only_skip_entries(
         detected_at=detected_at,
         evidence=evidence,
     )
+
+
+def build_exhibition_image_only_skip_entries(
+    *,
+    target_gallery_rows: Iterable[dict[str, Any]],
+    skip_reason: str,
+    run_id: str,
+    source_scope_file: str,
+    detected_at: str | None = None,
+    evidence: str = "",
+) -> list[SkipGalleryEntry]:
+    return _build_skip_entries_for_predicate(
+        target_gallery_rows=target_gallery_rows,
+        predicate=is_exhibition_image_only_target_row,
+        skip_reason=skip_reason,
+        run_id=run_id,
+        source_scope_file=source_scope_file,
+        detected_at=detected_at,
+        evidence=evidence,
+    )
+

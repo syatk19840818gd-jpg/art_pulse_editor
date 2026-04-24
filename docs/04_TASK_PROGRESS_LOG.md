@@ -6055,3 +6055,17 @@ _trash 運用方針:
 - 02 は疑問符連続・置換文字・NUL が検出されなかったため、この局所修復では変更していない。
 - 再発防止として、01 の全置換・全文再生成・大規模削除を禁止し、docs 更新は対象段落アンカーを指定した局所 patch のみとする。
 - `git diff --word-diff -- docs/...` で不自然な大量削除、章見出し数・主要段落数・文字数の急減、文字化け混入が出た場合は成功扱いにせず中止する。
+
+## 34. 2026-04-24 Phase 3 block 完了ログ（工程18〜23）
+- 5（exhibitions image collect verify-first）で発生した公式更新副作用事故を起点に、verify-first で公式4ファイルを更新しない恒久ガードを導入して再発防止を固定。
+- exhibitions enrichment は full batch 停滞を確認後、full batch を cancel、completed canary A/B を再利用、delta-only 75件を 25+50 に分割して前進。
+- completed output を再利用して exhibitions apply 85件を完了（重複再送なし）。
+- skip ルールを修正し、exhibition_text_only は非skip、exhibition_image_only のみ skip に統一。
+- 誤反映の Silke Lindner skip を戻し、未skip維持へ復帰。Petrine は skip 維持。
+- 18. run_block_closeout apply（R2なし）完了。
+- 19. rag_gellery_breakdown_master.xlsx 人間確認 OK。
+- 20. current_required_rag_full plan 完了（would_upload=19 / would_prune=0 / missing=0 / remote_only=0 / size_mismatch=19）。
+- 21. current_required_rag_full apply 完了（uploaded_count=19 / deleted_count=0 / upload_failed_count=0 / delete_failed_count=0）。
+- 22. current_required_rag_full post-check 完了（would_upload=0 / would_prune=0 / missing=0 / remote_only=0 / size_mismatch=0）。
+- 23. docs同期完了（本ログ反映）。
+- 今後方針: enrichment は delta-only（既取得・既適用済みの再送禁止、未取得・欠損・未適用・失敗分のみ処理）。
