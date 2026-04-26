@@ -236,6 +236,14 @@ def apply_global_font_styles() -> None:
         .st-key-ap_password_panel [data-testid="InputInstructions"] {
           display: none !important;
         }
+        .st-key-ap_password_submit_row [data-testid="stButton"] {
+          display: flex;
+          justify-content: center;
+        }
+        .st-key-ap_password_submit_row [data-testid="stButton"] > button {
+          margin-left: auto !important;
+          margin-right: auto !important;
+        }
         .about-panel {
           max-width: 1160px;
           margin: 0 auto;
@@ -3498,12 +3506,17 @@ def check_password() -> bool:
         return True
 
     def password_entered() -> None:
+        if st.session_state.get("password_correct"):
+            return
+
+        candidate = str(st.session_state.get("password", ""))
+        expected = str(_get_runtime_secret("APP_PASSWORD"))
+
         if hmac.compare_digest(
-            st.session_state.get("password", ""),
-            _get_runtime_secret("APP_PASSWORD"),
+            candidate,
+            expected,
         ):
             st.session_state["password_correct"] = True
-            st.session_state.pop("password", None)
         else:
             st.session_state["password_correct"] = False
 
@@ -3516,8 +3529,7 @@ def check_password() -> bool:
             label_visibility="collapsed",
             on_change=password_entered,
         )
-        _, button_col, _ = st.columns([1, 1, 1])
-        with button_col:
+        with st.container(key="ap_password_submit_row"):
             st.button("Enter", key="password_enter_button", on_click=password_entered)
         if st.session_state.get("password_correct") is False:
             st.error("パスワードが違います。")
