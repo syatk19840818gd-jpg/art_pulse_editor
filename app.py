@@ -220,14 +220,6 @@ def apply_global_font_styles() -> None:
         .ap-top-nav-open-gap {
           height: clamp(1rem, 2vw, 1.35rem);
         }
-        .ap-password-note {
-          margin: 0 0 0.9rem 0;
-          text-align: center;
-          color: var(--ap-text);
-          font-size: 0.875rem;
-          line-height: 1.6;
-          letter-spacing: 0.01em;
-        }
         .ap-password-label {
           margin: 0 0 0.45rem 0;
           text-align: center;
@@ -235,6 +227,14 @@ def apply_global_font_styles() -> None:
           font-size: 1rem;
           line-height: 1.35;
           letter-spacing: 0.01em;
+        }
+        .st-key-ap_password_panel {
+          max-width: min(100%, 640px);
+          margin-left: auto;
+          margin-right: auto;
+        }
+        .st-key-ap_password_panel [data-testid="InputInstructions"] {
+          display: none !important;
         }
         .about-panel {
           max-width: 1160px;
@@ -3504,30 +3504,20 @@ def check_password() -> bool:
         ):
             st.session_state["password_correct"] = True
             st.session_state.pop("password", None)
+            st.rerun()
         else:
             st.session_state["password_correct"] = False
 
-    _, center_col, _ = st.columns([1.5, 1.4, 1.5])
-    with center_col:
-        st.markdown('<p class="ap-password-note">閲覧にはパスワードが必要です。</p>', unsafe_allow_html=True)
+    with st.container(key="ap_password_panel"):
         st.markdown('<p class="ap-password-label">Password</p>', unsafe_allow_html=True)
-
-        with st.form("password_form", clear_on_submit=False):
-            st.text_input(
-                "Password",
-                type="password",
-                key="password",
-                label_visibility="collapsed",
-            )
-            _, button_col, _ = st.columns([1.4, 1.0, 1.4])
-            with button_col:
-                submitted = st.form_submit_button("Enter", use_container_width=True)
-
-        if submitted:
-            password_entered()
-            if st.session_state.get("password_correct"):
-                return True
-
+        st.text_input(
+            "Password",
+            type="password",
+            key="password",
+            label_visibility="collapsed",
+            on_change=password_entered,
+        )
+        st.button("Enter", key="password_enter_button", on_click=password_entered)
         if st.session_state.get("password_correct") is False:
             st.error("パスワードが違います。")
 
