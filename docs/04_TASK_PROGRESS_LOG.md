@@ -6069,3 +6069,15 @@ _trash 運用方針:
 - 22. current_required_rag_full post-check 完了（would_upload=0 / would_prune=0 / missing=0 / remote_only=0 / size_mismatch=0）。
 - 23. docs同期完了（本ログ反映）。
 - 今後方針: enrichment は delta-only（既取得・既適用済みの再送禁止、未取得・欠損・未適用・失敗分のみ処理）。
+
+## 35. 2026-04-26 Phase 3 block完了ログ（工程1～22 + R2再apply）
+- scope 10館（Frieze: Alison Jacques / Almine Rech / David Zwirner / Esther Schipper / Francesca Minini、Liste: 56 Henry / Sophie Tappeiner / Suprainfinit / Tabula Rasa Gallery / Tiwani Contemporary）でblockを完走。
+- raw反映: artists +425、exhibitions +129。
+- image metadata反映: artists +425、exhibitions +45。
+- enrichment反映: artists +425、exhibitions +129。current canonical は artists 2085、exhibitions 823 に到達。
+- artists text vector は 15a でdelta-only導線を確定し、`--delta-candidates-jsonl` 425件でapply。rowsは 1466→1891（failed=0、index_dim=1536）。
+- artist works images vector は trial 1628件生成後、Francesca Minini / Kate Spencer Stewart のduplicate cluster（4件）をtrial-only cleanupで keeper 1 / remove 3 に整理し、trial 1625件へ再整合。closeout merge後のcurrentは 7049→8674（index_dim=512）。
+- run_block_closeout verify-first は duplicate gate で一度HOLD、cleanup後の17再確認でGO、18 apply（R2なし）で current raw / image metadata / image cache / artist works images vector を反映完了。
+- R2同期（`current_required_rag_full`）: 20 plan で would_upload=19。21初回applyは通信/SSL系で 5成功/14失敗。21再実行は最新plan残差分に合わせて再applyし 7成功 / failed=0 / prune=0。22 post-check は would_upload=0 / would_prune=0 / remote_only=0 / size_mismatch=0 / missing local->R2=0。
+- 19. 更新済み `rag_gellery_breakdown_master.xlsx` の人間確認はOK。
+- 次工程: 23 docs同期（本追記）完了後は次block未開始、人間指示待ち。

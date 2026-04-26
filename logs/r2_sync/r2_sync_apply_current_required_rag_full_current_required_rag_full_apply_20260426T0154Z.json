@@ -1,0 +1,125 @@
+{
+  "artifact_kind": "r2_sync_apply",
+  "schema_version": "v2",
+  "generated_at": "2026-04-26T02:22:30Z",
+  "scope": "current_required_rag_full",
+  "run_id": "current_required_rag_full_apply_20260426T0154Z",
+  "bucket": "art-pulse-editor",
+  "sync_mode": "mirror",
+  "plan_log_path": "logs/r2_sync/r2_sync_plan_current_required_rag_full_current_required_rag_full_apply_20260426T0154Z.json",
+  "local_roots_missing": [],
+  "would_upload_count": 19,
+  "would_delete_count": 0,
+  "would_prune_count": 0,
+  "uploaded_count": 5,
+  "upload_failed_count": 14,
+  "deleted_count": 0,
+  "delete_failed_count": 0,
+  "delete_policy": "skipped_due_upload_failures",
+  "uploaded": [
+    {
+      "r2_key": "data/current/enrichment/exhibitions_enrichment_apply_output_2025.jsonl",
+      "local_path": "data/current/enrichment/exhibitions_enrichment_apply_output_2025.jsonl",
+      "size_bytes": 1332022,
+      "sha256": "bdb0b5df59cb35a1dae53eaae2347883f2b9b1170f5bd3369aa18f4660aef38a"
+    },
+    {
+      "r2_key": "data/current/vector/artist_works_images/artist_works_images_vectorize_summary_2025.json",
+      "local_path": "data/current/vector/artist_works_images/artist_works_images_vectorize_summary_2025.json",
+      "size_bytes": 4547,
+      "sha256": "5da96484bce1a24e30fb1ac0361e9c74e149f7218e1cb92cd01949f2396ef93f"
+    },
+    {
+      "r2_key": "data/current/vector/artists/artists_text_artifact_manifest.json",
+      "local_path": "data/current/vector/artists/artists_text_artifact_manifest.json",
+      "size_bytes": 937,
+      "sha256": "789c4ed6a72758c910fd09013dbd612268cbb53738cec8121415e5252612d5cc"
+    },
+    {
+      "r2_key": "data/current/vector/artists/artists_text_meta.jsonl",
+      "local_path": "data/current/vector/artists/artists_text_meta.jsonl",
+      "size_bytes": 1073238,
+      "sha256": "a4c0317d05f52b72a4bca644d8c0ac2f6340ee33676c97696999ad67e086039b"
+    },
+    {
+      "r2_key": "data/current/vector/artists/artists_text_vectorize_summary_2025.json",
+      "local_path": "data/current/vector/artists/artists_text_vectorize_summary_2025.json",
+      "size_bytes": 2273,
+      "sha256": "70b1de8f9f725f21f1c70702ea9c0b901c8831fcc50edeceee41c55e3edfdd0d"
+    }
+  ],
+  "upload_failed": [
+    {
+      "r2_key": "data/current/enrichment/artists_enrichment_apply_output.jsonl",
+      "local_path": "data/current/enrichment/artists_enrichment_apply_output.jsonl",
+      "error": "Could not connect to the endpoint URL: \"https://e312938c730e1dc37190476867bee5b4.r2.cloudflarestorage.com/art-pulse-editor/data/current/enrichment/artists_enrichment_apply_output.jsonl\""
+    },
+    {
+      "r2_key": "data/current/images/metadata/artist_works_images_frieze_london.jsonl",
+      "local_path": "data/current/images/metadata/artist_works_images_frieze_london.jsonl",
+      "error": "Could not connect to the endpoint URL: \"https://e312938c730e1dc37190476867bee5b4.r2.cloudflarestorage.com/art-pulse-editor/data/current/images/metadata/artist_works_images_frieze_london.jsonl\""
+    },
+    {
+      "r2_key": "data/current/images/metadata/artist_works_images_liste.jsonl",
+      "local_path": "data/current/images/metadata/artist_works_images_liste.jsonl",
+      "error": "Could not connect to the endpoint URL: \"https://e312938c730e1dc37190476867bee5b4.r2.cloudflarestorage.com/art-pulse-editor/data/current/images/metadata/artist_works_images_liste.jsonl\""
+    },
+    {
+      "r2_key": "data/current/images/metadata/exhibitions_images_frieze_london_2025.jsonl",
+      "local_path": "data/current/images/metadata/exhibitions_images_frieze_london_2025.jsonl",
+      "error": "Could not connect to the endpoint URL: \"https://e312938c730e1dc37190476867bee5b4.r2.cloudflarestorage.com/art-pulse-editor/data/current/images/metadata/exhibitions_images_frieze_london_2025.jsonl\""
+    },
+    {
+      "r2_key": "data/current/images/metadata/exhibitions_images_liste_2025.jsonl",
+      "local_path": "data/current/images/metadata/exhibitions_images_liste_2025.jsonl",
+      "error": "Could not connect to the endpoint URL: \"https://e312938c730e1dc37190476867bee5b4.r2.cloudflarestorage.com/art-pulse-editor/data/current/images/metadata/exhibitions_images_liste_2025.jsonl\""
+    },
+    {
+      "r2_key": "data/current/raw/artists_frieze_london_2025.jsonl",
+      "local_path": "data/current/raw/artists_frieze_london_2025.jsonl",
+      "error": "Could not connect to the endpoint URL: \"https://e312938c730e1dc37190476867bee5b4.r2.cloudflarestorage.com/art-pulse-editor/data/current/raw/artists_frieze_london_2025.jsonl\""
+    },
+    {
+      "r2_key": "data/current/raw/artists_liste_2025.jsonl",
+      "local_path": "data/current/raw/artists_liste_2025.jsonl",
+      "error": "Could not connect to the endpoint URL: \"https://e312938c730e1dc37190476867bee5b4.r2.cloudflarestorage.com/art-pulse-editor/data/current/raw/artists_liste_2025.jsonl\""
+    },
+    {
+      "r2_key": "data/current/raw/exhibitions_frieze_london_2025.jsonl",
+      "local_path": "data/current/raw/exhibitions_frieze_london_2025.jsonl",
+      "error": "Could not connect to the endpoint URL: \"https://e312938c730e1dc37190476867bee5b4.r2.cloudflarestorage.com/art-pulse-editor/data/current/raw/exhibitions_frieze_london_2025.jsonl\""
+    },
+    {
+      "r2_key": "data/current/raw/exhibitions_liste_2025.jsonl",
+      "local_path": "data/current/raw/exhibitions_liste_2025.jsonl",
+      "error": "SSL validation failed for https://e312938c730e1dc37190476867bee5b4.r2.cloudflarestorage.com/art-pulse-editor/data/current/raw/exhibitions_liste_2025.jsonl EOF occurred in violation of protocol (_ssl.c:2427)"
+    },
+    {
+      "r2_key": "data/current/vector/artist_works_images/artist_works_images_artifact_manifest.json",
+      "local_path": "data/current/vector/artist_works_images/artist_works_images_artifact_manifest.json",
+      "error": "SSL validation failed for https://e312938c730e1dc37190476867bee5b4.r2.cloudflarestorage.com/art-pulse-editor/data/current/vector/artist_works_images/artist_works_images_artifact_manifest.json EOF occurred in violation of protocol (_ssl.c:2427)"
+    },
+    {
+      "r2_key": "data/current/vector/artist_works_images/artist_works_images_openclip_embeddings.npy",
+      "local_path": "data/current/vector/artist_works_images/artist_works_images_openclip_embeddings.npy",
+      "error": "SSL validation failed for https://e312938c730e1dc37190476867bee5b4.r2.cloudflarestorage.com/art-pulse-editor/data/current/vector/artist_works_images/artist_works_images_openclip_embeddings.npy [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1006)"
+    },
+    {
+      "r2_key": "data/current/vector/artist_works_images/artist_works_images_openclip_id_map.jsonl",
+      "local_path": "data/current/vector/artist_works_images/artist_works_images_openclip_id_map.jsonl",
+      "error": "Could not connect to the endpoint URL: \"https://e312938c730e1dc37190476867bee5b4.r2.cloudflarestorage.com/art-pulse-editor/data/current/vector/artist_works_images/artist_works_images_openclip_id_map.jsonl\""
+    },
+    {
+      "r2_key": "data/current/vector/artist_works_images/artist_works_images_openclip_search_index.npy",
+      "local_path": "data/current/vector/artist_works_images/artist_works_images_openclip_search_index.npy",
+      "error": "SSL validation failed for https://e312938c730e1dc37190476867bee5b4.r2.cloudflarestorage.com/art-pulse-editor/data/current/vector/artist_works_images/artist_works_images_openclip_search_index.npy [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1006)"
+    },
+    {
+      "r2_key": "data/current/vector/artists/artists_text_index.npy",
+      "local_path": "data/current/vector/artists/artists_text_index.npy",
+      "error": "SSL validation failed for https://e312938c730e1dc37190476867bee5b4.r2.cloudflarestorage.com/art-pulse-editor/data/current/vector/artists/artists_text_index.npy EOF occurred in violation of protocol (_ssl.c:2427)"
+    }
+  ],
+  "deleted": [],
+  "delete_failed": []
+}

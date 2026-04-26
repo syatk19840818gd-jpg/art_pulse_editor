@@ -1072,3 +1072,11 @@ Art Pulse 調整時の運用ルール
 - 20. current_required_rag_full plan 完了（would_upload=19 / would_prune=0 / missing=0 / remote_only=0 / size_mismatch=19）。
 - 21. current_required_rag_full apply 完了（uploaded_count=19 / deleted_count=0 / upload_failed_count=0 / delete_failed_count=0）。
 - 22. current_required_rag_full post-check 完了（would_upload=0 / would_prune=0 / missing=0 / remote_only=0 / size_mismatch=0）。
+
+## 2026-04-26 docs同期索引（Phase 3 今回block）
+- 現在地: 今回blockは工程22（`current_required_rag_full post-check`）まで完了し、本工程23でdocs同期を実施。
+- scope 10館（Frieze 5 + Liste 5）で raw / image / enrichment / vector / closeout / R2 まで完了。
+- artists text vector は `--delta-candidates-jsonl` を標準導線とし、current raw 起点候補生成と `whole_current_rebuild` は通常blockで禁止。
+- artist works images vector は trial生成（1628）→ duplicate cleanup（1625）→ closeout merge（current 7049→8674）を標準導線として固定。
+- closeout duplicate gate 停止時は「trial-only cleanup → 17再確認 → 18 apply（R2なし）」で復帰する。
+- R2正式同期は `current_required_rag_full` の `plan → apply（--max-delete 0）→ post-check` を実施し、最終差分ゼロ（would_upload=0 / would_prune=0 / remote_only=0 / size_mismatch=0）を完了条件とする。

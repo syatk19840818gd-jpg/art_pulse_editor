@@ -8028,3 +8028,9 @@ TASK A-3A-CLOSE-1 実施結果（2026-02-27 / Adams and Ollman）
 - 運用固定: exhibition_text_only は非skip、exhibition_image_only のみ skip。
 - 状態固定: Silke Lindner は未skip維持、Petrine は skip 維持。
 - 次にやること: 次 block 再開判定から開始（本更新では次 block 未開始）。
+
+## 2026-04-26 現在地更新（Phase 3）
+- 現在地: 今回blockは工程22まで完了済みで、工程23（docs同期）を本更新で反映。
+- 到達点: current反映完了、`rag_gellery_breakdown_master.xlsx` 人間確認OK、`current_required_rag_full` post-check 差分ゼロ到達。
+- 補足: 21初回applyは通信/SSL系エラーで部分成功（5成功/14失敗）だったが、再apply 7件成功で解消済み。
+- 次にやること: 次blockは未開始。人間指示待ち（必要時は「1. 次block再開判定」から再開）。

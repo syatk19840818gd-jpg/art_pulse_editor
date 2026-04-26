@@ -362,10 +362,22 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         type=Path,
         help="CSV file with columns fair_slug,gallery_name_en for bounded repair mode.",
     )
+    parser.add_argument(
+        "--delta-candidates-jsonl",
+        type=Path,
+        help="optional delta candidates JSONL (fair_slug,gallery_name_en,source_url,text_hash,text,headline_ja...)",
+    )
+    parser.add_argument(
+        "--preflight-only",
+        action="store_true",
+        help="validate inputs and counts only; do not call embedding API and do not write artifacts",
+    )
     return parser.parse_args(argv)
 
 
 def require_vectorize_approval(args: argparse.Namespace) -> None:
+    if args.preflight_only:
+        return
     if str(args.approval_token or "").strip():
         return
     raise RuntimeError(
@@ -470,6 +482,67 @@ def build_embedding_candidates(
         raw_rows_scanned_total=raw_rows_scanned_total,
         raw_rows_target_total=raw_rows_target_total,
     )
+
+
+def build_embedding_candidates_from_delta_jsonl(delta_candidates_path: Path) -> CandidateBuildResult:
+    if not delta_candidates_path.exists():
+        raise FileNotFoundError(f"Missing delta candidates JSONL: {delta_candidates_path}")
+
+    counters: defaultdict[str, int] = defaultdict(int)
+    candidates: list[EmbeddingCandidate] = []
+    seen_source_keys: set[str] = set()
+    rows = read_jsonl(delta_candidates_path)
+
+    for row in rows:
+        fair_slug = str(row.get("fair_slug") or "").strip()
+        if not fair_slug or fair_slug not in RAW_INPUT_PATHS:
+            counters["skipped_invalid_fair_slug"] += 1
+            continue
+        candidate = build_candidate_from_row(
+            fair_slug=fair_slug,
+            row=row,
+            counters=counters,
+            seen_source_keys=seen_source_keys,
+        )
+        if candidate is None:
+            continue
+        candidates.append(candidate)
+
+    counters["input_total"] = len(candidates)
+    counters["raw_rows_total"] = len(rows)
+    counters["raw_rows_scanned_total"] = len(rows)
+    counters["delta_rows_total"] = len(rows)
+    return CandidateBuildResult(
+        candidates=candidates,
+        counters=counters,
+        raw_rows_scanned_total=len(rows),
+        raw_rows_target_total=len(rows),
+    )
+
+
+def partition_delta_candidates_against_existing(
+    candidates: list[EmbeddingCandidate],
+    existing_state: ExistingArtifactState,
+) -> tuple[list[EmbeddingCandidate], int]:
+    existing_source_keys: set[str] = set()
+    for row in existing_state.meta_rows:
+        existing_source_keys.add(
+            build_source_key(
+                str(row.get("fair_slug") or ""),
+                str(row.get("source_url") or ""),
+                str(row.get("text_hash") or ""),
+            )
+        )
+
+    to_embed: list[EmbeddingCandidate] = []
+    already_vectorized_total = 0
+    for candidate in candidates:
+        source_key = build_source_key(candidate.fair_slug, candidate.source_url, candidate.text_hash)
+        if source_key in existing_source_keys:
+            already_vectorized_total += 1
+            continue
+        to_embed.append(candidate)
+    return to_embed, already_vectorized_total
 
 
 def load_existing_artifact_state(*, allow_missing_base: bool = False) -> ExistingArtifactState:
@@ -798,27 +871,93 @@ def main(argv: list[str] | None = None) -> int:
     io_root = resolve_io_root(args.io_root)
     configure_runtime_paths(io_root)
     repair_targets = resolve_repair_targets(args.repair_target, args.repair_targets_file)
+    if args.delta_candidates_jsonl is not None and repair_targets:
+        raise ValueError("--delta-candidates-jsonl cannot be combined with --repair-target/--repair-targets-file")
     repair_scope_keys = {target.scope_key for target in repair_targets}
-    run_mode = "bounded_repair" if repair_targets else "whole_current_rebuild"
+    delta_candidates_path: Path | None = None
+    if args.delta_candidates_jsonl is not None:
+        delta_candidates_path = Path(args.delta_candidates_jsonl)
+        if not delta_candidates_path.is_absolute():
+            delta_candidates_path = (Path.cwd() / delta_candidates_path).resolve()
+    if delta_candidates_path is not None:
+        run_mode = "delta_candidates"
+    elif repair_targets:
+        run_mode = "bounded_repair"
+    else:
+        run_mode = "whole_current_rebuild"
 
     started_at = utc_now_iso()
     print(f"[START] artists_text vectorization at {started_at} mode={run_mode}")
 
-    raw_input_paths = select_raw_input_paths(repair_targets)
+    raw_input_paths: dict[str, Path]
+    existing_state_for_delta: ExistingArtifactState | None = None
+    delta_candidates_to_embed: list[EmbeddingCandidate] = []
+    already_vectorized_total = 0
+    if run_mode == "delta_candidates":
+        if delta_candidates_path is None:
+            raise RuntimeError("delta_candidates_path_missing")
+        raw_input_paths = {"delta_candidates_jsonl": delta_candidates_path}
+        candidate_build = build_embedding_candidates_from_delta_jsonl(delta_candidates_path)
+        existing_state_for_delta = load_existing_artifact_state(allow_missing_base=io_root is not None)
+        delta_candidates_to_embed, already_vectorized_total = partition_delta_candidates_against_existing(
+            candidate_build.candidates,
+            existing_state_for_delta,
+        )
+        candidate_build.counters["already_vectorized_total"] = already_vectorized_total
+        candidate_build.counters["delta_candidates_total"] = len(candidate_build.candidates)
+        candidate_build.counters["vectorize_candidate_total"] = len(delta_candidates_to_embed)
+        candidate_build.counters["input_total"] = len(delta_candidates_to_embed)
+    else:
+        raw_input_paths = select_raw_input_paths(repair_targets)
+        candidate_build = build_embedding_candidates(
+            raw_input_paths,
+            repair_scope_keys=repair_scope_keys if repair_scope_keys else None,
+        )
+
+    counters = candidate_build.counters
+    embedding_candidates = (
+        delta_candidates_to_embed if run_mode == "delta_candidates" else candidate_build.candidates
+    )
+
+    if args.preflight_only:
+        existing_meta_total = 0
+        if run_mode == "delta_candidates":
+            if existing_state_for_delta is None:
+                raise RuntimeError("delta_existing_state_missing")
+            existing_meta_total = len(existing_state_for_delta.meta_rows)
+        elif run_mode == "bounded_repair":
+            existing_state = load_existing_artifact_state(allow_missing_base=io_root is not None)
+            existing_meta_total = len(existing_state.meta_rows)
+        payload: dict[str, Any] = {
+            "status": "ok",
+            "run_mode": run_mode,
+            "target_year": TARGET_YEAR,
+            "rag_category": RAG_CATEGORY,
+            "raw_input_paths": {k: str(v) for k, v in raw_input_paths.items()},
+            "candidate_rows_total": len(candidate_build.candidates),
+            "vectorize_candidate_rows": len(embedding_candidates),
+            "already_vectorized_rows": int(counters.get("already_vectorized_total", 0)),
+            "existing_meta_rows": existing_meta_total,
+            "expected_after_rows": (
+                existing_meta_total + len(embedding_candidates)
+                if run_mode in {"bounded_repair", "delta_candidates"}
+                else len(embedding_candidates)
+            ),
+            "counters": dict(counters),
+            "delta_candidates_jsonl": str(delta_candidates_path) if delta_candidates_path is not None else "",
+            "api_called": False,
+            "artifacts_written": False,
+        }
+        print(json.dumps(payload, ensure_ascii=False))
+        return 0
 
     load_dotenv()
     model = os.getenv("TEXT_EMBEDDING_MODEL", EMBEDDING_MODEL_DEFAULT)
     api_key = get_gemini_api_key()
     client: genai.Client | None = genai.Client(api_key=api_key) if api_key else None
 
-    candidate_build = build_embedding_candidates(
-        raw_input_paths,
-        repair_scope_keys=repair_scope_keys if repair_scope_keys else None,
-    )
-
-    counters = candidate_build.counters
     embedding_run = generate_embeddings(
-        candidate_build.candidates,
+        embedding_candidates,
         client=client,
         model=model,
     )
@@ -855,6 +994,25 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     if run_mode == "bounded_repair":
+        final_meta_rows, vector_matrix, merge_counters = merge_artifacts(
+            retained_meta_rows=retained_meta_rows,
+            retained_vectors=retained_vectors,
+            repaired_meta_rows=embedding_run.meta_rows,
+            repaired_vectors=embedding_run.vectors,
+        )
+        counters.update(merge_counters)
+        final_failed_rows = retained_failed_rows + embedding_run.failed_rows
+        counters["existing_meta_rows_retained"] = len(retained_meta_rows)
+        counters["existing_failed_rows_retained"] = len(retained_failed_rows)
+    elif run_mode == "delta_candidates":
+        if existing_state_for_delta is None:
+            existing_state_for_delta = load_existing_artifact_state(allow_missing_base=io_root is not None)
+        partitioned = partition_existing_artifacts_for_repair(existing_state_for_delta, set())
+        retained_failed_rows = partitioned.retained_failed_rows
+        retained_meta_rows = partitioned.retained_meta_rows
+        retained_vectors = partitioned.retained_vectors
+        removed_meta_total = 0
+        removed_failed_total = 0
         final_meta_rows, vector_matrix, merge_counters = merge_artifacts(
             retained_meta_rows=retained_meta_rows,
             retained_vectors=retained_vectors,
@@ -915,11 +1073,16 @@ def main(argv: list[str] | None = None) -> int:
         artifact_totals=artifact_totals,
         counters=dict(counters),
     )
+    if run_mode == "delta_candidates":
+        summary["delta_candidates_jsonl"] = str(delta_candidates_path) if delta_candidates_path is not None else ""
+        summary["delta_candidates_total"] = len(candidate_build.candidates)
+        summary["already_vectorized_total"] = already_vectorized_total
+        summary["vectorize_candidate_total"] = len(embedding_candidates)
     write_json(SUMMARY_PATH, summary)
 
     print(
         "[DONE] artists_text vectorization complete. "
-        f"mode={run_mode} input_total={len(candidate_build.candidates)} "
+        f"mode={run_mode} input_total={len(embedding_candidates)} "
         f"embedded_total={embedded_total} final_meta_total={len(final_meta_rows)} "
         f"failed_total={len(final_failed_rows)}"
     )
