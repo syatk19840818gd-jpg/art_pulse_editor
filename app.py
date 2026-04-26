@@ -3504,7 +3504,6 @@ def check_password() -> bool:
         ):
             st.session_state["password_correct"] = True
             st.session_state.pop("password", None)
-            st.rerun()
         else:
             st.session_state["password_correct"] = False
 
@@ -3517,7 +3516,9 @@ def check_password() -> bool:
             label_visibility="collapsed",
             on_change=password_entered,
         )
-        st.button("Enter", key="password_enter_button", on_click=password_entered)
+        _, button_col, _ = st.columns([1, 1, 1])
+        with button_col:
+            st.button("Enter", key="password_enter_button", on_click=password_entered)
         if st.session_state.get("password_correct") is False:
             st.error("パスワードが違います。")
 
