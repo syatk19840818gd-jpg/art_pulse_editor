@@ -3433,6 +3433,43 @@ def render_phase2_sections() -> None:
         ("Gallery list", "gallery_list", render_gallery_list),
         ("About", "about", render_about),
     ]
+    open_key = "top_level_open_section"
+    pending_open_spinner_key = "top_level_open_section_spinner_pending"
+    current_open = str(st.session_state.get(open_key) or "")
+
+    st.markdown('<div class="ap-top-nav-list-spacer"></div>', unsafe_allow_html=True)
+
+    for label, slug, renderer in sections:
+        if st.button(
+            label,
+            key=f"top_level_section_button_{slug}",
+            use_container_width=True,
+            type="tertiary",
+        ):
+            next_open = "" if current_open == slug else slug
+            st.session_state[open_key] = next_open
+            st.session_state[pending_open_spinner_key] = next_open
+            st.rerun()
+
+        if str(st.session_state.get(open_key) or "") == slug:
+            with st.container(border=True):
+                show_opening_spinner = (
+                    str(st.session_state.get(pending_open_spinner_key) or "") == slug
+                )
+                opening_progress_line = st.empty() if show_opening_spinner else None
+                try:
+                    if opening_progress_line is not None:
+                        _render_progress_spinner(opening_progress_line, "少々お待ちください")
+                    renderer()
+                finally:
+                    if opening_progress_line is not None:
+                        opening_progress_line.empty()
+                    if (
+                        show_opening_spinner
+                        and str(st.session_state.get(pending_open_spinner_key) or "") == slug
+                    ):
+                        st.session_state[pending_open_spinner_key] = ""
+            st.markdown('<div class="ap-top-nav-open-gap"></div>', unsafe_allow_html=True)
 
 
 def check_password() -> bool:
@@ -3454,7 +3491,6 @@ def check_password() -> bool:
         else:
             st.session_state["password_correct"] = False
 
-    st.title("Art Pulse Editor")
     st.caption("閲覧にはパスワードが必要です。")
 
     st.text_input(
@@ -3472,12 +3508,12 @@ def check_password() -> bool:
 
 def main() -> None:
     st.set_page_config(page_title=APP_TITLE, layout="wide", initial_sidebar_state="collapsed")
+    apply_global_font_styles()
+    render_header()
 
     if not check_password():
         st.stop()
 
-    apply_global_font_styles()
-    render_header()
     render_phase2_sections()
 
 
