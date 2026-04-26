@@ -220,6 +220,22 @@ def apply_global_font_styles() -> None:
         .ap-top-nav-open-gap {
           height: clamp(1rem, 2vw, 1.35rem);
         }
+        .ap-password-note {
+          margin: 0 0 0.9rem 0;
+          text-align: center;
+          color: var(--ap-text);
+          font-size: 0.875rem;
+          line-height: 1.6;
+          letter-spacing: 0.01em;
+        }
+        .ap-password-label {
+          margin: 0 0 0.45rem 0;
+          text-align: center;
+          color: var(--ap-text);
+          font-size: 1rem;
+          line-height: 1.35;
+          letter-spacing: 0.01em;
+        }
         .about-panel {
           max-width: 1160px;
           margin: 0 auto;
@@ -3491,17 +3507,29 @@ def check_password() -> bool:
         else:
             st.session_state["password_correct"] = False
 
-    st.caption("閲覧にはパスワードが必要です。")
+    _, center_col, _ = st.columns([1.5, 1.4, 1.5])
+    with center_col:
+        st.markdown('<p class="ap-password-note">閲覧にはパスワードが必要です。</p>', unsafe_allow_html=True)
+        st.markdown('<p class="ap-password-label">Password</p>', unsafe_allow_html=True)
 
-    st.text_input(
-        "パスワード",
-        type="password",
-        on_change=password_entered,
-        key="password",
-    )
+        with st.form("password_form", clear_on_submit=False):
+            st.text_input(
+                "Password",
+                type="password",
+                key="password",
+                label_visibility="collapsed",
+            )
+            _, button_col, _ = st.columns([1.4, 1.0, 1.4])
+            with button_col:
+                submitted = st.form_submit_button("Enter", use_container_width=True)
 
-    if st.session_state.get("password_correct") is False:
-        st.error("パスワードが違います。")
+        if submitted:
+            password_entered()
+            if st.session_state.get("password_correct"):
+                return True
+
+        if st.session_state.get("password_correct") is False:
+            st.error("パスワードが違います。")
 
     return False
 
