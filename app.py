@@ -18,6 +18,7 @@ from phase2_art_pulse_config import PERSONAS
 from phase2_art_pulse_draft import generate_art_pulse_draft
 from phase2_art_pulse_readonly import build_art_pulse_overview
 from phase2_common_readonly import (
+    GALLERY_LIST_PATHS,
     resolve_current_exhibitions_available_years,
     resolve_current_artist_works_local_path,
 )
@@ -37,6 +38,7 @@ from phase2_advisor_readonly import (
     build_advisor_grounded_context,
 )
 from phase2_advisor_type2_execute import run_type2_gated_image_generation
+from gallery_skip_registry import SKIPPED_GALLERIES_REGISTRY_PATH
 from phase2_gallery_list_readonly import load_gallery_list_records_readonly
 from phase2_artist_search_readonly import (
     ARTIST_SEARCH_SUMMARY_MAX_CHARS,
@@ -1698,8 +1700,26 @@ def get_artist_search_data():
 
 
 @st.cache_data(show_spinner=False)
-def get_gallery_list_data():
+def get_gallery_list_data(_cache_signature: tuple[tuple[str, int, int], ...] = ()):
     return load_gallery_list_records_readonly()
+
+
+def _build_gallery_list_cache_signature() -> tuple[tuple[str, int, int], ...]:
+    paths = [
+        GALLERY_LIST_PATHS.get("frieze_london"),
+        GALLERY_LIST_PATHS.get("liste"),
+        SKIPPED_GALLERIES_REGISTRY_PATH,
+    ]
+    signature: list[tuple[str, int, int]] = []
+    for path in paths:
+        if path is None:
+            continue
+        try:
+            stat = path.stat()
+            signature.append((str(path), int(stat.st_mtime_ns), int(stat.st_size)))
+        except OSError:
+            signature.append((str(path), -1, -1))
+    return tuple(signature)
 
 
 def _exhibition_row_label(row: dict) -> str:
@@ -3304,7 +3324,7 @@ def render_gallery_list() -> None:
     _render_mode_explanation("取材ギャラリーリスト（知識のベース）")
 
     try:
-        data = get_gallery_list_data()
+        data = get_gallery_list_data(_build_gallery_list_cache_signature())
     except Exception as exc:
         st.error(f"Gallery list 読み込みエラー: {type(exc).__name__}: {exc}")
         return
