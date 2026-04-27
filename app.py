@@ -1700,7 +1700,8 @@ def get_artist_search_data():
 
 
 @st.cache_data(show_spinner=False)
-def get_gallery_list_data(_cache_signature: tuple[tuple[str, int, int], ...] = ()):
+def get_gallery_list_data(cache_signature: tuple[tuple[str, int, int], ...] = ()):
+    _ = cache_signature
     return load_gallery_list_records_readonly()
 
 
@@ -3324,7 +3325,7 @@ def render_gallery_list() -> None:
     _render_mode_explanation("取材ギャラリーリスト（知識のベース）")
 
     try:
-        data = get_gallery_list_data(_build_gallery_list_cache_signature())
+        data = get_gallery_list_data(cache_signature=_build_gallery_list_cache_signature())
     except Exception as exc:
         st.error(f"Gallery list 読み込みエラー: {type(exc).__name__}: {exc}")
         return
