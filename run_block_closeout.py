@@ -205,6 +205,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             "(formal R2 final sync remains the post-workbook current_required_rag_full lane)"
         ),
     )
+    parser.add_argument(
+        "--current-only",
+        action="store_true",
+        help=(
+            "limit execution to current write + duplicate gate only; skip skip-registry/gallery-list cleanup, "
+            "xlsx update, and R2 contract stages"
+        ),
+    )
     return parser.parse_args(argv)
 
 
@@ -1547,6 +1555,8 @@ def augment_block_closeout_report(
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
+    if args.current_only and args.r2_live_plan:
+        raise RuntimeError("--current-only cannot be combined with --r2-live-plan")
     require_live_closeout_approval(args)
     targets_path = resolve_path(args.targets_file)
     xlsx_path = resolve_path(args.xlsx_path)
@@ -1591,19 +1601,78 @@ def main(argv: list[str] | None = None) -> int:
         )
         r2_bundle = current_bundle
 
-    report = execute_closeout_with_breakdown_contract(
-        contract_name="block_closeout_unified",
-        apply=bool(args.apply),
-        run_id=run_id,
-        xlsx_path=xlsx_path,
-        target_year=target_year,
-        targets=targets,
-        current_write_callback=current_write_callback,
-        breakdown_stats_override=breakdown_stats,
-        r2_artifact_bundle=r2_bundle,
-        r2_execute_remote=bool(args.r2_live_plan or (args.apply and not args.no_r2_remote)),
-    )
-    report = augment_block_closeout_report(report=report, bundle=r2_bundle, targets_path=targets_path)
+    if args.current_only:
+        current_write_report = current_write_callback(bool(args.apply))
+        current_write_status = str(current_write_report.get("status") or "").strip() or (
+            "applied" if args.apply else "planned"
+        )
+        duplicate_audit = dict(current_write_report.get("artist_works_images_duplicate_audit", {}))
+        duplicate_status = str(duplicate_audit.get("status") or "").strip() or "unknown"
+        duplicate_clusters = int(duplicate_audit.get("duplicate_cluster_count") or 0)
+        block_status = (
+            "applied_current_only"
+            if args.apply and current_write_status == "applied" and duplicate_status == "passed"
+            else (
+                "blocked_current_only"
+                if args.apply
+                else ("planned_current_only" if duplicate_status == "passed" else "blocked_current_only")
+            )
+        )
+        report = {
+            "contract": {
+                "name": "block_closeout_unified",
+                "mode": "current_only_apply" if args.apply else "current_only_dry_run",
+                "run_id": run_id,
+                "target_year": target_year,
+                "target_total": len(targets),
+                "targets": [target.to_dict() for target in targets],
+                "block_completion_status": block_status,
+                "current_write_status": current_write_status,
+                "exhibition_images_current_status": str(current_write_report.get("exhibition_images_current_status") or ""),
+                "artist_works_images_openclip_current_status": str(
+                    current_write_report.get("artist_works_images_openclip_current_status") or ""
+                ),
+                "artist_works_images_duplicate_audit_status": duplicate_status,
+                "artist_works_images_duplicate_cluster_count": duplicate_clusters,
+                "skip_registry_gallery_list_cleanup_status": "skipped_current_only",
+                "xlsx_update_status": "skipped_current_only",
+                "r2_sync_status": "skipped_current_only",
+                "closeout_report_status": "generated",
+            },
+            "current_write": current_write_report,
+            "skip_registry_gallery_list_cleanup": {
+                "stage": "skip_registry_gallery_list_cleanup",
+                "mode": "current_only",
+                "status": "skipped_current_only",
+            },
+            "xlsx_update": {
+                "stage": "xlsx_update",
+                "mode": "current_only",
+                "status": "skipped_current_only",
+            },
+            "r2_sync": {
+                "stage": "r2_sync",
+                "mode": "current_only",
+                "status": "skipped_current_only",
+                "required_for_block_completion": False,
+                "remote_plan_executed": False,
+            },
+        }
+        report = augment_block_closeout_report(report=report, bundle=r2_bundle, targets_path=targets_path)
+    else:
+        report = execute_closeout_with_breakdown_contract(
+            contract_name="block_closeout_unified",
+            apply=bool(args.apply),
+            run_id=run_id,
+            xlsx_path=xlsx_path,
+            target_year=target_year,
+            targets=targets,
+            current_write_callback=current_write_callback,
+            breakdown_stats_override=breakdown_stats,
+            r2_artifact_bundle=r2_bundle,
+            r2_execute_remote=bool(args.r2_live_plan or (args.apply and not args.no_r2_remote)),
+        )
+        report = augment_block_closeout_report(report=report, bundle=r2_bundle, targets_path=targets_path)
 
     print(json.dumps(report, ensure_ascii=True, indent=2, default=str))
     return 0
