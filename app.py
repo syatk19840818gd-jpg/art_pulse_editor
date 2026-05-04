@@ -1599,6 +1599,39 @@ def _build_artist_card_html(row: dict, idx: int) -> str:
     )
 
 
+def _row_has_exhibition_card_image(row: dict) -> bool:
+    if str(row.get("image_direct_url") or "").strip():
+        return True
+    if str(row.get("image_preview_r2_key") or "").strip():
+        return True
+    if str(row.get("image_preview") or "").strip():
+        return True
+    reference_images = list(row.get("reference_images") or [])
+    if not reference_images:
+        return False
+    ref0 = reference_images[0] or {}
+    return any(
+        str(ref0.get(field) or "").strip()
+        for field in ("r2_key", "local_path", "image_url")
+    )
+
+
+def _row_has_artist_card_image(row: dict) -> bool:
+    preview_candidates = list(row.get("artist_image_preview_candidates") or [])
+    for candidate in preview_candidates:
+        if any(
+            str(candidate.get(field) or "").strip()
+            for field in ("r2_key", "local_path", "image_url")
+        ):
+            return True
+    return False
+
+
+def _demote_rows_without_images(rows: list[dict], has_image_fn) -> list[dict]:
+    # Keep existing relative order inside each group by using Python's stable sort.
+    return sorted(rows, key=lambda row: not bool(has_image_fn(row)))
+
+
 def _render_exhibition_result_cards(rows: list[dict], start_index: int = 1) -> None:
     cards: list[str] = []
     for idx, row in enumerate(rows, start=start_index):
@@ -2156,6 +2189,7 @@ def render_exhibition_search() -> None:
             max_chars=EXHIBITION_SEARCH_SUMMARY_MAX_CHARS,
         )
         display_rows.append(row_copy)
+    display_rows = _demote_rows_without_images(display_rows, _row_has_exhibition_card_image)
 
     page_rows, current_page, total_pages = _slice_rows_by_page(display_rows, page_key)
     page_start_index = (current_page - 1) * SEARCH_RESULTS_PAGE_SIZE + 1
@@ -2239,6 +2273,7 @@ def render_artist_search() -> None:
             max_chars=ARTIST_SEARCH_SUMMARY_MAX_CHARS,
         )
         display_rows.append(row_copy)
+    display_rows = _demote_rows_without_images(display_rows, _row_has_artist_card_image)
 
     page_rows, current_page, total_pages = _slice_rows_by_page(display_rows, page_key)
     page_start_index = (current_page - 1) * SEARCH_RESULTS_PAGE_SIZE + 1
