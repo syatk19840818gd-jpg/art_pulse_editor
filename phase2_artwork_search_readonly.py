@@ -23,13 +23,11 @@ from phase2_art_pulse_config import (
 from phase2_common_readonly import (
     FAIR_LABEL_TO_SLUG,
     FAIR_SLUG_TO_LABEL,
-    derive_current_artist_works_r2_key_from_local_path,
     hydrate_path_from_r2,
     resolve_current_artist_works_local_path,
     resolve_current_artist_works_artifact_paths,
     resolve_current_artist_works_image_meta_paths,
     safe_load_jsonl,
-    summarize_current_artist_works_cache_root,
 )
 
 ARTWORK_SEARCH_TOP_K_DEFAULT = 100
@@ -81,28 +79,6 @@ def _artifact_paths(target_year: int = TARGET_YEAR) -> dict[str, Path]:
     return resolve_current_artist_works_artifact_paths(target_year)
 
 
-def _path_signature(path: Path) -> tuple[str, int, int]:
-    try:
-        stat = path.stat()
-        return (str(path), int(getattr(stat, "st_mtime_ns", int(stat.st_mtime * 1e9))), int(stat.st_size))
-    except OSError:
-        return (str(path), -1, -1)
-
-
-def _build_artwork_search_artifact_signature(target_year: int = TARGET_YEAR) -> tuple:
-    paths = _artifact_paths(target_year)
-    metadata_paths = resolve_current_artist_works_image_meta_paths()
-    signed_paths = [
-        _path_signature(paths["id_map"]),
-        _path_signature(paths["embeddings"]),
-        _path_signature(paths["index"]),
-    ]
-    for fair_slug in sorted(metadata_paths.keys()):
-        signed_paths.append(_path_signature(metadata_paths[fair_slug]))
-    cache_root_summary = summarize_current_artist_works_cache_root(target_year=target_year)
-    return tuple(signed_paths + [cache_root_summary])
-
-
 def _record_quality(record: dict) -> int:
     return sum(
         1
@@ -135,8 +111,6 @@ def _stabilize_artwork_image_record(record: dict, *, resolve_local_path: bool = 
         row["local_path"] = str(row.get("local_path") or "").strip()
     row["r2_key"] = str(row.get("r2_key") or "").strip()
     row["image_url"] = str(row.get("image_url") or "").strip()
-    if not row["r2_key"]:
-        row["r2_key"] = derive_current_artist_works_r2_key_from_local_path(row.get("local_path"))
     if row["r2_key"] or row["image_url"] or row["local_path"]:
         return row
     return None
@@ -716,11 +690,7 @@ def _encode_image_query(image_bytes: bytes) -> np.ndarray:
     return _normalize_matrix(embedding)[0]
 
 
-def _load_existing_state(
-    target_year: int = TARGET_YEAR,
-    *,
-    cache_signature: tuple = (),
-) -> ArtworkSearchState | None:
+def _load_existing_state(target_year: int = TARGET_YEAR) -> ArtworkSearchState | None:
     paths = _artifact_paths(target_year)
     missing_artifacts = [name for name, path in paths.items() if not hydrate_path_from_r2(path)]
     if missing_artifacts:
@@ -738,24 +708,10 @@ def _load_existing_state(
         return None
     keep_positions: list[int] = []
     stabilized_records: list[dict] = []
-    undisplayable_contract_removed = 0
     for idx, row in enumerate(records):
         stabilized = _stabilize_artwork_image_record(row, resolve_local_path=False)
         if stabilized is None:
             continue
-        has_preview, resolved_local_path = _has_resolvable_preview(
-            stabilized,
-            cache_signature=cache_signature,
-        )
-        if not has_preview:
-            undisplayable_contract_removed += 1
-            continue
-        if resolved_local_path:
-            stabilized["local_path"] = resolved_local_path
-        if not str(stabilized.get("r2_key") or "").strip():
-            stabilized["r2_key"] = derive_current_artist_works_r2_key_from_local_path(
-                stabilized.get("local_path")
-            )
         keep_positions.append(idx)
         stabilized_records.append(stabilized)
     if not stabilized_records:
@@ -767,11 +723,6 @@ def _load_existing_state(
         warnings.append(
             "artwork_search_filtered_undisplayable_rows:"
             f" removed={len(records) - len(stabilized_records)}"
-        )
-    if undisplayable_contract_removed:
-        warnings.append(
-            "artwork_search_filtered_contract_violations:"
-            f" removed={int(undisplayable_contract_removed)}"
         )
     records = stabilized_records
     return ArtworkSearchState(
@@ -826,21 +777,15 @@ def _build_state_from_local_corpus(target_year: int = TARGET_YEAR) -> ArtworkSea
 
 
 @lru_cache(maxsize=4)
-def _load_or_build_artwork_search_state_cached(target_year: int, artifact_signature: tuple) -> ArtworkSearchState:
-    existing = _load_existing_state(target_year, cache_signature=artifact_signature)
+def _load_or_build_artwork_search_state_cached(target_year: int) -> ArtworkSearchState:
+    existing = _load_existing_state(target_year)
     if existing is not None:
         return existing
     return _build_state_from_local_corpus(target_year)
 
 
 def load_or_build_artwork_search_state(target_year: int = TARGET_YEAR) -> ArtworkSearchState:
-    normalized_year = int(target_year or TARGET_YEAR)
-    signature = _build_artwork_search_artifact_signature(normalized_year)
-    return _load_or_build_artwork_search_state_cached(normalized_year, signature)
-
-
-def get_artwork_search_artifact_signature(target_year: int = TARGET_YEAR) -> tuple:
-    return _build_artwork_search_artifact_signature(int(target_year or TARGET_YEAR))
+    return _load_or_build_artwork_search_state_cached(int(target_year or TARGET_YEAR))
 
 
 def _normalize_fair_filter(fair_filter: str) -> str:
@@ -865,11 +810,10 @@ def _has_http_image_url(value: str) -> bool:
     return url.startswith("http://") or url.startswith("https://")
 
 
-def _resolve_preview_local_path(row: dict, *, cache_signature: tuple = ()) -> str:
+def _resolve_preview_local_path(row: dict) -> str:
     local_path = resolve_current_artist_works_local_path(
         row.get("local_path"),
         fair_slug=str(row.get("fair_slug") or "").strip(),
-        cache_signature=cache_signature,
     )
     if not local_path:
         return ""
@@ -879,13 +823,11 @@ def _resolve_preview_local_path(row: dict, *, cache_signature: tuple = ()) -> st
         return ""
 
 
-def _has_resolvable_preview(row: dict, *, cache_signature: tuple = ()) -> tuple[bool, str]:
-    resolved_local_path = _resolve_preview_local_path(row, cache_signature=cache_signature)
+def _has_resolvable_preview(row: dict) -> tuple[bool, str]:
+    resolved_local_path = _resolve_preview_local_path(row)
     if resolved_local_path:
         return True, resolved_local_path
     if str(row.get("r2_key") or "").strip():
-        return True, ""
-    if derive_current_artist_works_r2_key_from_local_path(row.get("local_path")):
         return True, ""
     if _has_http_image_url(str(row.get("image_url") or "").strip()):
         return True, ""
@@ -897,8 +839,6 @@ def _score_rows(
     query_vectors: list[tuple[np.ndarray, float]],
     fair_filter: str,
     top_k: int,
-    *,
-    cache_signature: tuple = (),
 ) -> List[dict]:
     if not state.records or state.index_matrix.size == 0:
         return []
@@ -921,15 +861,10 @@ def _score_rows(
         pos_int = int(pos)
         corpus_idx = int(candidate_indices[pos_int])
         source_row = state.records[corpus_idx]
-        has_preview, resolved_local_path = _has_resolvable_preview(
-            source_row,
-            cache_signature=cache_signature,
-        )
+        has_preview, resolved_local_path = _has_resolvable_preview(source_row)
         row = dict(source_row)
         if resolved_local_path:
             row["local_path"] = resolved_local_path
-        if not str(row.get("r2_key") or "").strip():
-            row["r2_key"] = derive_current_artist_works_r2_key_from_local_path(row.get("local_path"))
         row["score"] = float(scores[pos_int])
         if has_preview:
             preview_rows.append(row)
@@ -952,9 +887,7 @@ def search_artwork_images_by_text(
     top_k: int = ARTWORK_SEARCH_TOP_K_DEFAULT,
     target_year: int = TARGET_YEAR,
 ) -> dict:
-    normalized_year = int(target_year or TARGET_YEAR)
-    cache_signature = get_artwork_search_artifact_signature(normalized_year)
-    state = load_or_build_artwork_search_state(normalized_year)
+    state = load_or_build_artwork_search_state(target_year)
     rewritten_query, query_warnings, rewrite_status = rewrite_japanese_query_for_artwork_search(query_text)
     query_vector = _encode_text_query(rewritten_query)
     return {
@@ -964,7 +897,6 @@ def search_artwork_images_by_text(
             [(query_vector, 1.0)],
             fair_filter,
             top_k,
-            cache_signature=cache_signature,
         ),
         "warnings": list(state.warnings) + query_warnings,
         "artifact_status": state.artifact_status,
@@ -981,9 +913,7 @@ def search_artwork_images_by_image(
     top_k: int = ARTWORK_SEARCH_TOP_K_DEFAULT,
     target_year: int = TARGET_YEAR,
 ) -> dict:
-    normalized_year = int(target_year or TARGET_YEAR)
-    cache_signature = get_artwork_search_artifact_signature(normalized_year)
-    state = load_or_build_artwork_search_state(normalized_year)
+    state = load_or_build_artwork_search_state(target_year)
     query_vector = _encode_image_query(image_bytes)
     return {
         "mode": "image",
@@ -992,7 +922,6 @@ def search_artwork_images_by_image(
             [(query_vector, 1.0)],
             fair_filter,
             top_k,
-            cache_signature=cache_signature,
         ),
         "warnings": list(state.warnings),
         "artifact_status": state.artifact_status,
