@@ -99,6 +99,25 @@ def _normalize_year(value: object) -> str:
     return text
 
 
+ARTIST_WORKS_CACHE_R2_PREFIX = "data/current/images/cache/artist_works_images/"
+
+
+def _derive_artist_works_r2_key_from_current_local_path(local_path: object) -> str:
+    path_text = str(local_path or "").strip()
+    if not path_text:
+        return ""
+    normalized = path_text.replace("\\", "/")
+    marker = ARTIST_WORKS_CACHE_R2_PREFIX
+    lowered = normalized.lower()
+    idx = lowered.find(marker)
+    if idx < 0:
+        return ""
+    suffix = normalized[idx + len(marker) :].lstrip("/")
+    if not suffix:
+        return ""
+    return f"{marker}{suffix}"
+
+
 def _stabilize_artwork_image_record(record: dict, *, resolve_local_path: bool = True) -> dict | None:
     row = dict(record)
     fair_slug = str(row.get("fair_slug") or "").strip()
@@ -110,6 +129,8 @@ def _stabilize_artwork_image_record(record: dict, *, resolve_local_path: bool = 
     else:
         row["local_path"] = str(row.get("local_path") or "").strip()
     row["r2_key"] = str(row.get("r2_key") or "").strip()
+    if not row["r2_key"]:
+        row["r2_key"] = _derive_artist_works_r2_key_from_current_local_path(row.get("local_path"))
     row["image_url"] = str(row.get("image_url") or "").strip()
     if row["r2_key"] or row["image_url"] or row["local_path"]:
         return row
