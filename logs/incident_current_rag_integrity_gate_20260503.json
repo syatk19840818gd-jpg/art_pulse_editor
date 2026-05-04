@@ -1,0 +1,144 @@
+{
+  "summary": {
+    "task_name": "21k. current RAG integrity gate verify-first",
+    "generated_at_utc": "2026-05-03T16:14:23.346983+00:00",
+    "status": "GO",
+    "cache_repair_total": 5222,
+    "path_rewrite_total": 10756,
+    "hold_reasons": []
+  },
+  "apply_log_summary": {
+    "cache_repair_total": 5222,
+    "path_rewrite_total": 10756,
+    "failed_total": 0,
+    "collision_total": 0,
+    "missing_new_path_total": 0,
+    "zero_size_total": 0
+  },
+  "runtime_trial_ref_summary": {
+    "raw": 0,
+    "enrichment_output": 0,
+    "artists_text_vector_meta": 0,
+    "artist_works_images_metadata": 0,
+    "exhibitions_images_metadata": 0,
+    "artist_works_images_vector_id_map": 0,
+    "summary_manifest_total": 49,
+    "summary_manifest_files": {
+      "data/current/enrichment/artists_enrichment_apply_summary.json": 12,
+      "data/current/enrichment/exhibitions_enrichment_apply_summary_2025.json": 12,
+      "data/current/vector/artists/artists_text_vectorize_summary_2025.json": 2,
+      "data/current/vector/artist_works_images/artist_works_images_artifact_manifest.json": 7,
+      "data/current/vector/artist_works_images/artist_works_images_vectorize_summary_2025.json": 16
+    }
+  },
+  "image_metadata_cache_integrity": {
+    "artist_works_images": {
+      "metadata_rows": 2308,
+      "metadata_image_refs": 9244,
+      "current_cache_exists": 9244,
+      "missing_current_cache": 0,
+      "zero_size": 0,
+      "trial_refs": 0,
+      "bad_prefix": 0,
+      "relative_current_paths": 4522,
+      "absolute_current_paths": 4722,
+      "cache_files_total": 9379,
+      "gallery_missing_top20": [],
+      "unique_referenced_cache_files": 9244,
+      "extra_unreferenced_cache_files": 135
+    },
+    "exhibitions_images": {
+      "metadata_rows": 499,
+      "metadata_image_refs": 499,
+      "current_cache_exists": 499,
+      "missing_current_cache": 0,
+      "zero_size": 0,
+      "trial_refs": 0,
+      "bad_prefix": 0,
+      "relative_current_paths": 159,
+      "absolute_current_paths": 340,
+      "cache_files_total": 499,
+      "gallery_missing_top20": [],
+      "unique_referenced_cache_files": 499,
+      "extra_unreferenced_cache_files": 0
+    }
+  },
+  "image_vector_cache_integrity": {
+    "artist_works_images": {
+      "id_map_rows": 9172,
+      "embeddings_rows": 9172,
+      "search_index_rows": 9172,
+      "index_dim": 512,
+      "id_map_current_cache_exists": 9172,
+      "missing_current_cache": 0,
+      "zero_size": 0,
+      "trial_refs": 0,
+      "bad_prefix": 0,
+      "relative_current_paths": 4502,
+      "absolute_current_paths": 4670,
+      "duplicate_image_id_total": 0,
+      "duplicate_source_key_total": 0,
+      "metadata_without_id_map": 72,
+      "id_map_without_metadata": 0
+    }
+  },
+  "text_enrichment_integrity": {
+    "raw_rows": {
+      "artists": 2375,
+      "exhibitions": 943
+    },
+    "enrichment_rows": {
+      "artists": 2363,
+      "exhibitions": 943
+    },
+    "required_field_missing": {
+      "artists_enrichment": {
+        "artist_name_kana": 0,
+        "headline_ja": 0,
+        "summary_ja": 0
+      },
+      "exhibitions_enrichment": {
+        "headline_ja": 0,
+        "summary_ja": 0
+      }
+    },
+    "runtime_trial_refs": {
+      "raw": 0,
+      "enrichment_output": 0
+    },
+    "artists_raw_without_enrichment": 6,
+    "artists_enrichment_without_raw": 0,
+    "exhibitions_raw_without_enrichment": 0,
+    "exhibitions_enrichment_without_raw": 0,
+    "exhibitions_summary_gt500": 1,
+    "exhibitions_summary_gt550": 0
+  },
+  "artists_text_vector_integrity": {
+    "meta_rows": 2169,
+    "index_rows": 2169,
+    "index_dim": 1536,
+    "manifest_file_entries": 2,
+    "failed_rows": 0,
+    "runtime_trial_refs": 0,
+    "raw_without_enrichment": 6,
+    "enrichment_without_raw": 0,
+    "vector_matches_enrichment": 2164,
+    "enrichment_without_vector": 199,
+    "vector_without_enrichment": 5
+  },
+  "r2_next_plan_required": {
+    "required": true,
+    "reason": "21c/21e/21h/21j repairs are not yet reflected in R2. After gate and closeout current-only hardening, take a fresh current_required_rag_full plan.",
+    "do_not_reuse_old_20_21_logs": true
+  },
+  "next_task_recommendation": {
+    "if_go": "21l. closeout current-only cache merge ???? verify-first",
+    "why": "Before returning to R2 sync, verify the current-only closeout path also promotes cache binaries into current so this incident does not recur in the next block.",
+    "after_21l": [
+      "latest current_required_rag_full plan",
+      "apply",
+      "post-check",
+      "docs sync"
+    ]
+  }
+}

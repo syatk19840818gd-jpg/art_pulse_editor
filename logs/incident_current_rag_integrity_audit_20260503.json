@@ -1,0 +1,2322 @@
+{
+  "generated_at_utc": "2026-05-03T03:50:42.271868+00:00",
+  "repo_state": {
+    "branch": "main",
+    "head_commit": "f7af339 add current-only closeout apply option",
+    "git_status_short": [
+      "?? logs/_incident_current_rag_integrity_audit_20260503.py",
+      "?? logs/r2_sync/r2_sync_apply_current_required_rag_full_p3n10r2_current_required_rag_full_apply_20260503.json",
+      "?? logs/r2_sync/r2_sync_plan_current_required_rag_full_p3n10r2_current_required_rag_full_apply_20260503.json",
+      "?? logs/r2_sync/r2_sync_plan_current_required_rag_full_p3n10r2_current_required_rag_full_plan_20260503.json",
+      "?? logs/r2_sync/r2_sync_run_p3n10r2_current_required_rag_full_apply_20260503.json"
+    ],
+    "git_status_current_docs_gallery_lists": [],
+    "postcheck_logs_for_p3n10r2": []
+  },
+  "r2_scope": {
+    "target_name": "current_required_rag_full",
+    "target_names": [
+      "raw_artists",
+      "raw_exhibitions",
+      "enrichment_artists_outputs",
+      "enrichment_exhibitions_outputs",
+      "images_metadata_artist_works",
+      "images_metadata_exhibitions",
+      "images_cache_artist_works",
+      "images_cache_exhibition_works",
+      "vector_artists",
+      "vector_artist_works_images"
+    ],
+    "excluded_expected": [
+      "docs",
+      "data/history",
+      "data/runtime",
+      "_trial",
+      "data/gallery_lists"
+    ],
+    "important_current_families_not_targeted": [
+      "ledgers/artist_works_images_known_unresolvable.json"
+    ]
+  },
+  "inventory": {
+    "raw": {
+      "artists_frieze_london": {
+        "path": "data/current/raw/artists_frieze_london_2025.jsonl",
+        "rows": 1649
+      },
+      "artists_liste": {
+        "path": "data/current/raw/artists_liste_2025.jsonl",
+        "rows": 726
+      },
+      "exhibitions_frieze_london": {
+        "path": "data/current/raw/exhibitions_frieze_london_2025.jsonl",
+        "rows": 573
+      },
+      "exhibitions_liste": {
+        "path": "data/current/raw/exhibitions_liste_2025.jsonl",
+        "rows": 370
+      }
+    },
+    "enrichment": {
+      "artists": {
+        "path": "data/current/enrichment/artists_enrichment_apply_output.jsonl",
+        "rows": 2363
+      },
+      "exhibitions": {
+        "path": "data/current/enrichment/exhibitions_enrichment_apply_output_2025.jsonl",
+        "rows": 943
+      }
+    },
+    "image_metadata": {
+      "artist_works_frieze_london": {
+        "path": "data/current/images/metadata/artist_works_images_frieze_london.jsonl",
+        "rows": 1605
+      },
+      "artist_works_liste": {
+        "path": "data/current/images/metadata/artist_works_images_liste.jsonl",
+        "rows": 703
+      },
+      "exhibitions_frieze_london": {
+        "path": "data/current/images/metadata/exhibitions_images_frieze_london_2025.jsonl",
+        "rows": 283
+      },
+      "exhibitions_liste": {
+        "path": "data/current/images/metadata/exhibitions_images_liste_2025.jsonl",
+        "rows": 216
+      }
+    },
+    "image_cache": {
+      "artist_works_images": {
+        "frieze-london": {
+          "file_count": 3458,
+          "latest_modified_utc": "2026-04-11T16:23:46.431527+00:00"
+        },
+        "liste": {
+          "file_count": 901,
+          "latest_modified_utc": "2026-04-11T16:34:10.568226+00:00"
+        }
+      },
+      "exhibition_works_images": {
+        "frieze-london": {
+          "file_count": 180,
+          "latest_modified_utc": "2026-04-11T16:44:38.499232+00:00"
+        },
+        "liste": {
+          "file_count": 117,
+          "latest_modified_utc": "2026-04-11T16:47:40.626178+00:00"
+        }
+      }
+    },
+    "vector": {
+      "artists_text_rows": 2169,
+      "artists_text_index_shape": [
+        2169,
+        1536
+      ],
+      "artist_works_id_map_rows": 9172,
+      "artist_works_embeddings_shape": [
+        9172,
+        512
+      ],
+      "artist_works_search_index_shape": [
+        9172,
+        512
+      ]
+    },
+    "non_target_current_family_candidates": [
+      "ledgers/artist_works_images_known_unresolvable.json"
+    ]
+  },
+  "trial_references": {
+    "by_category": {
+      "enrichment": {
+        "records_with_trial_refs": 0,
+        "string_refs_total": 0,
+        "files": []
+      },
+      "other_json_current": {
+        "records_with_trial_refs": 5,
+        "string_refs_total": 37,
+        "files": [
+          "data/current/enrichment/artists_enrichment_apply_summary.json",
+          "data/current/enrichment/exhibitions_enrichment_apply_summary_2025.json",
+          "data/current/vector/artists/artists_text_vectorize_summary_2025.json",
+          "data/current/vector/artist_works_images/artist_works_images_artifact_manifest.json",
+          "data/current/vector/artist_works_images/artist_works_images_vectorize_summary_2025.json"
+        ]
+      },
+      "artist_works_images_metadata": {
+        "records_with_trial_refs": 1015,
+        "string_refs_total": 5287,
+        "files": [
+          "data/current/images/metadata/artist_works_images_frieze_london.jsonl",
+          "data/current/images/metadata/artist_works_images_liste.jsonl"
+        ]
+      },
+      "exhibitions_images_metadata": {
+        "records_with_trial_refs": 202,
+        "string_refs_total": 202,
+        "files": [
+          "data/current/images/metadata/exhibitions_images_frieze_london_2025.jsonl",
+          "data/current/images/metadata/exhibitions_images_liste_2025.jsonl"
+        ]
+      },
+      "raw": {
+        "records_with_trial_refs": 0,
+        "string_refs_total": 0,
+        "files": []
+      },
+      "artists_text_vector_meta": {
+        "records_with_trial_refs": 0,
+        "string_refs_total": 0,
+        "files": []
+      },
+      "artist_works_images_vector_id_map": {
+        "records_with_trial_refs": 5267,
+        "string_refs_total": 5267,
+        "files": [
+          "data/current/vector/artist_works_images/artist_works_images_openclip_id_map.jsonl"
+        ]
+      }
+    },
+    "files_with_trial_refs": [
+      {
+        "path": "data/current/enrichment/artists_enrichment_apply_summary.json",
+        "records_with_trial_refs": 1,
+        "string_refs_total": 7,
+        "total_records": 1,
+        "samples": [
+          "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\p3n10r2_closeout_current_only_apply_20260503\\data\\current\\enrichment\\artists_enrichment_apply_output.jsonl",
+          "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\p3n10r2_closeout_current_only_apply_20260503\\data\\current\\enrichment\\artists_enrichment_apply_summary.json",
+          "closeout_merge_from_trial"
+        ]
+      },
+      {
+        "path": "data/current/enrichment/exhibitions_enrichment_apply_summary_2025.json",
+        "records_with_trial_refs": 1,
+        "string_refs_total": 7,
+        "total_records": 1,
+        "samples": [
+          "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\p3n10r2_closeout_current_only_apply_20260503\\data\\current\\enrichment\\exhibitions_enrichment_apply_output_2025.jsonl",
+          "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\p3n10r2_closeout_current_only_apply_20260503\\data\\current\\enrichment\\exhibitions_enrichment_apply_summary_2025.json",
+          "closeout_merge_from_trial"
+        ]
+      },
+      {
+        "path": "data/current/images/metadata/artist_works_images_frieze_london.jsonl",
+        "records_with_trial_refs": 761,
+        "string_refs_total": 4052,
+        "total_records": 1605,
+        "samples": [
+          "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\runtime\\legacy_phase1\\_trial\\PHASE3_NEW10_ARTIST_IDGATE_QUEUEISOLATION_RAW_REVIEW_20260403T055557Z\\img\\2025\\frieze-london\\livia-benavides__iosu-aramburu__af70b68d__img",
+          "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\runtime\\legacy_phase1\\_trial\\PHASE3_NEW10_ARTIST_IDGATE_QUEUEISOLATION_RAW_REVIEW_20260403T055557Z\\img\\2025\\frieze-london\\livia-benavides__iosu-aramburu__af70b68d__img",
+          "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\runtime\\legacy_phase1\\_trial\\PHASE3_NEW10_ARTIST_IDGATE_QUEUEISOLATION_RAW_REVIEW_20260403T055557Z\\img\\2025\\frieze-london\\livia-benavides__iosu-aramburu__af70b68d__img"
+        ]
+      },
+      {
+        "path": "data/current/images/metadata/artist_works_images_liste.jsonl",
+        "records_with_trial_refs": 254,
+        "string_refs_total": 1235,
+        "total_records": 703,
+        "samples": [
+          "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\runtime\\legacy_phase1\\_trial\\PHASE3_NEW10_ARTIST_IDGATE_QUEUEISOLATION_RAW_REVIEW_20260403T055557Z\\img\\2025\\liste\\33858b6987e3__img_01.jpg",
+          "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\runtime\\legacy_phase1\\_trial\\PHASE3_NEW10_ARTIST_IDGATE_QUEUEISOLATION_RAW_REVIEW_20260403T055557Z\\img\\2025\\liste\\a4253cda1410__img_01.jpg",
+          "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\runtime\\legacy_phase1\\_trial\\PHASE3_NEW10_ARTIST_IDGATE_QUEUEISOLATION_RAW_REVIEW_20260403T055557Z\\img\\2025\\liste\\a4253cda1410__img_02.jpg"
+        ]
+      },
+      {
+        "path": "data/current/images/metadata/exhibitions_images_frieze_london_2025.jsonl",
+        "records_with_trial_refs": 103,
+        "string_refs_total": 103,
+        "total_records": 283,
+        "samples": [
+          "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_EXHIBITIONS_IMAGE_COLLECT_VERIFY_FIRST_20260421T091605Z\\images\\cache\\exhibition_works_images\\2025\\frieze-london\\gb82eecdf__4ec0705f__img_01.jpg",
+          "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_EXHIBITIONS_IMAGE_COLLECT_VERIFY_FIRST_20260421T091605Z\\images\\cache\\exhibition_works_images\\2025\\frieze-london\\gb82eecdf__8d28b8d1__img_02.jpg",
+          "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_EXHIBITIONS_IMAGE_COLLECT_VERIFY_FIRST_20260421T091605Z\\images\\cache\\exhibition_works_images\\2025\\frieze-london\\gb82eecdf__103ccffc__img_03.jpg"
+        ]
+      },
+      {
+        "path": "data/current/images/metadata/exhibitions_images_liste_2025.jsonl",
+        "records_with_trial_refs": 99,
+        "string_refs_total": 99,
+        "total_records": 216,
+        "samples": [
+          "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_EXHIBITIONS_IMAGE_COLLECT_VERIFY_FIRST_20260421T091605Z\\images\\cache\\exhibition_works_images\\2025\\liste\\g74e5689b__22f3d98d__img_01.jpg",
+          "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_EXHIBITIONS_IMAGE_COLLECT_VERIFY_FIRST_20260421T091605Z\\images\\cache\\exhibition_works_images\\2025\\liste\\g74e5689b__b44fecf3__img_02.jpg",
+          "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_EXHIBITIONS_IMAGE_COLLECT_VERIFY_FIRST_20260421T091605Z\\images\\cache\\exhibition_works_images\\2025\\liste\\g74e5689b__a0ab055d__img_03.jpg"
+        ]
+      },
+      {
+        "path": "data/current/vector/artists/artists_text_vectorize_summary_2025.json",
+        "records_with_trial_refs": 1,
+        "string_refs_total": 2,
+        "total_records": 1,
+        "samples": [
+          "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\p3_raw_next\\p3n10r2raw_20260502T000000Z\\vector\\artists_text_delta_candidates_20260503.jsonl",
+          "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\p3_raw_next\\p3n10r2raw_20260502T000000Z\\vector\\artists_text_delta_candidates_20260503.jsonl"
+        ]
+      },
+      {
+        "path": "data/current/vector/artist_works_images/artist_works_images_artifact_manifest.json",
+        "records_with_trial_refs": 1,
+        "string_refs_total": 6,
+        "total_records": 1,
+        "samples": [
+          "bounded_closeout_from_trial",
+          "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\p3_raw_next\\p3n10r2raw_20260502T000000Z",
+          "C:/Users/tarutani tomoaki/Pictures/Dev/my_projects/art_pulse_editor/_trial/p3n10r2_closeout_current_only_apply_20260503/data/current/vector/artist_works_images/artist_works_images_openclip_embeddings.npy"
+        ]
+      },
+      {
+        "path": "data/current/vector/artist_works_images/artist_works_images_openclip_id_map.jsonl",
+        "records_with_trial_refs": 5267,
+        "string_refs_total": 5267,
+        "total_records": 9172,
+        "samples": [
+          "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\runtime\\legacy_phase1\\_trial\\PHASE3_NEW10_ARTIST_IDGATE_QUEUEISOLATION_RAW_REVIEW_20260403T055557Z\\img\\2025\\frieze-london\\6f3a5c914106__img_08.jpg",
+          "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\runtime\\legacy_phase1\\_trial\\PHASE3_NEW10_ARTIST_IDGATE_QUEUEISOLATION_RAW_REVIEW_20260403T055557Z\\img\\2025\\frieze-london\\6f3a5c914106__img_06.jpg",
+          "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\runtime\\legacy_phase1\\_trial\\PHASE3_NEW10_ARTIST_IDGATE_QUEUEISOLATION_RAW_REVIEW_20260403T055557Z\\img\\2025\\frieze-london\\6f3a5c914106__img_07.jpg"
+        ]
+      },
+      {
+        "path": "data/current/vector/artist_works_images/artist_works_images_vectorize_summary_2025.json",
+        "records_with_trial_refs": 1,
+        "string_refs_total": 15,
+        "total_records": 1,
+        "samples": [
+          "bounded_closeout_from_trial",
+          "current_existing_plus_trial_target_merge",
+          "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\p3_raw_next\\p3n10r2raw_20260502T000000Z"
+        ]
+      }
+    ]
+  },
+  "artist_works_images": {
+    "metadata_records_total": 2308,
+    "metadata_images_total": 9244,
+    "current_cache_file_total": 4359,
+    "trial_cache_file_total": 685,
+    "current_cache_missing_total": 5020,
+    "trial_only_missing_in_current_total": 498,
+    "missing_both_total": 4522,
+    "metadata_trial_ref_images_total": 5287,
+    "vector_id_map_rows_total": 9172,
+    "vector_id_map_trial_ref_rows_total": 5267,
+    "vector_rows_missing_current_cache_total": 5000,
+    "vector_rows_missing_both_total": 4502,
+    "gallery_stats": {
+      "56 Henry": {
+        "metadata_images": 109,
+        "metadata_trial_ref_images": 109,
+        "current_cache_missing": 109,
+        "missing_both": 109,
+        "vector_id_map_rows": 109
+      },
+      "A+ Works of Art": {
+        "metadata_images": 55,
+        "current_cache_exists": 55,
+        "vector_id_map_rows": 55
+      },
+      "Adams and Ollman": {
+        "metadata_images": 92,
+        "current_cache_exists": 92,
+        "vector_id_map_rows": 92
+      },
+      "Addis Fine Art": {
+        "metadata_images": 99,
+        "current_cache_exists": 99,
+        "vector_id_map_rows": 99
+      },
+      "Afriart Gallery": {
+        "metadata_images": 74,
+        "current_cache_exists": 74,
+        "vector_id_map_rows": 74
+      },
+      "Alexander Gray Associates": {
+        "metadata_images": 25,
+        "current_cache_exists": 25,
+        "vector_id_map_rows": 25
+      },
+      "Alison Jacques": {
+        "metadata_images": 294,
+        "metadata_trial_ref_images": 294,
+        "current_cache_missing": 294,
+        "missing_both": 294,
+        "vector_id_map_rows": 294
+      },
+      "Almine Rech": {
+        "metadata_images": 1,
+        "metadata_trial_ref_images": 1,
+        "current_cache_missing": 1,
+        "missing_both": 1,
+        "vector_id_map_rows": 1
+      },
+      "Amanita": {
+        "metadata_images": 65,
+        "current_cache_exists": 65,
+        "vector_id_map_rows": 65
+      },
+      "Anat Ebgi": {
+        "metadata_images": 160,
+        "current_cache_exists": 160,
+        "vector_id_map_rows": 160
+      },
+      "Anca Poteraşu Gallery": {
+        "metadata_images": 80,
+        "current_cache_exists": 80,
+        "vector_id_map_rows": 80
+      },
+      "Arcadia Missa": {
+        "metadata_images": 90,
+        "current_cache_exists": 90,
+        "vector_id_map_rows": 90
+      },
+      "Athr": {
+        "metadata_images": 70,
+        "current_cache_exists": 70,
+        "vector_id_map_rows": 70
+      },
+      "Blue Velvet": {
+        "metadata_images": 31,
+        "metadata_trial_ref_images": 31,
+        "current_cache_missing": 31,
+        "missing_both": 31,
+        "vector_id_map_rows": 31
+      },
+      "Bombon": {
+        "metadata_images": 106,
+        "metadata_trial_ref_images": 106,
+        "current_cache_missing": 106,
+        "missing_both": 106,
+        "vector_id_map_rows": 89
+      },
+      "Brunette Coleman": {
+        "metadata_images": 42,
+        "metadata_trial_ref_images": 42,
+        "current_cache_missing": 42,
+        "missing_both": 42,
+        "vector_id_map_rows": 41
+      },
+      "Carl Freedman Gallery": {
+        "metadata_images": 65,
+        "current_cache_exists": 65,
+        "vector_id_map_rows": 61
+      },
+      "Carlos/Ishikawa": {
+        "metadata_images": 36,
+        "current_cache_exists": 36,
+        "vector_id_map_rows": 36
+      },
+      "Casado Santapau": {
+        "metadata_images": 81,
+        "current_cache_exists": 81,
+        "vector_id_map_rows": 81
+      },
+      "Cecilia Brunson Projects": {
+        "metadata_images": 118,
+        "metadata_trial_ref_images": 118,
+        "current_cache_missing": 118,
+        "missing_both": 118,
+        "vector_id_map_rows": 116
+      },
+      "Chris Sharp Gallery": {
+        "metadata_images": 33,
+        "metadata_trial_ref_images": 33,
+        "current_cache_missing": 33,
+        "missing_both": 33,
+        "vector_id_map_rows": 33
+      },
+      "Ciaccia Levi": {
+        "metadata_images": 8,
+        "current_cache_exists": 8,
+        "vector_id_map_rows": 8
+      },
+      "Cibrián": {
+        "metadata_images": 35,
+        "current_cache_exists": 35,
+        "vector_id_map_rows": 35
+      },
+      "Clima": {
+        "metadata_images": 60,
+        "current_cache_exists": 60,
+        "vector_id_map_rows": 59
+      },
+      "Commune": {
+        "metadata_images": 17,
+        "current_cache_exists": 17,
+        "vector_id_map_rows": 17
+      },
+      "Damien & The Love Guru": {
+        "metadata_images": 75,
+        "current_cache_exists": 75,
+        "vector_id_map_rows": 75
+      },
+      "Dastan": {
+        "metadata_images": 240,
+        "current_cache_exists": 240,
+        "vector_id_map_rows": 216
+      },
+      "David Zwirner": {
+        "metadata_images": 640,
+        "metadata_trial_ref_images": 640,
+        "current_cache_missing": 640,
+        "missing_both": 640,
+        "vector_id_map_rows": 640
+      },
+      "Drei": {
+        "metadata_images": 50,
+        "current_cache_exists": 50,
+        "vector_id_map_rows": 50
+      },
+      "Edel Assanti": {
+        "metadata_images": 85,
+        "current_cache_exists": 85,
+        "vector_id_map_rows": 66
+      },
+      "Ehrlich Steinberg": {
+        "metadata_images": 30,
+        "current_cache_exists": 30,
+        "vector_id_map_rows": 30
+      },
+      "Esther Schipper": {
+        "metadata_images": 265,
+        "metadata_trial_ref_images": 265,
+        "current_cache_missing": 265,
+        "missing_both": 265,
+        "vector_id_map_rows": 265
+      },
+      "Experimenter": {
+        "metadata_images": 161,
+        "current_cache_exists": 161,
+        "vector_id_map_rows": 161
+      },
+      "Final Hot Desert": {
+        "metadata_images": 4,
+        "current_cache_exists": 4,
+        "vector_id_map_rows": 4
+      },
+      "Francesca Minini": {
+        "metadata_images": 159,
+        "metadata_trial_ref_images": 159,
+        "current_cache_missing": 159,
+        "missing_both": 159,
+        "vector_id_map_rows": 159
+      },
+      "Frith Street Gallery": {
+        "metadata_images": 98,
+        "current_cache_exists": 98,
+        "vector_id_map_rows": 98
+      },
+      "G Gallery": {
+        "metadata_images": 37,
+        "current_cache_exists": 37,
+        "vector_id_map_rows": 37
+      },
+      "Gagosian": {
+        "metadata_images": 240,
+        "current_cache_exists": 240,
+        "vector_id_map_rows": 240
+      },
+      "Galerie Gisela Capitain": {
+        "metadata_images": 141,
+        "current_cache_exists": 141,
+        "vector_id_map_rows": 140
+      },
+      "Galerie Max Hetzler": {
+        "metadata_images": 517,
+        "metadata_trial_ref_images": 517,
+        "current_cache_missing": 517,
+        "missing_both": 517,
+        "vector_id_map_rows": 517
+      },
+      "Gallery Baton": {
+        "metadata_images": 201,
+        "current_cache_exists": 201,
+        "vector_id_map_rows": 201
+      },
+      "Garth Greenan Gallery": {
+        "metadata_images": 177,
+        "current_cache_exists": 177,
+        "vector_id_map_rows": 177
+      },
+      "Grimm": {
+        "metadata_images": 333,
+        "metadata_trial_ref_images": 333,
+        "current_cache_missing": 333,
+        "missing_both": 333,
+        "vector_id_map_rows": 333
+      },
+      "Hales": {
+        "metadata_images": 170,
+        "metadata_trial_ref_images": 170,
+        "current_cache_missing": 170,
+        "missing_both": 170,
+        "vector_id_map_rows": 170
+      },
+      "Harlesden High Street": {
+        "metadata_images": 14,
+        "current_cache_exists": 14,
+        "vector_id_map_rows": 14
+      },
+      "Hollybush Gardens": {
+        "metadata_images": 121,
+        "metadata_trial_ref_images": 121,
+        "current_cache_missing": 121,
+        "missing_both": 121,
+        "vector_id_map_rows": 121
+      },
+      "Ingleby": {
+        "metadata_images": 204,
+        "metadata_trial_ref_images": 204,
+        "current_cache_missing": 204,
+        "missing_both": 204,
+        "vector_id_map_rows": 204
+      },
+      "James Cohan": {
+        "metadata_images": 247,
+        "current_cache_exists": 247,
+        "vector_id_map_rows": 247
+      },
+      "Jhaveri Contemporary": {
+        "metadata_images": 150,
+        "metadata_trial_ref_images": 150,
+        "current_cache_missing": 150,
+        "trial_cache_exists": 150,
+        "trial_only_missing_in_current": 150,
+        "vector_id_map_rows": 150
+      },
+      "Johyun Gallery": {
+        "metadata_images": 41,
+        "metadata_trial_ref_images": 41,
+        "current_cache_missing": 41,
+        "trial_cache_exists": 41,
+        "trial_only_missing_in_current": 41,
+        "vector_id_map_rows": 41
+      },
+      "Karma": {
+        "metadata_images": 66,
+        "metadata_trial_ref_images": 66,
+        "current_cache_missing": 66,
+        "trial_cache_exists": 66,
+        "trial_only_missing_in_current": 66,
+        "vector_id_map_rows": 66
+      },
+      "Laveronica": {
+        "metadata_images": 64,
+        "current_cache_exists": 64,
+        "vector_id_map_rows": 64
+      },
+      "Livia Benavides": {
+        "metadata_images": 81,
+        "metadata_trial_ref_images": 81,
+        "current_cache_exists": 65,
+        "vector_id_map_rows": 81,
+        "current_cache_missing": 16,
+        "missing_both": 16
+      },
+      "Livie Gallery": {
+        "metadata_images": 4,
+        "current_cache_exists": 4,
+        "vector_id_map_rows": 4
+      },
+      "Lodovico Corsini": {
+        "metadata_images": 47,
+        "current_cache_exists": 47,
+        "vector_id_map_rows": 47
+      },
+      "Lucas Hirsch": {
+        "metadata_images": 40,
+        "current_cache_exists": 40,
+        "vector_id_map_rows": 40
+      },
+      "Magenta Plains": {
+        "metadata_images": 100,
+        "metadata_trial_ref_images": 100,
+        "current_cache_missing": 100,
+        "missing_both": 100,
+        "vector_id_map_rows": 100
+      },
+      "Margot Samel": {
+        "metadata_images": 44,
+        "metadata_trial_ref_images": 44,
+        "current_cache_missing": 44,
+        "missing_both": 44,
+        "vector_id_map_rows": 44
+      },
+      "Matthew Brown": {
+        "metadata_images": 23,
+        "metadata_trial_ref_images": 23,
+        "current_cache_exists": 22,
+        "vector_id_map_rows": 23,
+        "current_cache_missing": 1,
+        "missing_both": 1
+      },
+      "Pedro Cera": {
+        "metadata_images": 150,
+        "current_cache_exists": 150,
+        "vector_id_map_rows": 150
+      },
+      "Peter Blum Gallery": {
+        "metadata_images": 219,
+        "metadata_trial_ref_images": 219,
+        "current_cache_exists": 110,
+        "vector_id_map_rows": 219,
+        "current_cache_missing": 109,
+        "missing_both": 109
+      },
+      "Pippy Houldsworth Gallery": {
+        "metadata_images": 170,
+        "metadata_trial_ref_images": 170,
+        "current_cache_missing": 170,
+        "missing_both": 170,
+        "vector_id_map_rows": 170
+      },
+      "Sadie Coles HQ": {
+        "metadata_images": 280,
+        "current_cache_exists": 280,
+        "vector_id_map_rows": 279
+      },
+      "Schiefe Zähne": {
+        "metadata_images": 43,
+        "metadata_trial_ref_images": 43,
+        "current_cache_missing": 43,
+        "missing_both": 43,
+        "vector_id_map_rows": 43
+      },
+      "Selma Feriani": {
+        "metadata_images": 116,
+        "current_cache_exists": 116,
+        "vector_id_map_rows": 114
+      },
+      "Sophie Tappeiner": {
+        "metadata_images": 50,
+        "metadata_trial_ref_images": 50,
+        "current_cache_missing": 50,
+        "missing_both": 50,
+        "vector_id_map_rows": 50
+      },
+      "Suprainfinit": {
+        "metadata_images": 77,
+        "metadata_trial_ref_images": 77,
+        "current_cache_missing": 77,
+        "missing_both": 77,
+        "vector_id_map_rows": 77
+      },
+      "Tabula Rasa Gallery": {
+        "metadata_images": 30,
+        "metadata_trial_ref_images": 30,
+        "current_cache_missing": 30,
+        "missing_both": 30,
+        "vector_id_map_rows": 30
+      },
+      "The Approach": {
+        "metadata_images": 151,
+        "current_cache_exists": 151,
+        "vector_id_map_rows": 151
+      },
+      "Thomas Dane Gallery": {
+        "metadata_images": 180,
+        "current_cache_exists": 180,
+        "vector_id_map_rows": 180
+      },
+      "Turnus": {
+        "metadata_images": 10,
+        "metadata_trial_ref_images": 10,
+        "current_cache_missing": 10,
+        "trial_cache_exists": 10,
+        "trial_only_missing_in_current": 10,
+        "vector_id_map_rows": 10
+      },
+      "Vanguard Gallery": {
+        "metadata_images": 156,
+        "metadata_trial_ref_images": 156,
+        "current_cache_missing": 156,
+        "trial_cache_exists": 156,
+        "trial_only_missing_in_current": 156,
+        "vector_id_map_rows": 156
+      },
+      "Voloshyn Gallery": {
+        "metadata_images": 75,
+        "metadata_trial_ref_images": 75,
+        "current_cache_missing": 75,
+        "trial_cache_exists": 75,
+        "trial_only_missing_in_current": 75,
+        "vector_id_map_rows": 75
+      },
+      "Xavier Hufkens": {
+        "metadata_images": 265,
+        "metadata_trial_ref_images": 265,
+        "current_cache_missing": 265,
+        "missing_both": 265,
+        "vector_id_map_rows": 265
+      },
+      "blank": {
+        "metadata_images": 138,
+        "metadata_trial_ref_images": 138,
+        "current_cache_exists": 70,
+        "vector_id_map_rows": 138,
+        "current_cache_missing": 68,
+        "missing_both": 68
+      },
+      "diez": {
+        "metadata_images": 13,
+        "current_cache_exists": 13,
+        "vector_id_map_rows": 13
+      },
+      "i8 Gallery": {
+        "metadata_images": 77,
+        "metadata_trial_ref_images": 77,
+        "current_cache_missing": 77,
+        "missing_both": 77,
+        "vector_id_map_rows": 77
+      },
+      "max goelitz": {
+        "metadata_images": 235,
+        "metadata_trial_ref_images": 235,
+        "current_cache_missing": 235,
+        "missing_both": 235,
+        "vector_id_map_rows": 235
+      },
+      "Öktem Aykut": {
+        "metadata_images": 94,
+        "metadata_trial_ref_images": 94,
+        "current_cache_missing": 94,
+        "missing_both": 94,
+        "vector_id_map_rows": 94
+      }
+    },
+    "user_gallery_results": {
+      "Dastan": {
+        "metadata_images": 240,
+        "current_cache_exists": 240,
+        "vector_id_map_rows": 216
+      },
+      "Anat Ebgi": {
+        "metadata_images": 160,
+        "current_cache_exists": 160,
+        "vector_id_map_rows": 160
+      },
+      "Edel Assanti": {
+        "metadata_images": 85,
+        "current_cache_exists": 85,
+        "vector_id_map_rows": 66
+      },
+      "Emalin": {},
+      "Experimenter": {
+        "metadata_images": 161,
+        "current_cache_exists": 161,
+        "vector_id_map_rows": 161
+      },
+      "Selma Feriani": {
+        "metadata_images": 116,
+        "current_cache_exists": 116,
+        "vector_id_map_rows": 114
+      },
+      "Carl Freedman Gallery": {
+        "metadata_images": 65,
+        "current_cache_exists": 65,
+        "vector_id_map_rows": 61
+      },
+      "Goodman Gallery": {},
+      "Frith Street Gallery": {
+        "metadata_images": 98,
+        "current_cache_exists": 98,
+        "vector_id_map_rows": 98
+      },
+      "Gagosian": {
+        "metadata_images": 240,
+        "current_cache_exists": 240,
+        "vector_id_map_rows": 240
+      },
+      "Alexander Gray Associates": {
+        "metadata_images": 25,
+        "current_cache_exists": 25,
+        "vector_id_map_rows": 25
+      },
+      "Garth Greenan Gallery": {
+        "metadata_images": 177,
+        "current_cache_exists": 177,
+        "vector_id_map_rows": 177
+      },
+      "Grimm": {
+        "metadata_images": 333,
+        "metadata_trial_ref_images": 333,
+        "current_cache_missing": 333,
+        "missing_both": 333,
+        "vector_id_map_rows": 333
+      },
+      "Galerie Karin Guenther": {},
+      "Hales": {
+        "metadata_images": 170,
+        "metadata_trial_ref_images": 170,
+        "current_cache_missing": 170,
+        "missing_both": 170,
+        "vector_id_map_rows": 170
+      },
+      "Hauser & Wirth": {},
+      "Galerie Max Hetzler": {
+        "metadata_images": 517,
+        "metadata_trial_ref_images": 517,
+        "current_cache_missing": 517,
+        "missing_both": 517,
+        "vector_id_map_rows": 517
+      },
+      "Hollybush Gardens": {
+        "metadata_images": 121,
+        "metadata_trial_ref_images": 121,
+        "current_cache_missing": 121,
+        "missing_both": 121,
+        "vector_id_map_rows": 121
+      },
+      "Pippy Houldsworth Gallery": {
+        "metadata_images": 170,
+        "metadata_trial_ref_images": 170,
+        "current_cache_missing": 170,
+        "missing_both": 170,
+        "vector_id_map_rows": 170
+      },
+      "Xavier Hufkens": {
+        "metadata_images": 265,
+        "metadata_trial_ref_images": 265,
+        "current_cache_missing": 265,
+        "missing_both": 265,
+        "vector_id_map_rows": 265
+      },
+      "i8 Gallery": {
+        "metadata_images": 77,
+        "metadata_trial_ref_images": 77,
+        "current_cache_missing": 77,
+        "missing_both": 77,
+        "vector_id_map_rows": 77
+      },
+      "Ingleby": {
+        "metadata_images": 204,
+        "metadata_trial_ref_images": 204,
+        "current_cache_missing": 204,
+        "missing_both": 204,
+        "vector_id_map_rows": 204
+      },
+      "Alison Jacques": {
+        "metadata_images": 294,
+        "metadata_trial_ref_images": 294,
+        "current_cache_missing": 294,
+        "missing_both": 294,
+        "vector_id_map_rows": 294
+      },
+      "Almine Rech": {
+        "metadata_images": 1,
+        "metadata_trial_ref_images": 1,
+        "current_cache_missing": 1,
+        "missing_both": 1,
+        "vector_id_map_rows": 1
+      },
+      "David Zwirner": {
+        "metadata_images": 640,
+        "metadata_trial_ref_images": 640,
+        "current_cache_missing": 640,
+        "missing_both": 640,
+        "vector_id_map_rows": 640
+      },
+      "Esther Schipper": {
+        "metadata_images": 265,
+        "metadata_trial_ref_images": 265,
+        "current_cache_missing": 265,
+        "missing_both": 265,
+        "vector_id_map_rows": 265
+      },
+      "Francesca Minini": {
+        "metadata_images": 159,
+        "metadata_trial_ref_images": 159,
+        "current_cache_missing": 159,
+        "missing_both": 159,
+        "vector_id_map_rows": 159
+      },
+      "Taka Ishii Gallery": {},
+      "Jhaveri Contemporary": {
+        "metadata_images": 150,
+        "metadata_trial_ref_images": 150,
+        "current_cache_missing": 150,
+        "trial_cache_exists": 150,
+        "trial_only_missing_in_current": 150,
+        "vector_id_map_rows": 150
+      },
+      "Johyun Gallery": {
+        "metadata_images": 41,
+        "metadata_trial_ref_images": 41,
+        "current_cache_missing": 41,
+        "trial_cache_exists": 41,
+        "trial_only_missing_in_current": 41,
+        "vector_id_map_rows": 41
+      },
+      "Kalfayan Galleries": {},
+      "Karma": {
+        "metadata_images": 66,
+        "metadata_trial_ref_images": 66,
+        "current_cache_missing": 66,
+        "trial_cache_exists": 66,
+        "trial_only_missing_in_current": 66,
+        "vector_id_map_rows": 66
+      }
+    },
+    "missing_examples": {
+      "Livia Benavides": [
+        {
+          "basename": "af70b68d723c__img_06.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\runtime\\legacy_phase1\\_trial\\PHASE3_NEW10_ARTIST_IDGATE_QUEUEISOLATION_RAW_REVIEW_20260403T055557Z\\img\\2025\\frieze-london\\af70b68d723c__img_06.jpg"
+        },
+        {
+          "basename": "af70b68d723c__img_07.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\runtime\\legacy_phase1\\_trial\\PHASE3_NEW10_ARTIST_IDGATE_QUEUEISOLATION_RAW_REVIEW_20260403T055557Z\\img\\2025\\frieze-london\\af70b68d723c__img_07.jpg"
+        },
+        {
+          "basename": "af70b68d723c__img_08.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\runtime\\legacy_phase1\\_trial\\PHASE3_NEW10_ARTIST_IDGATE_QUEUEISOLATION_RAW_REVIEW_20260403T055557Z\\img\\2025\\frieze-london\\af70b68d723c__img_08.jpg"
+        }
+      ],
+      "blank": [
+        {
+          "basename": "7694db69880c__img_06.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\runtime\\legacy_phase1\\_trial\\PHASE3_NEW10_ARTIST_IDGATE_QUEUEISOLATION_RAW_REVIEW_20260403T055557Z\\img\\2025\\frieze-london\\7694db69880c__img_06.jpg"
+        },
+        {
+          "basename": "7694db69880c__img_07.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\runtime\\legacy_phase1\\_trial\\PHASE3_NEW10_ARTIST_IDGATE_QUEUEISOLATION_RAW_REVIEW_20260403T055557Z\\img\\2025\\frieze-london\\7694db69880c__img_07.jpg"
+        },
+        {
+          "basename": "7694db69880c__img_08.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\runtime\\legacy_phase1\\_trial\\PHASE3_NEW10_ARTIST_IDGATE_QUEUEISOLATION_RAW_REVIEW_20260403T055557Z\\img\\2025\\frieze-london\\7694db69880c__img_08.jpg"
+        }
+      ],
+      "Peter Blum Gallery": [
+        {
+          "basename": "7c6e93de2121__img_06.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\runtime\\legacy_phase1\\_trial\\PHASE3_NEW10_ARTIST_IDGATE_QUEUEISOLATION_RAW_REVIEW_20260403T055557Z\\img\\2025\\frieze-london\\7c6e93de2121__img_06.jpg"
+        },
+        {
+          "basename": "7c6e93de2121__img_07.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\runtime\\legacy_phase1\\_trial\\PHASE3_NEW10_ARTIST_IDGATE_QUEUEISOLATION_RAW_REVIEW_20260403T055557Z\\img\\2025\\frieze-london\\7c6e93de2121__img_07.jpg"
+        },
+        {
+          "basename": "7c6e93de2121__img_08.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\runtime\\legacy_phase1\\_trial\\PHASE3_NEW10_ARTIST_IDGATE_QUEUEISOLATION_RAW_REVIEW_20260403T055557Z\\img\\2025\\frieze-london\\7c6e93de2121__img_08.jpg"
+        }
+      ],
+      "Matthew Brown": [
+        {
+          "basename": "6934f7147eac__img_07.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\runtime\\legacy_phase1\\_trial\\PHASE3_NEW10_ARTIST_IDGATE_QUEUEISOLATION_RAW_REVIEW_20260403T055557Z\\img\\2025\\frieze-london\\6934f7147eac__img_07.jpg"
+        }
+      ],
+      "Cecilia Brunson Projects": [
+        {
+          "basename": "f771b07b8872__img_01.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\runtime\\legacy_phase1\\_trial\\PHASE3_NEW10_ARTIST_IDGATE_QUEUEISOLATION_RAW_REVIEW_20260403T055557Z\\img\\2025\\frieze-london\\f771b07b8872__img_01.jpg"
+        },
+        {
+          "basename": "f771b07b8872__img_02.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\runtime\\legacy_phase1\\_trial\\PHASE3_NEW10_ARTIST_IDGATE_QUEUEISOLATION_RAW_REVIEW_20260403T055557Z\\img\\2025\\frieze-london\\f771b07b8872__img_02.jpg"
+        },
+        {
+          "basename": "f771b07b8872__img_03.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\runtime\\legacy_phase1\\_trial\\PHASE3_NEW10_ARTIST_IDGATE_QUEUEISOLATION_RAW_REVIEW_20260403T055557Z\\img\\2025\\frieze-london\\f771b07b8872__img_03.jpg"
+        }
+      ],
+      "Grimm": [
+        {
+          "basename": "e4cecbc9d057__img_01.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_AND_ARTIST_IMAGE_VERIFY_20260421T0149Z\\img\\2025\\frieze-london\\e4cecbc9d057__img_01.jpg"
+        },
+        {
+          "basename": "e4cecbc9d057__img_02.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_AND_ARTIST_IMAGE_VERIFY_20260421T0149Z\\img\\2025\\frieze-london\\e4cecbc9d057__img_02.jpg"
+        },
+        {
+          "basename": "e4cecbc9d057__img_03.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_AND_ARTIST_IMAGE_VERIFY_20260421T0149Z\\img\\2025\\frieze-london\\e4cecbc9d057__img_03.jpg"
+        }
+      ],
+      "Hales": [
+        {
+          "basename": "7da74b726b1f__img_01.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_AND_ARTIST_IMAGE_VERIFY_20260421T0149Z\\img\\2025\\frieze-london\\7da74b726b1f__img_01.jpg"
+        },
+        {
+          "basename": "7da74b726b1f__img_02.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_AND_ARTIST_IMAGE_VERIFY_20260421T0149Z\\img\\2025\\frieze-london\\7da74b726b1f__img_02.jpg"
+        },
+        {
+          "basename": "7da74b726b1f__img_03.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_AND_ARTIST_IMAGE_VERIFY_20260421T0149Z\\img\\2025\\frieze-london\\7da74b726b1f__img_03.jpg"
+        }
+      ],
+      "Galerie Max Hetzler": [
+        {
+          "basename": "68048b22715c__img_01.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_AND_ARTIST_IMAGE_VERIFY_20260421T0149Z\\img\\2025\\frieze-london\\68048b22715c__img_01.jpg"
+        },
+        {
+          "basename": "68048b22715c__img_02.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_AND_ARTIST_IMAGE_VERIFY_20260421T0149Z\\img\\2025\\frieze-london\\68048b22715c__img_02.jpg"
+        },
+        {
+          "basename": "68048b22715c__img_03.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_AND_ARTIST_IMAGE_VERIFY_20260421T0149Z\\img\\2025\\frieze-london\\68048b22715c__img_03.jpg"
+        }
+      ],
+      "Hollybush Gardens": [
+        {
+          "basename": "70e376735d02__img_01.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\img\\2025\\frieze-london\\70e376735d02__img_01.jpg"
+        },
+        {
+          "basename": "70e376735d02__img_02.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\img\\2025\\frieze-london\\70e376735d02__img_02.jpg"
+        },
+        {
+          "basename": "70e376735d02__img_03.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\img\\2025\\frieze-london\\70e376735d02__img_03.jpg"
+        }
+      ],
+      "Pippy Houldsworth Gallery": [
+        {
+          "basename": "31ecef318c55__img_01.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\img\\2025\\frieze-london\\31ecef318c55__img_01.jpg"
+        },
+        {
+          "basename": "31ecef318c55__img_02.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\img\\2025\\frieze-london\\31ecef318c55__img_02.jpg"
+        },
+        {
+          "basename": "31ecef318c55__img_03.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\img\\2025\\frieze-london\\31ecef318c55__img_03.jpg"
+        }
+      ],
+      "Xavier Hufkens": [
+        {
+          "basename": "321391ca0242__img_01.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\img\\2025\\frieze-london\\321391ca0242__img_01.jpg"
+        },
+        {
+          "basename": "321391ca0242__img_02.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\img\\2025\\frieze-london\\321391ca0242__img_02.jpg"
+        },
+        {
+          "basename": "321391ca0242__img_03.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\img\\2025\\frieze-london\\321391ca0242__img_03.jpg"
+        }
+      ],
+      "i8 Gallery": [
+        {
+          "basename": "c39fa141a9d0__img_01.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\img\\2025\\frieze-london\\c39fa141a9d0__img_01.jpg"
+        },
+        {
+          "basename": "c39fa141a9d0__img_02.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\img\\2025\\frieze-london\\c39fa141a9d0__img_02.jpg"
+        },
+        {
+          "basename": "c39fa141a9d0__img_03.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\img\\2025\\frieze-london\\c39fa141a9d0__img_03.jpg"
+        }
+      ],
+      "Ingleby": [
+        {
+          "basename": "1146449fa4c6__img_01.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\img\\2025\\frieze-london\\1146449fa4c6__img_01.jpg"
+        },
+        {
+          "basename": "1146449fa4c6__img_02.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\img\\2025\\frieze-london\\1146449fa4c6__img_02.jpg"
+        },
+        {
+          "basename": "1146449fa4c6__img_03.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\img\\2025\\frieze-london\\1146449fa4c6__img_03.jpg"
+        }
+      ],
+      "Alison Jacques": [
+        {
+          "basename": "e48a9134b07c__img_01.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\p3_raw_next\\p3n10r1\\img\\2025\\frieze-london\\e48a9134b07c__img_01.jpg"
+        },
+        {
+          "basename": "e48a9134b07c__img_02.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\p3_raw_next\\p3n10r1\\img\\2025\\frieze-london\\e48a9134b07c__img_02.jpg"
+        },
+        {
+          "basename": "e48a9134b07c__img_03.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\p3_raw_next\\p3n10r1\\img\\2025\\frieze-london\\e48a9134b07c__img_03.jpg"
+        }
+      ],
+      "Almine Rech": [
+        {
+          "basename": "68cc994cb986__img_01.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\p3_raw_next\\p3n10r1\\img\\2025\\frieze-london\\68cc994cb986__img_01.jpg"
+        }
+      ],
+      "David Zwirner": [
+        {
+          "basename": "e2c0d446c801__img_01.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\p3_raw_next\\p3n10r1\\img\\2025\\frieze-london\\e2c0d446c801__img_01.jpg"
+        },
+        {
+          "basename": "e2c0d446c801__img_02.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\p3_raw_next\\p3n10r1\\img\\2025\\frieze-london\\e2c0d446c801__img_02.jpg"
+        },
+        {
+          "basename": "e2c0d446c801__img_03.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\p3_raw_next\\p3n10r1\\img\\2025\\frieze-london\\e2c0d446c801__img_03.jpg"
+        }
+      ],
+      "Esther Schipper": [
+        {
+          "basename": "229704857702__img_01.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\p3_raw_next\\p3n10r1\\img\\2025\\frieze-london\\229704857702__img_01.jpg"
+        },
+        {
+          "basename": "94e08ecb21c1__img_01.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\p3_raw_next\\p3n10r1\\img\\2025\\frieze-london\\94e08ecb21c1__img_01.jpg"
+        },
+        {
+          "basename": "94e08ecb21c1__img_02.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\p3_raw_next\\p3n10r1\\img\\2025\\frieze-london\\94e08ecb21c1__img_02.jpg"
+        }
+      ],
+      "Francesca Minini": [
+        {
+          "basename": "e25027d9ee60__img_01.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\p3_raw_next\\p3n10r1\\img\\2025\\frieze-london\\e25027d9ee60__img_01.jpg"
+        },
+        {
+          "basename": "e25027d9ee60__img_02.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\p3_raw_next\\p3n10r1\\img\\2025\\frieze-london\\e25027d9ee60__img_02.jpg"
+        },
+        {
+          "basename": "e25027d9ee60__img_03.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\p3_raw_next\\p3n10r1\\img\\2025\\frieze-london\\e25027d9ee60__img_03.jpg"
+        }
+      ],
+      "Blue Velvet": [
+        {
+          "basename": "33858b6987e3__img_01.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\runtime\\legacy_phase1\\_trial\\PHASE3_NEW10_ARTIST_IDGATE_QUEUEISOLATION_RAW_REVIEW_20260403T055557Z\\img\\2025\\liste\\33858b6987e3__img_01.jpg"
+        },
+        {
+          "basename": "a4253cda1410__img_01.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\runtime\\legacy_phase1\\_trial\\PHASE3_NEW10_ARTIST_IDGATE_QUEUEISOLATION_RAW_REVIEW_20260403T055557Z\\img\\2025\\liste\\a4253cda1410__img_01.jpg"
+        },
+        {
+          "basename": "a4253cda1410__img_02.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\runtime\\legacy_phase1\\_trial\\PHASE3_NEW10_ARTIST_IDGATE_QUEUEISOLATION_RAW_REVIEW_20260403T055557Z\\img\\2025\\liste\\a4253cda1410__img_02.jpg"
+        }
+      ],
+      "Bombon": [
+        {
+          "basename": "dafb961695ca__img_01.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\runtime\\legacy_phase1\\_trial\\PHASE3_NEW10_ARTIST_IDGATE_QUEUEISOLATION_RAW_REVIEW_20260403T055557Z\\img\\2025\\liste\\dafb961695ca__img_01.jpg"
+        },
+        {
+          "basename": "dafb961695ca__img_02.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\runtime\\legacy_phase1\\_trial\\PHASE3_NEW10_ARTIST_IDGATE_QUEUEISOLATION_RAW_REVIEW_20260403T055557Z\\img\\2025\\liste\\dafb961695ca__img_02.jpg"
+        },
+        {
+          "basename": "dafb961695ca__img_03.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\runtime\\legacy_phase1\\_trial\\PHASE3_NEW10_ARTIST_IDGATE_QUEUEISOLATION_RAW_REVIEW_20260403T055557Z\\img\\2025\\liste\\dafb961695ca__img_03.jpg"
+        }
+      ],
+      "Brunette Coleman": [
+        {
+          "basename": "a2e7cd9e77e9__img_01.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\runtime\\legacy_phase1\\_trial\\PHASE3_NEW10_ARTIST_IDGATE_QUEUEISOLATION_RAW_REVIEW_20260403T055557Z\\img\\2025\\liste\\a2e7cd9e77e9__img_01.jpg"
+        },
+        {
+          "basename": "a2e7cd9e77e9__img_02.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\runtime\\legacy_phase1\\_trial\\PHASE3_NEW10_ARTIST_IDGATE_QUEUEISOLATION_RAW_REVIEW_20260403T055557Z\\img\\2025\\liste\\a2e7cd9e77e9__img_02.jpg"
+        },
+        {
+          "basename": "a2e7cd9e77e9__img_03.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\runtime\\legacy_phase1\\_trial\\PHASE3_NEW10_ARTIST_IDGATE_QUEUEISOLATION_RAW_REVIEW_20260403T055557Z\\img\\2025\\liste\\a2e7cd9e77e9__img_03.jpg"
+        }
+      ],
+      "Chris Sharp Gallery": [
+        {
+          "basename": "7c3f7134a2cb__img_01.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\runtime\\legacy_phase1\\_trial\\PHASE3_NEW10_ARTIST_IDGATE_QUEUEISOLATION_RAW_REVIEW_20260403T055557Z\\img\\2025\\liste\\7c3f7134a2cb__img_01.jpg"
+        },
+        {
+          "basename": "eeee49dcee91__img_01.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\runtime\\legacy_phase1\\_trial\\PHASE3_NEW10_ARTIST_IDGATE_QUEUEISOLATION_RAW_REVIEW_20260403T055557Z\\img\\2025\\liste\\eeee49dcee91__img_01.jpg"
+        },
+        {
+          "basename": "eeee49dcee91__img_02.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\runtime\\legacy_phase1\\_trial\\PHASE3_NEW10_ARTIST_IDGATE_QUEUEISOLATION_RAW_REVIEW_20260403T055557Z\\img\\2025\\liste\\eeee49dcee91__img_02.jpg"
+        }
+      ],
+      "Magenta Plains": [
+        {
+          "basename": "b125456b7a57__img_01.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_AND_ARTIST_IMAGE_VERIFY_20260421T0149Z\\img\\2025\\liste\\b125456b7a57__img_01.jpg"
+        },
+        {
+          "basename": "b125456b7a57__img_02.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_AND_ARTIST_IMAGE_VERIFY_20260421T0149Z\\img\\2025\\liste\\b125456b7a57__img_02.jpg"
+        },
+        {
+          "basename": "b125456b7a57__img_03.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_AND_ARTIST_IMAGE_VERIFY_20260421T0149Z\\img\\2025\\liste\\b125456b7a57__img_03.jpg"
+        }
+      ],
+      "Margot Samel": [
+        {
+          "basename": "12440b1b4594__img_01.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_AND_ARTIST_IMAGE_VERIFY_20260421T0149Z\\img\\2025\\liste\\12440b1b4594__img_01.jpg"
+        },
+        {
+          "basename": "12440b1b4594__img_02.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_AND_ARTIST_IMAGE_VERIFY_20260421T0149Z\\img\\2025\\liste\\12440b1b4594__img_02.jpg"
+        },
+        {
+          "basename": "12440b1b4594__img_03.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_AND_ARTIST_IMAGE_VERIFY_20260421T0149Z\\img\\2025\\liste\\12440b1b4594__img_03.jpg"
+        }
+      ],
+      "max goelitz": [
+        {
+          "basename": "8477efc20e5c__img_01.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_AND_ARTIST_IMAGE_VERIFY_20260421T0149Z\\img\\2025\\liste\\8477efc20e5c__img_01.jpg"
+        },
+        {
+          "basename": "8477efc20e5c__img_02.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_AND_ARTIST_IMAGE_VERIFY_20260421T0149Z\\img\\2025\\liste\\8477efc20e5c__img_02.jpg"
+        },
+        {
+          "basename": "8477efc20e5c__img_03.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_AND_ARTIST_IMAGE_VERIFY_20260421T0149Z\\img\\2025\\liste\\8477efc20e5c__img_03.jpg"
+        }
+      ],
+      "Öktem Aykut": [
+        {
+          "basename": "72754f3cb5a8__img_01.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_AND_ARTIST_IMAGE_VERIFY_20260421T0149Z\\img\\2025\\liste\\72754f3cb5a8__img_01.jpg"
+        },
+        {
+          "basename": "72754f3cb5a8__img_02.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_AND_ARTIST_IMAGE_VERIFY_20260421T0149Z\\img\\2025\\liste\\72754f3cb5a8__img_02.jpg"
+        },
+        {
+          "basename": "72754f3cb5a8__img_03.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_AND_ARTIST_IMAGE_VERIFY_20260421T0149Z\\img\\2025\\liste\\72754f3cb5a8__img_03.jpg"
+        }
+      ],
+      "Schiefe Zähne": [
+        {
+          "basename": "d10c9c6cb099__img_01.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\img\\2025\\liste\\d10c9c6cb099__img_01.jpg"
+        },
+        {
+          "basename": "d10c9c6cb099__img_02.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\img\\2025\\liste\\d10c9c6cb099__img_02.jpg"
+        },
+        {
+          "basename": "d10c9c6cb099__img_03.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\img\\2025\\liste\\d10c9c6cb099__img_03.jpg"
+        }
+      ],
+      "56 Henry": [
+        {
+          "basename": "572e2e145a2f__img_01.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\p3_raw_next\\p3n10r1\\img\\2025\\liste\\572e2e145a2f__img_01.jpg"
+        },
+        {
+          "basename": "572e2e145a2f__img_02.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\p3_raw_next\\p3n10r1\\img\\2025\\liste\\572e2e145a2f__img_02.jpg"
+        },
+        {
+          "basename": "572e2e145a2f__img_03.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\p3_raw_next\\p3n10r1\\img\\2025\\liste\\572e2e145a2f__img_03.jpg"
+        }
+      ],
+      "Sophie Tappeiner": [
+        {
+          "basename": "69a5d64b193c__img_01.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\p3_raw_next\\p3n10r1\\img\\2025\\liste\\69a5d64b193c__img_01.jpg"
+        },
+        {
+          "basename": "69a5d64b193c__img_02.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\p3_raw_next\\p3n10r1\\img\\2025\\liste\\69a5d64b193c__img_02.jpg"
+        },
+        {
+          "basename": "69a5d64b193c__img_03.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\p3_raw_next\\p3n10r1\\img\\2025\\liste\\69a5d64b193c__img_03.jpg"
+        }
+      ],
+      "Suprainfinit": [
+        {
+          "basename": "cd688d94bb9c__img_01.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\p3_raw_next\\p3n10r1\\img\\2025\\liste\\cd688d94bb9c__img_01.jpg"
+        },
+        {
+          "basename": "cd688d94bb9c__img_02.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\p3_raw_next\\p3n10r1\\img\\2025\\liste\\cd688d94bb9c__img_02.jpg"
+        },
+        {
+          "basename": "cd688d94bb9c__img_03.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\p3_raw_next\\p3n10r1\\img\\2025\\liste\\cd688d94bb9c__img_03.jpg"
+        }
+      ],
+      "Tabula Rasa Gallery": [
+        {
+          "basename": "1cacad721da1__img_01.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\p3_raw_next\\p3n10r1\\img\\2025\\liste\\1cacad721da1__img_01.jpg"
+        },
+        {
+          "basename": "1cacad721da1__img_02.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\p3_raw_next\\p3n10r1\\img\\2025\\liste\\1cacad721da1__img_02.jpg"
+        },
+        {
+          "basename": "1cacad721da1__img_03.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\p3_raw_next\\p3n10r1\\img\\2025\\liste\\1cacad721da1__img_03.jpg"
+        }
+      ]
+    }
+  },
+  "exhibitions_images": {
+    "metadata_records_total": 499,
+    "metadata_images_total": 499,
+    "current_cache_file_total": 297,
+    "trial_cache_file_total": 46,
+    "current_cache_missing_total": 202,
+    "trial_only_missing_in_current_total": 43,
+    "missing_both_total": 159,
+    "metadata_trial_ref_images_total": 202,
+    "gallery_stats": {
+      "56 Henry": {
+        "metadata_images": 8,
+        "metadata_trial_ref_images": 8,
+        "current_cache_missing": 8,
+        "missing_both": 8
+      },
+      "A+ Works of Art": {
+        "metadata_images": 9,
+        "current_cache_exists": 9
+      },
+      "Adams and Ollman": {
+        "metadata_images": 13,
+        "current_cache_exists": 13
+      },
+      "Addis Fine Art": {
+        "metadata_images": 7,
+        "current_cache_exists": 7
+      },
+      "Afriart Gallery": {
+        "metadata_images": 5,
+        "current_cache_exists": 5
+      },
+      "Alexander Gray Associates": {
+        "metadata_images": 4,
+        "current_cache_exists": 4
+      },
+      "Alison Jacques": {
+        "metadata_images": 6,
+        "metadata_trial_ref_images": 6,
+        "current_cache_missing": 6,
+        "missing_both": 6
+      },
+      "Almine Rech": {
+        "metadata_images": 8,
+        "metadata_trial_ref_images": 8,
+        "current_cache_missing": 8,
+        "missing_both": 8
+      },
+      "Amanita": {
+        "metadata_images": 13,
+        "current_cache_exists": 13
+      },
+      "Anat Ebgi": {
+        "metadata_images": 8,
+        "current_cache_exists": 8
+      },
+      "Anca Poterașu Gallery": {
+        "metadata_images": 4,
+        "current_cache_exists": 4
+      },
+      "Arcadia Missa": {
+        "metadata_images": 8,
+        "current_cache_exists": 8
+      },
+      "Athr": {
+        "metadata_images": 4,
+        "current_cache_exists": 4
+      },
+      "Blue Velvet": {
+        "metadata_images": 6,
+        "current_cache_exists": 6
+      },
+      "Brunette Coleman": {
+        "metadata_images": 11,
+        "current_cache_exists": 11
+      },
+      "Carl Freedman Gallery": {
+        "metadata_images": 8,
+        "current_cache_exists": 8
+      },
+      "Carlos/Ishikawa": {
+        "metadata_images": 5,
+        "current_cache_exists": 5
+      },
+      "Casado Santapau": {
+        "metadata_images": 8,
+        "current_cache_exists": 8
+      },
+      "Cecilia Brunson Projects": {
+        "metadata_images": 5,
+        "current_cache_exists": 5
+      },
+      "Chris Sharp Gallery": {
+        "metadata_images": 7,
+        "current_cache_exists": 7
+      },
+      "Ciaccia Levi": {
+        "metadata_images": 2,
+        "current_cache_exists": 2
+      },
+      "Cibrián": {
+        "metadata_images": 1,
+        "current_cache_exists": 1
+      },
+      "Clima": {
+        "metadata_images": 5,
+        "current_cache_exists": 5
+      },
+      "Commune": {
+        "metadata_images": 6,
+        "current_cache_exists": 6
+      },
+      "Damien & The Love Guru": {
+        "metadata_images": 5,
+        "current_cache_exists": 5
+      },
+      "Dastan": {
+        "metadata_images": 8,
+        "current_cache_exists": 8
+      },
+      "David Zwirner": {
+        "metadata_images": 8,
+        "metadata_trial_ref_images": 8,
+        "current_cache_missing": 8,
+        "missing_both": 8
+      },
+      "Drei": {
+        "metadata_images": 1,
+        "current_cache_exists": 1
+      },
+      "Edel Assanti": {
+        "metadata_images": 7,
+        "current_cache_exists": 7
+      },
+      "Ehrlich Steinberg": {
+        "metadata_images": 3,
+        "current_cache_exists": 3
+      },
+      "Emalin": {
+        "metadata_images": 1,
+        "current_cache_exists": 1
+      },
+      "Esther Schipper": {
+        "metadata_images": 8,
+        "metadata_trial_ref_images": 8,
+        "current_cache_missing": 8,
+        "missing_both": 8
+      },
+      "Experimenter": {
+        "metadata_images": 8,
+        "current_cache_exists": 8
+      },
+      "Final Hot Desert": {
+        "metadata_images": 8,
+        "current_cache_exists": 8
+      },
+      "Francesca Minini": {
+        "metadata_images": 2,
+        "metadata_trial_ref_images": 2,
+        "current_cache_missing": 2,
+        "missing_both": 2
+      },
+      "Frith Street Gallery": {
+        "metadata_images": 4,
+        "current_cache_exists": 4
+      },
+      "Gagosian": {
+        "metadata_images": 8,
+        "current_cache_exists": 8
+      },
+      "Galerie Gisela Capitain": {
+        "metadata_images": 9,
+        "current_cache_exists": 9
+      },
+      "Galerie Max Hetzler": {
+        "metadata_images": 8,
+        "metadata_trial_ref_images": 8,
+        "current_cache_missing": 8,
+        "missing_both": 8
+      },
+      "Gallery Baton": {
+        "metadata_images": 10,
+        "current_cache_exists": 10
+      },
+      "Garth Greenan Gallery": {
+        "metadata_images": 2,
+        "current_cache_exists": 2
+      },
+      "Gauli Zitter": {
+        "metadata_images": 3,
+        "current_cache_exists": 3
+      },
+      "Goodman Gallery": {
+        "metadata_images": 2,
+        "current_cache_exists": 2
+      },
+      "Grimm": {
+        "metadata_images": 8,
+        "metadata_trial_ref_images": 8,
+        "current_cache_missing": 8,
+        "missing_both": 8
+      },
+      "Hales": {
+        "metadata_images": 1,
+        "metadata_trial_ref_images": 1,
+        "current_cache_missing": 1,
+        "missing_both": 1
+      },
+      "Harlesden High Street": {
+        "metadata_images": 3,
+        "current_cache_exists": 3
+      },
+      "Ingleby": {
+        "metadata_images": 4,
+        "metadata_trial_ref_images": 4,
+        "current_cache_missing": 4,
+        "missing_both": 4
+      },
+      "James Cohan": {
+        "metadata_images": 10,
+        "current_cache_exists": 10
+      },
+      "Jhaveri Contemporary": {
+        "metadata_images": 8,
+        "metadata_trial_ref_images": 8,
+        "current_cache_missing": 8,
+        "trial_cache_exists": 8,
+        "trial_only_missing_in_current": 8
+      },
+      "Johyun Gallery": {
+        "metadata_images": 8,
+        "metadata_trial_ref_images": 8,
+        "current_cache_missing": 8,
+        "trial_cache_exists": 8,
+        "trial_only_missing_in_current": 8
+      },
+      "Karma": {
+        "metadata_images": 8,
+        "metadata_trial_ref_images": 8,
+        "current_cache_missing": 8,
+        "trial_cache_exists": 8,
+        "trial_only_missing_in_current": 8
+      },
+      "Laveronica": {
+        "metadata_images": 4,
+        "current_cache_exists": 4
+      },
+      "Livia Benavides": {
+        "metadata_images": 4,
+        "current_cache_exists": 4
+      },
+      "Livie Gallery": {
+        "metadata_images": 3,
+        "current_cache_exists": 3
+      },
+      "Lodos": {
+        "metadata_images": 7,
+        "current_cache_exists": 7
+      },
+      "Lodovico Corsini": {
+        "metadata_images": 2,
+        "current_cache_exists": 2
+      },
+      "Magenta Plains": {
+        "metadata_images": 8,
+        "metadata_trial_ref_images": 8,
+        "current_cache_missing": 8,
+        "missing_both": 8
+      },
+      "Margot Samel": {
+        "metadata_images": 8,
+        "metadata_trial_ref_images": 8,
+        "current_cache_missing": 8,
+        "missing_both": 8
+      },
+      "Matthew Brown": {
+        "metadata_images": 10,
+        "current_cache_exists": 10
+      },
+      "Paulina Caspari": {
+        "metadata_images": 9,
+        "metadata_trial_ref_images": 9,
+        "current_cache_missing": 9,
+        "missing_both": 9
+      },
+      "Pedro Cera": {
+        "metadata_images": 7,
+        "current_cache_exists": 7
+      },
+      "Peter Blum Gallery": {
+        "metadata_images": 4,
+        "current_cache_exists": 4
+      },
+      "Pippy Houldsworth Gallery": {
+        "metadata_images": 15,
+        "metadata_trial_ref_images": 15,
+        "current_cache_missing": 15,
+        "missing_both": 15
+      },
+      "Rose Easton": {
+        "metadata_images": 7,
+        "metadata_trial_ref_images": 7,
+        "current_cache_missing": 7,
+        "missing_both": 7
+      },
+      "Sadie Coles HQ": {
+        "metadata_images": 8,
+        "current_cache_exists": 8
+      },
+      "Schiefe Zähne": {
+        "metadata_images": 24,
+        "metadata_trial_ref_images": 24,
+        "current_cache_missing": 24,
+        "missing_both": 24
+      },
+      "Selma Feriani": {
+        "metadata_images": 6,
+        "current_cache_exists": 6
+      },
+      "Suprainfinit": {
+        "metadata_images": 5,
+        "metadata_trial_ref_images": 5,
+        "current_cache_missing": 5,
+        "missing_both": 5
+      },
+      "The Approach": {
+        "metadata_images": 3,
+        "current_cache_exists": 3
+      },
+      "Thomas Dane Gallery": {
+        "metadata_images": 2,
+        "current_cache_exists": 2
+      },
+      "Turnus": {
+        "metadata_images": 8,
+        "metadata_trial_ref_images": 8,
+        "current_cache_missing": 8,
+        "trial_cache_exists": 8,
+        "trial_only_missing_in_current": 8
+      },
+      "Vanguard Gallery": {
+        "metadata_images": 8,
+        "metadata_trial_ref_images": 8,
+        "current_cache_missing": 8,
+        "trial_cache_exists": 8,
+        "trial_only_missing_in_current": 8
+      },
+      "Voloshyn Gallery": {
+        "metadata_images": 3,
+        "metadata_trial_ref_images": 3,
+        "current_cache_missing": 3,
+        "trial_cache_exists": 3,
+        "trial_only_missing_in_current": 3
+      },
+      "Xavier Hufkens": {
+        "metadata_images": 2,
+        "metadata_trial_ref_images": 2,
+        "current_cache_missing": 2,
+        "missing_both": 2
+      },
+      "blank": {
+        "metadata_images": 4,
+        "current_cache_exists": 4
+      },
+      "diez": {
+        "metadata_images": 2,
+        "current_cache_exists": 2
+      },
+      "i8 Gallery": {
+        "metadata_images": 9,
+        "metadata_trial_ref_images": 9,
+        "current_cache_missing": 9,
+        "missing_both": 9
+      },
+      "max goelitz": {
+        "metadata_images": 8,
+        "metadata_trial_ref_images": 8,
+        "current_cache_missing": 8,
+        "missing_both": 8
+      },
+      "Öktem Aykut": {
+        "metadata_images": 3,
+        "metadata_trial_ref_images": 3,
+        "current_cache_missing": 3,
+        "missing_both": 3
+      }
+    },
+    "user_gallery_results": {
+      "Dastan": {
+        "metadata_images": 8,
+        "current_cache_exists": 8
+      },
+      "Anat Ebgi": {
+        "metadata_images": 8,
+        "current_cache_exists": 8
+      },
+      "Edel Assanti": {
+        "metadata_images": 7,
+        "current_cache_exists": 7
+      },
+      "Emalin": {
+        "metadata_images": 1,
+        "current_cache_exists": 1
+      },
+      "Experimenter": {
+        "metadata_images": 8,
+        "current_cache_exists": 8
+      },
+      "Selma Feriani": {
+        "metadata_images": 6,
+        "current_cache_exists": 6
+      },
+      "Carl Freedman Gallery": {
+        "metadata_images": 8,
+        "current_cache_exists": 8
+      },
+      "Goodman Gallery": {
+        "metadata_images": 2,
+        "current_cache_exists": 2
+      },
+      "Frith Street Gallery": {
+        "metadata_images": 4,
+        "current_cache_exists": 4
+      },
+      "Gagosian": {
+        "metadata_images": 8,
+        "current_cache_exists": 8
+      },
+      "Alexander Gray Associates": {
+        "metadata_images": 4,
+        "current_cache_exists": 4
+      },
+      "Garth Greenan Gallery": {
+        "metadata_images": 2,
+        "current_cache_exists": 2
+      },
+      "Grimm": {
+        "metadata_images": 8,
+        "metadata_trial_ref_images": 8,
+        "current_cache_missing": 8,
+        "missing_both": 8
+      },
+      "Galerie Karin Guenther": {},
+      "Hales": {
+        "metadata_images": 1,
+        "metadata_trial_ref_images": 1,
+        "current_cache_missing": 1,
+        "missing_both": 1
+      },
+      "Hauser & Wirth": {},
+      "Galerie Max Hetzler": {
+        "metadata_images": 8,
+        "metadata_trial_ref_images": 8,
+        "current_cache_missing": 8,
+        "missing_both": 8
+      },
+      "Hollybush Gardens": {},
+      "Pippy Houldsworth Gallery": {
+        "metadata_images": 15,
+        "metadata_trial_ref_images": 15,
+        "current_cache_missing": 15,
+        "missing_both": 15
+      },
+      "Xavier Hufkens": {
+        "metadata_images": 2,
+        "metadata_trial_ref_images": 2,
+        "current_cache_missing": 2,
+        "missing_both": 2
+      },
+      "i8 Gallery": {
+        "metadata_images": 9,
+        "metadata_trial_ref_images": 9,
+        "current_cache_missing": 9,
+        "missing_both": 9
+      },
+      "Ingleby": {
+        "metadata_images": 4,
+        "metadata_trial_ref_images": 4,
+        "current_cache_missing": 4,
+        "missing_both": 4
+      },
+      "Alison Jacques": {
+        "metadata_images": 6,
+        "metadata_trial_ref_images": 6,
+        "current_cache_missing": 6,
+        "missing_both": 6
+      },
+      "Almine Rech": {
+        "metadata_images": 8,
+        "metadata_trial_ref_images": 8,
+        "current_cache_missing": 8,
+        "missing_both": 8
+      },
+      "David Zwirner": {
+        "metadata_images": 8,
+        "metadata_trial_ref_images": 8,
+        "current_cache_missing": 8,
+        "missing_both": 8
+      },
+      "Esther Schipper": {
+        "metadata_images": 8,
+        "metadata_trial_ref_images": 8,
+        "current_cache_missing": 8,
+        "missing_both": 8
+      },
+      "Francesca Minini": {
+        "metadata_images": 2,
+        "metadata_trial_ref_images": 2,
+        "current_cache_missing": 2,
+        "missing_both": 2
+      },
+      "Taka Ishii Gallery": {},
+      "Jhaveri Contemporary": {
+        "metadata_images": 8,
+        "metadata_trial_ref_images": 8,
+        "current_cache_missing": 8,
+        "trial_cache_exists": 8,
+        "trial_only_missing_in_current": 8
+      },
+      "Johyun Gallery": {
+        "metadata_images": 8,
+        "metadata_trial_ref_images": 8,
+        "current_cache_missing": 8,
+        "trial_cache_exists": 8,
+        "trial_only_missing_in_current": 8
+      },
+      "Kalfayan Galleries": {},
+      "Karma": {
+        "metadata_images": 8,
+        "metadata_trial_ref_images": 8,
+        "current_cache_missing": 8,
+        "trial_cache_exists": 8,
+        "trial_only_missing_in_current": 8
+      }
+    },
+    "missing_examples": {
+      "Grimm": [
+        {
+          "basename": "gb82eecdf__4ec0705f__img_01.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_EXHIBITIONS_IMAGE_COLLECT_VERIFY_FIRST_20260421T091605Z\\images\\cache\\exhibition_works_images\\2025\\frieze-london\\gb82eecdf__4ec0705f__img_01.jpg"
+        },
+        {
+          "basename": "gb82eecdf__8d28b8d1__img_02.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_EXHIBITIONS_IMAGE_COLLECT_VERIFY_FIRST_20260421T091605Z\\images\\cache\\exhibition_works_images\\2025\\frieze-london\\gb82eecdf__8d28b8d1__img_02.jpg"
+        },
+        {
+          "basename": "gb82eecdf__103ccffc__img_03.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_EXHIBITIONS_IMAGE_COLLECT_VERIFY_FIRST_20260421T091605Z\\images\\cache\\exhibition_works_images\\2025\\frieze-london\\gb82eecdf__103ccffc__img_03.jpg"
+        }
+      ],
+      "Hales": [
+        {
+          "basename": "hales__1__66c7c325__img_01.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_EXHIBITIONS_IMAGE_COLLECT_VERIFY_FIRST_20260421T091605Z\\images\\cache\\exhibition_works_images\\2025\\frieze-london\\hales__1__66c7c325__img_01.jpg"
+        }
+      ],
+      "Galerie Max Hetzler": [
+        {
+          "basename": "g83fb36b3__5f42ea4f__img_01.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_EXHIBITIONS_IMAGE_COLLECT_VERIFY_FIRST_20260421T091605Z\\images\\cache\\exhibition_works_images\\2025\\frieze-london\\g83fb36b3__5f42ea4f__img_01.jpg"
+        },
+        {
+          "basename": "g83fb36b3__af059a0f__img_02.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_EXHIBITIONS_IMAGE_COLLECT_VERIFY_FIRST_20260421T091605Z\\images\\cache\\exhibition_works_images\\2025\\frieze-london\\g83fb36b3__af059a0f__img_02.jpg"
+        },
+        {
+          "basename": "g83fb36b3__b8728b72__img_03.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_EXHIBITIONS_IMAGE_COLLECT_VERIFY_FIRST_20260421T091605Z\\images\\cache\\exhibition_works_images\\2025\\frieze-london\\g83fb36b3__b8728b72__img_03.jpg"
+        }
+      ],
+      "Pippy Houldsworth Gallery": [
+        {
+          "basename": "g1a8a4f1d__5d292366__img_01.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\images\\cache\\exhibition_works_images\\2025\\frieze-london\\g1a8a4f1d__5d2923"
+        },
+        {
+          "basename": "g1a8a4f1d__b54b879f__img_02.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\images\\cache\\exhibition_works_images\\2025\\frieze-london\\g1a8a4f1d__b54b87"
+        },
+        {
+          "basename": "g1a8a4f1d__cec5fddd__img_03.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\images\\cache\\exhibition_works_images\\2025\\frieze-london\\g1a8a4f1d__cec5fd"
+        }
+      ],
+      "i8 Gallery": [
+        {
+          "basename": "g7646cca0__9a2c9c68__img_01.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\images\\cache\\exhibition_works_images\\2025\\frieze-london\\g7646cca0__9a2c9c"
+        },
+        {
+          "basename": "g7646cca0__1e333aa9__img_02.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\images\\cache\\exhibition_works_images\\2025\\frieze-london\\g7646cca0__1e333a"
+        },
+        {
+          "basename": "g7646cca0__05c5d0c2__img_03.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\images\\cache\\exhibition_works_images\\2025\\frieze-london\\g7646cca0__05c5d0"
+        }
+      ],
+      "Ingleby": [
+        {
+          "basename": "gaab5a4c0__2171b1ad__img_01.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\images\\cache\\exhibition_works_images\\2025\\frieze-london\\gaab5a4c0__2171b1"
+        },
+        {
+          "basename": "gaab5a4c0__56e18572__img_02.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\images\\cache\\exhibition_works_images\\2025\\frieze-london\\gaab5a4c0__56e185"
+        },
+        {
+          "basename": "gaab5a4c0__25cc6b4e__img_01.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\images\\cache\\exhibition_works_images\\2025\\frieze-london\\gaab5a4c0__25cc6b"
+        }
+      ],
+      "Xavier Hufkens": [
+        {
+          "basename": "gb5b9c61e__3e29ac93__img_01.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\images\\cache\\exhibition_works_images\\2025\\frieze-london\\gb5b9c61e__3e29ac"
+        },
+        {
+          "basename": "gb5b9c61e__fc6fbdaf__img_01.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\images\\cache\\exhibition_works_images\\2025\\frieze-london\\gb5b9c61e__fc6fbd"
+        }
+      ],
+      "Alison Jacques": [
+        {
+          "basename": "alison-jacques__alison-wilding-testing-the-objects-of-affection__0a2a3555__img_01.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\p3_raw_next\\p3n10r1\\images\\cache\\exhibition_works_images\\2025\\frieze-london\\alison-jacques__alison-wilding-testing-the-objects-of-affection__0a2a3555__img_01.jpg"
+        },
+        {
+          "basename": "alison-jacques__bona-de-mandiargues__cc66c631__img_02.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\p3_raw_next\\p3n10r1\\images\\cache\\exhibition_works_images\\2025\\frieze-london\\alison-jacques__bona-de-mandiargues__cc66c631__img_02.jpg"
+        },
+        {
+          "basename": "alison-jacques__carol-rhodes-site__8c0384d7__img_03.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\p3_raw_next\\p3n10r1\\images\\cache\\exhibition_works_images\\2025\\frieze-london\\alison-jacques__carol-rhodes-site__8c0384d7__img_03.jpg"
+        }
+      ],
+      "Almine Rech": [
+        {
+          "basename": "almine-rech__10421-carlos-jacanamijoy-olor-a-tierra__3c5df64e__img_01.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\p3_raw_next\\p3n10r1\\images\\cache\\exhibition_works_images\\2025\\frieze-london\\almine-rech__10421-carlos-jacanamijoy-olor-a-tierra__3c5df64e__img_01.jpg"
+        },
+        {
+          "basename": "almine-rech__10467-jean-miotte-return-to-china__9d989820__img_02.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\p3_raw_next\\p3n10r1\\images\\cache\\exhibition_works_images\\2025\\frieze-london\\almine-rech__10467-jean-miotte-return-to-china__9d989820__img_02.jpg"
+        },
+        {
+          "basename": "almine-rech__10508-gwen-o-neil-a-glimmer-in-the-shade__045d870a__img_03.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\p3_raw_next\\p3n10r1\\images\\cache\\exhibition_works_images\\2025\\frieze-london\\almine-rech__10508-gwen-o-neil-a-glimmer-in-the-shade__045d870a__img_03.jpg"
+        }
+      ],
+      "David Zwirner": [
+        {
+          "basename": "david-zwirner__art-basel-miami-beach-plus__25bdb5e6__img_01.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\p3_raw_next\\p3n10r1\\images\\cache\\exhibition_works_images\\2025\\frieze-london\\david-zwirner__art-basel-miami-beach-plus__25bdb5e6__img_01.jpg"
+        },
+        {
+          "basename": "david-zwirner__diane-arbus-sanctum-sanctorum__b710aa04__img_02.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\p3_raw_next\\p3n10r1\\images\\cache\\exhibition_works_images\\2025\\frieze-london\\david-zwirner__diane-arbus-sanctum-sanctorum__b710aa04__img_02.jpg"
+        },
+        {
+          "basename": "david-zwirner__exceptional-prints-andy-warhol-electric-chair-19__43332529__img_03.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\p3_raw_next\\p3n10r1\\images\\cache\\exhibition_works_images\\2025\\frieze-london\\david-zwirner__exceptional-prints-andy-warhol-electric-chair-19__43332529__img_03.jpg"
+        }
+      ],
+      "Esther Schipper": [
+        {
+          "basename": "esther-schipper__1345-sahko-recordings__cb6d5f03__img_01.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\p3_raw_next\\p3n10r1\\images\\cache\\exhibition_works_images\\2025\\frieze-london\\esther-schipper__1345-sahko-recordings__cb6d5f03__img_01.jpg"
+        },
+        {
+          "basename": "esther-schipper__1346-europe-endless-materials-trailers-outtakes-__62468450__img_02.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\p3_raw_next\\p3n10r1\\images\\cache\\exhibition_works_images\\2025\\frieze-london\\esther-schipper__1346-europe-endless-materials-trailers-outtakes-__62468450__img_02.jpg"
+        },
+        {
+          "basename": "esther-schipper__1350-chambre-de-la-vie-parallele-sarah-buckner__66bf11de__img_03.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\p3_raw_next\\p3n10r1\\images\\cache\\exhibition_works_images\\2025\\frieze-london\\esther-schipper__1350-chambre-de-la-vie-parallele-sarah-buckner__66bf11de__img_03.jpg"
+        }
+      ],
+      "Francesca Minini": [
+        {
+          "basename": "francesca-minini__fantasyvanishesinflesh__4fd1ebe4__img_01.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\p3_raw_next\\p3n10r1\\images\\cache\\exhibition_works_images\\2025\\frieze-london\\francesca-minini__fantasyvanishesinflesh__4fd1ebe4__img_01.jpg"
+        },
+        {
+          "basename": "francesca-minini__revival__16d887be__img_02.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\p3_raw_next\\p3n10r1\\images\\cache\\exhibition_works_images\\2025\\frieze-london\\francesca-minini__revival__16d887be__img_02.jpg"
+        }
+      ],
+      "Magenta Plains": [
+        {
+          "basename": "g74e5689b__22f3d98d__img_01.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_EXHIBITIONS_IMAGE_COLLECT_VERIFY_FIRST_20260421T091605Z\\images\\cache\\exhibition_works_images\\2025\\liste\\g74e5689b__22f3d98d__img_01.jpg"
+        },
+        {
+          "basename": "g74e5689b__b44fecf3__img_02.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_EXHIBITIONS_IMAGE_COLLECT_VERIFY_FIRST_20260421T091605Z\\images\\cache\\exhibition_works_images\\2025\\liste\\g74e5689b__b44fecf3__img_02.jpg"
+        },
+        {
+          "basename": "g74e5689b__a0ab055d__img_03.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_EXHIBITIONS_IMAGE_COLLECT_VERIFY_FIRST_20260421T091605Z\\images\\cache\\exhibition_works_images\\2025\\liste\\g74e5689b__a0ab055d__img_03.jpg"
+        }
+      ],
+      "Margot Samel": [
+        {
+          "basename": "g57b0e8aa__e428cccb__img_01.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_EXHIBITIONS_IMAGE_COLLECT_VERIFY_FIRST_20260421T091605Z\\images\\cache\\exhibition_works_images\\2025\\liste\\g57b0e8aa__e428cccb__img_01.jpg"
+        },
+        {
+          "basename": "g57b0e8aa__de6f5efa__img_02.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_EXHIBITIONS_IMAGE_COLLECT_VERIFY_FIRST_20260421T091605Z\\images\\cache\\exhibition_works_images\\2025\\liste\\g57b0e8aa__de6f5efa__img_02.jpg"
+        },
+        {
+          "basename": "margot-samel__imago__9322fbd6__img_03.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_EXHIBITIONS_IMAGE_COLLECT_VERIFY_FIRST_20260421T091605Z\\images\\cache\\exhibition_works_images\\2025\\liste\\margot-samel__imago__9322fbd6__img_03.jpg"
+        }
+      ],
+      "max goelitz": [
+        {
+          "basename": "max-goelitz__x18e17b420d1a__7ea49fcf__img_01.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_EXHIBITIONS_IMAGE_COLLECT_VERIFY_FIRST_20260421T091605Z\\images\\cache\\exhibition_works_images\\2025\\liste\\max-goelitz__x18e17b420d1a__7ea49fcf__img_01.jpg"
+        },
+        {
+          "basename": "max-goelitz__x80649eeb29ae__ef2e67f2__img_02.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_EXHIBITIONS_IMAGE_COLLECT_VERIFY_FIRST_20260421T091605Z\\images\\cache\\exhibition_works_images\\2025\\liste\\max-goelitz__x80649eeb29ae__ef2e67f2__img_02.jpg"
+        },
+        {
+          "basename": "max-goelitz__xf8d5040cc117__5e9b9a19__img_03.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_EXHIBITIONS_IMAGE_COLLECT_VERIFY_FIRST_20260421T091605Z\\images\\cache\\exhibition_works_images\\2025\\liste\\max-goelitz__xf8d5040cc117__5e9b9a19__img_03.jpg"
+        }
+      ],
+      "Öktem Aykut": [
+        {
+          "basename": "ktem-aykut__x69822f9791e4__3103dd5e__img_01.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_EXHIBITIONS_IMAGE_COLLECT_VERIFY_FIRST_20260421T091605Z\\images\\cache\\exhibition_works_images\\2025\\liste\\ktem-aykut__x69822f9791e4__3103dd5e__img_01.jpg"
+        },
+        {
+          "basename": "ktem-aykut__x6f3a7b8df7d5__b3dced5c__img_02.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_EXHIBITIONS_IMAGE_COLLECT_VERIFY_FIRST_20260421T091605Z\\images\\cache\\exhibition_works_images\\2025\\liste\\ktem-aykut__x6f3a7b8df7d5__b3dced5c__img_02.jpg"
+        },
+        {
+          "basename": "ktem-aykut__x188451730edb__176d9f92__img_03.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_EXHIBITIONS_IMAGE_COLLECT_VERIFY_FIRST_20260421T091605Z\\images\\cache\\exhibition_works_images\\2025\\liste\\ktem-aykut__x188451730edb__176d9f92__img_03.jpg"
+        }
+      ],
+      "Paulina Caspari": [
+        {
+          "basename": "ge169575d__b1cee01f__img_01.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\images\\cache\\exhibition_works_images\\2025\\liste\\ge169575d__b1cee01f__img_"
+        },
+        {
+          "basename": "ge169575d__85bd9d0e__img_02.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\images\\cache\\exhibition_works_images\\2025\\liste\\ge169575d__85bd9d0e__img_"
+        },
+        {
+          "basename": "ge169575d__82994f52__img_03.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\images\\cache\\exhibition_works_images\\2025\\liste\\ge169575d__82994f52__img_"
+        }
+      ],
+      "Rose Easton": [
+        {
+          "basename": "g7c39f296__a9fa6efd__img_01.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\images\\cache\\exhibition_works_images\\2025\\liste\\g7c39f296__a9fa6efd__img_"
+        },
+        {
+          "basename": "g7c39f296__d1da32ae__img_02.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\images\\cache\\exhibition_works_images\\2025\\liste\\g7c39f296__d1da32ae__img_"
+        },
+        {
+          "basename": "g7c39f296__ebe0b523__img_03.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\images\\cache\\exhibition_works_images\\2025\\liste\\g7c39f296__ebe0b523__img_"
+        }
+      ],
+      "Schiefe Zähne": [
+        {
+          "basename": "ge5242eaf__e093f6a5__img_01.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\images\\cache\\exhibition_works_images\\2025\\liste\\ge5242eaf__e093f6a5__img_"
+        },
+        {
+          "basename": "ge5242eaf__2ab24bdf__img_02.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\images\\cache\\exhibition_works_images\\2025\\liste\\ge5242eaf__2ab24bdf__img_"
+        },
+        {
+          "basename": "ge5242eaf__9ca77d48__img_03.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422\\images\\cache\\exhibition_works_images\\2025\\liste\\ge5242eaf__9ca77d48__img_"
+        }
+      ],
+      "56 Henry": [
+        {
+          "basename": "56-henry__a-harvest__6e402df2__img_01.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\p3_raw_next\\p3n10r1\\images\\cache\\exhibition_works_images\\2025\\liste\\56-henry__a-harvest__6e402df2__img_01.jpg"
+        },
+        {
+          "basename": "56-henry__adolescent-sanctuary__18fc8653__img_02.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\p3_raw_next\\p3n10r1\\images\\cache\\exhibition_works_images\\2025\\liste\\56-henry__adolescent-sanctuary__18fc8653__img_02.jpg"
+        },
+        {
+          "basename": "56-henry__at-rest__40351732__img_03.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\p3_raw_next\\p3n10r1\\images\\cache\\exhibition_works_images\\2025\\liste\\56-henry__at-rest__40351732__img_03.jpg"
+        }
+      ],
+      "Suprainfinit": [
+        {
+          "basename": "suprainfinit__headnotes__7809c96a__img_01.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\p3_raw_next\\p3n10r1\\images\\cache\\exhibition_works_images\\2025\\liste\\suprainfinit__headnotes__7809c96a__img_01.jpg"
+        },
+        {
+          "basename": "suprainfinit__mechanisms-of-seduction-economies-of-exposure__b0884701__img_02.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\p3_raw_next\\p3n10r1\\images\\cache\\exhibition_works_images\\2025\\liste\\suprainfinit__mechanisms-of-seduction-economies-of-exposure__b0884701__img_02.jpg"
+        },
+        {
+          "basename": "suprainfinit__remaking__098a0db1__img_03.jpg",
+          "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\_trial\\p3_raw_next\\p3n10r1\\images\\cache\\exhibition_works_images\\2025\\liste\\suprainfinit__remaking__098a0db1__img_03.jpg"
+        }
+      ]
+    },
+    "cache_family_note": "current cache family name is exhibition_works_images"
+  },
+  "text_and_enrichment": {
+    "artists": {
+      "raw_rows_total": 2375,
+      "enrichment_applied_rows_total": 2363,
+      "raw_without_enrichment_total": 6,
+      "enrichment_without_raw_total": 0,
+      "required_field_missing_total": 0,
+      "trial_ref_rows_total": 0,
+      "skip_gallery_rows": {}
+    },
+    "exhibitions": {
+      "raw_rows_total": 943,
+      "enrichment_applied_rows_total": 943,
+      "raw_without_enrichment_total": 0,
+      "enrichment_without_raw_total": 0,
+      "required_field_missing_total": 0,
+      "trial_ref_rows_total": 0,
+      "summary_gt_500_total": 1,
+      "summary_gt_550_total": 0,
+      "skip_gallery_rows": {}
+    }
+  },
+  "vectors": {
+    "artists_text": {
+      "meta_rows_total": 2169,
+      "index_shape": [
+        2169,
+        1536
+      ],
+      "index_dim": 1536,
+      "index_meta_match": true,
+      "trial_ref_rows_total": 0,
+      "duplicate_key_total": 0,
+      "matched_enrichment_keys_total": 2164,
+      "enrichment_without_vector_total": 199,
+      "vector_without_enrichment_total": 5
+    },
+    "artist_works_images": {
+      "id_map_rows_total": 9172,
+      "embeddings_shape": [
+        9172,
+        512
+      ],
+      "search_index_shape": [
+        9172,
+        512
+      ],
+      "index_dim": 512,
+      "id_map_embeddings_match": true,
+      "trial_ref_rows_total": 5267,
+      "rows_missing_current_cache_total": 5000,
+      "rows_missing_both_total": 4502,
+      "duplicate_image_id_total": 0,
+      "duplicate_url_hash_total": 5
+    },
+    "exhibitions_text": {
+      "status": "not_present_under_data/current/vector"
+    },
+    "exhibitions_images": {
+      "status": "not_present_under_data/current/vector"
+    }
+  },
+  "closeout_and_r2": {
+    "closeout_report_path": "_trial/p3_raw_next/p3n10r2raw_20260502T000000Z/runtime/closeout/p3n10r2_closeout_current_only_apply_20260503_report.json",
+    "closeout_current_only_merge_keys": [
+      "artist_raw",
+      "artist_image_metadata",
+      "exhibition_raw",
+      "exhibition_image_metadata",
+      "artist_enrichment",
+      "exhibition_enrichment",
+      "artist_text_vector",
+      "artist_works_images_vector"
+    ],
+    "closeout_has_explicit_cache_merge": false,
+    "r2_plan_path": "logs/r2_sync/r2_sync_plan_current_required_rag_full_p3n10r2_current_required_rag_full_plan_20260503.json",
+    "r2_apply_path": "logs/r2_sync/r2_sync_apply_current_required_rag_full_p3n10r2_current_required_rag_full_apply_20260503.json",
+    "r2_run_path": "logs/r2_sync/r2_sync_run_p3n10r2_current_required_rag_full_apply_20260503.json",
+    "r2_plan_would_upload_total": 18,
+    "r2_apply_uploaded_total": 18,
+    "r2_plan_images_cache_would_upload_total": 0,
+    "r2_apply_images_cache_uploaded_total": 0,
+    "why_images_cache_missing_from_r2": "closeout current-only did not mutate current cache roots, so R2 plan/apply saw metadata/vector deltas but no cache-file delta"
+  },
+  "classifications": {
+    "raw_artists": "A",
+    "raw_exhibitions": "A",
+    "enrichment_artists": "A",
+    "enrichment_exhibitions": "A",
+    "images_metadata_artist_works": "E",
+    "images_cache_artist_works": "C",
+    "vector_artist_works_images": "E",
+    "images_metadata_exhibitions": "E",
+    "images_cache_exhibition_works": "C",
+    "vector_artists": "A",
+    "vector_exhibitions_text": "H_unimplemented_or_out_of_scope",
+    "vector_exhibitions_images": "H_unimplemented_or_out_of_scope"
+  },
+  "repair_plan": {
+    "cache_copy_plan": {
+      "artist_works_images_files_trial_to_current": 498,
+      "exhibition_works_images_files_trial_to_current": 43
+    },
+    "metadata_rewrite_plan": {
+      "artist_works_images_rows_with_trial_refs": 1015,
+      "artist_works_images_image_slots_with_trial_refs": 5287,
+      "exhibitions_images_rows_with_trial_refs": 202,
+      "exhibitions_images_image_slots_with_trial_refs": 202
+    },
+    "vector_id_map_rewrite_plan": {
+      "artist_works_images_rows_with_trial_refs": 5267
+    },
+    "closeout_current_only_cache_merge_fix_required": true,
+    "r2_replan_required_after_repair": true,
+    "recommended_next_tasks": [
+      "21b. current cache repair verify-first",
+      "21c. current cache repair apply",
+      "21d. metadata + artist works id_map path rewrite verify-first",
+      "21e. metadata + artist works id_map rewrite apply",
+      "21f. closeout current-only cache merge恒久修正 verify-first",
+      "20r. current_required_rag_full latest re-plan"
+    ]
+  }
+}

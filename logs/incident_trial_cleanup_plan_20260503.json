@@ -1,0 +1,1400 @@
+{
+  "summary": {
+    "status": "GO",
+    "task": "23a._trial_cleanup_verify_first",
+    "generated_at_utc": "2026-05-04T09:26:08.182037Z",
+    "trial_total_roots": 53,
+    "trial_total_size_bytes": 2785643087,
+    "trial_total_size_human": "2.59 GB",
+    "trial_total_file_count": 8424,
+    "deletable_root_count": 3,
+    "hold_root_count": 51,
+    "protected_root_count": 0
+  },
+  "inventory_roots": [
+    {
+      "path": "_trial/p3_raw_next",
+      "size_bytes": 590318074,
+      "file_count": 2768,
+      "last_modified": "2026-05-03T02:50:11.989491Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment",
+        "closeout_staging",
+        "batch_related"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_RAW_REBUILD_AND_ARTIST_IMAGE_VERIFY_20260421T0149Z",
+      "size_bytes": 248055264,
+      "file_count": 2784,
+      "last_modified": "2026-04-21T14:32:32.498083Z",
+      "content_tags": [
+        "images_cache",
+        "images_metadata",
+        "batch_related",
+        "raw"
+      ]
+    },
+    {
+      "path": "_trial/p21l",
+      "size_bytes": 158335945,
+      "file_count": 564,
+      "last_modified": "2026-05-04T06:09:26.499183Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment",
+        "closeout_staging"
+      ]
+    },
+    {
+      "path": "_trial/p3n10r2_closeout_current_only_dryrun_verify_20260504",
+      "size_bytes": 156289397,
+      "file_count": 543,
+      "last_modified": "2026-05-04T06:08:17.945921Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment",
+        "closeout_staging",
+        "dryrun_staging"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422",
+      "size_bytes": 124360934,
+      "file_count": 1077,
+      "last_modified": "2026-04-24T07:51:34.218911Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment",
+        "closeout_staging",
+        "dryrun_staging",
+        "batch_related"
+      ]
+    },
+    {
+      "path": "_trial/p3n10r2_closeout_current_only_dryrun_20260503",
+      "size_bytes": 115348338,
+      "file_count": 23,
+      "last_modified": "2026-05-03T02:47:45.470784Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment",
+        "closeout_staging",
+        "dryrun_staging"
+      ]
+    },
+    {
+      "path": "_trial/p3n10r2_closeout_current_only_apply_20260503",
+      "size_bytes": 115348324,
+      "file_count": 23,
+      "last_modified": "2026-05-03T02:50:09.762043Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment",
+        "closeout_staging"
+      ]
+    },
+    {
+      "path": "_trial/p3n10r2_closeout_verify_first_20260503",
+      "size_bytes": 115348240,
+      "file_count": 23,
+      "last_modified": "2026-05-03T02:38:29.122387Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment",
+        "closeout_staging"
+      ]
+    },
+    {
+      "path": "_trial/p17",
+      "size_bytes": 86741810,
+      "file_count": 23,
+      "last_modified": "2026-04-24T07:43:44.856270Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment"
+      ]
+    },
+    {
+      "path": "_trial/p18",
+      "size_bytes": 86741810,
+      "file_count": 23,
+      "last_modified": "2026-04-24T07:51:31.580398Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_BLOCK_CLOSEOUT_ARTIST_SOURCE_REAPPLY_20260422T0015Z",
+      "size_bytes": 75626766,
+      "file_count": 23,
+      "last_modified": "2026-04-22T03:01:11.362070Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment",
+        "closeout_staging"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_BLOCK_CLOSEOUT_ARTIST_SOURCE_REAPPLY_VERIFY_20260422T0005Z",
+      "size_bytes": 75315508,
+      "file_count": 23,
+      "last_modified": "2026-04-22T02:59:28.795945Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment",
+        "closeout_staging"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_BLOCK_CLOSEOUT_VERIFY_FIRST_EXH_IMAGE_META_20260421T1505Z",
+      "size_bytes": 70213390,
+      "file_count": 24,
+      "last_modified": "2026-04-21T14:48:03.995873Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment",
+        "closeout_staging"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_BLOCK_CLOSEOUT_VERIFY_FIRST_20260421T1434Z",
+      "size_bytes": 70047380,
+      "file_count": 24,
+      "last_modified": "2026-04-21T14:39:02.206692Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment",
+        "closeout_staging"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_BLOCK_CLOSEOUT_APPLY_NO_R2_20260421T1515Z",
+      "size_bytes": 70027592,
+      "file_count": 23,
+      "last_modified": "2026-04-21T14:54:54.727265Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment",
+        "closeout_staging"
+      ]
+    },
+    {
+      "path": "_trial/phase3_exhib_text_narrow_apply_route_verify_20260411",
+      "size_bytes": 48492791,
+      "file_count": 24,
+      "last_modified": "2026-04-11T03:38:21.795381Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment",
+        "closeout_staging",
+        "dryrun_staging"
+      ]
+    },
+    {
+      "path": "_trial/phase3_exhib_text_narrow_apply_postcheck_20260411",
+      "size_bytes": 48426597,
+      "file_count": 24,
+      "last_modified": "2026-04-11T03:46:40.921164Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment",
+        "closeout_staging",
+        "dryrun_staging"
+      ]
+    },
+    {
+      "path": "_trial/phase3_exhib_text_narrow_apply_20260411",
+      "size_bytes": 48361251,
+      "file_count": 23,
+      "last_modified": "2026-04-11T03:45:14.319238Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_SAME_SCOPE9_BOUNDED_MERGE_DRYRUN_RECHECK_20260410T1116Z",
+      "size_bytes": 48327098,
+      "file_count": 24,
+      "last_modified": "2026-04-10T11:16:24.082947Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment",
+        "dryrun_staging"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_SAME_SCOPE9_CLOSEOUT_APPLY_NO_R2_20260410T1230Z",
+      "size_bytes": 48264502,
+      "file_count": 23,
+      "last_modified": "2026-04-10T12:18:26.790240Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment",
+        "closeout_staging"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_SAME_SCOPE9_BOUNDED_MERGE_DRYRUN_RECHECK_20260410T1118Z",
+      "size_bytes": 48084497,
+      "file_count": 23,
+      "last_modified": "2026-04-10T10:55:08.353086Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment",
+        "dryrun_staging"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_NEXT_SCOPE_BLOCK_CLOSEOUT_VERIFY_20260410T000000Z",
+      "size_bytes": 45103067,
+      "file_count": 23,
+      "last_modified": "2026-04-10T10:28:58.839776Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment",
+        "closeout_staging"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_NEXT_SCOPE_BLOCK_CLOSEOUT_APPLY_20260410T000000Z",
+      "size_bytes": 43534155,
+      "file_count": 23,
+      "last_modified": "2026-04-10T02:57:07.248122Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment",
+        "closeout_staging"
+      ]
+    },
+    {
+      "path": "_trial/phase3_same_scope_live_materialization_20260410",
+      "size_bytes": 33952517,
+      "file_count": 23,
+      "last_modified": "2026-04-10T11:15:57.195652Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment",
+        "batch_related"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_TRUE_NEXT_BLOCK_CLOSEOUT_APPLY_20260408T063900Z",
+      "size_bytes": 31503110,
+      "file_count": 24,
+      "last_modified": "2026-04-08T06:29:46.448079Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment",
+        "closeout_staging"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_TRUE_NEXT_BLOCK_CLOSEOUT_APPLY_20260407T145900Z",
+      "size_bytes": 31416602,
+      "file_count": 24,
+      "last_modified": "2026-04-07T14:52:55.050540Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment",
+        "closeout_staging"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_TRUE_NEXT_BLOCK_CLOSEOUT_APPLY_20260408T130041Z",
+      "size_bytes": 31414200,
+      "file_count": 23,
+      "last_modified": "2026-04-08T13:00:52.729095Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment",
+        "closeout_staging"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_EXHIBITION_IMAGE_BLOCK_VERIFY_20260408T010700Z",
+      "size_bytes": 31353732,
+      "file_count": 23,
+      "last_modified": "2026-04-07T15:19:13.249014Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_CLOSEOUT_SMOKE_PREP",
+      "size_bytes": 31353211,
+      "file_count": 23,
+      "last_modified": "2026-04-07T14:13:59.058342Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment",
+        "closeout_staging"
+      ]
+    },
+    {
+      "path": "_trial/phase3_artists_enrichment_submitonly_20260407T083409Z",
+      "size_bytes": 10709955,
+      "file_count": 8,
+      "last_modified": "2026-04-07T10:49:14.464276Z",
+      "content_tags": [
+        "raw",
+        "enrichment",
+        "batch_related"
+      ]
+    },
+    {
+      "path": "_trial/phase3_artists_enrichment_verify_20260407T071847Z",
+      "size_bytes": 10183522,
+      "file_count": 9,
+      "last_modified": "2026-04-07T07:20:20.159941Z",
+      "content_tags": [
+        "raw",
+        "enrichment",
+        "batch_related"
+      ]
+    },
+    {
+      "path": "_trial/phase3_next_scope_artists_enrichment_verify_20260410",
+      "size_bytes": 6888927,
+      "file_count": 12,
+      "last_modified": "2026-04-10T10:44:31.509866Z",
+      "content_tags": [
+        "raw",
+        "enrichment",
+        "batch_related"
+      ]
+    },
+    {
+      "path": "_trial/phase3_next_scope_image_vector_verify_20260410",
+      "size_bytes": 6652943,
+      "file_count": 8,
+      "last_modified": "2026-04-10T02:44:25.621488Z",
+      "content_tags": [
+        "images_cache",
+        "images_metadata",
+        "vector"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_EXHIBITIONS_IMAGE_COLLECT_VERIFY_FIRST_20260421T091605Z",
+      "size_bytes": 5415894,
+      "file_count": 49,
+      "last_modified": "2026-04-21T09:31:34.732858Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata"
+      ]
+    },
+    {
+      "path": "_trial/phase3_true_next_image_vector_verify_20260407T124750Z",
+      "size_bytes": 5294589,
+      "file_count": 8,
+      "last_modified": "2026-04-07T12:52:38.370893Z",
+      "content_tags": [
+        "images_cache",
+        "images_metadata",
+        "vector"
+      ]
+    },
+    {
+      "path": "_trial/phase3_true_next_text_vector_verify_20260407T121615Z",
+      "size_bytes": 4614023,
+      "file_count": 7,
+      "last_modified": "2026-04-07T12:16:44.841919Z",
+      "content_tags": [
+        "raw",
+        "vector"
+      ]
+    },
+    {
+      "path": "_trial/phase3_next_scope_text_vector_verify_20260410",
+      "size_bytes": 4318928,
+      "file_count": 7,
+      "last_modified": "2026-04-10T02:36:53.341614Z",
+      "content_tags": [
+        "raw",
+        "vector"
+      ]
+    },
+    {
+      "path": "_trial/patch_observe_narrow_20260421",
+      "size_bytes": 3774672,
+      "file_count": 6,
+      "last_modified": "2026-04-21T08:44:25.746345Z",
+      "content_tags": []
+    },
+    {
+      "path": "_trial/TASK_PHASE3_SAME_SCOPE9_CLOSEOUT_POST_APPLY_R2_PLAN_20260410T1240Z",
+      "size_bytes": 50635,
+      "file_count": 1,
+      "last_modified": "2026-04-10T12:20:18.834198Z",
+      "content_tags": [
+        "closeout_staging",
+        "dryrun_staging"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_ARTIST_WORKS_IMAGES_VECTOR_VERIFY_FIRST_20260421",
+      "size_bytes": 10160,
+      "file_count": 1,
+      "last_modified": "2026-04-21T14:32:32.535788Z",
+      "content_tags": [
+        "vector",
+        "images_cache"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_ARTISTS_IMAGE_COLLECT_VERIFY_FIRST_20260421T0138Z",
+      "size_bytes": 5007,
+      "file_count": 1,
+      "last_modified": "2026-04-21T01:37:09.805301Z",
+      "content_tags": []
+    },
+    {
+      "path": "_trial/TASK_PHASE3_ARTISTS_ENRICHMENT_PREFLIGHT_IO_ROOT_20260421",
+      "size_bytes": 3720,
+      "file_count": 1,
+      "last_modified": "2026-04-21T12:17:59.804844Z",
+      "content_tags": [
+        "enrichment"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_EXHIBITIONS_ENRICHMENT_PREFLIGHT_IO_ROOT_20260421",
+      "size_bytes": 3524,
+      "file_count": 1,
+      "last_modified": "2026-04-21T13:33:33.724055Z",
+      "content_tags": [
+        "enrichment"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_ARTISTS_ENRICHMENT_PREFLIGHT_20260421",
+      "size_bytes": 3322,
+      "file_count": 1,
+      "last_modified": "2026-04-21T11:43:49.618085Z",
+      "content_tags": [
+        "enrichment"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_ARTISTS_TEXT_VECTOR_VERIFY_FIRST_20260421",
+      "size_bytes": 2206,
+      "file_count": 1,
+      "last_modified": "2026-04-21T14:22:38.975077Z",
+      "content_tags": [
+        "vector"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_ARTISTS_ENRICHMENT_APPLY_IO_ROOT_20260421",
+      "size_bytes": 738,
+      "file_count": 1,
+      "last_modified": "2026-04-21T13:25:30.106239Z",
+      "content_tags": [
+        "enrichment"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_ARTISTS_ENRICHMENT_SUBMIT_IO_ROOT_20260421",
+      "size_bytes": 686,
+      "file_count": 1,
+      "last_modified": "2026-04-21T12:31:45.353774Z",
+      "content_tags": [
+        "enrichment"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_ARTISTS_ENRICHMENT_CHECK_IO_ROOT_20260421",
+      "size_bytes": 684,
+      "file_count": 1,
+      "last_modified": "2026-04-21T13:11:41.095159Z",
+      "content_tags": [
+        "enrichment"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_EXHIBITIONS_ENRICHMENT_APPLY_IO_ROOT_20260421",
+      "size_bytes": 642,
+      "file_count": 1,
+      "last_modified": "2026-04-21T14:14:22.186729Z",
+      "content_tags": [
+        "enrichment"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_EXHIBITIONS_ENRICHMENT_CHECK_IO_ROOT_20260421",
+      "size_bytes": 592,
+      "file_count": 1,
+      "last_modified": "2026-04-21T13:42:59.750689Z",
+      "content_tags": [
+        "enrichment"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_EXHIBITIONS_ENRICHMENT_RECHECK_IO_ROOT_20260421",
+      "size_bytes": 592,
+      "file_count": 1,
+      "last_modified": "2026-04-21T13:48:42.596666Z",
+      "content_tags": [
+        "enrichment"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_EXHIBITIONS_ENRICHMENT_SUBMIT_IO_ROOT_20260421",
+      "size_bytes": 590,
+      "file_count": 1,
+      "last_modified": "2026-04-21T13:39:39.099321Z",
+      "content_tags": [
+        "enrichment"
+      ]
+    },
+    {
+      "path": "_trial/TASK_VERIFY_FIRST_GUARD_TEST_20260424",
+      "size_bytes": 434,
+      "file_count": 1,
+      "last_modified": "2026-04-24T02:32:20.681882Z",
+      "content_tags": [
+        "dryrun_staging"
+      ]
+    }
+  ],
+  "deletable_roots": [
+    {
+      "path": "_trial/p3_raw_next",
+      "size_bytes": 590318074,
+      "file_count": 2768,
+      "last_modified": "2026-05-03T02:50:11.989491Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment",
+        "closeout_staging",
+        "batch_related"
+      ],
+      "reason": "recovery_or_closeout_staging_completed_current_r2_smoke_go"
+    },
+    {
+      "path": "_trial/p21l",
+      "size_bytes": 158335945,
+      "file_count": 564,
+      "last_modified": "2026-05-04T06:09:26.499183Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment",
+        "closeout_staging"
+      ],
+      "reason": "recovery_or_closeout_staging_completed_current_r2_smoke_go"
+    },
+    {
+      "path": "_trial/p3_raw_next/p3n10r2raw_20260502T000000Z",
+      "size_bytes": 77454221,
+      "file_count": 783,
+      "last_modified": "2026-05-03T02:50:11.989491Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment",
+        "closeout_staging",
+        "dryrun_staging",
+        "batch_related"
+      ],
+      "reason": "explicit_user_named_cleanup_candidate"
+    }
+  ],
+  "hold_roots": [
+    {
+      "path": "_trial/TASK_PHASE3_RAW_REBUILD_AND_ARTIST_IMAGE_VERIFY_20260421T0149Z",
+      "size_bytes": 248055264,
+      "file_count": 2784,
+      "last_modified": "2026-04-21T14:32:32.498083Z",
+      "content_tags": [
+        "images_cache",
+        "images_metadata",
+        "batch_related",
+        "raw"
+      ],
+      "reason": "insufficient_evidence_or_potential_reuse_for_docs_or_future_audit"
+    },
+    {
+      "path": "_trial/p3n10r2_closeout_current_only_dryrun_verify_20260504",
+      "size_bytes": 156289397,
+      "file_count": 543,
+      "last_modified": "2026-05-04T06:08:17.945921Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment",
+        "closeout_staging",
+        "dryrun_staging"
+      ],
+      "reason": "insufficient_evidence_or_potential_reuse_for_docs_or_future_audit"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422",
+      "size_bytes": 124360934,
+      "file_count": 1077,
+      "last_modified": "2026-04-24T07:51:34.218911Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment",
+        "closeout_staging",
+        "dryrun_staging",
+        "batch_related"
+      ],
+      "reason": "insufficient_evidence_or_potential_reuse_for_docs_or_future_audit"
+    },
+    {
+      "path": "_trial/p3n10r2_closeout_current_only_dryrun_20260503",
+      "size_bytes": 115348338,
+      "file_count": 23,
+      "last_modified": "2026-05-03T02:47:45.470784Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment",
+        "closeout_staging",
+        "dryrun_staging"
+      ],
+      "reason": "insufficient_evidence_or_potential_reuse_for_docs_or_future_audit"
+    },
+    {
+      "path": "_trial/p3n10r2_closeout_current_only_apply_20260503",
+      "size_bytes": 115348324,
+      "file_count": 23,
+      "last_modified": "2026-05-03T02:50:09.762043Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment",
+        "closeout_staging"
+      ],
+      "reason": "insufficient_evidence_or_potential_reuse_for_docs_or_future_audit"
+    },
+    {
+      "path": "_trial/p3n10r2_closeout_verify_first_20260503",
+      "size_bytes": 115348240,
+      "file_count": 23,
+      "last_modified": "2026-05-03T02:38:29.122387Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment",
+        "closeout_staging"
+      ],
+      "reason": "insufficient_evidence_or_potential_reuse_for_docs_or_future_audit"
+    },
+    {
+      "path": "_trial/p17",
+      "size_bytes": 86741810,
+      "file_count": 23,
+      "last_modified": "2026-04-24T07:43:44.856270Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment"
+      ],
+      "reason": "insufficient_evidence_or_potential_reuse_for_docs_or_future_audit"
+    },
+    {
+      "path": "_trial/p18",
+      "size_bytes": 86741810,
+      "file_count": 23,
+      "last_modified": "2026-04-24T07:51:31.580398Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment"
+      ],
+      "reason": "insufficient_evidence_or_potential_reuse_for_docs_or_future_audit"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_BLOCK_CLOSEOUT_ARTIST_SOURCE_REAPPLY_20260422T0015Z",
+      "size_bytes": 75626766,
+      "file_count": 23,
+      "last_modified": "2026-04-22T03:01:11.362070Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment",
+        "closeout_staging"
+      ],
+      "reason": "insufficient_evidence_or_potential_reuse_for_docs_or_future_audit"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_BLOCK_CLOSEOUT_ARTIST_SOURCE_REAPPLY_VERIFY_20260422T0005Z",
+      "size_bytes": 75315508,
+      "file_count": 23,
+      "last_modified": "2026-04-22T02:59:28.795945Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment",
+        "closeout_staging"
+      ],
+      "reason": "insufficient_evidence_or_potential_reuse_for_docs_or_future_audit"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_BLOCK_CLOSEOUT_VERIFY_FIRST_EXH_IMAGE_META_20260421T1505Z",
+      "size_bytes": 70213390,
+      "file_count": 24,
+      "last_modified": "2026-04-21T14:48:03.995873Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment",
+        "closeout_staging"
+      ],
+      "reason": "insufficient_evidence_or_potential_reuse_for_docs_or_future_audit"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_BLOCK_CLOSEOUT_VERIFY_FIRST_20260421T1434Z",
+      "size_bytes": 70047380,
+      "file_count": 24,
+      "last_modified": "2026-04-21T14:39:02.206692Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment",
+        "closeout_staging"
+      ],
+      "reason": "insufficient_evidence_or_potential_reuse_for_docs_or_future_audit"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_BLOCK_CLOSEOUT_APPLY_NO_R2_20260421T1515Z",
+      "size_bytes": 70027592,
+      "file_count": 23,
+      "last_modified": "2026-04-21T14:54:54.727265Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment",
+        "closeout_staging"
+      ],
+      "reason": "insufficient_evidence_or_potential_reuse_for_docs_or_future_audit"
+    },
+    {
+      "path": "_trial/phase3_exhib_text_narrow_apply_route_verify_20260411",
+      "size_bytes": 48492791,
+      "file_count": 24,
+      "last_modified": "2026-04-11T03:38:21.795381Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment",
+        "closeout_staging",
+        "dryrun_staging"
+      ],
+      "reason": "insufficient_evidence_or_potential_reuse_for_docs_or_future_audit"
+    },
+    {
+      "path": "_trial/phase3_exhib_text_narrow_apply_postcheck_20260411",
+      "size_bytes": 48426597,
+      "file_count": 24,
+      "last_modified": "2026-04-11T03:46:40.921164Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment",
+        "closeout_staging",
+        "dryrun_staging"
+      ],
+      "reason": "insufficient_evidence_or_potential_reuse_for_docs_or_future_audit"
+    },
+    {
+      "path": "_trial/phase3_exhib_text_narrow_apply_20260411",
+      "size_bytes": 48361251,
+      "file_count": 23,
+      "last_modified": "2026-04-11T03:45:14.319238Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment"
+      ],
+      "reason": "insufficient_evidence_or_potential_reuse_for_docs_or_future_audit"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_SAME_SCOPE9_BOUNDED_MERGE_DRYRUN_RECHECK_20260410T1116Z",
+      "size_bytes": 48327098,
+      "file_count": 24,
+      "last_modified": "2026-04-10T11:16:24.082947Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment",
+        "dryrun_staging"
+      ],
+      "reason": "insufficient_evidence_or_potential_reuse_for_docs_or_future_audit"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_SAME_SCOPE9_CLOSEOUT_APPLY_NO_R2_20260410T1230Z",
+      "size_bytes": 48264502,
+      "file_count": 23,
+      "last_modified": "2026-04-10T12:18:26.790240Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment",
+        "closeout_staging"
+      ],
+      "reason": "insufficient_evidence_or_potential_reuse_for_docs_or_future_audit"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_SAME_SCOPE9_BOUNDED_MERGE_DRYRUN_RECHECK_20260410T1118Z",
+      "size_bytes": 48084497,
+      "file_count": 23,
+      "last_modified": "2026-04-10T10:55:08.353086Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment",
+        "dryrun_staging"
+      ],
+      "reason": "insufficient_evidence_or_potential_reuse_for_docs_or_future_audit"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_NEXT_SCOPE_BLOCK_CLOSEOUT_VERIFY_20260410T000000Z",
+      "size_bytes": 45103067,
+      "file_count": 23,
+      "last_modified": "2026-04-10T10:28:58.839776Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment",
+        "closeout_staging"
+      ],
+      "reason": "insufficient_evidence_or_potential_reuse_for_docs_or_future_audit"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_NEXT_SCOPE_BLOCK_CLOSEOUT_APPLY_20260410T000000Z",
+      "size_bytes": 43534155,
+      "file_count": 23,
+      "last_modified": "2026-04-10T02:57:07.248122Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment",
+        "closeout_staging"
+      ],
+      "reason": "insufficient_evidence_or_potential_reuse_for_docs_or_future_audit"
+    },
+    {
+      "path": "_trial/phase3_same_scope_live_materialization_20260410",
+      "size_bytes": 33952517,
+      "file_count": 23,
+      "last_modified": "2026-04-10T11:15:57.195652Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment",
+        "batch_related"
+      ],
+      "reason": "insufficient_evidence_or_potential_reuse_for_docs_or_future_audit"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_TRUE_NEXT_BLOCK_CLOSEOUT_APPLY_20260408T063900Z",
+      "size_bytes": 31503110,
+      "file_count": 24,
+      "last_modified": "2026-04-08T06:29:46.448079Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment",
+        "closeout_staging"
+      ],
+      "reason": "insufficient_evidence_or_potential_reuse_for_docs_or_future_audit"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_TRUE_NEXT_BLOCK_CLOSEOUT_APPLY_20260407T145900Z",
+      "size_bytes": 31416602,
+      "file_count": 24,
+      "last_modified": "2026-04-07T14:52:55.050540Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment",
+        "closeout_staging"
+      ],
+      "reason": "insufficient_evidence_or_potential_reuse_for_docs_or_future_audit"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_TRUE_NEXT_BLOCK_CLOSEOUT_APPLY_20260408T130041Z",
+      "size_bytes": 31414200,
+      "file_count": 23,
+      "last_modified": "2026-04-08T13:00:52.729095Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment",
+        "closeout_staging"
+      ],
+      "reason": "insufficient_evidence_or_potential_reuse_for_docs_or_future_audit"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_EXHIBITION_IMAGE_BLOCK_VERIFY_20260408T010700Z",
+      "size_bytes": 31353732,
+      "file_count": 23,
+      "last_modified": "2026-04-07T15:19:13.249014Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment"
+      ],
+      "reason": "insufficient_evidence_or_potential_reuse_for_docs_or_future_audit"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_CLOSEOUT_SMOKE_PREP",
+      "size_bytes": 31353211,
+      "file_count": 23,
+      "last_modified": "2026-04-07T14:13:59.058342Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata",
+        "vector",
+        "enrichment",
+        "closeout_staging"
+      ],
+      "reason": "insufficient_evidence_or_potential_reuse_for_docs_or_future_audit"
+    },
+    {
+      "path": "_trial/phase3_artists_enrichment_submitonly_20260407T083409Z",
+      "size_bytes": 10709955,
+      "file_count": 8,
+      "last_modified": "2026-04-07T10:49:14.464276Z",
+      "content_tags": [
+        "raw",
+        "enrichment",
+        "batch_related"
+      ],
+      "reason": "insufficient_evidence_or_potential_reuse_for_docs_or_future_audit"
+    },
+    {
+      "path": "_trial/phase3_artists_enrichment_verify_20260407T071847Z",
+      "size_bytes": 10183522,
+      "file_count": 9,
+      "last_modified": "2026-04-07T07:20:20.159941Z",
+      "content_tags": [
+        "raw",
+        "enrichment",
+        "batch_related"
+      ],
+      "reason": "insufficient_evidence_or_potential_reuse_for_docs_or_future_audit"
+    },
+    {
+      "path": "_trial/phase3_next_scope_artists_enrichment_verify_20260410",
+      "size_bytes": 6888927,
+      "file_count": 12,
+      "last_modified": "2026-04-10T10:44:31.509866Z",
+      "content_tags": [
+        "raw",
+        "enrichment",
+        "batch_related"
+      ],
+      "reason": "insufficient_evidence_or_potential_reuse_for_docs_or_future_audit"
+    },
+    {
+      "path": "_trial/phase3_next_scope_image_vector_verify_20260410",
+      "size_bytes": 6652943,
+      "file_count": 8,
+      "last_modified": "2026-04-10T02:44:25.621488Z",
+      "content_tags": [
+        "images_cache",
+        "images_metadata",
+        "vector"
+      ],
+      "reason": "insufficient_evidence_or_potential_reuse_for_docs_or_future_audit"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_EXHIBITIONS_IMAGE_COLLECT_VERIFY_FIRST_20260421T091605Z",
+      "size_bytes": 5415894,
+      "file_count": 49,
+      "last_modified": "2026-04-21T09:31:34.732858Z",
+      "content_tags": [
+        "raw",
+        "images_cache",
+        "images_metadata"
+      ],
+      "reason": "insufficient_evidence_or_potential_reuse_for_docs_or_future_audit"
+    },
+    {
+      "path": "_trial/phase3_true_next_image_vector_verify_20260407T124750Z",
+      "size_bytes": 5294589,
+      "file_count": 8,
+      "last_modified": "2026-04-07T12:52:38.370893Z",
+      "content_tags": [
+        "images_cache",
+        "images_metadata",
+        "vector"
+      ],
+      "reason": "insufficient_evidence_or_potential_reuse_for_docs_or_future_audit"
+    },
+    {
+      "path": "_trial/phase3_true_next_text_vector_verify_20260407T121615Z",
+      "size_bytes": 4614023,
+      "file_count": 7,
+      "last_modified": "2026-04-07T12:16:44.841919Z",
+      "content_tags": [
+        "raw",
+        "vector"
+      ],
+      "reason": "insufficient_evidence_or_potential_reuse_for_docs_or_future_audit"
+    },
+    {
+      "path": "_trial/phase3_next_scope_text_vector_verify_20260410",
+      "size_bytes": 4318928,
+      "file_count": 7,
+      "last_modified": "2026-04-10T02:36:53.341614Z",
+      "content_tags": [
+        "raw",
+        "vector"
+      ],
+      "reason": "insufficient_evidence_or_potential_reuse_for_docs_or_future_audit"
+    },
+    {
+      "path": "_trial/patch_observe_narrow_20260421",
+      "size_bytes": 3774672,
+      "file_count": 6,
+      "last_modified": "2026-04-21T08:44:25.746345Z",
+      "content_tags": [],
+      "reason": "insufficient_evidence_or_potential_reuse_for_docs_or_future_audit"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_SAME_SCOPE9_CLOSEOUT_POST_APPLY_R2_PLAN_20260410T1240Z",
+      "size_bytes": 50635,
+      "file_count": 1,
+      "last_modified": "2026-04-10T12:20:18.834198Z",
+      "content_tags": [
+        "closeout_staging",
+        "dryrun_staging"
+      ],
+      "reason": "insufficient_evidence_or_potential_reuse_for_docs_or_future_audit"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_ARTIST_WORKS_IMAGES_VECTOR_VERIFY_FIRST_20260421",
+      "size_bytes": 10160,
+      "file_count": 1,
+      "last_modified": "2026-04-21T14:32:32.535788Z",
+      "content_tags": [
+        "vector",
+        "images_cache"
+      ],
+      "reason": "insufficient_evidence_or_potential_reuse_for_docs_or_future_audit"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_ARTISTS_IMAGE_COLLECT_VERIFY_FIRST_20260421T0138Z",
+      "size_bytes": 5007,
+      "file_count": 1,
+      "last_modified": "2026-04-21T01:37:09.805301Z",
+      "content_tags": [],
+      "reason": "insufficient_evidence_or_potential_reuse_for_docs_or_future_audit"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_ARTISTS_ENRICHMENT_PREFLIGHT_IO_ROOT_20260421",
+      "size_bytes": 3720,
+      "file_count": 1,
+      "last_modified": "2026-04-21T12:17:59.804844Z",
+      "content_tags": [
+        "enrichment"
+      ],
+      "reason": "insufficient_evidence_or_potential_reuse_for_docs_or_future_audit"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_EXHIBITIONS_ENRICHMENT_PREFLIGHT_IO_ROOT_20260421",
+      "size_bytes": 3524,
+      "file_count": 1,
+      "last_modified": "2026-04-21T13:33:33.724055Z",
+      "content_tags": [
+        "enrichment"
+      ],
+      "reason": "insufficient_evidence_or_potential_reuse_for_docs_or_future_audit"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_ARTISTS_ENRICHMENT_PREFLIGHT_20260421",
+      "size_bytes": 3322,
+      "file_count": 1,
+      "last_modified": "2026-04-21T11:43:49.618085Z",
+      "content_tags": [
+        "enrichment"
+      ],
+      "reason": "insufficient_evidence_or_potential_reuse_for_docs_or_future_audit"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_ARTISTS_TEXT_VECTOR_VERIFY_FIRST_20260421",
+      "size_bytes": 2206,
+      "file_count": 1,
+      "last_modified": "2026-04-21T14:22:38.975077Z",
+      "content_tags": [
+        "vector"
+      ],
+      "reason": "insufficient_evidence_or_potential_reuse_for_docs_or_future_audit"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_ARTISTS_ENRICHMENT_APPLY_IO_ROOT_20260421",
+      "size_bytes": 738,
+      "file_count": 1,
+      "last_modified": "2026-04-21T13:25:30.106239Z",
+      "content_tags": [
+        "enrichment"
+      ],
+      "reason": "insufficient_evidence_or_potential_reuse_for_docs_or_future_audit"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_ARTISTS_ENRICHMENT_SUBMIT_IO_ROOT_20260421",
+      "size_bytes": 686,
+      "file_count": 1,
+      "last_modified": "2026-04-21T12:31:45.353774Z",
+      "content_tags": [
+        "enrichment"
+      ],
+      "reason": "insufficient_evidence_or_potential_reuse_for_docs_or_future_audit"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_ARTISTS_ENRICHMENT_CHECK_IO_ROOT_20260421",
+      "size_bytes": 684,
+      "file_count": 1,
+      "last_modified": "2026-04-21T13:11:41.095159Z",
+      "content_tags": [
+        "enrichment"
+      ],
+      "reason": "insufficient_evidence_or_potential_reuse_for_docs_or_future_audit"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_EXHIBITIONS_ENRICHMENT_APPLY_IO_ROOT_20260421",
+      "size_bytes": 642,
+      "file_count": 1,
+      "last_modified": "2026-04-21T14:14:22.186729Z",
+      "content_tags": [
+        "enrichment"
+      ],
+      "reason": "insufficient_evidence_or_potential_reuse_for_docs_or_future_audit"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_EXHIBITIONS_ENRICHMENT_CHECK_IO_ROOT_20260421",
+      "size_bytes": 592,
+      "file_count": 1,
+      "last_modified": "2026-04-21T13:42:59.750689Z",
+      "content_tags": [
+        "enrichment"
+      ],
+      "reason": "insufficient_evidence_or_potential_reuse_for_docs_or_future_audit"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_EXHIBITIONS_ENRICHMENT_RECHECK_IO_ROOT_20260421",
+      "size_bytes": 592,
+      "file_count": 1,
+      "last_modified": "2026-04-21T13:48:42.596666Z",
+      "content_tags": [
+        "enrichment"
+      ],
+      "reason": "insufficient_evidence_or_potential_reuse_for_docs_or_future_audit"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_EXHIBITIONS_ENRICHMENT_SUBMIT_IO_ROOT_20260421",
+      "size_bytes": 590,
+      "file_count": 1,
+      "last_modified": "2026-04-21T13:39:39.099321Z",
+      "content_tags": [
+        "enrichment"
+      ],
+      "reason": "insufficient_evidence_or_potential_reuse_for_docs_or_future_audit"
+    },
+    {
+      "path": "_trial/TASK_VERIFY_FIRST_GUARD_TEST_20260424",
+      "size_bytes": 434,
+      "file_count": 1,
+      "last_modified": "2026-04-24T02:32:20.681882Z",
+      "content_tags": [
+        "dryrun_staging"
+      ],
+      "reason": "insufficient_evidence_or_potential_reuse_for_docs_or_future_audit"
+    }
+  ],
+  "protected_roots": [],
+  "total_delete_size_bytes": 826108240,
+  "total_delete_size_human": "787.84 MB",
+  "total_delete_file_count": 4115,
+  "deletion_order": [
+    "_trial/p3_raw_next",
+    "_trial/p21l",
+    "_trial/p3_raw_next/p3n10r2raw_20260502T000000Z"
+  ],
+  "safety_checks": [
+    "Do not delete in verify-first task.",
+    "Delete only roots listed in deletable_roots.",
+    "Re-check runtime _trial refs == 0 before apply.",
+    "Re-check current_required_rag_full post-check remains all zero before apply.",
+    "Skip any root modified after this plan timestamp unless re-verified.",
+    "Do not delete logs/incident_* or logs/r2_sync/*.",
+    "Do not delete hold/protected roots without explicit re-classification."
+  ],
+  "next_apply_command_proposal": [
+    "PowerShell Remove-Item -LiteralPath <root> -Recurse -Force for each deletable root in deletion_order",
+    "Run git status --short and confirm only expected _trial removals appear",
+    "If unexpected changes appear, stop and HOLD"
+  ],
+  "policy_proposal_for_docs": {
+    "fixed_sequence": [
+      "20.plan",
+      "21.apply",
+      "22.post-check",
+      "23._trial_cleanup_verify-first/apply",
+      "24.docs_sync"
+    ],
+    "principles": [
+      "_trial is staging, not source of truth.",
+      "Source of truth is data/current.",
+      "Remote backup is R2 data/current.",
+      "Do not treat GitHub as RAG backup by default.",
+      "Always run cleanup as verify-first then apply.",
+      "Never delete in-progress, unsynced, or unverified trial roots."
+    ]
+  }
+}

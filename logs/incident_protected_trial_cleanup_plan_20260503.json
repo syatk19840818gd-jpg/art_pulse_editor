@@ -1,0 +1,549 @@
+{
+  "summary": {
+    "status": "GO",
+    "generated_at_utc": "2026-05-04T09:40:02.519825+00:00",
+    "hold_reasons": [],
+    "protected_root_input_count": 11,
+    "protected_root_existing_count": 11,
+    "protected_root_total_size_bytes": 575555502,
+    "protected_root_total_file_count": 257
+  },
+  "protected_roots_inventory": [
+    {
+      "path": "_trial/TASK_PHASE3_BLOCK_CLOSEOUT_ARTIST_SOURCE_REAPPLY_20260422T0015Z",
+      "exists": true,
+      "size_bytes": 75626766,
+      "file_count": 23,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-22T03:01:11.362070+00:00",
+      "content_tags": [
+        "closeout staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ],
+      "lock_pending_like_files": [],
+      "batch_related_files_sample": [],
+      "in_progress_signal": false,
+      "recently_modified_48h": false
+    },
+    {
+      "path": "_trial/TASK_PHASE3_BLOCK_CLOSEOUT_ARTIST_SOURCE_REAPPLY_VERIFY_20260422T0005Z",
+      "exists": true,
+      "size_bytes": 75315508,
+      "file_count": 23,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-22T02:59:28.795945+00:00",
+      "content_tags": [
+        "closeout staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ],
+      "lock_pending_like_files": [],
+      "batch_related_files_sample": [],
+      "in_progress_signal": false,
+      "recently_modified_48h": false
+    },
+    {
+      "path": "_trial/TASK_PHASE3_BLOCK_CLOSEOUT_VERIFY_FIRST_EXH_IMAGE_META_20260421T1505Z",
+      "exists": true,
+      "size_bytes": 70213390,
+      "file_count": 24,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-21T14:48:03.995873+00:00",
+      "content_tags": [
+        "closeout staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ],
+      "lock_pending_like_files": [],
+      "batch_related_files_sample": [],
+      "in_progress_signal": false,
+      "recently_modified_48h": false
+    },
+    {
+      "path": "_trial/TASK_PHASE3_BLOCK_CLOSEOUT_VERIFY_FIRST_20260421T1434Z",
+      "exists": true,
+      "size_bytes": 70047380,
+      "file_count": 24,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-21T14:39:02.206692+00:00",
+      "content_tags": [
+        "closeout staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ],
+      "lock_pending_like_files": [],
+      "batch_related_files_sample": [],
+      "in_progress_signal": false,
+      "recently_modified_48h": false
+    },
+    {
+      "path": "_trial/TASK_PHASE3_BLOCK_CLOSEOUT_APPLY_NO_R2_20260421T1515Z",
+      "exists": true,
+      "size_bytes": 70027592,
+      "file_count": 23,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-21T14:54:54.727265+00:00",
+      "content_tags": [
+        "closeout staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ],
+      "lock_pending_like_files": [],
+      "batch_related_files_sample": [],
+      "in_progress_signal": false,
+      "recently_modified_48h": false
+    },
+    {
+      "path": "_trial/TASK_PHASE3_NEXT_SCOPE_BLOCK_CLOSEOUT_VERIFY_20260410T000000Z",
+      "exists": true,
+      "size_bytes": 45103067,
+      "file_count": 23,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-10T10:28:58.839776+00:00",
+      "content_tags": [
+        "closeout staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ],
+      "lock_pending_like_files": [],
+      "batch_related_files_sample": [],
+      "in_progress_signal": false,
+      "recently_modified_48h": false
+    },
+    {
+      "path": "_trial/TASK_PHASE3_NEXT_SCOPE_BLOCK_CLOSEOUT_APPLY_20260410T000000Z",
+      "exists": true,
+      "size_bytes": 43534155,
+      "file_count": 23,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-10T02:57:07.248122+00:00",
+      "content_tags": [
+        "closeout staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ],
+      "lock_pending_like_files": [],
+      "batch_related_files_sample": [],
+      "in_progress_signal": false,
+      "recently_modified_48h": false
+    },
+    {
+      "path": "_trial/TASK_PHASE3_TRUE_NEXT_BLOCK_CLOSEOUT_APPLY_20260408T063900Z",
+      "exists": true,
+      "size_bytes": 31503110,
+      "file_count": 24,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-08T06:29:46.448079+00:00",
+      "content_tags": [
+        "closeout staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ],
+      "lock_pending_like_files": [],
+      "batch_related_files_sample": [],
+      "in_progress_signal": false,
+      "recently_modified_48h": false
+    },
+    {
+      "path": "_trial/TASK_PHASE3_TRUE_NEXT_BLOCK_CLOSEOUT_APPLY_20260407T145900Z",
+      "exists": true,
+      "size_bytes": 31416602,
+      "file_count": 24,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-07T14:52:55.050540+00:00",
+      "content_tags": [
+        "closeout staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ],
+      "lock_pending_like_files": [],
+      "batch_related_files_sample": [],
+      "in_progress_signal": false,
+      "recently_modified_48h": false
+    },
+    {
+      "path": "_trial/TASK_PHASE3_TRUE_NEXT_BLOCK_CLOSEOUT_APPLY_20260408T130041Z",
+      "exists": true,
+      "size_bytes": 31414200,
+      "file_count": 23,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-08T13:00:52.729095+00:00",
+      "content_tags": [
+        "closeout staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ],
+      "lock_pending_like_files": [],
+      "batch_related_files_sample": [],
+      "in_progress_signal": false,
+      "recently_modified_48h": false
+    },
+    {
+      "path": "_trial/TASK_PHASE3_EXHIBITION_IMAGE_BLOCK_VERIFY_20260408T010700Z",
+      "exists": true,
+      "size_bytes": 31353732,
+      "file_count": 23,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-07T15:19:13.249014+00:00",
+      "content_tags": [
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ],
+      "lock_pending_like_files": [],
+      "batch_related_files_sample": [],
+      "in_progress_signal": false,
+      "recently_modified_48h": false
+    }
+  ],
+  "deletable_roots": [
+    {
+      "path": "_trial/TASK_PHASE3_BLOCK_CLOSEOUT_ARTIST_SOURCE_REAPPLY_20260422T0015Z",
+      "exists": true,
+      "size_bytes": 75626766,
+      "file_count": 23,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-22T03:01:11.362070+00:00",
+      "content_tags": [
+        "closeout staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ],
+      "lock_pending_like_files": [],
+      "batch_related_files_sample": [],
+      "in_progress_signal": false,
+      "recently_modified_48h": false,
+      "reason": "no_explicit_active_lock_and_runtime_refs_absent"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_BLOCK_CLOSEOUT_ARTIST_SOURCE_REAPPLY_VERIFY_20260422T0005Z",
+      "exists": true,
+      "size_bytes": 75315508,
+      "file_count": 23,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-22T02:59:28.795945+00:00",
+      "content_tags": [
+        "closeout staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ],
+      "lock_pending_like_files": [],
+      "batch_related_files_sample": [],
+      "in_progress_signal": false,
+      "recently_modified_48h": false,
+      "reason": "no_explicit_active_lock_and_runtime_refs_absent"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_BLOCK_CLOSEOUT_VERIFY_FIRST_EXH_IMAGE_META_20260421T1505Z",
+      "exists": true,
+      "size_bytes": 70213390,
+      "file_count": 24,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-21T14:48:03.995873+00:00",
+      "content_tags": [
+        "closeout staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ],
+      "lock_pending_like_files": [],
+      "batch_related_files_sample": [],
+      "in_progress_signal": false,
+      "recently_modified_48h": false,
+      "reason": "no_explicit_active_lock_and_runtime_refs_absent"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_BLOCK_CLOSEOUT_VERIFY_FIRST_20260421T1434Z",
+      "exists": true,
+      "size_bytes": 70047380,
+      "file_count": 24,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-21T14:39:02.206692+00:00",
+      "content_tags": [
+        "closeout staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ],
+      "lock_pending_like_files": [],
+      "batch_related_files_sample": [],
+      "in_progress_signal": false,
+      "recently_modified_48h": false,
+      "reason": "no_explicit_active_lock_and_runtime_refs_absent"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_BLOCK_CLOSEOUT_APPLY_NO_R2_20260421T1515Z",
+      "exists": true,
+      "size_bytes": 70027592,
+      "file_count": 23,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-21T14:54:54.727265+00:00",
+      "content_tags": [
+        "closeout staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ],
+      "lock_pending_like_files": [],
+      "batch_related_files_sample": [],
+      "in_progress_signal": false,
+      "recently_modified_48h": false,
+      "reason": "no_explicit_active_lock_and_runtime_refs_absent"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_NEXT_SCOPE_BLOCK_CLOSEOUT_VERIFY_20260410T000000Z",
+      "exists": true,
+      "size_bytes": 45103067,
+      "file_count": 23,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-10T10:28:58.839776+00:00",
+      "content_tags": [
+        "closeout staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ],
+      "lock_pending_like_files": [],
+      "batch_related_files_sample": [],
+      "in_progress_signal": false,
+      "recently_modified_48h": false,
+      "reason": "no_explicit_active_lock_and_runtime_refs_absent"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_NEXT_SCOPE_BLOCK_CLOSEOUT_APPLY_20260410T000000Z",
+      "exists": true,
+      "size_bytes": 43534155,
+      "file_count": 23,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-10T02:57:07.248122+00:00",
+      "content_tags": [
+        "closeout staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ],
+      "lock_pending_like_files": [],
+      "batch_related_files_sample": [],
+      "in_progress_signal": false,
+      "recently_modified_48h": false,
+      "reason": "no_explicit_active_lock_and_runtime_refs_absent"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_TRUE_NEXT_BLOCK_CLOSEOUT_APPLY_20260408T063900Z",
+      "exists": true,
+      "size_bytes": 31503110,
+      "file_count": 24,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-08T06:29:46.448079+00:00",
+      "content_tags": [
+        "closeout staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ],
+      "lock_pending_like_files": [],
+      "batch_related_files_sample": [],
+      "in_progress_signal": false,
+      "recently_modified_48h": false,
+      "reason": "no_explicit_active_lock_and_runtime_refs_absent"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_TRUE_NEXT_BLOCK_CLOSEOUT_APPLY_20260407T145900Z",
+      "exists": true,
+      "size_bytes": 31416602,
+      "file_count": 24,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-07T14:52:55.050540+00:00",
+      "content_tags": [
+        "closeout staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ],
+      "lock_pending_like_files": [],
+      "batch_related_files_sample": [],
+      "in_progress_signal": false,
+      "recently_modified_48h": false,
+      "reason": "no_explicit_active_lock_and_runtime_refs_absent"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_TRUE_NEXT_BLOCK_CLOSEOUT_APPLY_20260408T130041Z",
+      "exists": true,
+      "size_bytes": 31414200,
+      "file_count": 23,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-08T13:00:52.729095+00:00",
+      "content_tags": [
+        "closeout staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ],
+      "lock_pending_like_files": [],
+      "batch_related_files_sample": [],
+      "in_progress_signal": false,
+      "recently_modified_48h": false,
+      "reason": "no_explicit_active_lock_and_runtime_refs_absent"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_EXHIBITION_IMAGE_BLOCK_VERIFY_20260408T010700Z",
+      "exists": true,
+      "size_bytes": 31353732,
+      "file_count": 23,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-07T15:19:13.249014+00:00",
+      "content_tags": [
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ],
+      "lock_pending_like_files": [],
+      "batch_related_files_sample": [],
+      "in_progress_signal": false,
+      "recently_modified_48h": false,
+      "reason": "no_explicit_active_lock_and_runtime_refs_absent"
+    }
+  ],
+  "hold_roots": [],
+  "protected_roots": [],
+  "total_delete_size_bytes": 575555502,
+  "total_delete_file_count": 257,
+  "total_remaining_after_delete_estimate": {
+    "size_bytes": 0,
+    "file_count": 0
+  },
+  "deletion_order": [
+    "_trial/TASK_PHASE3_BLOCK_CLOSEOUT_ARTIST_SOURCE_REAPPLY_20260422T0015Z",
+    "_trial/TASK_PHASE3_BLOCK_CLOSEOUT_ARTIST_SOURCE_REAPPLY_VERIFY_20260422T0005Z",
+    "_trial/TASK_PHASE3_BLOCK_CLOSEOUT_VERIFY_FIRST_EXH_IMAGE_META_20260421T1505Z",
+    "_trial/TASK_PHASE3_BLOCK_CLOSEOUT_VERIFY_FIRST_20260421T1434Z",
+    "_trial/TASK_PHASE3_BLOCK_CLOSEOUT_APPLY_NO_R2_20260421T1515Z",
+    "_trial/TASK_PHASE3_NEXT_SCOPE_BLOCK_CLOSEOUT_VERIFY_20260410T000000Z",
+    "_trial/TASK_PHASE3_NEXT_SCOPE_BLOCK_CLOSEOUT_APPLY_20260410T000000Z",
+    "_trial/TASK_PHASE3_TRUE_NEXT_BLOCK_CLOSEOUT_APPLY_20260408T063900Z",
+    "_trial/TASK_PHASE3_TRUE_NEXT_BLOCK_CLOSEOUT_APPLY_20260407T145900Z",
+    "_trial/TASK_PHASE3_TRUE_NEXT_BLOCK_CLOSEOUT_APPLY_20260408T130041Z",
+    "_trial/TASK_PHASE3_EXHIBITION_IMAGE_BLOCK_VERIFY_20260408T010700Z"
+  ],
+  "runtime_reference_check": {
+    "runtime_files_checked": [
+      "app.py",
+      "phase2_common_readonly.py",
+      "phase2_artist_search_readonly.py",
+      "phase2_artwork_search_readonly.py",
+      "phase2_exhibition_search_readonly.py",
+      "phase2_art_pulse_readonly.py",
+      "phase2_advisor_readonly.py"
+    ],
+    "runtime_trial_ref_hits": {
+      "phase2_artwork_search_readonly.py": [
+        49,
+        52,
+        55,
+        326
+      ]
+    },
+    "runtime_bad_trial_ref_hits": {},
+    "data_current_trial_ref_files": [
+      "data/current/enrichment/artists_enrichment_apply_summary.json",
+      "data/current/enrichment/exhibitions_enrichment_apply_summary_2025.json",
+      "data/current/vector/artists/artists_text_vectorize_summary_2025.json",
+      "data/current/vector/artist_works_images/artist_works_images_artifact_manifest.json",
+      "data/current/vector/artist_works_images/artist_works_images_vectorize_summary_2025.json"
+    ],
+    "note": "Known non-runtime manifest refs may include _trial text; runtime canonical reads remain current-based."
+  },
+  "safety_checks": [
+    "Do not delete in verify-first task.",
+    "For apply, delete only deletable_roots from this plan.",
+    "Keep hold_roots and protected_roots untouched.",
+    "Reject paths outside _trial or equal to _trial root.",
+    "Do not touch logs/incident_* or logs/r2_sync/*.",
+    "Re-check runtime _trial refs before apply."
+  ],
+  "hold_release_conditions": [],
+  "next_apply_command_proposal": [
+    "Load logs/incident_protected_trial_cleanup_plan_20260503.json",
+    "Delete only deletable_roots in deletion_order",
+    "Write logs/incident_protected_trial_cleanup_apply_20260503.json"
+  ]
+}

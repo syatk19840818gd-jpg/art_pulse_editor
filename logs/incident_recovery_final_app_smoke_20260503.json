@@ -1,0 +1,425 @@
+{
+  "summary": {
+    "status": "GO",
+    "task_name": "21p. recovery final local/app integrity smoke verify-first",
+    "hold_reasons": []
+  },
+  "r2_postcheck_status": {
+    "log_path": "logs/r2_sync/r2_sync_plan_current_required_rag_full_p3n10r2_recovery_current_required_rag_full_postcheck_20260503.json",
+    "criteria": {
+      "would_upload": 0,
+      "would_prune": 0,
+      "missing_local_to_r2": 0,
+      "remote_only": 0,
+      "size_mismatch": 0
+    }
+  },
+  "current_integrity_gate_status": {
+    "log_path": "logs/incident_current_rag_integrity_gate_20260503.json",
+    "status": "GO",
+    "runtime_trial_ref_summary": {
+      "raw": 0,
+      "enrichment_output": 0,
+      "artists_text_vector_meta": 0,
+      "artist_works_images_metadata": 0,
+      "exhibitions_images_metadata": 0,
+      "artist_works_images_vector_id_map": 0,
+      "summary_manifest_total": 49,
+      "summary_manifest_files": {
+        "data/current/enrichment/artists_enrichment_apply_summary.json": 12,
+        "data/current/enrichment/exhibitions_enrichment_apply_summary_2025.json": 12,
+        "data/current/vector/artists/artists_text_vectorize_summary_2025.json": 2,
+        "data/current/vector/artist_works_images/artist_works_images_artifact_manifest.json": 7,
+        "data/current/vector/artist_works_images/artist_works_images_vectorize_summary_2025.json": 16
+      }
+    },
+    "image_metadata_cache_integrity": {
+      "artist_works_images": {
+        "metadata_rows": 2308,
+        "metadata_image_refs": 9244,
+        "current_cache_exists": 9244,
+        "missing_current_cache": 0,
+        "zero_size": 0,
+        "trial_refs": 0,
+        "bad_prefix": 0,
+        "relative_current_paths": 4522,
+        "absolute_current_paths": 4722,
+        "cache_files_total": 9379,
+        "gallery_missing_top20": [],
+        "unique_referenced_cache_files": 9244,
+        "extra_unreferenced_cache_files": 135
+      },
+      "exhibitions_images": {
+        "metadata_rows": 499,
+        "metadata_image_refs": 499,
+        "current_cache_exists": 499,
+        "missing_current_cache": 0,
+        "zero_size": 0,
+        "trial_refs": 0,
+        "bad_prefix": 0,
+        "relative_current_paths": 159,
+        "absolute_current_paths": 340,
+        "cache_files_total": 499,
+        "gallery_missing_top20": [],
+        "unique_referenced_cache_files": 499,
+        "extra_unreferenced_cache_files": 0
+      }
+    },
+    "image_vector_cache_integrity": {
+      "artist_works_images": {
+        "id_map_rows": 9172,
+        "embeddings_rows": 9172,
+        "search_index_rows": 9172,
+        "index_dim": 512,
+        "id_map_current_cache_exists": 9172,
+        "missing_current_cache": 0,
+        "zero_size": 0,
+        "trial_refs": 0,
+        "bad_prefix": 0,
+        "relative_current_paths": 4502,
+        "absolute_current_paths": 4670,
+        "duplicate_image_id_total": 0,
+        "duplicate_source_key_total": 0,
+        "metadata_without_id_map": 72,
+        "id_map_without_metadata": 0
+      }
+    },
+    "artists_text_vector_integrity": {
+      "meta_rows": 2169,
+      "index_rows": 2169,
+      "index_dim": 1536,
+      "manifest_file_entries": 2,
+      "failed_rows": 0,
+      "runtime_trial_refs": 0,
+      "raw_without_enrichment": 6,
+      "enrichment_without_raw": 0,
+      "vector_matches_enrichment": 2164,
+      "enrichment_without_vector": 199,
+      "vector_without_enrichment": 5
+    }
+  },
+  "app_runtime_reference_check": {
+    "files_checked": [
+      "app.py",
+      "phase2_common_readonly.py",
+      "phase2_artist_search_readonly.py",
+      "phase2_artwork_search_readonly.py",
+      "phase2_exhibition_search_readonly.py",
+      "phase2_art_pulse_readonly.py",
+      "phase2_advisor_readonly.py"
+    ],
+    "trial_ref_hits": {
+      "phase2_artwork_search_readonly.py": [
+        49,
+        52,
+        55,
+        326
+      ]
+    },
+    "phase1_seed10_hits": {},
+    "note": "_trial appears only in non-runtime bounded helper paths inside phase2_artwork_search_readonly."
+  },
+  "image_sample_check": {
+    "artist_targets": [
+      {
+        "gallery": "David Zwirner",
+        "found": true,
+        "sample": [
+          {
+            "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/e2c0d446c801__img_01.jpg",
+            "contains_trial": false,
+            "exists": true,
+            "size_gt_0": true,
+            "family_ok": true
+          },
+          {
+            "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/e2c0d446c801__img_02.jpg",
+            "contains_trial": false,
+            "exists": true,
+            "size_gt_0": true,
+            "family_ok": true
+          },
+          {
+            "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/e2c0d446c801__img_03.jpg",
+            "contains_trial": false,
+            "exists": true,
+            "size_gt_0": true,
+            "family_ok": true
+          }
+        ]
+      },
+      {
+        "gallery": "Galerie Max Hetzler",
+        "found": true,
+        "sample": [
+          {
+            "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/68048b22715c__img_01.jpg",
+            "contains_trial": false,
+            "exists": true,
+            "size_gt_0": true,
+            "family_ok": true
+          },
+          {
+            "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/68048b22715c__img_02.jpg",
+            "contains_trial": false,
+            "exists": true,
+            "size_gt_0": true,
+            "family_ok": true
+          },
+          {
+            "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/68048b22715c__img_03.jpg",
+            "contains_trial": false,
+            "exists": true,
+            "size_gt_0": true,
+            "family_ok": true
+          }
+        ]
+      },
+      {
+        "gallery": "GRIMM",
+        "found": true,
+        "sample": [
+          {
+            "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/e4cecbc9d057__img_01.jpg",
+            "contains_trial": false,
+            "exists": true,
+            "size_gt_0": true,
+            "family_ok": true
+          },
+          {
+            "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/e4cecbc9d057__img_02.jpg",
+            "contains_trial": false,
+            "exists": true,
+            "size_gt_0": true,
+            "family_ok": true
+          },
+          {
+            "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/e4cecbc9d057__img_03.jpg",
+            "contains_trial": false,
+            "exists": true,
+            "size_gt_0": true,
+            "family_ok": true
+          }
+        ]
+      },
+      {
+        "gallery": "Alison Jacques",
+        "found": true,
+        "sample": [
+          {
+            "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/e48a9134b07c__img_01.jpg",
+            "contains_trial": false,
+            "exists": true,
+            "size_gt_0": true,
+            "family_ok": true
+          },
+          {
+            "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/e48a9134b07c__img_02.jpg",
+            "contains_trial": false,
+            "exists": true,
+            "size_gt_0": true,
+            "family_ok": true
+          },
+          {
+            "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/e48a9134b07c__img_03.jpg",
+            "contains_trial": false,
+            "exists": true,
+            "size_gt_0": true,
+            "family_ok": true
+          }
+        ]
+      },
+      {
+        "gallery": "Karma",
+        "found": true,
+        "sample": [
+          {
+            "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\current\\images\\cache\\artist_works_images\\2025\\frieze-london\\2db18be232e2__img_01.jpg",
+            "contains_trial": false,
+            "exists": true,
+            "size_gt_0": true,
+            "family_ok": true
+          },
+          {
+            "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\current\\images\\cache\\artist_works_images\\2025\\frieze-london\\2db18be232e2__img_02.jpg",
+            "contains_trial": false,
+            "exists": true,
+            "size_gt_0": true,
+            "family_ok": true
+          },
+          {
+            "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\current\\images\\cache\\artist_works_images\\2025\\frieze-london\\2db18be232e2__img_03.jpg",
+            "contains_trial": false,
+            "exists": true,
+            "size_gt_0": true,
+            "family_ok": true
+          }
+        ]
+      },
+      {
+        "gallery": "Vanguard Gallery",
+        "found": true,
+        "sample": [
+          {
+            "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\current\\images\\cache\\artist_works_images\\2025\\liste\\d881cff8faa7__img_01.jpg",
+            "contains_trial": false,
+            "exists": true,
+            "size_gt_0": true,
+            "family_ok": true
+          },
+          {
+            "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\current\\images\\cache\\artist_works_images\\2025\\liste\\d881cff8faa7__img_02.jpg",
+            "contains_trial": false,
+            "exists": true,
+            "size_gt_0": true,
+            "family_ok": true
+          },
+          {
+            "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\current\\images\\cache\\artist_works_images\\2025\\liste\\d881cff8faa7__img_03.jpg",
+            "contains_trial": false,
+            "exists": true,
+            "size_gt_0": true,
+            "family_ok": true
+          }
+        ]
+      }
+    ],
+    "exhibition_targets": [
+      {
+        "gallery": "Pippy Houldsworth Gallery",
+        "found": true,
+        "local_path": "data/current/images/cache/exhibition_works_images/2025/frieze-london/g1a8a4f1d__5d292366__img_01.jpg",
+        "contains_trial": false,
+        "exists": true,
+        "size_gt_0": true,
+        "family_ok": true
+      },
+      {
+        "gallery": "Almine Rech",
+        "found": true,
+        "local_path": "data/current/images/cache/exhibition_works_images/2025/frieze-london/almine-rech__10421-carlos-jacanamijoy-olor-a-tierra__3c5df64e__img_01.jpg",
+        "contains_trial": false,
+        "exists": true,
+        "size_gt_0": true,
+        "family_ok": true
+      },
+      {
+        "gallery": "David Zwirner",
+        "found": true,
+        "local_path": "data/current/images/cache/exhibition_works_images/2025/frieze-london/david-zwirner__art-basel-miami-beach-plus__25bdb5e6__img_01.jpg",
+        "contains_trial": false,
+        "exists": true,
+        "size_gt_0": true,
+        "family_ok": true
+      },
+      {
+        "gallery": "56 Henry",
+        "found": true,
+        "local_path": "data/current/images/cache/exhibition_works_images/2025/liste/56-henry__a-harvest__6e402df2__img_01.jpg",
+        "contains_trial": false,
+        "exists": true,
+        "size_gt_0": true,
+        "family_ok": true
+      },
+      {
+        "gallery": "Schiefe Z?hne",
+        "found": true,
+        "local_path": "data/current/images/cache/exhibition_works_images/2025/liste/ge5242eaf__e093f6a5__img_01.jpg",
+        "contains_trial": false,
+        "exists": true,
+        "size_gt_0": true,
+        "family_ok": true
+      }
+    ],
+    "missing_or_bad": []
+  },
+  "vector_sample_check": {
+    "id_map_rows": 9172,
+    "embeddings_shape": [
+      9172,
+      512
+    ],
+    "search_index_shape": [
+      9172,
+      512
+    ],
+    "index_dim": 512,
+    "duplicate_image_id_total": 0,
+    "targets": [
+      {
+        "gallery": "David Zwirner",
+        "found": true,
+        "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/225bd67c9a7a__img_04.jpg",
+        "contains_trial": false,
+        "exists": true,
+        "size_gt_0": true
+      },
+      {
+        "gallery": "Galerie Max Hetzler",
+        "found": true,
+        "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/4a2f7714a162__img_05.jpg",
+        "contains_trial": false,
+        "exists": true,
+        "size_gt_0": true
+      },
+      {
+        "gallery": "GRIMM",
+        "found": true,
+        "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/b4fe645ed1f4__img_05.jpg",
+        "contains_trial": false,
+        "exists": true,
+        "size_gt_0": true
+      },
+      {
+        "gallery": "Alison Jacques",
+        "found": true,
+        "local_path": "data/current/images/cache/artist_works_images/2025/frieze-london/f6efda97a4f9__img_04.jpg",
+        "contains_trial": false,
+        "exists": true,
+        "size_gt_0": true
+      },
+      {
+        "gallery": "Karma",
+        "found": true,
+        "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\current\\images\\cache\\artist_works_images\\2025\\frieze-london\\937d61e9bdf4__img_05.jpg",
+        "contains_trial": false,
+        "exists": true,
+        "size_gt_0": true
+      },
+      {
+        "gallery": "Vanguard Gallery",
+        "found": true,
+        "local_path": "C:\\Users\\tarutani tomoaki\\Pictures\\Dev\\my_projects\\art_pulse_editor\\data\\current\\images\\cache\\artist_works_images\\2025\\liste\\42197be65ed0__img_04.jpg",
+        "contains_trial": false,
+        "exists": true,
+        "size_gt_0": true
+      }
+    ]
+  },
+  "text_enrichment_check": {
+    "artists_enrichment_rows": 2363,
+    "exhibitions_enrichment_rows": 943,
+    "artists_required_field_missing": {
+      "artist_name_kana": 0,
+      "headline_ja": 0,
+      "summary_ja": 0
+    },
+    "exhibitions_required_field_missing": {
+      "headline_ja": 0,
+      "summary_ja": 0
+    },
+    "exhibitions_summary_gt550": 0,
+    "artists_text_vector_meta_rows": 2169,
+    "artists_text_vector_index_shape": [
+      2169,
+      1536
+    ],
+    "artists_text_vector_index_dim": 1536
+  },
+  "gallery_list_skip_check": {
+    "petrine_skipped": true,
+    "silke_skipped": false,
+    "silke_in_liste_csv": true
+  },
+  "next_task_recommendation": "21q. docs recovery sync"
+}

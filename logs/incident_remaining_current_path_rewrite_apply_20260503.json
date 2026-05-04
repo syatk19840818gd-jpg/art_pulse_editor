@@ -1,0 +1,54 @@
+{
+  "task_name": "21j. remaining metadata + artist works id_map path rewrite apply",
+  "generated_at_utc": "2026-05-03T16:02:10.701293+00:00",
+  "status": "GO",
+  "plan_input_path": "logs/incident_remaining_current_path_rewrite_plan_20260503.json",
+  "rewrite_counts": {
+    "artist_works_images_metadata": 4522,
+    "exhibitions_images_metadata": 159,
+    "artist_works_images_id_map": 4502,
+    "total": 9183
+  },
+  "pre_apply_runtime_trial_ref_counts": {
+    "artist_metadata_trial_refs": 4522,
+    "exhibitions_metadata_trial_refs": 159,
+    "artist_idmap_trial_refs": 4502
+  },
+  "post_apply_runtime_trial_ref_counts": {
+    "artist_metadata_trial_refs": 0,
+    "exhibitions_metadata_trial_refs": 0,
+    "artist_idmap_trial_refs": 0
+  },
+  "current_cache_validation": {
+    "missing_new_path_total": 0,
+    "zero_size_new_path_total": 0
+  },
+  "jsonl_row_counts": {
+    "artist_works_images_metadata_total_rows": 2308,
+    "exhibitions_images_metadata_total_rows": 499,
+    "artist_works_images_id_map_rows": 9172
+  },
+  "vector_integrity": {
+    "id_map_rows": 9172,
+    "embeddings_rows": 9172,
+    "search_index_rows": 9172,
+    "index_dim": 512,
+    "embeddings_sha256_unchanged": true,
+    "search_index_sha256_unchanged": true
+  },
+  "duplicate_check": {
+    "duplicate_image_id_total": 0,
+    "duplicate_source_key_total": 0
+  },
+  "non_runtime_trial_refs_remaining": {
+    "total": 49,
+    "files": {
+      "data/current/enrichment/artists_enrichment_apply_summary.json": 12,
+      "data/current/enrichment/exhibitions_enrichment_apply_summary_2025.json": 12,
+      "data/current/vector/artists/artists_text_vectorize_summary_2025.json": 2,
+      "data/current/vector/artist_works_images/artist_works_images_artifact_manifest.json": 7,
+      "data/current/vector/artist_works_images/artist_works_images_vectorize_summary_2025.json": 16
+    }
+  },
+  "hold_reasons": []
+}

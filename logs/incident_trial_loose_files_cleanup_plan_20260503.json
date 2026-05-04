@@ -1,0 +1,1016 @@
+{
+  "summary": {
+    "status": "HOLD",
+    "generated_at_utc": "2026-05-04T09:59:07.421152+00:00",
+    "hold_reasons": [
+      "runtime_referenced_loose_files_present"
+    ],
+    "trial_root_exists": true,
+    "trial_subfolder_count": 0,
+    "loose_file_count": 61,
+    "loose_total_size_bytes": 10417116
+  },
+  "loose_file_inventory": [
+    {
+      "path": "_trial/artwork_full4636_current_audit_rows_20260419T141635Z.csv",
+      "size_bytes": 3487725,
+      "last_modified_utc": "2026-04-19T14:16:36.537728+00:00",
+      "extension": ".csv",
+      "content_guess": "audit"
+    },
+    {
+      "path": "_trial/artwork_full4636_current_audit_summary_20260419T141635Z.json",
+      "size_bytes": 16872,
+      "last_modified_utc": "2026-04-19T14:16:36.539680+00:00",
+      "extension": ".json",
+      "content_guess": "audit"
+    },
+    {
+      "path": "_trial/artwork_liste40_bounded_append_result_20260419T143328Z.json",
+      "size_bytes": 40118,
+      "last_modified_utc": "2026-04-19T14:33:54.860701+00:00",
+      "extension": ".json",
+      "content_guess": "other"
+    },
+    {
+      "path": "_trial/artwork_liste40_vectorize_audit_rows_20260419T142502Z.csv",
+      "size_bytes": 31473,
+      "last_modified_utc": "2026-04-19T14:25:09.485710+00:00",
+      "extension": ".csv",
+      "content_guess": "audit"
+    },
+    {
+      "path": "_trial/artwork_liste40_vectorize_audit_summary_20260419T142502Z.json",
+      "size_bytes": 2966,
+      "last_modified_utc": "2026-04-19T14:25:09.488718+00:00",
+      "extension": ".json",
+      "content_guess": "audit"
+    },
+    {
+      "path": "_trial/artwork_payload_relink_manifest_20260419T133258Z.json",
+      "size_bytes": 1471,
+      "last_modified_utc": "2026-04-19T13:32:59.491528+00:00",
+      "extension": ".json",
+      "content_guess": "manifest"
+    },
+    {
+      "path": "_trial/artwork_payload_relink_rows_20260419T133258Z.csv",
+      "size_bytes": 5406625,
+      "last_modified_utc": "2026-04-19T13:32:59.656736+00:00",
+      "extension": ".csv",
+      "content_guess": "other"
+    },
+    {
+      "path": "_trial/artwork_unresolved150_promote_rows.csv",
+      "size_bytes": 137882,
+      "last_modified_utc": "2026-04-19T13:52:31.916123+00:00",
+      "extension": ".csv",
+      "content_guess": "other"
+    },
+    {
+      "path": "_trial/artwork_unresolved150_promote_rows_20260419T135230Z.csv",
+      "size_bytes": 137882,
+      "last_modified_utc": "2026-04-19T13:52:31.912388+00:00",
+      "extension": ".csv",
+      "content_guess": "other"
+    },
+    {
+      "path": "_trial/artwork_unresolved150_promote_summary_20260419T135230Z.json",
+      "size_bytes": 845,
+      "last_modified_utc": "2026-04-19T13:52:31.916123+00:00",
+      "extension": ".json",
+      "content_guess": "other"
+    },
+    {
+      "path": "_trial/artwork_unresolved150_repair_rows_20260419T134820Z.csv",
+      "size_bytes": 114511,
+      "last_modified_utc": "2026-04-19T13:48:21.024235+00:00",
+      "extension": ".csv",
+      "content_guess": "other"
+    },
+    {
+      "path": "_trial/artwork_unresolved150_repair_summary_20260419T134820Z.json",
+      "size_bytes": 3549,
+      "last_modified_utc": "2026-04-19T13:48:21.020188+00:00",
+      "extension": ".json",
+      "content_guess": "other"
+    },
+    {
+      "path": "_trial/encoding_probe.txt",
+      "size_bytes": 32,
+      "last_modified_utc": "2026-04-22T03:07:40.262129+00:00",
+      "extension": ".txt",
+      "content_guess": "encoding probe"
+    },
+    {
+      "path": "_trial/p3_raw_next_scope10.csv",
+      "size_bytes": 1134,
+      "last_modified_utc": "2026-04-24T09:38:08.384737+00:00",
+      "extension": ".csv",
+      "content_guess": "scope csv"
+    },
+    {
+      "path": "_trial/p3_step4_pre_hashes.json",
+      "size_bytes": 690,
+      "last_modified_utc": "2026-04-24T10:17:54.357141+00:00",
+      "extension": ".json",
+      "content_guess": "old precheck"
+    },
+    {
+      "path": "_trial/p3_step5_pre_hashes.json",
+      "size_bytes": 2508,
+      "last_modified_utc": "2026-04-25T14:26:09.850135+00:00",
+      "extension": ".json",
+      "content_guess": "old precheck"
+    },
+    {
+      "path": "_trial/phase3_artist_image_collect_observe_subset_20260421.csv",
+      "size_bytes": 170,
+      "last_modified_utc": "2026-04-21T06:38:53.563391+00:00",
+      "extension": ".csv",
+      "content_guess": "other"
+    },
+    {
+      "path": "_trial/phase3_artist_works_image_repair2_scope_20260412.csv",
+      "size_bytes": 151,
+      "last_modified_utc": "2026-04-12T04:21:36.039079+00:00",
+      "extension": ".csv",
+      "content_guess": "scope csv"
+    },
+    {
+      "path": "_trial/phase3_artist_works_image_repair3_scope_20260412.csv",
+      "size_bytes": 111,
+      "last_modified_utc": "2026-04-12T05:15:23.366532+00:00",
+      "extension": ".csv",
+      "content_guess": "scope csv"
+    },
+    {
+      "path": "_trial/phase3_artist_works_image_repair4_scope_20260412.csv",
+      "size_bytes": 88,
+      "last_modified_utc": "2026-04-12T05:56:38.521482+00:00",
+      "extension": ".csv",
+      "content_guess": "scope csv"
+    },
+    {
+      "path": "_trial/phase3_artist_works_image_repair_matthew_scope_20260414.csv",
+      "size_bytes": 59,
+      "last_modified_utc": "2026-04-14T06:26:27.596464+00:00",
+      "extension": ".csv",
+      "content_guess": "scope csv"
+    },
+    {
+      "path": "_trial/phase3_artist_works_image_repair_scope_20260412.csv",
+      "size_bytes": 163,
+      "last_modified_utc": "2026-04-12T03:36:10.557898+00:00",
+      "extension": ".csv",
+      "content_guess": "scope csv"
+    },
+    {
+      "path": "_trial/phase3_duplicate_delete_apply_matthew_20260414.json",
+      "size_bytes": 418,
+      "last_modified_utc": "2026-04-14T06:21:49.180596+00:00",
+      "extension": ".json",
+      "content_guess": "duplicate cleanup"
+    },
+    {
+      "path": "_trial/phase3_duplicate_delete_apply_matthew_20260414_pass2.json",
+      "size_bytes": 334,
+      "last_modified_utc": "2026-04-14T06:29:08.498433+00:00",
+      "extension": ".json",
+      "content_guess": "duplicate cleanup"
+    },
+    {
+      "path": "_trial/phase3_duplicate_delete_apply_matthew_20260414_v2.json",
+      "size_bytes": 24943,
+      "last_modified_utc": "2026-04-14T07:36:24.016164+00:00",
+      "extension": ".json",
+      "content_guess": "duplicate cleanup"
+    },
+    {
+      "path": "_trial/phase3_duplicate_delete_apply_summary_20260412.json",
+      "size_bytes": 722,
+      "last_modified_utc": "2026-04-12T06:13:52.883950+00:00",
+      "extension": ".json",
+      "content_guess": "duplicate cleanup"
+    },
+    {
+      "path": "_trial/phase3_duplicate_delete_manifest_carlos_matthew_20260412.jsonl",
+      "size_bytes": 111023,
+      "last_modified_utc": "2026-04-12T06:12:49.081171+00:00",
+      "extension": ".jsonl",
+      "content_guess": "duplicate cleanup"
+    },
+    {
+      "path": "_trial/phase3_duplicate_delete_manifest_carlos_matthew_20260412_summary.json",
+      "size_bytes": 1640,
+      "last_modified_utc": "2026-04-12T06:12:49.082171+00:00",
+      "extension": ".json",
+      "content_guess": "duplicate cleanup"
+    },
+    {
+      "path": "_trial/phase3_duplicate_delete_manifest_matthew_20260414.jsonl",
+      "size_bytes": 35839,
+      "last_modified_utc": "2026-04-14T06:21:17.099172+00:00",
+      "extension": ".jsonl",
+      "content_guess": "duplicate cleanup"
+    },
+    {
+      "path": "_trial/phase3_duplicate_delete_manifest_matthew_20260414_pass2.jsonl",
+      "size_bytes": 4922,
+      "last_modified_utc": "2026-04-14T06:28:42.423673+00:00",
+      "extension": ".jsonl",
+      "content_guess": "duplicate cleanup"
+    },
+    {
+      "path": "_trial/phase3_duplicate_delete_manifest_matthew_20260414_pass2_summary.json",
+      "size_bytes": 348,
+      "last_modified_utc": "2026-04-14T06:28:42.426088+00:00",
+      "extension": ".json",
+      "content_guess": "duplicate cleanup"
+    },
+    {
+      "path": "_trial/phase3_duplicate_delete_manifest_matthew_20260414_summary.json",
+      "size_bytes": 570,
+      "last_modified_utc": "2026-04-14T06:21:17.102218+00:00",
+      "extension": ".json",
+      "content_guess": "duplicate cleanup"
+    },
+    {
+      "path": "_trial/phase3_duplicate_delete_manifest_matthew_20260414_v2.jsonl",
+      "size_bytes": 34586,
+      "last_modified_utc": "2026-04-14T07:21:42.466643+00:00",
+      "extension": ".jsonl",
+      "content_guess": "duplicate cleanup"
+    },
+    {
+      "path": "_trial/phase3_duplicate_delete_manifest_matthew_20260414_v2_summary.json",
+      "size_bytes": 665,
+      "last_modified_utc": "2026-04-14T07:21:42.467651+00:00",
+      "extension": ".json",
+      "content_guess": "duplicate cleanup"
+    },
+    {
+      "path": "_trial/phase3_duplicate_delete_matthew_clusterkeep1_summary_20260414.json",
+      "size_bytes": 2367,
+      "last_modified_utc": "2026-04-14T07:47:13.808106+00:00",
+      "extension": ".json",
+      "content_guess": "duplicate cleanup"
+    },
+    {
+      "path": "_trial/phase3_duplicate_gate_cleanup_apply_summary_20260414.json",
+      "size_bytes": 8009,
+      "last_modified_utc": "2026-04-14T11:24:57.078804+00:00",
+      "extension": ".json",
+      "content_guess": "duplicate cleanup"
+    },
+    {
+      "path": "_trial/phase3_duplicate_gate_cleanup_clusters_20260414.json",
+      "size_bytes": 21584,
+      "last_modified_utc": "2026-04-14T11:13:16.813129+00:00",
+      "extension": ".json",
+      "content_guess": "duplicate cleanup"
+    },
+    {
+      "path": "_trial/phase3_duplicate_gate_cleanup_manifest_20260414.jsonl",
+      "size_bytes": 34977,
+      "last_modified_utc": "2026-04-14T11:22:48.303194+00:00",
+      "extension": ".jsonl",
+      "content_guess": "duplicate cleanup"
+    },
+    {
+      "path": "_trial/phase3_duplicate_gate_cleanup_manifest_summary_20260414.json",
+      "size_bytes": 703,
+      "last_modified_utc": "2026-04-14T11:22:48.303194+00:00",
+      "extension": ".json",
+      "content_guess": "duplicate cleanup"
+    },
+    {
+      "path": "_trial/phase3_duplicate_gate_cleanup_source_audit_20260414.json",
+      "size_bytes": 22234,
+      "last_modified_utc": "2026-04-14T11:11:07.657767+00:00",
+      "extension": ".json",
+      "content_guess": "duplicate cleanup"
+    },
+    {
+      "path": "_trial/phase3_duplicate_gate_cleanup_targets_20260414.csv",
+      "size_bytes": 166,
+      "last_modified_utc": "2026-04-14T11:22:48.310687+00:00",
+      "extension": ".csv",
+      "content_guess": "duplicate cleanup"
+    },
+    {
+      "path": "_trial/phase3_duplicate_gate_reverify_20260414.json",
+      "size_bytes": 190,
+      "last_modified_utc": "2026-04-14T11:33:34.790729+00:00",
+      "extension": ".json",
+      "content_guess": "duplicate cleanup"
+    },
+    {
+      "path": "_trial/phase3_duplicate_gate_reverify_closeout_20260414.json",
+      "size_bytes": 104988,
+      "last_modified_utc": "2026-04-14T11:37:02.186302+00:00",
+      "extension": ".json",
+      "content_guess": "duplicate cleanup"
+    },
+    {
+      "path": "_trial/phase3_early_workbook_apply_20260421_apply.json",
+      "size_bytes": 13431,
+      "last_modified_utc": "2026-04-21T10:34:46.765862+00:00",
+      "extension": ".json",
+      "content_guess": "other"
+    },
+    {
+      "path": "_trial/phase3_early_workbook_apply_20260421_plan.json",
+      "size_bytes": 13433,
+      "last_modified_utc": "2026-04-21T10:34:46.124900+00:00",
+      "extension": ".json",
+      "content_guess": "other"
+    },
+    {
+      "path": "_trial/phase3_early_workbook_review_20260421.csv",
+      "size_bytes": 2192,
+      "last_modified_utc": "2026-04-21T09:49:00.762353+00:00",
+      "extension": ".csv",
+      "content_guess": "other"
+    },
+    {
+      "path": "_trial/phase3_early_workbook_review_20260421.md",
+      "size_bytes": 1587,
+      "last_modified_utc": "2026-04-21T09:49:00.777036+00:00",
+      "extension": ".md",
+      "content_guess": "other"
+    },
+    {
+      "path": "_trial/phase3_next_real_scope_20260412.csv",
+      "size_bytes": 1262,
+      "last_modified_utc": "2026-04-11T15:11:28.119242+00:00",
+      "extension": ".csv",
+      "content_guess": "scope csv"
+    },
+    {
+      "path": "_trial/phase3_next_real_scope_20260421.csv",
+      "size_bytes": 1153,
+      "last_modified_utc": "2026-04-21T01:32:31.899040+00:00",
+      "extension": ".csv",
+      "content_guess": "scope csv"
+    },
+    {
+      "path": "_trial/phase3_next_real_scope_20260422.csv",
+      "size_bytes": 1216,
+      "last_modified_utc": "2026-04-22T04:46:04.436352+00:00",
+      "extension": ".csv",
+      "content_guess": "scope csv"
+    },
+    {
+      "path": "_trial/phase3_next_real_scope_after_skip_20260410.csv",
+      "size_bytes": 1124,
+      "last_modified_utc": "2026-04-10T08:32:27.050402+00:00",
+      "extension": ".csv",
+      "content_guess": "scope csv"
+    },
+    {
+      "path": "_trial/phase3_next_real_scope_effective9_20260410.csv",
+      "size_bytes": 258,
+      "last_modified_utc": "2026-04-10T10:44:16.736178+00:00",
+      "extension": ".csv",
+      "content_guess": "scope csv"
+    },
+    {
+      "path": "_trial/phase3_raw_verify_first_20260421_dryrun.json",
+      "size_bytes": 477,
+      "last_modified_utc": "2026-04-21T01:32:47.459449+00:00",
+      "extension": ".json",
+      "content_guess": "other"
+    },
+    {
+      "path": "_trial/phase3_raw_verify_first_20260422_dryrun.json",
+      "size_bytes": 477,
+      "last_modified_utc": "2026-04-22T04:46:24.785343+00:00",
+      "extension": ".json",
+      "content_guess": "other"
+    },
+    {
+      "path": "_trial/phase3_scope10_closeout_apply_no_r2_20260414.json",
+      "size_bytes": 105380,
+      "last_modified_utc": "2026-04-14T11:52:37.830179+00:00",
+      "extension": ".json",
+      "content_guess": "other"
+    },
+    {
+      "path": "_trial/r2_sync_targets_matthew_cleanup_narrow_20260414.json",
+      "size_bytes": 818,
+      "last_modified_utc": "2026-04-14T08:25:06.176686+00:00",
+      "extension": ".json",
+      "content_guess": "other"
+    },
+    {
+      "path": "_trial/remove_corrupt_02.py",
+      "size_bytes": 601,
+      "last_modified_utc": "2026-04-22T03:09:21.839296+00:00",
+      "extension": ".py",
+      "content_guess": "repair script"
+    },
+    {
+      "path": "_trial/repair_docs_unicode.py",
+      "size_bytes": 7976,
+      "last_modified_utc": "2026-04-22T03:08:42.126628+00:00",
+      "extension": ".py",
+      "content_guess": "repair script"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_BLOCK_CLOSEOUT_APPLY_NO_R2_20260421T1515Z_stdout.json",
+      "size_bytes": 154524,
+      "last_modified_utc": "2026-04-21T14:54:57.177245+00:00",
+      "extension": ".json",
+      "content_guess": "stdout/log"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_BLOCK_CLOSEOUT_ARTIST_SOURCE_REAPPLY_20260422T0015Z_stdout.json",
+      "size_bytes": 156668,
+      "last_modified_utc": "2026-04-22T03:01:13.911363+00:00",
+      "extension": ".json",
+      "content_guess": "stdout/log"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_BLOCK_CLOSEOUT_ARTIST_SOURCE_REAPPLY_VERIFY_20260422T0005Z_stdout.json",
+      "size_bytes": 156286,
+      "last_modified_utc": "2026-04-22T02:59:30.442536+00:00",
+      "extension": ".json",
+      "content_guess": "stdout/log"
+    }
+  ],
+  "extension_counts": {
+    ".csv": 20,
+    ".json": 32,
+    ".txt": 1,
+    ".jsonl": 5,
+    ".md": 1,
+    ".py": 2
+  },
+  "content_tag_counts": {
+    "audit": 4,
+    "other": 16,
+    "manifest": 1,
+    "encoding probe": 1,
+    "scope csv": 11,
+    "old precheck": 2,
+    "duplicate cleanup": 21,
+    "repair script": 2,
+    "stdout/log": 3
+  },
+  "deletable_files": [
+    {
+      "path": "_trial/artwork_full4636_current_audit_rows_20260419T141635Z.csv",
+      "size_bytes": 3487725,
+      "last_modified_utc": "2026-04-19T14:16:36.537728+00:00",
+      "extension": ".csv",
+      "content_guess": "audit",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/artwork_full4636_current_audit_summary_20260419T141635Z.json",
+      "size_bytes": 16872,
+      "last_modified_utc": "2026-04-19T14:16:36.539680+00:00",
+      "extension": ".json",
+      "content_guess": "audit",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/artwork_liste40_bounded_append_result_20260419T143328Z.json",
+      "size_bytes": 40118,
+      "last_modified_utc": "2026-04-19T14:33:54.860701+00:00",
+      "extension": ".json",
+      "content_guess": "other",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/artwork_liste40_vectorize_audit_summary_20260419T142502Z.json",
+      "size_bytes": 2966,
+      "last_modified_utc": "2026-04-19T14:25:09.488718+00:00",
+      "extension": ".json",
+      "content_guess": "audit",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/artwork_payload_relink_manifest_20260419T133258Z.json",
+      "size_bytes": 1471,
+      "last_modified_utc": "2026-04-19T13:32:59.491528+00:00",
+      "extension": ".json",
+      "content_guess": "manifest",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/artwork_unresolved150_promote_rows_20260419T135230Z.csv",
+      "size_bytes": 137882,
+      "last_modified_utc": "2026-04-19T13:52:31.912388+00:00",
+      "extension": ".csv",
+      "content_guess": "other",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/artwork_unresolved150_promote_summary_20260419T135230Z.json",
+      "size_bytes": 845,
+      "last_modified_utc": "2026-04-19T13:52:31.916123+00:00",
+      "extension": ".json",
+      "content_guess": "other",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/artwork_unresolved150_repair_rows_20260419T134820Z.csv",
+      "size_bytes": 114511,
+      "last_modified_utc": "2026-04-19T13:48:21.024235+00:00",
+      "extension": ".csv",
+      "content_guess": "other",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/artwork_unresolved150_repair_summary_20260419T134820Z.json",
+      "size_bytes": 3549,
+      "last_modified_utc": "2026-04-19T13:48:21.020188+00:00",
+      "extension": ".json",
+      "content_guess": "other",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/encoding_probe.txt",
+      "size_bytes": 32,
+      "last_modified_utc": "2026-04-22T03:07:40.262129+00:00",
+      "extension": ".txt",
+      "content_guess": "encoding probe",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/p3_raw_next_scope10.csv",
+      "size_bytes": 1134,
+      "last_modified_utc": "2026-04-24T09:38:08.384737+00:00",
+      "extension": ".csv",
+      "content_guess": "scope csv",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/p3_step4_pre_hashes.json",
+      "size_bytes": 690,
+      "last_modified_utc": "2026-04-24T10:17:54.357141+00:00",
+      "extension": ".json",
+      "content_guess": "old precheck",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/p3_step5_pre_hashes.json",
+      "size_bytes": 2508,
+      "last_modified_utc": "2026-04-25T14:26:09.850135+00:00",
+      "extension": ".json",
+      "content_guess": "old precheck",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/phase3_artist_image_collect_observe_subset_20260421.csv",
+      "size_bytes": 170,
+      "last_modified_utc": "2026-04-21T06:38:53.563391+00:00",
+      "extension": ".csv",
+      "content_guess": "other",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/phase3_artist_works_image_repair2_scope_20260412.csv",
+      "size_bytes": 151,
+      "last_modified_utc": "2026-04-12T04:21:36.039079+00:00",
+      "extension": ".csv",
+      "content_guess": "scope csv",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/phase3_artist_works_image_repair3_scope_20260412.csv",
+      "size_bytes": 111,
+      "last_modified_utc": "2026-04-12T05:15:23.366532+00:00",
+      "extension": ".csv",
+      "content_guess": "scope csv",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/phase3_artist_works_image_repair4_scope_20260412.csv",
+      "size_bytes": 88,
+      "last_modified_utc": "2026-04-12T05:56:38.521482+00:00",
+      "extension": ".csv",
+      "content_guess": "scope csv",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/phase3_artist_works_image_repair_matthew_scope_20260414.csv",
+      "size_bytes": 59,
+      "last_modified_utc": "2026-04-14T06:26:27.596464+00:00",
+      "extension": ".csv",
+      "content_guess": "scope csv",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/phase3_artist_works_image_repair_scope_20260412.csv",
+      "size_bytes": 163,
+      "last_modified_utc": "2026-04-12T03:36:10.557898+00:00",
+      "extension": ".csv",
+      "content_guess": "scope csv",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/phase3_duplicate_delete_apply_matthew_20260414.json",
+      "size_bytes": 418,
+      "last_modified_utc": "2026-04-14T06:21:49.180596+00:00",
+      "extension": ".json",
+      "content_guess": "duplicate cleanup",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/phase3_duplicate_delete_apply_matthew_20260414_pass2.json",
+      "size_bytes": 334,
+      "last_modified_utc": "2026-04-14T06:29:08.498433+00:00",
+      "extension": ".json",
+      "content_guess": "duplicate cleanup",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/phase3_duplicate_delete_apply_matthew_20260414_v2.json",
+      "size_bytes": 24943,
+      "last_modified_utc": "2026-04-14T07:36:24.016164+00:00",
+      "extension": ".json",
+      "content_guess": "duplicate cleanup",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/phase3_duplicate_delete_apply_summary_20260412.json",
+      "size_bytes": 722,
+      "last_modified_utc": "2026-04-12T06:13:52.883950+00:00",
+      "extension": ".json",
+      "content_guess": "duplicate cleanup",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/phase3_duplicate_delete_manifest_carlos_matthew_20260412.jsonl",
+      "size_bytes": 111023,
+      "last_modified_utc": "2026-04-12T06:12:49.081171+00:00",
+      "extension": ".jsonl",
+      "content_guess": "duplicate cleanup",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/phase3_duplicate_delete_manifest_carlos_matthew_20260412_summary.json",
+      "size_bytes": 1640,
+      "last_modified_utc": "2026-04-12T06:12:49.082171+00:00",
+      "extension": ".json",
+      "content_guess": "duplicate cleanup",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/phase3_duplicate_delete_manifest_matthew_20260414.jsonl",
+      "size_bytes": 35839,
+      "last_modified_utc": "2026-04-14T06:21:17.099172+00:00",
+      "extension": ".jsonl",
+      "content_guess": "duplicate cleanup",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/phase3_duplicate_delete_manifest_matthew_20260414_pass2.jsonl",
+      "size_bytes": 4922,
+      "last_modified_utc": "2026-04-14T06:28:42.423673+00:00",
+      "extension": ".jsonl",
+      "content_guess": "duplicate cleanup",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/phase3_duplicate_delete_manifest_matthew_20260414_pass2_summary.json",
+      "size_bytes": 348,
+      "last_modified_utc": "2026-04-14T06:28:42.426088+00:00",
+      "extension": ".json",
+      "content_guess": "duplicate cleanup",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/phase3_duplicate_delete_manifest_matthew_20260414_summary.json",
+      "size_bytes": 570,
+      "last_modified_utc": "2026-04-14T06:21:17.102218+00:00",
+      "extension": ".json",
+      "content_guess": "duplicate cleanup",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/phase3_duplicate_delete_manifest_matthew_20260414_v2.jsonl",
+      "size_bytes": 34586,
+      "last_modified_utc": "2026-04-14T07:21:42.466643+00:00",
+      "extension": ".jsonl",
+      "content_guess": "duplicate cleanup",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/phase3_duplicate_delete_manifest_matthew_20260414_v2_summary.json",
+      "size_bytes": 665,
+      "last_modified_utc": "2026-04-14T07:21:42.467651+00:00",
+      "extension": ".json",
+      "content_guess": "duplicate cleanup",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/phase3_duplicate_delete_matthew_clusterkeep1_summary_20260414.json",
+      "size_bytes": 2367,
+      "last_modified_utc": "2026-04-14T07:47:13.808106+00:00",
+      "extension": ".json",
+      "content_guess": "duplicate cleanup",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/phase3_duplicate_gate_cleanup_apply_summary_20260414.json",
+      "size_bytes": 8009,
+      "last_modified_utc": "2026-04-14T11:24:57.078804+00:00",
+      "extension": ".json",
+      "content_guess": "duplicate cleanup",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/phase3_duplicate_gate_cleanup_clusters_20260414.json",
+      "size_bytes": 21584,
+      "last_modified_utc": "2026-04-14T11:13:16.813129+00:00",
+      "extension": ".json",
+      "content_guess": "duplicate cleanup",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/phase3_duplicate_gate_cleanup_manifest_20260414.jsonl",
+      "size_bytes": 34977,
+      "last_modified_utc": "2026-04-14T11:22:48.303194+00:00",
+      "extension": ".jsonl",
+      "content_guess": "duplicate cleanup",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/phase3_duplicate_gate_cleanup_manifest_summary_20260414.json",
+      "size_bytes": 703,
+      "last_modified_utc": "2026-04-14T11:22:48.303194+00:00",
+      "extension": ".json",
+      "content_guess": "duplicate cleanup",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/phase3_duplicate_gate_cleanup_source_audit_20260414.json",
+      "size_bytes": 22234,
+      "last_modified_utc": "2026-04-14T11:11:07.657767+00:00",
+      "extension": ".json",
+      "content_guess": "duplicate cleanup",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/phase3_duplicate_gate_cleanup_targets_20260414.csv",
+      "size_bytes": 166,
+      "last_modified_utc": "2026-04-14T11:22:48.310687+00:00",
+      "extension": ".csv",
+      "content_guess": "duplicate cleanup",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/phase3_duplicate_gate_reverify_20260414.json",
+      "size_bytes": 190,
+      "last_modified_utc": "2026-04-14T11:33:34.790729+00:00",
+      "extension": ".json",
+      "content_guess": "duplicate cleanup",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/phase3_duplicate_gate_reverify_closeout_20260414.json",
+      "size_bytes": 104988,
+      "last_modified_utc": "2026-04-14T11:37:02.186302+00:00",
+      "extension": ".json",
+      "content_guess": "duplicate cleanup",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/phase3_early_workbook_apply_20260421_apply.json",
+      "size_bytes": 13431,
+      "last_modified_utc": "2026-04-21T10:34:46.765862+00:00",
+      "extension": ".json",
+      "content_guess": "other",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/phase3_early_workbook_apply_20260421_plan.json",
+      "size_bytes": 13433,
+      "last_modified_utc": "2026-04-21T10:34:46.124900+00:00",
+      "extension": ".json",
+      "content_guess": "other",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/phase3_early_workbook_review_20260421.csv",
+      "size_bytes": 2192,
+      "last_modified_utc": "2026-04-21T09:49:00.762353+00:00",
+      "extension": ".csv",
+      "content_guess": "other",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/phase3_early_workbook_review_20260421.md",
+      "size_bytes": 1587,
+      "last_modified_utc": "2026-04-21T09:49:00.777036+00:00",
+      "extension": ".md",
+      "content_guess": "other",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/phase3_next_real_scope_20260412.csv",
+      "size_bytes": 1262,
+      "last_modified_utc": "2026-04-11T15:11:28.119242+00:00",
+      "extension": ".csv",
+      "content_guess": "scope csv",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/phase3_next_real_scope_20260421.csv",
+      "size_bytes": 1153,
+      "last_modified_utc": "2026-04-21T01:32:31.899040+00:00",
+      "extension": ".csv",
+      "content_guess": "scope csv",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/phase3_next_real_scope_20260422.csv",
+      "size_bytes": 1216,
+      "last_modified_utc": "2026-04-22T04:46:04.436352+00:00",
+      "extension": ".csv",
+      "content_guess": "scope csv",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/phase3_next_real_scope_after_skip_20260410.csv",
+      "size_bytes": 1124,
+      "last_modified_utc": "2026-04-10T08:32:27.050402+00:00",
+      "extension": ".csv",
+      "content_guess": "scope csv",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/phase3_next_real_scope_effective9_20260410.csv",
+      "size_bytes": 258,
+      "last_modified_utc": "2026-04-10T10:44:16.736178+00:00",
+      "extension": ".csv",
+      "content_guess": "scope csv",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/phase3_raw_verify_first_20260421_dryrun.json",
+      "size_bytes": 477,
+      "last_modified_utc": "2026-04-21T01:32:47.459449+00:00",
+      "extension": ".json",
+      "content_guess": "other",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/phase3_raw_verify_first_20260422_dryrun.json",
+      "size_bytes": 477,
+      "last_modified_utc": "2026-04-22T04:46:24.785343+00:00",
+      "extension": ".json",
+      "content_guess": "other",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/phase3_scope10_closeout_apply_no_r2_20260414.json",
+      "size_bytes": 105380,
+      "last_modified_utc": "2026-04-14T11:52:37.830179+00:00",
+      "extension": ".json",
+      "content_guess": "other",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/r2_sync_targets_matthew_cleanup_narrow_20260414.json",
+      "size_bytes": 818,
+      "last_modified_utc": "2026-04-14T08:25:06.176686+00:00",
+      "extension": ".json",
+      "content_guess": "other",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/remove_corrupt_02.py",
+      "size_bytes": 601,
+      "last_modified_utc": "2026-04-22T03:09:21.839296+00:00",
+      "extension": ".py",
+      "content_guess": "repair script",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/repair_docs_unicode.py",
+      "size_bytes": 7976,
+      "last_modified_utc": "2026-04-22T03:08:42.126628+00:00",
+      "extension": ".py",
+      "content_guess": "repair script",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_BLOCK_CLOSEOUT_APPLY_NO_R2_20260421T1515Z_stdout.json",
+      "size_bytes": 154524,
+      "last_modified_utc": "2026-04-21T14:54:57.177245+00:00",
+      "extension": ".json",
+      "content_guess": "stdout/log",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_BLOCK_CLOSEOUT_ARTIST_SOURCE_REAPPLY_20260422T0015Z_stdout.json",
+      "size_bytes": 156668,
+      "last_modified_utc": "2026-04-22T03:01:13.911363+00:00",
+      "extension": ".json",
+      "content_guess": "stdout/log",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_BLOCK_CLOSEOUT_ARTIST_SOURCE_REAPPLY_VERIFY_20260422T0005Z_stdout.json",
+      "size_bytes": 156286,
+      "last_modified_utc": "2026-04-22T02:59:30.442536+00:00",
+      "extension": ".json",
+      "content_guess": "stdout/log",
+      "reason": "trial_loose_artifact_not_runtime_canonical_and_logs_exist_elsewhere"
+    }
+  ],
+  "hold_files": [],
+  "protected_files": [
+    {
+      "path": "_trial/artwork_liste40_vectorize_audit_rows_20260419T142502Z.csv",
+      "size_bytes": 31473,
+      "last_modified_utc": "2026-04-19T14:25:09.485710+00:00",
+      "extension": ".csv",
+      "content_guess": "audit",
+      "reason": "referenced_by_runtime_source_text"
+    },
+    {
+      "path": "_trial/artwork_payload_relink_rows_20260419T133258Z.csv",
+      "size_bytes": 5406625,
+      "last_modified_utc": "2026-04-19T13:32:59.656736+00:00",
+      "extension": ".csv",
+      "content_guess": "other",
+      "reason": "referenced_by_runtime_source_text"
+    },
+    {
+      "path": "_trial/artwork_unresolved150_promote_rows.csv",
+      "size_bytes": 137882,
+      "last_modified_utc": "2026-04-19T13:52:31.916123+00:00",
+      "extension": ".csv",
+      "content_guess": "other",
+      "reason": "referenced_by_runtime_source_text"
+    }
+  ],
+  "total_delete_size": 4841136,
+  "total_delete_file_count": 58,
+  "runtime_reference_check": {
+    "runtime_files_checked": [
+      "app.py",
+      "phase2_common_readonly.py",
+      "phase2_artist_search_readonly.py",
+      "phase2_artwork_search_readonly.py",
+      "phase2_exhibition_search_readonly.py",
+      "phase2_art_pulse_readonly.py",
+      "phase2_advisor_readonly.py"
+    ],
+    "runtime_trial_ref_hits": {
+      "phase2_artwork_search_readonly.py": [
+        49,
+        52,
+        55,
+        326
+      ]
+    },
+    "runtime_bad_trial_ref_hits": {},
+    "exact_filename_reference_hits": [
+      {
+        "file": "artwork_liste40_vectorize_audit_rows_20260419T142502Z.csv",
+        "runtime_file": "phase2_artwork_search_readonly.py"
+      },
+      {
+        "file": "artwork_payload_relink_rows_20260419T133258Z.csv",
+        "runtime_file": "phase2_artwork_search_readonly.py"
+      },
+      {
+        "file": "artwork_unresolved150_promote_rows.csv",
+        "runtime_file": "phase2_artwork_search_readonly.py"
+      }
+    ]
+  },
+  "safety_checks": [
+    "Do not delete in verify-first task.",
+    "For apply, delete only deletable_files from this plan.",
+    "Keep _trial directory itself.",
+    "Do not delete logs/incident_* or logs/r2_sync/*.",
+    "Abort if runtime reference appears before apply."
+  ],
+  "hold_release_conditions": [
+    {
+      "path": "_trial/artwork_liste40_vectorize_audit_rows_20260419T142502Z.csv",
+      "condition": "Remove runtime reference before deletion"
+    },
+    {
+      "path": "_trial/artwork_payload_relink_rows_20260419T133258Z.csv",
+      "condition": "Remove runtime reference before deletion"
+    },
+    {
+      "path": "_trial/artwork_unresolved150_promote_rows.csv",
+      "condition": "Remove runtime reference before deletion"
+    }
+  ],
+  "next_apply_command_proposal": [
+    "Load logs/incident_trial_loose_files_cleanup_plan_20260503.json",
+    "Delete only deletable_files",
+    "Write logs/incident_trial_loose_files_cleanup_apply_20260503.json"
+  ]
+}

@@ -1,0 +1,243 @@
+{
+  "summary": {
+    "status": "GO",
+    "generated_at_utc": "2026-05-04T09:29:01.845033+00:00"
+  },
+  "original_deletable_roots": [
+    "_trial/p3_raw_next",
+    "_trial/p21l",
+    "_trial/p3_raw_next/p3n10r2raw_20260502T000000Z"
+  ],
+  "normalized_deletable_roots": [
+    "_trial/p21l",
+    "_trial/p3_raw_next"
+  ],
+  "skipped_child_roots": [
+    "_trial/p3_raw_next/p3n10r2raw_20260502T000000Z"
+  ],
+  "deleted_roots": [
+    {
+      "path": "_trial/p21l",
+      "size_bytes": 158335945,
+      "file_count": 564
+    },
+    {
+      "path": "_trial/p3_raw_next",
+      "size_bytes": 590318074,
+      "file_count": 2768
+    }
+  ],
+  "hold_roots_untouched_count": 51,
+  "protected_roots_untouched_count": 0,
+  "hold_roots_untouched_sample": [
+    {
+      "path": "_trial/TASK_PHASE3_ARTISTS_ENRICHMENT_APPLY_IO_ROOT_20260421",
+      "exists": true
+    },
+    {
+      "path": "_trial/TASK_PHASE3_ARTISTS_ENRICHMENT_CHECK_IO_ROOT_20260421",
+      "exists": true
+    },
+    {
+      "path": "_trial/TASK_PHASE3_ARTISTS_ENRICHMENT_PREFLIGHT_20260421",
+      "exists": true
+    },
+    {
+      "path": "_trial/TASK_PHASE3_ARTISTS_ENRICHMENT_PREFLIGHT_IO_ROOT_20260421",
+      "exists": true
+    },
+    {
+      "path": "_trial/TASK_PHASE3_ARTISTS_ENRICHMENT_SUBMIT_IO_ROOT_20260421",
+      "exists": true
+    },
+    {
+      "path": "_trial/TASK_PHASE3_ARTISTS_IMAGE_COLLECT_VERIFY_FIRST_20260421T0138Z",
+      "exists": true
+    },
+    {
+      "path": "_trial/TASK_PHASE3_ARTISTS_TEXT_VECTOR_VERIFY_FIRST_20260421",
+      "exists": true
+    },
+    {
+      "path": "_trial/TASK_PHASE3_ARTIST_WORKS_IMAGES_VECTOR_VERIFY_FIRST_20260421",
+      "exists": true
+    },
+    {
+      "path": "_trial/TASK_PHASE3_BLOCK_CLOSEOUT_APPLY_NO_R2_20260421T1515Z",
+      "exists": true
+    },
+    {
+      "path": "_trial/TASK_PHASE3_BLOCK_CLOSEOUT_ARTIST_SOURCE_REAPPLY_20260422T0015Z",
+      "exists": true
+    },
+    {
+      "path": "_trial/TASK_PHASE3_BLOCK_CLOSEOUT_ARTIST_SOURCE_REAPPLY_VERIFY_20260422T0005Z",
+      "exists": true
+    },
+    {
+      "path": "_trial/TASK_PHASE3_BLOCK_CLOSEOUT_VERIFY_FIRST_20260421T1434Z",
+      "exists": true
+    },
+    {
+      "path": "_trial/TASK_PHASE3_BLOCK_CLOSEOUT_VERIFY_FIRST_EXH_IMAGE_META_20260421T1505Z",
+      "exists": true
+    },
+    {
+      "path": "_trial/TASK_PHASE3_CLOSEOUT_SMOKE_PREP",
+      "exists": true
+    },
+    {
+      "path": "_trial/TASK_PHASE3_EXHIBITIONS_ENRICHMENT_APPLY_IO_ROOT_20260421",
+      "exists": true
+    },
+    {
+      "path": "_trial/TASK_PHASE3_EXHIBITIONS_ENRICHMENT_CHECK_IO_ROOT_20260421",
+      "exists": true
+    },
+    {
+      "path": "_trial/TASK_PHASE3_EXHIBITIONS_ENRICHMENT_PREFLIGHT_IO_ROOT_20260421",
+      "exists": true
+    },
+    {
+      "path": "_trial/TASK_PHASE3_EXHIBITIONS_ENRICHMENT_RECHECK_IO_ROOT_20260421",
+      "exists": true
+    },
+    {
+      "path": "_trial/TASK_PHASE3_EXHIBITIONS_ENRICHMENT_SUBMIT_IO_ROOT_20260421",
+      "exists": true
+    },
+    {
+      "path": "_trial/TASK_PHASE3_EXHIBITIONS_IMAGE_COLLECT_VERIFY_FIRST_20260421T091605Z",
+      "exists": true
+    },
+    {
+      "path": "_trial/TASK_PHASE3_EXHIBITION_IMAGE_BLOCK_VERIFY_20260408T010700Z",
+      "exists": true
+    },
+    {
+      "path": "_trial/TASK_PHASE3_NEXT_SCOPE_BLOCK_CLOSEOUT_APPLY_20260410T000000Z",
+      "exists": true
+    },
+    {
+      "path": "_trial/TASK_PHASE3_NEXT_SCOPE_BLOCK_CLOSEOUT_VERIFY_20260410T000000Z",
+      "exists": true
+    },
+    {
+      "path": "_trial/TASK_PHASE3_RAW_REBUILD_AND_ARTIST_IMAGE_VERIFY_20260421T0149Z",
+      "exists": true
+    },
+    {
+      "path": "_trial/TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422",
+      "exists": true
+    },
+    {
+      "path": "_trial/TASK_PHASE3_SAME_SCOPE9_BOUNDED_MERGE_DRYRUN_RECHECK_20260410T1116Z",
+      "exists": true
+    },
+    {
+      "path": "_trial/TASK_PHASE3_SAME_SCOPE9_BOUNDED_MERGE_DRYRUN_RECHECK_20260410T1118Z",
+      "exists": true
+    },
+    {
+      "path": "_trial/TASK_PHASE3_SAME_SCOPE9_CLOSEOUT_APPLY_NO_R2_20260410T1230Z",
+      "exists": true
+    },
+    {
+      "path": "_trial/TASK_PHASE3_SAME_SCOPE9_CLOSEOUT_POST_APPLY_R2_PLAN_20260410T1240Z",
+      "exists": true
+    },
+    {
+      "path": "_trial/TASK_PHASE3_TRUE_NEXT_BLOCK_CLOSEOUT_APPLY_20260407T145900Z",
+      "exists": true
+    },
+    {
+      "path": "_trial/TASK_PHASE3_TRUE_NEXT_BLOCK_CLOSEOUT_APPLY_20260408T063900Z",
+      "exists": true
+    },
+    {
+      "path": "_trial/TASK_PHASE3_TRUE_NEXT_BLOCK_CLOSEOUT_APPLY_20260408T130041Z",
+      "exists": true
+    },
+    {
+      "path": "_trial/TASK_VERIFY_FIRST_GUARD_TEST_20260424",
+      "exists": true
+    },
+    {
+      "path": "_trial/p17",
+      "exists": true
+    },
+    {
+      "path": "_trial/p18",
+      "exists": true
+    },
+    {
+      "path": "_trial/p3n10r2_closeout_current_only_apply_20260503",
+      "exists": true
+    },
+    {
+      "path": "_trial/p3n10r2_closeout_current_only_dryrun_20260503",
+      "exists": true
+    },
+    {
+      "path": "_trial/p3n10r2_closeout_current_only_dryrun_verify_20260504",
+      "exists": true
+    },
+    {
+      "path": "_trial/p3n10r2_closeout_verify_first_20260503",
+      "exists": true
+    },
+    {
+      "path": "_trial/patch_observe_narrow_20260421",
+      "exists": true
+    },
+    {
+      "path": "_trial/phase3_artists_enrichment_submitonly_20260407T083409Z",
+      "exists": true
+    },
+    {
+      "path": "_trial/phase3_artists_enrichment_verify_20260407T071847Z",
+      "exists": true
+    },
+    {
+      "path": "_trial/phase3_exhib_text_narrow_apply_20260411",
+      "exists": true
+    },
+    {
+      "path": "_trial/phase3_exhib_text_narrow_apply_postcheck_20260411",
+      "exists": true
+    },
+    {
+      "path": "_trial/phase3_exhib_text_narrow_apply_route_verify_20260411",
+      "exists": true
+    },
+    {
+      "path": "_trial/phase3_next_scope_artists_enrichment_verify_20260410",
+      "exists": true
+    },
+    {
+      "path": "_trial/phase3_next_scope_image_vector_verify_20260410",
+      "exists": true
+    },
+    {
+      "path": "_trial/phase3_next_scope_text_vector_verify_20260410",
+      "exists": true
+    },
+    {
+      "path": "_trial/phase3_same_scope_live_materialization_20260410",
+      "exists": true
+    },
+    {
+      "path": "_trial/phase3_true_next_image_vector_verify_20260407T124750Z",
+      "exists": true
+    },
+    {
+      "path": "_trial/phase3_true_next_text_vector_verify_20260407T121615Z",
+      "exists": true
+    }
+  ],
+  "protected_roots_untouched_sample": [],
+  "deleted_size_bytes": 748654019,
+  "deleted_file_count": 3332,
+  "errors": [],
+  "missing_roots": []
+}

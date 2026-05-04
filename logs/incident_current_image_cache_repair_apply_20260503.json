@@ -1,0 +1,260 @@
+{
+  "task_name": "21c. current image cache repair apply",
+  "generated_at_utc": "2026-05-03T13:18:09.717242+00:00",
+  "status": "GO",
+  "repair_plan_path": "logs/incident_current_image_cache_repair_plan_20260503.json",
+  "summary": {
+    "planned_total": 541,
+    "applied_total": 541,
+    "copied_total": 541,
+    "skipped_same_existing_total": 0,
+    "failed_total": 0,
+    "collision_diff_total": 0,
+    "zero_byte_total": 0
+  },
+  "artist_works_images": {
+    "planned": 498,
+    "copied": 498,
+    "skipped_same_existing": 0,
+    "failed": 0,
+    "current_exists_after": 498,
+    "collision_diff": 0,
+    "zero_byte_after": 0,
+    "by_gallery_copied": {
+      "Vanguard Gallery": 156,
+      "Jhaveri Contemporary": 150,
+      "Voloshyn Gallery": 75,
+      "Karma": 66,
+      "Johyun Gallery": 41,
+      "Turnus": 10
+    },
+    "by_gallery_skipped": {},
+    "by_gallery_failed": {},
+    "sample_failures": []
+  },
+  "exhibition_works_images": {
+    "planned": 43,
+    "copied": 43,
+    "skipped_same_existing": 0,
+    "failed": 0,
+    "current_exists_after": 43,
+    "collision_diff": 0,
+    "zero_byte_after": 0,
+    "by_gallery_copied": {
+      "Jhaveri Contemporary": 8,
+      "Johyun Gallery": 8,
+      "Karma": 8,
+      "Turnus": 8,
+      "Vanguard Gallery": 8,
+      "Voloshyn Gallery": 3
+    },
+    "by_gallery_skipped": {},
+    "by_gallery_failed": {},
+    "sample_failures": []
+  },
+  "zero_byte_paths": [],
+  "errors": [],
+  "copy_manifest_sample": [
+    {
+      "family": "artist_works_images",
+      "gallery_name": "Jhaveri Contemporary",
+      "source_trial_path": "_trial/p3_raw_next/p3n10r2raw_20260502T000000Z/img/2025/frieze-london/2ffc33c4c9c1__img_01.jpg",
+      "destination_current_path": "data/current/images/cache/artist_works_images/2025/frieze-london/2ffc33c4c9c1__img_01.jpg",
+      "action": "copied",
+      "size_bytes": 94775
+    },
+    {
+      "family": "artist_works_images",
+      "gallery_name": "Jhaveri Contemporary",
+      "source_trial_path": "_trial/p3_raw_next/p3n10r2raw_20260502T000000Z/img/2025/frieze-london/2ffc33c4c9c1__img_02.jpg",
+      "destination_current_path": "data/current/images/cache/artist_works_images/2025/frieze-london/2ffc33c4c9c1__img_02.jpg",
+      "action": "copied",
+      "size_bytes": 1526
+    },
+    {
+      "family": "artist_works_images",
+      "gallery_name": "Jhaveri Contemporary",
+      "source_trial_path": "_trial/p3_raw_next/p3n10r2raw_20260502T000000Z/img/2025/frieze-london/2ffc33c4c9c1__img_03.jpg",
+      "destination_current_path": "data/current/images/cache/artist_works_images/2025/frieze-london/2ffc33c4c9c1__img_03.jpg",
+      "action": "copied",
+      "size_bytes": 2662
+    },
+    {
+      "family": "artist_works_images",
+      "gallery_name": "Jhaveri Contemporary",
+      "source_trial_path": "_trial/p3_raw_next/p3n10r2raw_20260502T000000Z/img/2025/frieze-london/2ffc33c4c9c1__img_04.jpg",
+      "destination_current_path": "data/current/images/cache/artist_works_images/2025/frieze-london/2ffc33c4c9c1__img_04.jpg",
+      "action": "copied",
+      "size_bytes": 87142
+    },
+    {
+      "family": "artist_works_images",
+      "gallery_name": "Jhaveri Contemporary",
+      "source_trial_path": "_trial/p3_raw_next/p3n10r2raw_20260502T000000Z/img/2025/frieze-london/2ffc33c4c9c1__img_05.jpg",
+      "destination_current_path": "data/current/images/cache/artist_works_images/2025/frieze-london/2ffc33c4c9c1__img_05.jpg",
+      "action": "copied",
+      "size_bytes": 97674
+    },
+    {
+      "family": "artist_works_images",
+      "gallery_name": "Jhaveri Contemporary",
+      "source_trial_path": "_trial/p3_raw_next/p3n10r2raw_20260502T000000Z/img/2025/frieze-london/ca0f0a951f15__img_01.jpg",
+      "destination_current_path": "data/current/images/cache/artist_works_images/2025/frieze-london/ca0f0a951f15__img_01.jpg",
+      "action": "copied",
+      "size_bytes": 4226
+    },
+    {
+      "family": "artist_works_images",
+      "gallery_name": "Jhaveri Contemporary",
+      "source_trial_path": "_trial/p3_raw_next/p3n10r2raw_20260502T000000Z/img/2025/frieze-london/ca0f0a951f15__img_02.jpg",
+      "destination_current_path": "data/current/images/cache/artist_works_images/2025/frieze-london/ca0f0a951f15__img_02.jpg",
+      "action": "copied",
+      "size_bytes": 93098
+    },
+    {
+      "family": "artist_works_images",
+      "gallery_name": "Jhaveri Contemporary",
+      "source_trial_path": "_trial/p3_raw_next/p3n10r2raw_20260502T000000Z/img/2025/frieze-london/ca0f0a951f15__img_03.jpg",
+      "destination_current_path": "data/current/images/cache/artist_works_images/2025/frieze-london/ca0f0a951f15__img_03.jpg",
+      "action": "copied",
+      "size_bytes": 4337
+    },
+    {
+      "family": "artist_works_images",
+      "gallery_name": "Jhaveri Contemporary",
+      "source_trial_path": "_trial/p3_raw_next/p3n10r2raw_20260502T000000Z/img/2025/frieze-london/ca0f0a951f15__img_04.jpg",
+      "destination_current_path": "data/current/images/cache/artist_works_images/2025/frieze-london/ca0f0a951f15__img_04.jpg",
+      "action": "copied",
+      "size_bytes": 96639
+    },
+    {
+      "family": "artist_works_images",
+      "gallery_name": "Jhaveri Contemporary",
+      "source_trial_path": "_trial/p3_raw_next/p3n10r2raw_20260502T000000Z/img/2025/frieze-london/ca0f0a951f15__img_05.jpg",
+      "destination_current_path": "data/current/images/cache/artist_works_images/2025/frieze-london/ca0f0a951f15__img_05.jpg",
+      "action": "copied",
+      "size_bytes": 96698
+    },
+    {
+      "family": "artist_works_images",
+      "gallery_name": "Jhaveri Contemporary",
+      "source_trial_path": "_trial/p3_raw_next/p3n10r2raw_20260502T000000Z/img/2025/frieze-london/1c2824070cae__img_01.jpg",
+      "destination_current_path": "data/current/images/cache/artist_works_images/2025/frieze-london/1c2824070cae__img_01.jpg",
+      "action": "copied",
+      "size_bytes": 87557
+    },
+    {
+      "family": "artist_works_images",
+      "gallery_name": "Jhaveri Contemporary",
+      "source_trial_path": "_trial/p3_raw_next/p3n10r2raw_20260502T000000Z/img/2025/frieze-london/1c2824070cae__img_02.jpg",
+      "destination_current_path": "data/current/images/cache/artist_works_images/2025/frieze-london/1c2824070cae__img_02.jpg",
+      "action": "copied",
+      "size_bytes": 3680
+    },
+    {
+      "family": "artist_works_images",
+      "gallery_name": "Jhaveri Contemporary",
+      "source_trial_path": "_trial/p3_raw_next/p3n10r2raw_20260502T000000Z/img/2025/frieze-london/1c2824070cae__img_03.jpg",
+      "destination_current_path": "data/current/images/cache/artist_works_images/2025/frieze-london/1c2824070cae__img_03.jpg",
+      "action": "copied",
+      "size_bytes": 83889
+    },
+    {
+      "family": "artist_works_images",
+      "gallery_name": "Jhaveri Contemporary",
+      "source_trial_path": "_trial/p3_raw_next/p3n10r2raw_20260502T000000Z/img/2025/frieze-london/1c2824070cae__img_04.jpg",
+      "destination_current_path": "data/current/images/cache/artist_works_images/2025/frieze-london/1c2824070cae__img_04.jpg",
+      "action": "copied",
+      "size_bytes": 87246
+    },
+    {
+      "family": "artist_works_images",
+      "gallery_name": "Jhaveri Contemporary",
+      "source_trial_path": "_trial/p3_raw_next/p3n10r2raw_20260502T000000Z/img/2025/frieze-london/1c2824070cae__img_05.jpg",
+      "destination_current_path": "data/current/images/cache/artist_works_images/2025/frieze-london/1c2824070cae__img_05.jpg",
+      "action": "copied",
+      "size_bytes": 80243
+    },
+    {
+      "family": "artist_works_images",
+      "gallery_name": "Jhaveri Contemporary",
+      "source_trial_path": "_trial/p3_raw_next/p3n10r2raw_20260502T000000Z/img/2025/frieze-london/dbc5cbdd2d80__img_01.jpg",
+      "destination_current_path": "data/current/images/cache/artist_works_images/2025/frieze-london/dbc5cbdd2d80__img_01.jpg",
+      "action": "copied",
+      "size_bytes": 102325
+    },
+    {
+      "family": "artist_works_images",
+      "gallery_name": "Jhaveri Contemporary",
+      "source_trial_path": "_trial/p3_raw_next/p3n10r2raw_20260502T000000Z/img/2025/frieze-london/dbc5cbdd2d80__img_02.jpg",
+      "destination_current_path": "data/current/images/cache/artist_works_images/2025/frieze-london/dbc5cbdd2d80__img_02.jpg",
+      "action": "copied",
+      "size_bytes": 3412
+    },
+    {
+      "family": "artist_works_images",
+      "gallery_name": "Jhaveri Contemporary",
+      "source_trial_path": "_trial/p3_raw_next/p3n10r2raw_20260502T000000Z/img/2025/frieze-london/dbc5cbdd2d80__img_03.jpg",
+      "destination_current_path": "data/current/images/cache/artist_works_images/2025/frieze-london/dbc5cbdd2d80__img_03.jpg",
+      "action": "copied",
+      "size_bytes": 3767
+    },
+    {
+      "family": "artist_works_images",
+      "gallery_name": "Jhaveri Contemporary",
+      "source_trial_path": "_trial/p3_raw_next/p3n10r2raw_20260502T000000Z/img/2025/frieze-london/dbc5cbdd2d80__img_04.jpg",
+      "destination_current_path": "data/current/images/cache/artist_works_images/2025/frieze-london/dbc5cbdd2d80__img_04.jpg",
+      "action": "copied",
+      "size_bytes": 99658
+    },
+    {
+      "family": "artist_works_images",
+      "gallery_name": "Jhaveri Contemporary",
+      "source_trial_path": "_trial/p3_raw_next/p3n10r2raw_20260502T000000Z/img/2025/frieze-london/dbc5cbdd2d80__img_05.jpg",
+      "destination_current_path": "data/current/images/cache/artist_works_images/2025/frieze-london/dbc5cbdd2d80__img_05.jpg",
+      "action": "copied",
+      "size_bytes": 87942
+    },
+    {
+      "family": "artist_works_images",
+      "gallery_name": "Jhaveri Contemporary",
+      "source_trial_path": "_trial/p3_raw_next/p3n10r2raw_20260502T000000Z/img/2025/frieze-london/9fd72e5ab2d9__img_01.jpg",
+      "destination_current_path": "data/current/images/cache/artist_works_images/2025/frieze-london/9fd72e5ab2d9__img_01.jpg",
+      "action": "copied",
+      "size_bytes": 87534
+    },
+    {
+      "family": "artist_works_images",
+      "gallery_name": "Jhaveri Contemporary",
+      "source_trial_path": "_trial/p3_raw_next/p3n10r2raw_20260502T000000Z/img/2025/frieze-london/9fd72e5ab2d9__img_02.jpg",
+      "destination_current_path": "data/current/images/cache/artist_works_images/2025/frieze-london/9fd72e5ab2d9__img_02.jpg",
+      "action": "copied",
+      "size_bytes": 94927
+    },
+    {
+      "family": "artist_works_images",
+      "gallery_name": "Jhaveri Contemporary",
+      "source_trial_path": "_trial/p3_raw_next/p3n10r2raw_20260502T000000Z/img/2025/frieze-london/9fd72e5ab2d9__img_03.jpg",
+      "destination_current_path": "data/current/images/cache/artist_works_images/2025/frieze-london/9fd72e5ab2d9__img_03.jpg",
+      "action": "copied",
+      "size_bytes": 102067
+    },
+    {
+      "family": "artist_works_images",
+      "gallery_name": "Jhaveri Contemporary",
+      "source_trial_path": "_trial/p3_raw_next/p3n10r2raw_20260502T000000Z/img/2025/frieze-london/9fd72e5ab2d9__img_04.jpg",
+      "destination_current_path": "data/current/images/cache/artist_works_images/2025/frieze-london/9fd72e5ab2d9__img_04.jpg",
+      "action": "copied",
+      "size_bytes": 2042
+    },
+    {
+      "family": "artist_works_images",
+      "gallery_name": "Jhaveri Contemporary",
+      "source_trial_path": "_trial/p3_raw_next/p3n10r2raw_20260502T000000Z/img/2025/frieze-london/9fd72e5ab2d9__img_05.jpg",
+      "destination_current_path": "data/current/images/cache/artist_works_images/2025/frieze-london/9fd72e5ab2d9__img_05.jpg",
+      "action": "copied",
+      "size_bytes": 85368
+    }
+  ],
+  "next_task_if_go": "21d. metadata + artist works id_map path rewrite verify-first"
+}

@@ -1,0 +1,1597 @@
+{
+  "summary": {
+    "status": "GO",
+    "generated_at_utc": "2026-05-04T09:35:06.033561+00:00",
+    "hold_reasons": [],
+    "remaining_trial_total_size_bytes": 2036989068,
+    "remaining_trial_total_file_count": 5092,
+    "remaining_trial_total_folder_count": 353,
+    "remaining_trial_root_count": 51
+  },
+  "remaining_trial_inventory": [
+    {
+      "path": "_trial/TASK_PHASE3_RAW_REBUILD_AND_ARTIST_IMAGE_VERIFY_20260421T0149Z",
+      "size_bytes": 248055264,
+      "file_count": 2784,
+      "folder_count": 22,
+      "last_modified_utc": "2026-04-21T14:32:32.498083+00:00",
+      "content_tags": [
+        "batch request/output",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ]
+    },
+    {
+      "path": "_trial/p3n10r2_closeout_current_only_dryrun_verify_20260504",
+      "size_bytes": 156289397,
+      "file_count": 543,
+      "folder_count": 17,
+      "last_modified_utc": "2026-05-04T06:08:17.945921+00:00",
+      "content_tags": [
+        "closeout staging",
+        "dry-run staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422",
+      "size_bytes": 124360934,
+      "file_count": 1077,
+      "folder_count": 38,
+      "last_modified_utc": "2026-04-24T07:51:34.218911+00:00",
+      "content_tags": [
+        "batch request/output",
+        "closeout staging",
+        "dry-run staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ]
+    },
+    {
+      "path": "_trial/p3n10r2_closeout_current_only_dryrun_20260503",
+      "size_bytes": 115348338,
+      "file_count": 23,
+      "folder_count": 9,
+      "last_modified_utc": "2026-05-03T02:47:45.470784+00:00",
+      "content_tags": [
+        "closeout staging",
+        "dry-run staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ]
+    },
+    {
+      "path": "_trial/p3n10r2_closeout_current_only_apply_20260503",
+      "size_bytes": 115348324,
+      "file_count": 23,
+      "folder_count": 9,
+      "last_modified_utc": "2026-05-03T02:50:09.762043+00:00",
+      "content_tags": [
+        "closeout staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ]
+    },
+    {
+      "path": "_trial/p3n10r2_closeout_verify_first_20260503",
+      "size_bytes": 115348240,
+      "file_count": 23,
+      "folder_count": 9,
+      "last_modified_utc": "2026-05-03T02:38:29.122387+00:00",
+      "content_tags": [
+        "closeout staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ]
+    },
+    {
+      "path": "_trial/p17",
+      "size_bytes": 86741810,
+      "file_count": 23,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-24T07:43:44.856270+00:00",
+      "content_tags": [
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ]
+    },
+    {
+      "path": "_trial/p18",
+      "size_bytes": 86741810,
+      "file_count": 23,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-24T07:51:31.580398+00:00",
+      "content_tags": [
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_BLOCK_CLOSEOUT_ARTIST_SOURCE_REAPPLY_20260422T0015Z",
+      "size_bytes": 75626766,
+      "file_count": 23,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-22T03:01:11.362070+00:00",
+      "content_tags": [
+        "closeout staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_BLOCK_CLOSEOUT_ARTIST_SOURCE_REAPPLY_VERIFY_20260422T0005Z",
+      "size_bytes": 75315508,
+      "file_count": 23,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-22T02:59:28.795945+00:00",
+      "content_tags": [
+        "closeout staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_BLOCK_CLOSEOUT_VERIFY_FIRST_EXH_IMAGE_META_20260421T1505Z",
+      "size_bytes": 70213390,
+      "file_count": 24,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-21T14:48:03.995873+00:00",
+      "content_tags": [
+        "closeout staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_BLOCK_CLOSEOUT_VERIFY_FIRST_20260421T1434Z",
+      "size_bytes": 70047380,
+      "file_count": 24,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-21T14:39:02.206692+00:00",
+      "content_tags": [
+        "closeout staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_BLOCK_CLOSEOUT_APPLY_NO_R2_20260421T1515Z",
+      "size_bytes": 70027592,
+      "file_count": 23,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-21T14:54:54.727265+00:00",
+      "content_tags": [
+        "closeout staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ]
+    },
+    {
+      "path": "_trial/phase3_exhib_text_narrow_apply_route_verify_20260411",
+      "size_bytes": 48492791,
+      "file_count": 24,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-11T03:38:21.795381+00:00",
+      "content_tags": [
+        "closeout staging",
+        "dry-run staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ]
+    },
+    {
+      "path": "_trial/phase3_exhib_text_narrow_apply_postcheck_20260411",
+      "size_bytes": 48426597,
+      "file_count": 24,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-11T03:46:40.921164+00:00",
+      "content_tags": [
+        "closeout staging",
+        "dry-run staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ]
+    },
+    {
+      "path": "_trial/phase3_exhib_text_narrow_apply_20260411",
+      "size_bytes": 48361251,
+      "file_count": 23,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-11T03:45:14.319238+00:00",
+      "content_tags": [
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_SAME_SCOPE9_BOUNDED_MERGE_DRYRUN_RECHECK_20260410T1116Z",
+      "size_bytes": 48327098,
+      "file_count": 24,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-10T11:16:24.082947+00:00",
+      "content_tags": [
+        "dry-run staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_SAME_SCOPE9_CLOSEOUT_APPLY_NO_R2_20260410T1230Z",
+      "size_bytes": 48264502,
+      "file_count": 23,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-10T12:18:26.790240+00:00",
+      "content_tags": [
+        "closeout staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_SAME_SCOPE9_BOUNDED_MERGE_DRYRUN_RECHECK_20260410T1118Z",
+      "size_bytes": 48084497,
+      "file_count": 23,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-10T10:55:08.353086+00:00",
+      "content_tags": [
+        "dry-run staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_NEXT_SCOPE_BLOCK_CLOSEOUT_VERIFY_20260410T000000Z",
+      "size_bytes": 45103067,
+      "file_count": 23,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-10T10:28:58.839776+00:00",
+      "content_tags": [
+        "closeout staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_NEXT_SCOPE_BLOCK_CLOSEOUT_APPLY_20260410T000000Z",
+      "size_bytes": 43534155,
+      "file_count": 23,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-10T02:57:07.248122+00:00",
+      "content_tags": [
+        "closeout staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ]
+    },
+    {
+      "path": "_trial/phase3_same_scope_live_materialization_20260410",
+      "size_bytes": 33952517,
+      "file_count": 23,
+      "folder_count": 18,
+      "last_modified_utc": "2026-04-10T11:15:57.195652+00:00",
+      "content_tags": [
+        "batch request/output",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_TRUE_NEXT_BLOCK_CLOSEOUT_APPLY_20260408T063900Z",
+      "size_bytes": 31503110,
+      "file_count": 24,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-08T06:29:46.448079+00:00",
+      "content_tags": [
+        "closeout staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_TRUE_NEXT_BLOCK_CLOSEOUT_APPLY_20260407T145900Z",
+      "size_bytes": 31416602,
+      "file_count": 24,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-07T14:52:55.050540+00:00",
+      "content_tags": [
+        "closeout staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_TRUE_NEXT_BLOCK_CLOSEOUT_APPLY_20260408T130041Z",
+      "size_bytes": 31414200,
+      "file_count": 23,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-08T13:00:52.729095+00:00",
+      "content_tags": [
+        "closeout staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_EXHIBITION_IMAGE_BLOCK_VERIFY_20260408T010700Z",
+      "size_bytes": 31353732,
+      "file_count": 23,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-07T15:19:13.249014+00:00",
+      "content_tags": [
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_CLOSEOUT_SMOKE_PREP",
+      "size_bytes": 31353211,
+      "file_count": 23,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-07T14:13:59.058342+00:00",
+      "content_tags": [
+        "closeout staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ]
+    },
+    {
+      "path": "_trial/phase3_artists_enrichment_submitonly_20260407T083409Z",
+      "size_bytes": 10709955,
+      "file_count": 8,
+      "folder_count": 8,
+      "last_modified_utc": "2026-04-07T10:49:14.464276+00:00",
+      "content_tags": [
+        "batch request/output",
+        "enrichment request/output",
+        "logs/summary/manifest",
+        "raw"
+      ]
+    },
+    {
+      "path": "_trial/phase3_artists_enrichment_verify_20260407T071847Z",
+      "size_bytes": 10183522,
+      "file_count": 9,
+      "folder_count": 8,
+      "last_modified_utc": "2026-04-07T07:20:20.159941+00:00",
+      "content_tags": [
+        "batch request/output",
+        "enrichment request/output",
+        "logs/summary/manifest",
+        "raw"
+      ]
+    },
+    {
+      "path": "_trial/phase3_next_scope_artists_enrichment_verify_20260410",
+      "size_bytes": 6888927,
+      "file_count": 12,
+      "folder_count": 8,
+      "last_modified_utc": "2026-04-10T10:44:31.509866+00:00",
+      "content_tags": [
+        "batch request/output",
+        "enrichment request/output",
+        "logs/summary/manifest",
+        "raw"
+      ]
+    },
+    {
+      "path": "_trial/phase3_next_scope_image_vector_verify_20260410",
+      "size_bytes": 6652943,
+      "file_count": 8,
+      "folder_count": 4,
+      "last_modified_utc": "2026-04-10T02:44:25.621488+00:00",
+      "content_tags": [
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "vector"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_EXHIBITIONS_IMAGE_COLLECT_VERIFY_FIRST_20260421T091605Z",
+      "size_bytes": 5415894,
+      "file_count": 49,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-21T09:31:34.732858+00:00",
+      "content_tags": [
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw"
+      ]
+    },
+    {
+      "path": "_trial/phase3_true_next_image_vector_verify_20260407T124750Z",
+      "size_bytes": 5294589,
+      "file_count": 8,
+      "folder_count": 4,
+      "last_modified_utc": "2026-04-07T12:52:38.370893+00:00",
+      "content_tags": [
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "vector"
+      ]
+    },
+    {
+      "path": "_trial/phase3_true_next_text_vector_verify_20260407T121615Z",
+      "size_bytes": 4614023,
+      "file_count": 7,
+      "folder_count": 3,
+      "last_modified_utc": "2026-04-07T12:16:44.841919+00:00",
+      "content_tags": [
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ]
+    },
+    {
+      "path": "_trial/phase3_next_scope_text_vector_verify_20260410",
+      "size_bytes": 4318928,
+      "file_count": 7,
+      "folder_count": 3,
+      "last_modified_utc": "2026-04-10T02:36:53.341614+00:00",
+      "content_tags": [
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ]
+    },
+    {
+      "path": "_trial/patch_observe_narrow_20260421",
+      "size_bytes": 3774672,
+      "file_count": 6,
+      "folder_count": 0,
+      "last_modified_utc": "2026-04-21T08:44:25.746345+00:00",
+      "content_tags": []
+    },
+    {
+      "path": "_trial/TASK_PHASE3_SAME_SCOPE9_CLOSEOUT_POST_APPLY_R2_PLAN_20260410T1240Z",
+      "size_bytes": 50635,
+      "file_count": 1,
+      "folder_count": 0,
+      "last_modified_utc": "2026-04-10T12:20:18.834198+00:00",
+      "content_tags": [
+        "closeout staging",
+        "dry-run staging"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_ARTIST_WORKS_IMAGES_VECTOR_VERIFY_FIRST_20260421",
+      "size_bytes": 10160,
+      "file_count": 1,
+      "folder_count": 0,
+      "last_modified_utc": "2026-04-21T14:32:32.535788+00:00",
+      "content_tags": [
+        "images/cache",
+        "logs/summary/manifest",
+        "vector"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_ARTISTS_IMAGE_COLLECT_VERIFY_FIRST_20260421T0138Z",
+      "size_bytes": 5007,
+      "file_count": 1,
+      "folder_count": 0,
+      "last_modified_utc": "2026-04-21T01:37:09.805301+00:00",
+      "content_tags": [
+        "logs/summary/manifest"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_ARTISTS_ENRICHMENT_PREFLIGHT_IO_ROOT_20260421",
+      "size_bytes": 3720,
+      "file_count": 1,
+      "folder_count": 0,
+      "last_modified_utc": "2026-04-21T12:17:59.804844+00:00",
+      "content_tags": [
+        "enrichment request/output",
+        "logs/summary/manifest"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_EXHIBITIONS_ENRICHMENT_PREFLIGHT_IO_ROOT_20260421",
+      "size_bytes": 3524,
+      "file_count": 1,
+      "folder_count": 0,
+      "last_modified_utc": "2026-04-21T13:33:33.724055+00:00",
+      "content_tags": [
+        "enrichment request/output",
+        "logs/summary/manifest"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_ARTISTS_ENRICHMENT_PREFLIGHT_20260421",
+      "size_bytes": 3322,
+      "file_count": 1,
+      "folder_count": 0,
+      "last_modified_utc": "2026-04-21T11:43:49.618085+00:00",
+      "content_tags": [
+        "enrichment request/output",
+        "logs/summary/manifest"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_ARTISTS_TEXT_VECTOR_VERIFY_FIRST_20260421",
+      "size_bytes": 2206,
+      "file_count": 1,
+      "folder_count": 0,
+      "last_modified_utc": "2026-04-21T14:22:38.975077+00:00",
+      "content_tags": [
+        "logs/summary/manifest",
+        "vector"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_ARTISTS_ENRICHMENT_APPLY_IO_ROOT_20260421",
+      "size_bytes": 738,
+      "file_count": 1,
+      "folder_count": 0,
+      "last_modified_utc": "2026-04-21T13:25:30.106239+00:00",
+      "content_tags": [
+        "enrichment request/output",
+        "logs/summary/manifest"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_ARTISTS_ENRICHMENT_SUBMIT_IO_ROOT_20260421",
+      "size_bytes": 686,
+      "file_count": 1,
+      "folder_count": 0,
+      "last_modified_utc": "2026-04-21T12:31:45.353774+00:00",
+      "content_tags": [
+        "enrichment request/output",
+        "logs/summary/manifest"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_ARTISTS_ENRICHMENT_CHECK_IO_ROOT_20260421",
+      "size_bytes": 684,
+      "file_count": 1,
+      "folder_count": 0,
+      "last_modified_utc": "2026-04-21T13:11:41.095159+00:00",
+      "content_tags": [
+        "enrichment request/output",
+        "logs/summary/manifest"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_EXHIBITIONS_ENRICHMENT_APPLY_IO_ROOT_20260421",
+      "size_bytes": 642,
+      "file_count": 1,
+      "folder_count": 0,
+      "last_modified_utc": "2026-04-21T14:14:22.186729+00:00",
+      "content_tags": [
+        "enrichment request/output",
+        "logs/summary/manifest"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_EXHIBITIONS_ENRICHMENT_CHECK_IO_ROOT_20260421",
+      "size_bytes": 592,
+      "file_count": 1,
+      "folder_count": 0,
+      "last_modified_utc": "2026-04-21T13:42:59.750689+00:00",
+      "content_tags": [
+        "enrichment request/output",
+        "logs/summary/manifest"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_EXHIBITIONS_ENRICHMENT_RECHECK_IO_ROOT_20260421",
+      "size_bytes": 592,
+      "file_count": 1,
+      "folder_count": 0,
+      "last_modified_utc": "2026-04-21T13:48:42.596666+00:00",
+      "content_tags": [
+        "enrichment request/output",
+        "logs/summary/manifest"
+      ]
+    },
+    {
+      "path": "_trial/TASK_PHASE3_EXHIBITIONS_ENRICHMENT_SUBMIT_IO_ROOT_20260421",
+      "size_bytes": 590,
+      "file_count": 1,
+      "folder_count": 0,
+      "last_modified_utc": "2026-04-21T13:39:39.099321+00:00",
+      "content_tags": [
+        "enrichment request/output",
+        "logs/summary/manifest"
+      ]
+    },
+    {
+      "path": "_trial/TASK_VERIFY_FIRST_GUARD_TEST_20260424",
+      "size_bytes": 434,
+      "file_count": 1,
+      "folder_count": 4,
+      "last_modified_utc": "2026-04-24T02:32:20.681882+00:00",
+      "content_tags": [
+        "dry-run staging"
+      ]
+    }
+  ],
+  "deletable_roots": [
+    {
+      "path": "_trial/TASK_PHASE3_RAW_REBUILD_AND_ARTIST_IMAGE_VERIFY_20260421T0149Z",
+      "size_bytes": 248055264,
+      "file_count": 2784,
+      "folder_count": 22,
+      "last_modified_utc": "2026-04-21T14:32:32.498083+00:00",
+      "content_tags": [
+        "batch request/output",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ],
+      "reason": "default_deletable_after_current_r2_smoke_go"
+    },
+    {
+      "path": "_trial/p3n10r2_closeout_current_only_dryrun_verify_20260504",
+      "size_bytes": 156289397,
+      "file_count": 543,
+      "folder_count": 17,
+      "last_modified_utc": "2026-05-04T06:08:17.945921+00:00",
+      "content_tags": [
+        "closeout staging",
+        "dry-run staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ],
+      "reason": "default_deletable_after_current_r2_smoke_go"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422",
+      "size_bytes": 124360934,
+      "file_count": 1077,
+      "folder_count": 38,
+      "last_modified_utc": "2026-04-24T07:51:34.218911+00:00",
+      "content_tags": [
+        "batch request/output",
+        "closeout staging",
+        "dry-run staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ],
+      "reason": "default_deletable_after_current_r2_smoke_go"
+    },
+    {
+      "path": "_trial/p3n10r2_closeout_current_only_dryrun_20260503",
+      "size_bytes": 115348338,
+      "file_count": 23,
+      "folder_count": 9,
+      "last_modified_utc": "2026-05-03T02:47:45.470784+00:00",
+      "content_tags": [
+        "closeout staging",
+        "dry-run staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ],
+      "reason": "default_deletable_after_current_r2_smoke_go"
+    },
+    {
+      "path": "_trial/p3n10r2_closeout_current_only_apply_20260503",
+      "size_bytes": 115348324,
+      "file_count": 23,
+      "folder_count": 9,
+      "last_modified_utc": "2026-05-03T02:50:09.762043+00:00",
+      "content_tags": [
+        "closeout staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ],
+      "reason": "default_deletable_after_current_r2_smoke_go"
+    },
+    {
+      "path": "_trial/p3n10r2_closeout_verify_first_20260503",
+      "size_bytes": 115348240,
+      "file_count": 23,
+      "folder_count": 9,
+      "last_modified_utc": "2026-05-03T02:38:29.122387+00:00",
+      "content_tags": [
+        "closeout staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ],
+      "reason": "default_deletable_after_current_r2_smoke_go"
+    },
+    {
+      "path": "_trial/p17",
+      "size_bytes": 86741810,
+      "file_count": 23,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-24T07:43:44.856270+00:00",
+      "content_tags": [
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ],
+      "reason": "default_deletable_after_current_r2_smoke_go"
+    },
+    {
+      "path": "_trial/p18",
+      "size_bytes": 86741810,
+      "file_count": 23,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-24T07:51:31.580398+00:00",
+      "content_tags": [
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ],
+      "reason": "default_deletable_after_current_r2_smoke_go"
+    },
+    {
+      "path": "_trial/phase3_exhib_text_narrow_apply_route_verify_20260411",
+      "size_bytes": 48492791,
+      "file_count": 24,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-11T03:38:21.795381+00:00",
+      "content_tags": [
+        "closeout staging",
+        "dry-run staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ],
+      "reason": "default_deletable_after_current_r2_smoke_go"
+    },
+    {
+      "path": "_trial/phase3_exhib_text_narrow_apply_postcheck_20260411",
+      "size_bytes": 48426597,
+      "file_count": 24,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-11T03:46:40.921164+00:00",
+      "content_tags": [
+        "closeout staging",
+        "dry-run staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ],
+      "reason": "default_deletable_after_current_r2_smoke_go"
+    },
+    {
+      "path": "_trial/phase3_exhib_text_narrow_apply_20260411",
+      "size_bytes": 48361251,
+      "file_count": 23,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-11T03:45:14.319238+00:00",
+      "content_tags": [
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ],
+      "reason": "default_deletable_after_current_r2_smoke_go"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_SAME_SCOPE9_BOUNDED_MERGE_DRYRUN_RECHECK_20260410T1116Z",
+      "size_bytes": 48327098,
+      "file_count": 24,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-10T11:16:24.082947+00:00",
+      "content_tags": [
+        "dry-run staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ],
+      "reason": "default_deletable_after_current_r2_smoke_go"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_SAME_SCOPE9_CLOSEOUT_APPLY_NO_R2_20260410T1230Z",
+      "size_bytes": 48264502,
+      "file_count": 23,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-10T12:18:26.790240+00:00",
+      "content_tags": [
+        "closeout staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ],
+      "reason": "default_deletable_after_current_r2_smoke_go"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_SAME_SCOPE9_BOUNDED_MERGE_DRYRUN_RECHECK_20260410T1118Z",
+      "size_bytes": 48084497,
+      "file_count": 23,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-10T10:55:08.353086+00:00",
+      "content_tags": [
+        "dry-run staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ],
+      "reason": "default_deletable_after_current_r2_smoke_go"
+    },
+    {
+      "path": "_trial/phase3_same_scope_live_materialization_20260410",
+      "size_bytes": 33952517,
+      "file_count": 23,
+      "folder_count": 18,
+      "last_modified_utc": "2026-04-10T11:15:57.195652+00:00",
+      "content_tags": [
+        "batch request/output",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ],
+      "reason": "default_deletable_after_current_r2_smoke_go"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_CLOSEOUT_SMOKE_PREP",
+      "size_bytes": 31353211,
+      "file_count": 23,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-07T14:13:59.058342+00:00",
+      "content_tags": [
+        "closeout staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ],
+      "reason": "default_deletable_after_current_r2_smoke_go"
+    },
+    {
+      "path": "_trial/phase3_artists_enrichment_submitonly_20260407T083409Z",
+      "size_bytes": 10709955,
+      "file_count": 8,
+      "folder_count": 8,
+      "last_modified_utc": "2026-04-07T10:49:14.464276+00:00",
+      "content_tags": [
+        "batch request/output",
+        "enrichment request/output",
+        "logs/summary/manifest",
+        "raw"
+      ],
+      "reason": "default_deletable_after_current_r2_smoke_go"
+    },
+    {
+      "path": "_trial/phase3_artists_enrichment_verify_20260407T071847Z",
+      "size_bytes": 10183522,
+      "file_count": 9,
+      "folder_count": 8,
+      "last_modified_utc": "2026-04-07T07:20:20.159941+00:00",
+      "content_tags": [
+        "batch request/output",
+        "enrichment request/output",
+        "logs/summary/manifest",
+        "raw"
+      ],
+      "reason": "default_deletable_after_current_r2_smoke_go"
+    },
+    {
+      "path": "_trial/phase3_next_scope_artists_enrichment_verify_20260410",
+      "size_bytes": 6888927,
+      "file_count": 12,
+      "folder_count": 8,
+      "last_modified_utc": "2026-04-10T10:44:31.509866+00:00",
+      "content_tags": [
+        "batch request/output",
+        "enrichment request/output",
+        "logs/summary/manifest",
+        "raw"
+      ],
+      "reason": "default_deletable_after_current_r2_smoke_go"
+    },
+    {
+      "path": "_trial/phase3_next_scope_image_vector_verify_20260410",
+      "size_bytes": 6652943,
+      "file_count": 8,
+      "folder_count": 4,
+      "last_modified_utc": "2026-04-10T02:44:25.621488+00:00",
+      "content_tags": [
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "vector"
+      ],
+      "reason": "default_deletable_after_current_r2_smoke_go"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_EXHIBITIONS_IMAGE_COLLECT_VERIFY_FIRST_20260421T091605Z",
+      "size_bytes": 5415894,
+      "file_count": 49,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-21T09:31:34.732858+00:00",
+      "content_tags": [
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw"
+      ],
+      "reason": "default_deletable_after_current_r2_smoke_go"
+    },
+    {
+      "path": "_trial/phase3_true_next_image_vector_verify_20260407T124750Z",
+      "size_bytes": 5294589,
+      "file_count": 8,
+      "folder_count": 4,
+      "last_modified_utc": "2026-04-07T12:52:38.370893+00:00",
+      "content_tags": [
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "vector"
+      ],
+      "reason": "default_deletable_after_current_r2_smoke_go"
+    },
+    {
+      "path": "_trial/phase3_true_next_text_vector_verify_20260407T121615Z",
+      "size_bytes": 4614023,
+      "file_count": 7,
+      "folder_count": 3,
+      "last_modified_utc": "2026-04-07T12:16:44.841919+00:00",
+      "content_tags": [
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ],
+      "reason": "default_deletable_after_current_r2_smoke_go"
+    },
+    {
+      "path": "_trial/phase3_next_scope_text_vector_verify_20260410",
+      "size_bytes": 4318928,
+      "file_count": 7,
+      "folder_count": 3,
+      "last_modified_utc": "2026-04-10T02:36:53.341614+00:00",
+      "content_tags": [
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ],
+      "reason": "default_deletable_after_current_r2_smoke_go"
+    },
+    {
+      "path": "_trial/patch_observe_narrow_20260421",
+      "size_bytes": 3774672,
+      "file_count": 6,
+      "folder_count": 0,
+      "last_modified_utc": "2026-04-21T08:44:25.746345+00:00",
+      "content_tags": [],
+      "reason": "default_deletable_after_current_r2_smoke_go"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_SAME_SCOPE9_CLOSEOUT_POST_APPLY_R2_PLAN_20260410T1240Z",
+      "size_bytes": 50635,
+      "file_count": 1,
+      "folder_count": 0,
+      "last_modified_utc": "2026-04-10T12:20:18.834198+00:00",
+      "content_tags": [
+        "closeout staging",
+        "dry-run staging"
+      ],
+      "reason": "default_deletable_after_current_r2_smoke_go"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_ARTIST_WORKS_IMAGES_VECTOR_VERIFY_FIRST_20260421",
+      "size_bytes": 10160,
+      "file_count": 1,
+      "folder_count": 0,
+      "last_modified_utc": "2026-04-21T14:32:32.535788+00:00",
+      "content_tags": [
+        "images/cache",
+        "logs/summary/manifest",
+        "vector"
+      ],
+      "reason": "default_deletable_after_current_r2_smoke_go"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_ARTISTS_IMAGE_COLLECT_VERIFY_FIRST_20260421T0138Z",
+      "size_bytes": 5007,
+      "file_count": 1,
+      "folder_count": 0,
+      "last_modified_utc": "2026-04-21T01:37:09.805301+00:00",
+      "content_tags": [
+        "logs/summary/manifest"
+      ],
+      "reason": "default_deletable_after_current_r2_smoke_go"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_ARTISTS_ENRICHMENT_PREFLIGHT_IO_ROOT_20260421",
+      "size_bytes": 3720,
+      "file_count": 1,
+      "folder_count": 0,
+      "last_modified_utc": "2026-04-21T12:17:59.804844+00:00",
+      "content_tags": [
+        "enrichment request/output",
+        "logs/summary/manifest"
+      ],
+      "reason": "default_deletable_after_current_r2_smoke_go"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_EXHIBITIONS_ENRICHMENT_PREFLIGHT_IO_ROOT_20260421",
+      "size_bytes": 3524,
+      "file_count": 1,
+      "folder_count": 0,
+      "last_modified_utc": "2026-04-21T13:33:33.724055+00:00",
+      "content_tags": [
+        "enrichment request/output",
+        "logs/summary/manifest"
+      ],
+      "reason": "default_deletable_after_current_r2_smoke_go"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_ARTISTS_ENRICHMENT_PREFLIGHT_20260421",
+      "size_bytes": 3322,
+      "file_count": 1,
+      "folder_count": 0,
+      "last_modified_utc": "2026-04-21T11:43:49.618085+00:00",
+      "content_tags": [
+        "enrichment request/output",
+        "logs/summary/manifest"
+      ],
+      "reason": "default_deletable_after_current_r2_smoke_go"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_ARTISTS_TEXT_VECTOR_VERIFY_FIRST_20260421",
+      "size_bytes": 2206,
+      "file_count": 1,
+      "folder_count": 0,
+      "last_modified_utc": "2026-04-21T14:22:38.975077+00:00",
+      "content_tags": [
+        "logs/summary/manifest",
+        "vector"
+      ],
+      "reason": "default_deletable_after_current_r2_smoke_go"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_ARTISTS_ENRICHMENT_APPLY_IO_ROOT_20260421",
+      "size_bytes": 738,
+      "file_count": 1,
+      "folder_count": 0,
+      "last_modified_utc": "2026-04-21T13:25:30.106239+00:00",
+      "content_tags": [
+        "enrichment request/output",
+        "logs/summary/manifest"
+      ],
+      "reason": "default_deletable_after_current_r2_smoke_go"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_ARTISTS_ENRICHMENT_SUBMIT_IO_ROOT_20260421",
+      "size_bytes": 686,
+      "file_count": 1,
+      "folder_count": 0,
+      "last_modified_utc": "2026-04-21T12:31:45.353774+00:00",
+      "content_tags": [
+        "enrichment request/output",
+        "logs/summary/manifest"
+      ],
+      "reason": "default_deletable_after_current_r2_smoke_go"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_ARTISTS_ENRICHMENT_CHECK_IO_ROOT_20260421",
+      "size_bytes": 684,
+      "file_count": 1,
+      "folder_count": 0,
+      "last_modified_utc": "2026-04-21T13:11:41.095159+00:00",
+      "content_tags": [
+        "enrichment request/output",
+        "logs/summary/manifest"
+      ],
+      "reason": "default_deletable_after_current_r2_smoke_go"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_EXHIBITIONS_ENRICHMENT_APPLY_IO_ROOT_20260421",
+      "size_bytes": 642,
+      "file_count": 1,
+      "folder_count": 0,
+      "last_modified_utc": "2026-04-21T14:14:22.186729+00:00",
+      "content_tags": [
+        "enrichment request/output",
+        "logs/summary/manifest"
+      ],
+      "reason": "default_deletable_after_current_r2_smoke_go"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_EXHIBITIONS_ENRICHMENT_CHECK_IO_ROOT_20260421",
+      "size_bytes": 592,
+      "file_count": 1,
+      "folder_count": 0,
+      "last_modified_utc": "2026-04-21T13:42:59.750689+00:00",
+      "content_tags": [
+        "enrichment request/output",
+        "logs/summary/manifest"
+      ],
+      "reason": "default_deletable_after_current_r2_smoke_go"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_EXHIBITIONS_ENRICHMENT_RECHECK_IO_ROOT_20260421",
+      "size_bytes": 592,
+      "file_count": 1,
+      "folder_count": 0,
+      "last_modified_utc": "2026-04-21T13:48:42.596666+00:00",
+      "content_tags": [
+        "enrichment request/output",
+        "logs/summary/manifest"
+      ],
+      "reason": "default_deletable_after_current_r2_smoke_go"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_EXHIBITIONS_ENRICHMENT_SUBMIT_IO_ROOT_20260421",
+      "size_bytes": 590,
+      "file_count": 1,
+      "folder_count": 0,
+      "last_modified_utc": "2026-04-21T13:39:39.099321+00:00",
+      "content_tags": [
+        "enrichment request/output",
+        "logs/summary/manifest"
+      ],
+      "reason": "default_deletable_after_current_r2_smoke_go"
+    },
+    {
+      "path": "_trial/TASK_VERIFY_FIRST_GUARD_TEST_20260424",
+      "size_bytes": 434,
+      "file_count": 1,
+      "folder_count": 4,
+      "last_modified_utc": "2026-04-24T02:32:20.681882+00:00",
+      "content_tags": [
+        "dry-run staging"
+      ],
+      "reason": "default_deletable_after_current_r2_smoke_go"
+    }
+  ],
+  "hold_roots": [],
+  "protected_roots": [
+    {
+      "path": "_trial/TASK_PHASE3_BLOCK_CLOSEOUT_ARTIST_SOURCE_REAPPLY_20260422T0015Z",
+      "size_bytes": 75626766,
+      "file_count": 23,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-22T03:01:11.362070+00:00",
+      "content_tags": [
+        "closeout staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ],
+      "reason": "possible_in_progress_or_locked_artifacts"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_BLOCK_CLOSEOUT_ARTIST_SOURCE_REAPPLY_VERIFY_20260422T0005Z",
+      "size_bytes": 75315508,
+      "file_count": 23,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-22T02:59:28.795945+00:00",
+      "content_tags": [
+        "closeout staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ],
+      "reason": "possible_in_progress_or_locked_artifacts"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_BLOCK_CLOSEOUT_VERIFY_FIRST_EXH_IMAGE_META_20260421T1505Z",
+      "size_bytes": 70213390,
+      "file_count": 24,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-21T14:48:03.995873+00:00",
+      "content_tags": [
+        "closeout staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ],
+      "reason": "possible_in_progress_or_locked_artifacts"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_BLOCK_CLOSEOUT_VERIFY_FIRST_20260421T1434Z",
+      "size_bytes": 70047380,
+      "file_count": 24,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-21T14:39:02.206692+00:00",
+      "content_tags": [
+        "closeout staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ],
+      "reason": "possible_in_progress_or_locked_artifacts"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_BLOCK_CLOSEOUT_APPLY_NO_R2_20260421T1515Z",
+      "size_bytes": 70027592,
+      "file_count": 23,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-21T14:54:54.727265+00:00",
+      "content_tags": [
+        "closeout staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ],
+      "reason": "possible_in_progress_or_locked_artifacts"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_NEXT_SCOPE_BLOCK_CLOSEOUT_VERIFY_20260410T000000Z",
+      "size_bytes": 45103067,
+      "file_count": 23,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-10T10:28:58.839776+00:00",
+      "content_tags": [
+        "closeout staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ],
+      "reason": "possible_in_progress_or_locked_artifacts"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_NEXT_SCOPE_BLOCK_CLOSEOUT_APPLY_20260410T000000Z",
+      "size_bytes": 43534155,
+      "file_count": 23,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-10T02:57:07.248122+00:00",
+      "content_tags": [
+        "closeout staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ],
+      "reason": "possible_in_progress_or_locked_artifacts"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_TRUE_NEXT_BLOCK_CLOSEOUT_APPLY_20260408T063900Z",
+      "size_bytes": 31503110,
+      "file_count": 24,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-08T06:29:46.448079+00:00",
+      "content_tags": [
+        "closeout staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ],
+      "reason": "possible_in_progress_or_locked_artifacts"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_TRUE_NEXT_BLOCK_CLOSEOUT_APPLY_20260407T145900Z",
+      "size_bytes": 31416602,
+      "file_count": 24,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-07T14:52:55.050540+00:00",
+      "content_tags": [
+        "closeout staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ],
+      "reason": "possible_in_progress_or_locked_artifacts"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_TRUE_NEXT_BLOCK_CLOSEOUT_APPLY_20260408T130041Z",
+      "size_bytes": 31414200,
+      "file_count": 23,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-08T13:00:52.729095+00:00",
+      "content_tags": [
+        "closeout staging",
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ],
+      "reason": "possible_in_progress_or_locked_artifacts"
+    },
+    {
+      "path": "_trial/TASK_PHASE3_EXHIBITION_IMAGE_BLOCK_VERIFY_20260408T010700Z",
+      "size_bytes": 31353732,
+      "file_count": 23,
+      "folder_count": 9,
+      "last_modified_utc": "2026-04-07T15:19:13.249014+00:00",
+      "content_tags": [
+        "enrichment request/output",
+        "images/cache",
+        "images/metadata",
+        "logs/summary/manifest",
+        "raw",
+        "vector"
+      ],
+      "reason": "possible_in_progress_or_locked_artifacts"
+    }
+  ],
+  "skipped_child_roots_from_parent_normalization": [],
+  "total_delete_size_bytes": 1461433566,
+  "total_delete_file_count": 4835,
+  "total_remaining_after_delete_estimate": {
+    "size_bytes": 575555502,
+    "file_count": 257
+  },
+  "deletion_order": [
+    "_trial/TASK_PHASE3_RAW_REBUILD_AND_ARTIST_IMAGE_VERIFY_20260421T0149Z",
+    "_trial/p3n10r2_closeout_current_only_dryrun_verify_20260504",
+    "_trial/TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422",
+    "_trial/p3n10r2_closeout_current_only_dryrun_20260503",
+    "_trial/p3n10r2_closeout_current_only_apply_20260503",
+    "_trial/p3n10r2_closeout_verify_first_20260503",
+    "_trial/p17",
+    "_trial/p18",
+    "_trial/phase3_exhib_text_narrow_apply_route_verify_20260411",
+    "_trial/phase3_exhib_text_narrow_apply_postcheck_20260411",
+    "_trial/phase3_exhib_text_narrow_apply_20260411",
+    "_trial/TASK_PHASE3_SAME_SCOPE9_BOUNDED_MERGE_DRYRUN_RECHECK_20260410T1116Z",
+    "_trial/TASK_PHASE3_SAME_SCOPE9_CLOSEOUT_APPLY_NO_R2_20260410T1230Z",
+    "_trial/TASK_PHASE3_SAME_SCOPE9_BOUNDED_MERGE_DRYRUN_RECHECK_20260410T1118Z",
+    "_trial/phase3_same_scope_live_materialization_20260410",
+    "_trial/TASK_PHASE3_CLOSEOUT_SMOKE_PREP",
+    "_trial/phase3_artists_enrichment_submitonly_20260407T083409Z",
+    "_trial/phase3_artists_enrichment_verify_20260407T071847Z",
+    "_trial/phase3_next_scope_artists_enrichment_verify_20260410",
+    "_trial/phase3_next_scope_image_vector_verify_20260410",
+    "_trial/TASK_PHASE3_EXHIBITIONS_IMAGE_COLLECT_VERIFY_FIRST_20260421T091605Z",
+    "_trial/phase3_true_next_image_vector_verify_20260407T124750Z",
+    "_trial/phase3_true_next_text_vector_verify_20260407T121615Z",
+    "_trial/phase3_next_scope_text_vector_verify_20260410",
+    "_trial/patch_observe_narrow_20260421",
+    "_trial/TASK_PHASE3_SAME_SCOPE9_CLOSEOUT_POST_APPLY_R2_PLAN_20260410T1240Z",
+    "_trial/TASK_PHASE3_ARTIST_WORKS_IMAGES_VECTOR_VERIFY_FIRST_20260421",
+    "_trial/TASK_PHASE3_ARTISTS_IMAGE_COLLECT_VERIFY_FIRST_20260421T0138Z",
+    "_trial/TASK_PHASE3_ARTISTS_ENRICHMENT_PREFLIGHT_IO_ROOT_20260421",
+    "_trial/TASK_PHASE3_EXHIBITIONS_ENRICHMENT_PREFLIGHT_IO_ROOT_20260421",
+    "_trial/TASK_PHASE3_ARTISTS_ENRICHMENT_PREFLIGHT_20260421",
+    "_trial/TASK_PHASE3_ARTISTS_TEXT_VECTOR_VERIFY_FIRST_20260421",
+    "_trial/TASK_PHASE3_ARTISTS_ENRICHMENT_APPLY_IO_ROOT_20260421",
+    "_trial/TASK_PHASE3_ARTISTS_ENRICHMENT_SUBMIT_IO_ROOT_20260421",
+    "_trial/TASK_PHASE3_ARTISTS_ENRICHMENT_CHECK_IO_ROOT_20260421",
+    "_trial/TASK_PHASE3_EXHIBITIONS_ENRICHMENT_APPLY_IO_ROOT_20260421",
+    "_trial/TASK_PHASE3_EXHIBITIONS_ENRICHMENT_CHECK_IO_ROOT_20260421",
+    "_trial/TASK_PHASE3_EXHIBITIONS_ENRICHMENT_RECHECK_IO_ROOT_20260421",
+    "_trial/TASK_PHASE3_EXHIBITIONS_ENRICHMENT_SUBMIT_IO_ROOT_20260421",
+    "_trial/TASK_VERIFY_FIRST_GUARD_TEST_20260424"
+  ],
+  "runtime_reference_check": {
+    "runtime_files_checked": [
+      "app.py",
+      "phase2_common_readonly.py",
+      "phase2_artist_search_readonly.py",
+      "phase2_artwork_search_readonly.py",
+      "phase2_exhibition_search_readonly.py",
+      "phase2_art_pulse_readonly.py",
+      "phase2_advisor_readonly.py"
+    ],
+    "runtime_trial_ref_hits": {
+      "phase2_artwork_search_readonly.py": [
+        49,
+        52,
+        55,
+        326
+      ]
+    },
+    "runtime_bad_trial_ref_hits": {},
+    "data_current_trial_refs_total": 49,
+    "data_current_trial_refs_nonruntime_manifest": 49,
+    "data_current_trial_refs_outside_manifest": [],
+    "known_nonruntime_manifest_files": [
+      "data/current/enrichment/artists_enrichment_apply_summary.json",
+      "data/current/enrichment/exhibitions_enrichment_apply_summary_2025.json",
+      "data/current/vector/artist_works_images/artist_works_images_artifact_manifest.json",
+      "data/current/vector/artist_works_images/artist_works_images_vectorize_summary_2025.json",
+      "data/current/vector/artists/artists_text_vectorize_summary_2025.json"
+    ],
+    "note": "Known summary/manifest _trial refs are non-runtime and allowed for cleanup planning."
+  },
+  "safety_checks": [
+    "Delete only plan deletable_roots in 23d",
+    "Re-run parent-child normalization before apply",
+    "Reject paths outside _trial",
+    "Do not delete _trial root itself",
+    "Do not delete hold/protected",
+    "Do not touch logs/incident_* and logs/r2_sync/*",
+    "Abort on unexpected git diffs"
+  ],
+  "next_apply_command_proposal": [
+    "Load this plan",
+    "Delete normalized deletable_roots only",
+    "Write logs/incident_remaining_trial_cleanup_apply_20260503.json"
+  ],
+  "policy_proposal_for_docs": {
+    "formal_sequence": [
+      "20.current_required_rag_full_plan",
+      "21.current_required_rag_full_apply",
+      "22.current_required_rag_full_post-check",
+      "23._trial_cleanup_verify-first_apply",
+      "24.docs_sync"
+    ],
+    "trial_cleanup_principles": [
+      "After post-check all zero + app/current smoke GO, block-related trial roots are default deletable",
+      "Do not keep long-term hold by unknown provenance only",
+      "If hold is needed, define exact unblock checks",
+      "_trial is not source of truth/backups",
+      "Source of truth=data/current, remote backup=R2 data/current",
+      "Do not assume GitHub as RAG backup",
+      "cleanup is always verify-first then apply"
+    ]
+  }
+}

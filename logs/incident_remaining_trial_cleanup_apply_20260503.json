@@ -1,0 +1,320 @@
+{
+  "summary": {
+    "status": "GO",
+    "generated_at_utc": "2026-05-04T09:37:30.906226+00:00"
+  },
+  "original_deletable_roots": [
+    "_trial/TASK_PHASE3_RAW_REBUILD_AND_ARTIST_IMAGE_VERIFY_20260421T0149Z",
+    "_trial/p3n10r2_closeout_current_only_dryrun_verify_20260504",
+    "_trial/TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422",
+    "_trial/p3n10r2_closeout_current_only_dryrun_20260503",
+    "_trial/p3n10r2_closeout_current_only_apply_20260503",
+    "_trial/p3n10r2_closeout_verify_first_20260503",
+    "_trial/p17",
+    "_trial/p18",
+    "_trial/phase3_exhib_text_narrow_apply_route_verify_20260411",
+    "_trial/phase3_exhib_text_narrow_apply_postcheck_20260411",
+    "_trial/phase3_exhib_text_narrow_apply_20260411",
+    "_trial/TASK_PHASE3_SAME_SCOPE9_BOUNDED_MERGE_DRYRUN_RECHECK_20260410T1116Z",
+    "_trial/TASK_PHASE3_SAME_SCOPE9_CLOSEOUT_APPLY_NO_R2_20260410T1230Z",
+    "_trial/TASK_PHASE3_SAME_SCOPE9_BOUNDED_MERGE_DRYRUN_RECHECK_20260410T1118Z",
+    "_trial/phase3_same_scope_live_materialization_20260410",
+    "_trial/TASK_PHASE3_CLOSEOUT_SMOKE_PREP",
+    "_trial/phase3_artists_enrichment_submitonly_20260407T083409Z",
+    "_trial/phase3_artists_enrichment_verify_20260407T071847Z",
+    "_trial/phase3_next_scope_artists_enrichment_verify_20260410",
+    "_trial/phase3_next_scope_image_vector_verify_20260410",
+    "_trial/TASK_PHASE3_EXHIBITIONS_IMAGE_COLLECT_VERIFY_FIRST_20260421T091605Z",
+    "_trial/phase3_true_next_image_vector_verify_20260407T124750Z",
+    "_trial/phase3_true_next_text_vector_verify_20260407T121615Z",
+    "_trial/phase3_next_scope_text_vector_verify_20260410",
+    "_trial/patch_observe_narrow_20260421",
+    "_trial/TASK_PHASE3_SAME_SCOPE9_CLOSEOUT_POST_APPLY_R2_PLAN_20260410T1240Z",
+    "_trial/TASK_PHASE3_ARTIST_WORKS_IMAGES_VECTOR_VERIFY_FIRST_20260421",
+    "_trial/TASK_PHASE3_ARTISTS_IMAGE_COLLECT_VERIFY_FIRST_20260421T0138Z",
+    "_trial/TASK_PHASE3_ARTISTS_ENRICHMENT_PREFLIGHT_IO_ROOT_20260421",
+    "_trial/TASK_PHASE3_EXHIBITIONS_ENRICHMENT_PREFLIGHT_IO_ROOT_20260421",
+    "_trial/TASK_PHASE3_ARTISTS_ENRICHMENT_PREFLIGHT_20260421",
+    "_trial/TASK_PHASE3_ARTISTS_TEXT_VECTOR_VERIFY_FIRST_20260421",
+    "_trial/TASK_PHASE3_ARTISTS_ENRICHMENT_APPLY_IO_ROOT_20260421",
+    "_trial/TASK_PHASE3_ARTISTS_ENRICHMENT_SUBMIT_IO_ROOT_20260421",
+    "_trial/TASK_PHASE3_ARTISTS_ENRICHMENT_CHECK_IO_ROOT_20260421",
+    "_trial/TASK_PHASE3_EXHIBITIONS_ENRICHMENT_APPLY_IO_ROOT_20260421",
+    "_trial/TASK_PHASE3_EXHIBITIONS_ENRICHMENT_CHECK_IO_ROOT_20260421",
+    "_trial/TASK_PHASE3_EXHIBITIONS_ENRICHMENT_RECHECK_IO_ROOT_20260421",
+    "_trial/TASK_PHASE3_EXHIBITIONS_ENRICHMENT_SUBMIT_IO_ROOT_20260421",
+    "_trial/TASK_VERIFY_FIRST_GUARD_TEST_20260424"
+  ],
+  "normalized_deletable_roots": [
+    "_trial/p17",
+    "_trial/p18",
+    "_trial/patch_observe_narrow_20260421",
+    "_trial/TASK_PHASE3_CLOSEOUT_SMOKE_PREP",
+    "_trial/TASK_VERIFY_FIRST_GUARD_TEST_20260424",
+    "_trial/p3n10r2_closeout_verify_first_20260503",
+    "_trial/phase3_exhib_text_narrow_apply_20260411",
+    "_trial/p3n10r2_closeout_current_only_apply_20260503",
+    "_trial/TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422",
+    "_trial/p3n10r2_closeout_current_only_dryrun_20260503",
+    "_trial/phase3_next_scope_text_vector_verify_20260410",
+    "_trial/phase3_next_scope_image_vector_verify_20260410",
+    "_trial/phase3_same_scope_live_materialization_20260410",
+    "_trial/TASK_PHASE3_ARTISTS_ENRICHMENT_PREFLIGHT_20260421",
+    "_trial/phase3_artists_enrichment_verify_20260407T071847Z",
+    "_trial/phase3_exhib_text_narrow_apply_postcheck_20260411",
+    "_trial/p3n10r2_closeout_current_only_dryrun_verify_20260504",
+    "_trial/phase3_exhib_text_narrow_apply_route_verify_20260411",
+    "_trial/phase3_next_scope_artists_enrichment_verify_20260410",
+    "_trial/phase3_true_next_text_vector_verify_20260407T121615Z",
+    "_trial/TASK_PHASE3_ARTISTS_ENRICHMENT_APPLY_IO_ROOT_20260421",
+    "_trial/TASK_PHASE3_ARTISTS_ENRICHMENT_CHECK_IO_ROOT_20260421",
+    "_trial/TASK_PHASE3_ARTISTS_TEXT_VECTOR_VERIFY_FIRST_20260421",
+    "_trial/phase3_artists_enrichment_submitonly_20260407T083409Z",
+    "_trial/phase3_true_next_image_vector_verify_20260407T124750Z",
+    "_trial/TASK_PHASE3_ARTISTS_ENRICHMENT_SUBMIT_IO_ROOT_20260421",
+    "_trial/TASK_PHASE3_ARTISTS_ENRICHMENT_PREFLIGHT_IO_ROOT_20260421",
+    "_trial/TASK_PHASE3_EXHIBITIONS_ENRICHMENT_APPLY_IO_ROOT_20260421",
+    "_trial/TASK_PHASE3_EXHIBITIONS_ENRICHMENT_CHECK_IO_ROOT_20260421",
+    "_trial/TASK_PHASE3_EXHIBITIONS_ENRICHMENT_SUBMIT_IO_ROOT_20260421",
+    "_trial/TASK_PHASE3_EXHIBITIONS_ENRICHMENT_RECHECK_IO_ROOT_20260421",
+    "_trial/TASK_PHASE3_SAME_SCOPE9_CLOSEOUT_APPLY_NO_R2_20260410T1230Z",
+    "_trial/TASK_PHASE3_ARTIST_WORKS_IMAGES_VECTOR_VERIFY_FIRST_20260421",
+    "_trial/TASK_PHASE3_ARTISTS_IMAGE_COLLECT_VERIFY_FIRST_20260421T0138Z",
+    "_trial/TASK_PHASE3_EXHIBITIONS_ENRICHMENT_PREFLIGHT_IO_ROOT_20260421",
+    "_trial/TASK_PHASE3_RAW_REBUILD_AND_ARTIST_IMAGE_VERIFY_20260421T0149Z",
+    "_trial/TASK_PHASE3_SAME_SCOPE9_CLOSEOUT_POST_APPLY_R2_PLAN_20260410T1240Z",
+    "_trial/TASK_PHASE3_EXHIBITIONS_IMAGE_COLLECT_VERIFY_FIRST_20260421T091605Z",
+    "_trial/TASK_PHASE3_SAME_SCOPE9_BOUNDED_MERGE_DRYRUN_RECHECK_20260410T1116Z",
+    "_trial/TASK_PHASE3_SAME_SCOPE9_BOUNDED_MERGE_DRYRUN_RECHECK_20260410T1118Z"
+  ],
+  "skipped_child_roots": [],
+  "deleted_roots": [
+    {
+      "path": "_trial/p17",
+      "size_bytes": 86741810,
+      "file_count": 23
+    },
+    {
+      "path": "_trial/p18",
+      "size_bytes": 86741810,
+      "file_count": 23
+    },
+    {
+      "path": "_trial/patch_observe_narrow_20260421",
+      "size_bytes": 3774672,
+      "file_count": 6
+    },
+    {
+      "path": "_trial/TASK_PHASE3_CLOSEOUT_SMOKE_PREP",
+      "size_bytes": 31353211,
+      "file_count": 23
+    },
+    {
+      "path": "_trial/TASK_VERIFY_FIRST_GUARD_TEST_20260424",
+      "size_bytes": 434,
+      "file_count": 1
+    },
+    {
+      "path": "_trial/p3n10r2_closeout_verify_first_20260503",
+      "size_bytes": 115348240,
+      "file_count": 23
+    },
+    {
+      "path": "_trial/phase3_exhib_text_narrow_apply_20260411",
+      "size_bytes": 48361251,
+      "file_count": 23
+    },
+    {
+      "path": "_trial/p3n10r2_closeout_current_only_apply_20260503",
+      "size_bytes": 115348324,
+      "file_count": 23
+    },
+    {
+      "path": "_trial/TASK_PHASE3_RAW_REBUILD_VERIFY_FIRST_20260422",
+      "size_bytes": 124360934,
+      "file_count": 1077
+    },
+    {
+      "path": "_trial/p3n10r2_closeout_current_only_dryrun_20260503",
+      "size_bytes": 115348338,
+      "file_count": 23
+    },
+    {
+      "path": "_trial/phase3_next_scope_text_vector_verify_20260410",
+      "size_bytes": 4318928,
+      "file_count": 7
+    },
+    {
+      "path": "_trial/phase3_next_scope_image_vector_verify_20260410",
+      "size_bytes": 6652943,
+      "file_count": 8
+    },
+    {
+      "path": "_trial/phase3_same_scope_live_materialization_20260410",
+      "size_bytes": 33952517,
+      "file_count": 23
+    },
+    {
+      "path": "_trial/TASK_PHASE3_ARTISTS_ENRICHMENT_PREFLIGHT_20260421",
+      "size_bytes": 3322,
+      "file_count": 1
+    },
+    {
+      "path": "_trial/phase3_artists_enrichment_verify_20260407T071847Z",
+      "size_bytes": 10183522,
+      "file_count": 9
+    },
+    {
+      "path": "_trial/phase3_exhib_text_narrow_apply_postcheck_20260411",
+      "size_bytes": 48426597,
+      "file_count": 24
+    },
+    {
+      "path": "_trial/p3n10r2_closeout_current_only_dryrun_verify_20260504",
+      "size_bytes": 156289397,
+      "file_count": 543
+    },
+    {
+      "path": "_trial/phase3_exhib_text_narrow_apply_route_verify_20260411",
+      "size_bytes": 48492791,
+      "file_count": 24
+    },
+    {
+      "path": "_trial/phase3_next_scope_artists_enrichment_verify_20260410",
+      "size_bytes": 6888927,
+      "file_count": 12
+    },
+    {
+      "path": "_trial/phase3_true_next_text_vector_verify_20260407T121615Z",
+      "size_bytes": 4614023,
+      "file_count": 7
+    },
+    {
+      "path": "_trial/TASK_PHASE3_ARTISTS_ENRICHMENT_APPLY_IO_ROOT_20260421",
+      "size_bytes": 738,
+      "file_count": 1
+    },
+    {
+      "path": "_trial/TASK_PHASE3_ARTISTS_ENRICHMENT_CHECK_IO_ROOT_20260421",
+      "size_bytes": 684,
+      "file_count": 1
+    },
+    {
+      "path": "_trial/TASK_PHASE3_ARTISTS_TEXT_VECTOR_VERIFY_FIRST_20260421",
+      "size_bytes": 2206,
+      "file_count": 1
+    },
+    {
+      "path": "_trial/phase3_artists_enrichment_submitonly_20260407T083409Z",
+      "size_bytes": 10709955,
+      "file_count": 8
+    },
+    {
+      "path": "_trial/phase3_true_next_image_vector_verify_20260407T124750Z",
+      "size_bytes": 5294589,
+      "file_count": 8
+    },
+    {
+      "path": "_trial/TASK_PHASE3_ARTISTS_ENRICHMENT_SUBMIT_IO_ROOT_20260421",
+      "size_bytes": 686,
+      "file_count": 1
+    },
+    {
+      "path": "_trial/TASK_PHASE3_ARTISTS_ENRICHMENT_PREFLIGHT_IO_ROOT_20260421",
+      "size_bytes": 3720,
+      "file_count": 1
+    },
+    {
+      "path": "_trial/TASK_PHASE3_EXHIBITIONS_ENRICHMENT_APPLY_IO_ROOT_20260421",
+      "size_bytes": 642,
+      "file_count": 1
+    },
+    {
+      "path": "_trial/TASK_PHASE3_EXHIBITIONS_ENRICHMENT_CHECK_IO_ROOT_20260421",
+      "size_bytes": 592,
+      "file_count": 1
+    },
+    {
+      "path": "_trial/TASK_PHASE3_EXHIBITIONS_ENRICHMENT_SUBMIT_IO_ROOT_20260421",
+      "size_bytes": 590,
+      "file_count": 1
+    },
+    {
+      "path": "_trial/TASK_PHASE3_EXHIBITIONS_ENRICHMENT_RECHECK_IO_ROOT_20260421",
+      "size_bytes": 592,
+      "file_count": 1
+    },
+    {
+      "path": "_trial/TASK_PHASE3_SAME_SCOPE9_CLOSEOUT_APPLY_NO_R2_20260410T1230Z",
+      "size_bytes": 48264502,
+      "file_count": 23
+    },
+    {
+      "path": "_trial/TASK_PHASE3_ARTIST_WORKS_IMAGES_VECTOR_VERIFY_FIRST_20260421",
+      "size_bytes": 10160,
+      "file_count": 1
+    },
+    {
+      "path": "_trial/TASK_PHASE3_ARTISTS_IMAGE_COLLECT_VERIFY_FIRST_20260421T0138Z",
+      "size_bytes": 5007,
+      "file_count": 1
+    },
+    {
+      "path": "_trial/TASK_PHASE3_EXHIBITIONS_ENRICHMENT_PREFLIGHT_IO_ROOT_20260421",
+      "size_bytes": 3524,
+      "file_count": 1
+    },
+    {
+      "path": "_trial/TASK_PHASE3_RAW_REBUILD_AND_ARTIST_IMAGE_VERIFY_20260421T0149Z",
+      "size_bytes": 248055264,
+      "file_count": 2784
+    },
+    {
+      "path": "_trial/TASK_PHASE3_SAME_SCOPE9_CLOSEOUT_POST_APPLY_R2_PLAN_20260410T1240Z",
+      "size_bytes": 50635,
+      "file_count": 1
+    },
+    {
+      "path": "_trial/TASK_PHASE3_EXHIBITIONS_IMAGE_COLLECT_VERIFY_FIRST_20260421T091605Z",
+      "size_bytes": 5415894,
+      "file_count": 49
+    },
+    {
+      "path": "_trial/TASK_PHASE3_SAME_SCOPE9_BOUNDED_MERGE_DRYRUN_RECHECK_20260410T1116Z",
+      "size_bytes": 48327098,
+      "file_count": 24
+    },
+    {
+      "path": "_trial/TASK_PHASE3_SAME_SCOPE9_BOUNDED_MERGE_DRYRUN_RECHECK_20260410T1118Z",
+      "size_bytes": 48084497,
+      "file_count": 23
+    }
+  ],
+  "protected_roots_untouched": [
+    "_trial/TASK_PHASE3_BLOCK_CLOSEOUT_APPLY_NO_R2_20260421T1515Z",
+    "_trial/TASK_PHASE3_BLOCK_CLOSEOUT_ARTIST_SOURCE_REAPPLY_20260422T0015Z",
+    "_trial/TASK_PHASE3_BLOCK_CLOSEOUT_ARTIST_SOURCE_REAPPLY_VERIFY_20260422T0005Z",
+    "_trial/TASK_PHASE3_BLOCK_CLOSEOUT_VERIFY_FIRST_20260421T1434Z",
+    "_trial/TASK_PHASE3_BLOCK_CLOSEOUT_VERIFY_FIRST_EXH_IMAGE_META_20260421T1505Z",
+    "_trial/TASK_PHASE3_EXHIBITION_IMAGE_BLOCK_VERIFY_20260408T010700Z",
+    "_trial/TASK_PHASE3_NEXT_SCOPE_BLOCK_CLOSEOUT_APPLY_20260410T000000Z",
+    "_trial/TASK_PHASE3_NEXT_SCOPE_BLOCK_CLOSEOUT_VERIFY_20260410T000000Z",
+    "_trial/TASK_PHASE3_TRUE_NEXT_BLOCK_CLOSEOUT_APPLY_20260407T145900Z",
+    "_trial/TASK_PHASE3_TRUE_NEXT_BLOCK_CLOSEOUT_APPLY_20260408T063900Z",
+    "_trial/TASK_PHASE3_TRUE_NEXT_BLOCK_CLOSEOUT_APPLY_20260408T130041Z"
+  ],
+  "hold_roots_untouched": [],
+  "deleted_size": 1461433566,
+  "deleted_file_count": 4835,
+  "remaining_trial_size": 585972618,
+  "remaining_trial_file_count": 318,
+  "remaining_trial_folder_count": 110,
+  "errors": [],
+  "post_checks": {
+    "missing_deleted_roots": [],
+    "missing_protected_roots": [],
+    "missing_hold_roots": [],
+    "trial_exists": true,
+    "logs_exists": true
+  }
+}

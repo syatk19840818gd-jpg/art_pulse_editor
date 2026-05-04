@@ -1,0 +1,95 @@
+{
+  "task_name": "21e. metadata + artist works id_map path rewrite apply",
+  "generated_at_utc": "2026-05-03T14:33:49.330187+00:00",
+  "status": "GO",
+  "rewrite_plan_path": "logs/incident_current_path_rewrite_plan_20260503.json",
+  "rewrite_counts": {
+    "artist_metadata": 765,
+    "exhibitions_metadata": 43,
+    "artist_id_map": 765,
+    "total": 1573
+  },
+  "by_file": {
+    "artist_metadata": {
+      "data/current/images/metadata/artist_works_images_frieze_london.jsonl": 524,
+      "data/current/images/metadata/artist_works_images_liste.jsonl": 241
+    },
+    "exhibitions_metadata": {
+      "data/current/images/metadata/exhibitions_images_frieze_london_2025.jsonl": 24,
+      "data/current/images/metadata/exhibitions_images_liste_2025.jsonl": 19
+    },
+    "artist_id_map": {
+      "data/current/vector/artist_works_images/artist_works_images_openclip_id_map.jsonl": 765
+    }
+  },
+  "post_apply_trial_ref_counts": {
+    "artist_metadata": 4522,
+    "exhibitions_metadata": 159,
+    "artist_id_map": 4502
+  },
+  "expected_blocked_remaining": {
+    "artist_metadata": 4522,
+    "exhibitions_metadata": 159,
+    "artist_id_map": 4502
+  },
+  "vector_invariants": {
+    "id_map_rows": 9172,
+    "embeddings_shape": [
+      9172,
+      512
+    ],
+    "search_index_shape": [
+      9172,
+      512
+    ],
+    "index_dim": 512,
+    "rows_match": true,
+    "duplicate_image_id_total": 0,
+    "duplicate_source_key_total": 0,
+    "embeddings_sha256_unchanged": true,
+    "search_index_sha256_unchanged": true
+  },
+  "target_path_verification": {
+    "missing_new_path_total": 0,
+    "zero_size_new_path_total": 0
+  },
+  "non_runtime_trial_refs_untouched": [
+    {
+      "path": "data/current/enrichment/artists_enrichment_apply_summary.json",
+      "trial_line_count": 9,
+      "trial_string_count": 12,
+      "classification": "non_runtime_summary_manifest_refs",
+      "reason": "apply summary; not runtime image-path lookup"
+    },
+    {
+      "path": "data/current/enrichment/exhibitions_enrichment_apply_summary_2025.json",
+      "trial_line_count": 9,
+      "trial_string_count": 12,
+      "classification": "non_runtime_summary_manifest_refs",
+      "reason": "apply summary; not runtime image-path lookup"
+    },
+    {
+      "path": "data/current/vector/artist_works_images/artist_works_images_artifact_manifest.json",
+      "trial_line_count": 6,
+      "trial_string_count": 7,
+      "classification": "non_runtime_summary_manifest_refs",
+      "reason": "artifact manifest; bookkeeping only"
+    },
+    {
+      "path": "data/current/vector/artist_works_images/artist_works_images_vectorize_summary_2025.json",
+      "trial_line_count": 15,
+      "trial_string_count": 16,
+      "classification": "non_runtime_summary_manifest_refs",
+      "reason": "vectorize summary; bookkeeping only"
+    },
+    {
+      "path": "data/current/vector/artists/artists_text_vectorize_summary_2025.json",
+      "trial_line_count": 2,
+      "trial_string_count": 2,
+      "classification": "non_runtime_summary_manifest_refs",
+      "reason": "vectorize summary; bookkeeping only"
+    }
+  ],
+  "errors": [],
+  "next_task_if_go": "21f. current RAG integrity re-audit verify-first"
+}
