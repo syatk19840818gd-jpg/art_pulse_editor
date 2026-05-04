@@ -118,3 +118,4 @@ debug_bundle_*.tgz
 data/phase1_seed10/
 data/current/
 data/runtime/
+logs/artist_exhibition_no_image_integrity_audit_20260504.json
