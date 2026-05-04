@@ -19,10 +19,24 @@ from phase2_art_pulse_draft import generate_art_pulse_draft
 from phase2_art_pulse_readonly import build_art_pulse_overview
 from phase2_common_readonly import (
     GALLERY_LIST_PATHS,
-    derive_current_artist_works_r2_key_from_local_path,
     resolve_current_exhibitions_available_years,
     resolve_current_artist_works_local_path,
 )
+try:
+    from phase2_common_readonly import derive_current_artist_works_r2_key_from_local_path
+except ImportError:
+    def derive_current_artist_works_r2_key_from_local_path(path_text: object) -> str:
+        raw = str(path_text or "").strip().replace("\\", "/")
+        if not raw:
+            return ""
+        marker = "data/current/images/cache/artist_works_images/"
+        idx = raw.lower().find(marker)
+        if idx < 0:
+            return ""
+        suffix = raw[idx + len(marker) :].strip().lstrip("/")
+        if not suffix:
+            return ""
+        return f"{marker}{suffix}"
 from phase2_advisor_draft import (
     ADVISOR_TEXT_MAX_CHARS,
     _build_visual_observation_digest,
