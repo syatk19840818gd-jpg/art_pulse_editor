@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import shutil
 from collections import defaultdict
@@ -24,6 +25,7 @@ from closeout_breakdown_contract import (
 )
 from phase2_art_pulse_config import (
     TARGET_YEAR,
+    get_artist_image_cache_dir,
     get_current_artist_image_meta_paths,
     get_current_artist_text_vector_runtime_paths,
     get_current_artist_works_vector_runtime_paths,
@@ -31,6 +33,10 @@ from phase2_art_pulse_config import (
     get_current_raw_paths,
     get_enrichment_current_output_path,
     get_enrichment_current_summary_path,
+    get_exhibition_image_cache_dir,
+    get_image_r2_key,
+    normalize_image_local_path_text,
+    resolve_image_local_path,
 )
 from run_closeout_new10_artists_from_trial import (
     build_enrichment_summary,
@@ -785,6 +791,339 @@ def stage_runtime_paths(stage_current_root: Path, runtime_paths: dict[str, Path 
     return out
 
 
+def _sha256_file(path: Path, *, digest_cache: dict[str, str]) -> str:
+    resolved = resolve_path(path)
+    cache_key = resolved.as_posix()
+    cached = digest_cache.get(cache_key)
+    if cached is not None:
+        return cached
+    digest = hashlib.sha256()
+    with resolved.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    value = digest.hexdigest()
+    digest_cache[cache_key] = value
+    return value
+
+
+def _contains_trial_marker(path_text: str | Path) -> bool:
+    return "_trial" in str(path_text or "").replace("/", "\\").lower()
+
+
+def _is_within_root(path: Path, root: Path) -> bool:
+    try:
+        resolve_path(path).relative_to(resolve_path(root))
+        return True
+    except Exception:
+        return False
+
+
+def _cache_fair_dir_name(fair_slug: str) -> str:
+    return str(fair_slug or "").strip().lower().replace("_", "-")
+
+
+def _current_cache_destination_path(
+    *,
+    current_root: Path,
+    family: str,
+    fair_slug: str,
+    target_year: int,
+    basename: str,
+) -> Path:
+    fair_dir = _cache_fair_dir_name(fair_slug)
+    if family == "artist_works_images":
+        base_dir = get_artist_image_cache_dir(current_root)
+    elif family == "exhibition_works_images":
+        base_dir = get_exhibition_image_cache_dir(current_root)
+    else:
+        raise ValueError(f"unsupported_image_cache_family:{family}")
+    return resolve_path(base_dir / str(target_year) / fair_dir / basename)
+
+
+def _cache_reference_basename(local_path_text: str, r2_key_text: str) -> str:
+    for raw in (local_path_text, r2_key_text):
+        name = Path(str(raw or "").replace("\\", "/")).name
+        if name:
+            return name
+    return ""
+
+
+def _trial_cache_source_candidates(
+    *,
+    trial_root: Path,
+    family: str,
+    fair_slug: str,
+    target_year: int,
+    basename: str,
+    local_path_text: str,
+) -> list[Path]:
+    fair_dir = _cache_fair_dir_name(fair_slug)
+    candidates: list[Path] = []
+    resolved_local = resolve_image_local_path(local_path_text or "")
+    if resolved_local is not None and _is_within_root(resolved_local, trial_root):
+        candidates.append(resolve_path(resolved_local))
+    if family == "artist_works_images":
+        candidates.append(resolve_path(trial_root / "images" / "cache" / family / str(target_year) / fair_dir / basename))
+        candidates.append(resolve_path(trial_root / "img" / str(target_year) / fair_dir / basename))
+    elif family == "exhibition_works_images":
+        candidates.append(resolve_path(trial_root / "images" / "cache" / family / str(target_year) / fair_dir / basename))
+        candidates.append(resolve_path(trial_root / "img" / str(target_year) / fair_dir / basename))
+    else:
+        raise ValueError(f"unsupported_image_cache_family:{family}")
+    unique: dict[str, Path] = {}
+    for candidate in candidates:
+        unique[candidate.as_posix()] = candidate
+    return list(unique.values())
+
+
+def _init_cache_promotion_state(*, stage_current_root: Path) -> dict[str, Any]:
+    return {
+        "stage_current_root": stage_current_root,
+        "actions_by_destination": {},
+        "metadata_path_normalization_candidates": [],
+        "vector_id_map_path_normalization_candidates": [],
+        "digest_cache": {},
+    }
+
+
+def _register_cache_promotion_reference(
+    *,
+    state: dict[str, Any],
+    trial_root: Path,
+    family: str,
+    fair_slug: str,
+    target_year: int,
+    local_path_text: str,
+    r2_key_text: str,
+    normalization_kind: str,
+    reference_payload: dict[str, Any],
+) -> tuple[str, str]:
+    basename = _cache_reference_basename(local_path_text, r2_key_text)
+    if not basename:
+        return local_path_text, r2_key_text
+
+    destination_current_path = _current_cache_destination_path(
+        current_root=CURRENT_FORMAL_ARTIFACTS_ROOT,
+        family=family,
+        fair_slug=fair_slug,
+        target_year=target_year,
+        basename=basename,
+    )
+    stage_destination_path = _current_cache_destination_path(
+        current_root=Path(state["stage_current_root"]),
+        family=family,
+        fair_slug=fair_slug,
+        target_year=target_year,
+        basename=basename,
+    )
+    normalized_local_path = normalize_image_local_path_text(destination_current_path)
+    normalized_r2_key = get_image_r2_key(destination_current_path)
+    if local_path_text != normalized_local_path or r2_key_text != normalized_r2_key:
+        state[f"{normalization_kind}_path_normalization_candidates"].append(
+            {
+                **reference_payload,
+                "family": family,
+                "source_local_path": local_path_text,
+                "source_r2_key": r2_key_text,
+                "normalized_local_path": normalized_local_path,
+                "normalized_r2_key": normalized_r2_key,
+            }
+        )
+
+    destination_key = destination_current_path.as_posix()
+    action = state["actions_by_destination"].get(destination_key)
+    if action is None:
+        action = {
+            "family": family,
+            "destination_current_path": destination_key,
+            "stage_destination_path": stage_destination_path.as_posix(),
+            "fair_slug": fair_slug,
+            "basename": basename,
+            "source_candidates": [],
+            "reference_contexts": [],
+        }
+        state["actions_by_destination"][destination_key] = action
+    for candidate in _trial_cache_source_candidates(
+        trial_root=trial_root,
+        family=family,
+        fair_slug=fair_slug,
+        target_year=target_year,
+        basename=basename,
+        local_path_text=local_path_text,
+    ):
+        candidate_text = candidate.as_posix()
+        if candidate_text not in action["source_candidates"]:
+            action["source_candidates"].append(candidate_text)
+    action["reference_contexts"].append(
+        {
+            **reference_payload,
+            "kind": normalization_kind,
+            "normalized_local_path": normalized_local_path,
+            "normalized_r2_key": normalized_r2_key,
+        }
+    )
+    return normalized_local_path, normalized_r2_key
+
+
+def _summarize_and_stage_cache_promotion(state: dict[str, Any]) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    digest_cache: dict[str, str] = state["digest_cache"]
+    actions = sorted(state["actions_by_destination"].values(), key=lambda row: str(row["destination_current_path"]))
+    artist_candidates: list[dict[str, Any]] = []
+    exhibition_candidates: list[dict[str, Any]] = []
+    source_missing: list[dict[str, Any]] = []
+    zero_size: list[dict[str, Any]] = []
+    destination_bad_prefix: list[dict[str, Any]] = []
+    destination_contains_trial: list[dict[str, Any]] = []
+    collisions: list[dict[str, Any]] = []
+    metadata_missing_after_normalization: list[dict[str, Any]] = []
+    vector_missing_after_normalization: list[dict[str, Any]] = []
+    blocking_errors: list[str] = []
+    apply_actions: list[dict[str, Any]] = []
+
+    current_cache_root = resolve_path(CURRENT_FORMAL_ARTIFACTS_ROOT / "images" / "cache")
+    for action in actions:
+        destination_current_path = resolve_path(Path(action["destination_current_path"]))
+        stage_destination_path = resolve_path(Path(action["stage_destination_path"]))
+        blocking_reasons: list[str] = []
+        existing_sources = [resolve_path(Path(raw)) for raw in action["source_candidates"] if Path(raw).exists()]
+        if not existing_sources:
+            source_missing.append(
+                {
+                    "family": action["family"],
+                    "destination_current_path": destination_current_path.as_posix(),
+                    "source_candidates": list(action["source_candidates"]),
+                }
+            )
+            blocking_reasons.append("source_missing")
+        chosen_source: Path | None = existing_sources[0] if existing_sources else None
+        if chosen_source is not None and chosen_source.stat().st_size <= 0:
+            zero_size.append(
+                {
+                    "family": action["family"],
+                    "destination_current_path": destination_current_path.as_posix(),
+                    "source_trial_path": chosen_source.as_posix(),
+                }
+            )
+            blocking_reasons.append("zero_size")
+        if chosen_source is not None:
+            source_digest = _sha256_file(chosen_source, digest_cache=digest_cache)
+            for other_source in existing_sources[1:]:
+                other_digest = _sha256_file(other_source, digest_cache=digest_cache)
+                if other_digest != source_digest:
+                    collisions.append(
+                        {
+                            "family": action["family"],
+                            "destination_current_path": destination_current_path.as_posix(),
+                            "source_trial_path": chosen_source.as_posix(),
+                            "colliding_source_path": other_source.as_posix(),
+                        }
+                    )
+                    blocking_reasons.append("same_name_different_content_collision")
+                    break
+            if destination_current_path.exists():
+                current_digest = _sha256_file(destination_current_path, digest_cache=digest_cache)
+                if current_digest != source_digest:
+                    collisions.append(
+                        {
+                            "family": action["family"],
+                            "destination_current_path": destination_current_path.as_posix(),
+                            "source_trial_path": chosen_source.as_posix(),
+                            "colliding_source_path": destination_current_path.as_posix(),
+                        }
+                    )
+                    blocking_reasons.append("same_name_different_content_collision")
+
+        if not _is_within_root(destination_current_path, current_cache_root):
+            destination_bad_prefix.append(
+                {
+                    "family": action["family"],
+                    "destination_current_path": destination_current_path.as_posix(),
+                }
+            )
+            blocking_reasons.append("destination_bad_prefix")
+        if _contains_trial_marker(destination_current_path):
+            destination_contains_trial.append(
+                {
+                    "family": action["family"],
+                    "destination_current_path": destination_current_path.as_posix(),
+                }
+            )
+            blocking_reasons.append("destination_contains_trial")
+
+        blocking_reasons = list(dict.fromkeys(blocking_reasons))
+        current_status = "missing_in_current"
+        if destination_current_path.exists():
+            current_status = "already_exists_same_content" if "same_name_different_content_collision" not in blocking_reasons else "different_content_collision"
+        action_summary = {
+            "family": action["family"],
+            "fair_slug": action["fair_slug"],
+            "destination_current_path": destination_current_path.as_posix(),
+            "stage_destination_path": stage_destination_path.as_posix(),
+            "source_trial_path": chosen_source.as_posix() if chosen_source is not None else "",
+            "source_candidates": list(action["source_candidates"]),
+            "reference_total": len(action["reference_contexts"]),
+            "reference_kinds": sorted({str(item["kind"]) for item in action["reference_contexts"]}),
+            "current_destination_status": current_status,
+            "blocking_reasons": blocking_reasons,
+            "status": "blocked" if blocking_reasons else current_status,
+        }
+        if action["family"] == "artist_works_images":
+            artist_candidates.append(action_summary)
+        else:
+            exhibition_candidates.append(action_summary)
+
+        destination_satisfied = not blocking_reasons
+        if destination_satisfied and chosen_source is not None:
+            copy_file_if_exists(chosen_source, stage_destination_path)
+            apply_actions.append(
+                {
+                    "source_stage_path": stage_destination_path.as_posix(),
+                    "destination_current_path": destination_current_path.as_posix(),
+                }
+            )
+        else:
+            for ref in action["reference_contexts"]:
+                missing_entry = {
+                    **ref,
+                    "destination_current_path": destination_current_path.as_posix(),
+                    "source_candidates": list(action["source_candidates"]),
+                    "blocking_reasons": blocking_reasons,
+                }
+                if ref["kind"] == "metadata":
+                    metadata_missing_after_normalization.append(missing_entry)
+                else:
+                    vector_missing_after_normalization.append(missing_entry)
+
+        for reason in blocking_reasons:
+            blocking_errors.append(f"image_cache_promotion_{reason}:{destination_current_path.as_posix()}")
+
+    summary = {
+        "artist_works_cache_copy_candidates": artist_candidates,
+        "exhibitions_cache_copy_candidates": exhibition_candidates,
+        "source_missing": source_missing,
+        "zero_size": zero_size,
+        "destination_bad_prefix": destination_bad_prefix,
+        "destination_contains_trial": destination_contains_trial,
+        "same_name_different_content_collision": collisions,
+        "metadata_path_normalization_candidates": list(state["metadata_path_normalization_candidates"]),
+        "vector_id_map_path_normalization_candidates": list(state["vector_id_map_path_normalization_candidates"]),
+        "metadata_current_cache_missing_after_normalization": metadata_missing_after_normalization,
+        "vector_id_map_current_cache_missing_after_normalization": vector_missing_after_normalization,
+        "runtime_trial_ref_total_after_normalization": 0,
+        "blocking_errors": list(dict.fromkeys(blocking_errors)),
+    }
+    return summary, apply_actions
+
+
+def _apply_staged_cache_promotion(cache_apply_actions: list[dict[str, Any]]) -> None:
+    for action in cache_apply_actions:
+        src = resolve_path(Path(action["source_stage_path"]))
+        dst = resolve_path(Path(action["destination_current_path"]))
+        if not src.exists():
+            raise FileNotFoundError(f"missing_staged_cache_promotion_source:{src}")
+        copy_file_if_exists(src, dst)
+
+
 def build_staged_source_paths(stage_current_root: Path, target_year: int) -> dict[str, dict[str, Any]]:
     current_paths = build_resolved_current_source_paths(target_year)
     return {
@@ -933,6 +1272,7 @@ def prepare_mixed_source_closeout_plan(
     current_paths = build_resolved_current_source_paths(target_year)
     staged_paths = build_staged_source_paths(stage_current_root, target_year)
     merge_plan: dict[str, Any] = {}
+    cache_promotion_state = _init_cache_promotion_state(stage_current_root=stage_current_root)
 
     def merge_enrichment_trial_to_stage(
         *,
@@ -1105,8 +1445,49 @@ def prepare_mixed_source_closeout_plan(
                 target_scope_keys=target_scope_keys,
                 label=f"artist_image_metadata_{fair_slug}",
             )
+            final_rows = [dict(row) if isinstance(row, dict) else row for row in merged["final_rows"]]
+            for row in final_rows:
+                if not isinstance(row, dict):
+                    continue
+                scope_key = ScopeTarget(
+                    fair_slug=str(row.get("fair_slug") or "").strip().lower().replace("-", "_"),
+                    gallery_name_en=str(row.get("gallery_name_en") or "").strip(),
+                ).scope_key
+                if scope_key not in target_scope_keys:
+                    continue
+                local_paths = row.get("works_image_local_paths") if isinstance(row.get("works_image_local_paths"), list) else []
+                r2_keys = row.get("works_image_r2_keys") if isinstance(row.get("works_image_r2_keys"), list) else []
+                if not local_paths and not r2_keys:
+                    continue
+                normalized_locals: list[str] = []
+                normalized_r2_keys: list[str] = []
+                for slot_index, (local_path_text, r2_key_text) in enumerate(
+                    zip_longest(local_paths, r2_keys, fillvalue=""),
+                    start=1,
+                ):
+                    normalized_local, normalized_r2 = _register_cache_promotion_reference(
+                        state=cache_promotion_state,
+                        trial_root=trial_root,
+                        family="artist_works_images",
+                        fair_slug=fair_slug,
+                        target_year=target_year,
+                        local_path_text=str(local_path_text or ""),
+                        r2_key_text=str(r2_key_text or ""),
+                        normalization_kind="metadata",
+                        reference_payload={
+                            "record_type": "artist_image_metadata",
+                            "fair_slug": fair_slug,
+                            "gallery_name_en": str(row.get("gallery_name_en") or ""),
+                            "artist_name_en": str(row.get("artist_name_en") or ""),
+                            "slot_index": slot_index,
+                        },
+                    )
+                    normalized_locals.append(normalized_local)
+                    normalized_r2_keys.append(normalized_r2)
+                row["works_image_local_paths"] = normalized_locals
+                row["works_image_r2_keys"] = normalized_r2_keys
             staged_meta_path = Path(staged_paths["artist"]["image_metadata"][fair_slug])
-            write_jsonl_atomic(staged_meta_path, merged["final_rows"])
+            write_jsonl_atomic(staged_meta_path, final_rows)
             current_target_rows_before_total += int(merged["current_target_rows_total"])
             trial_target_rows_total += int(merged["trial_target_rows_total"])
             retained_non_target_rows_total += int(merged["retained_non_target_rows_total"])
@@ -1227,8 +1608,36 @@ def prepare_mixed_source_closeout_plan(
                 target_scope_keys=target_scope_keys,
                 label=f"exhibition_image_metadata_{fair_slug}",
             )
+            final_rows = [dict(row) if isinstance(row, dict) else row for row in merged["final_rows"]]
+            for row in final_rows:
+                if not isinstance(row, dict):
+                    continue
+                scope_key = ScopeTarget(
+                    fair_slug=str(row.get("fair_slug") or "").strip().lower().replace("-", "_"),
+                    gallery_name_en=str(row.get("gallery_name_en") or "").strip(),
+                ).scope_key
+                if scope_key not in target_scope_keys:
+                    continue
+                normalized_local, normalized_r2 = _register_cache_promotion_reference(
+                    state=cache_promotion_state,
+                    trial_root=trial_root,
+                    family="exhibition_works_images",
+                    fair_slug=fair_slug,
+                    target_year=target_year,
+                    local_path_text=str(row.get("local_path") or ""),
+                    r2_key_text=str(row.get("r2_key") or ""),
+                    normalization_kind="metadata",
+                    reference_payload={
+                        "record_type": "exhibition_image_metadata",
+                        "fair_slug": fair_slug,
+                        "gallery_name_en": str(row.get("gallery_name_en") or ""),
+                        "source_url": str(row.get("source_url") or ""),
+                    },
+                )
+                row["local_path"] = normalized_local
+                row["r2_key"] = normalized_r2
             staged_meta_path = Path(staged_paths["exhibition"]["image_metadata"][fair_slug])
-            write_jsonl_atomic(staged_meta_path, merged["final_rows"])
+            write_jsonl_atomic(staged_meta_path, final_rows)
             current_target_rows_before_total += int(merged["current_target_rows_total"])
             trial_target_rows_total += int(merged["trial_target_rows_total"])
             retained_non_target_rows_total += int(merged["retained_non_target_rows_total"])
@@ -1383,6 +1792,35 @@ def prepare_mixed_source_closeout_plan(
             trial_failed_rows=trial_failed_rows,
             target_scope_keys=target_scope_keys,
         )
+        normalized_final_rows = [dict(row) if isinstance(row, dict) else row for row in merge_result["final_rows"]]
+        for row in normalized_final_rows:
+            if not isinstance(row, dict):
+                continue
+            scope_key = ScopeTarget(
+                fair_slug=str(row.get("fair_slug") or "").strip().lower().replace("-", "_"),
+                gallery_name_en=str(row.get("gallery_name_en") or "").strip(),
+            ).scope_key
+            if scope_key not in target_scope_keys:
+                continue
+            normalized_local, normalized_r2 = _register_cache_promotion_reference(
+                state=cache_promotion_state,
+                trial_root=trial_root,
+                family="artist_works_images",
+                fair_slug=str(row.get("fair_slug") or ""),
+                target_year=target_year,
+                local_path_text=str(row.get("local_path") or ""),
+                r2_key_text=str(row.get("r2_key") or ""),
+                normalization_kind="vector_id_map",
+                reference_payload={
+                    "record_type": "artist_works_images_vector_id_map",
+                    "fair_slug": str(row.get("fair_slug") or ""),
+                    "gallery_name_en": str(row.get("gallery_name_en") or ""),
+                    "artist_name_en": str(row.get("artist_name_en") or ""),
+                    "image_id": str(row.get("image_id") or ""),
+                },
+            )
+            row["local_path"] = normalized_local
+            row["r2_key"] = normalized_r2
         staged_image_paths = staged_paths["artist_works_images"]
         summary_after = build_image_vector_summary(
             started_at=utc_now_iso(),
@@ -1402,7 +1840,7 @@ def prepare_mixed_source_closeout_plan(
         )
         write_npy_atomic(Path(staged_image_paths["embeddings"]), merge_result["final_embeddings"])
         write_npy_atomic(Path(staged_image_paths["index"]), merge_result["final_search_index"])
-        write_jsonl_atomic(Path(staged_image_paths["id_map"]), merge_result["final_rows"])
+        write_jsonl_atomic(Path(staged_image_paths["id_map"]), normalized_final_rows)
         write_jsonl_atomic(Path(staged_image_paths["failed"]), merge_result["final_failed_rows"])
         write_json_atomic(Path(staged_image_paths["summary"]), summary_after)
         write_json_atomic(Path(staged_image_paths["manifest"]), manifest_after)
@@ -1423,6 +1861,8 @@ def prepare_mixed_source_closeout_plan(
             "output_paths": stringify_paths(staged_paths["artist_works_images"]),
         }
 
+    cache_promotion_summary, cache_apply_actions = _summarize_and_stage_cache_promotion(cache_promotion_state)
+    merge_plan["image_cache_promotion"] = cache_promotion_summary
     scope_counts = build_scope_counts_from_paths(source_paths=staged_paths, target_scope_keys=target_scope_keys)
     if "artist_enrichment" in merge_plan and "final_target_rows_total" in merge_plan["artist_enrichment"]:
         scope_counts["artist"]["enrichment_output_rows_total"] = int(
@@ -1462,12 +1902,15 @@ def prepare_mixed_source_closeout_plan(
         "plan_root": str(stage_root),
         "plan_current_root": str(stage_current_root),
         "merge_plan": merge_plan,
+        "image_cache_promotion": cache_promotion_summary,
+        "blocking_errors": list(cache_promotion_summary.get("blocking_errors", [])),
     }
 
     def execute_current_write(apply_flag: bool) -> dict[str, Any]:
         final_report = finalize_current_write_report(current_write_report, apply=apply_flag)
         if apply_flag and str(final_report.get("status") or "").strip() == "applied":
             copy_bundle_files(stage_bundle, current_bundle)
+            _apply_staged_cache_promotion(cache_apply_actions)
         return final_report
 
     return stage_bundle, current_write_report, execute_current_write
