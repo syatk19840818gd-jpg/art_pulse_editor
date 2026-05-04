@@ -8067,3 +8067,28 @@ TASK A-3A-CLOSE-1 実施結果（2026-02-27 / Adams and Ollman）
 
 - ????? `24. docs recovery sync` ?????????????????????????
 - ??????????????20?24???????
+
+## 2026-05-04 追加スナップショット（検索画像・運用ルール固定）
+
+### STATE_SNAPSHOT
+- Codex運用は「commit/push禁止」に固定。Codexは実装・検証・差分提示まで、commit/pushはユーザー本人が実行。
+- Cloud確認手順は、ユーザーcommit/push後に `最新deploy確認 -> Clear cache -> Reboot app -> 実画面確認` を標準化。
+- Art Work SearchのRobert Barry型問題は、`r2_key/image_url空 + current cache local_pathのみ` でpreview判定から落ちうる構造を確認済み。
+- Art Work Searchは軽量derived `r2_key` 補完で解消済み。重いcache全件scan系は今後禁止。
+- Artist/Exhibition Searchは、画像なしカードを削除せず後方化する方針で運用固定。
+- Artist Searchは実カード描画基準寄せの画像判定へ修正済み。
+- Artist/Exhibition「参考画像なし」監査（2026-05-04）で、監査範囲はすべて真の画像なし（A分類のみ）。
+
+### CHANGELOG（今回確定）
+- 運用ルール更新: Codex commit/push禁止、ユーザー実行責務を明文化。
+- Cloud運用更新: app/import/cache/検索/画像/R2/current契約変更時のCloud再確認手順を標準化。
+- ImportError教訓反映: `python -c "import app"` を必須検証に追加（`py_compile`単体依存を禁止）。
+- Art Work Search: Robert Barry型の原因整理と軽量修正方針（derived `r2_key`）を確定。
+- Artist/Exhibition Search: 画像なし後方化方針と実画面基準（Artist側）を確定。
+- 監査ログ追加: `logs/artist_exhibition_no_image_integrity_audit_20260504.json`。
+
+### NEXT_TASKS
+- 検索画像まわり（Art Work/Artist/Exhibition）の緊急修正タスクは完了扱い。
+- 追加タスクは現時点で必須なし。
+- 問題再発時のみ、verify-firstで再監査してから最小修正を起票する。
+

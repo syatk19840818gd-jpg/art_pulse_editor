@@ -6111,3 +6111,26 @@ _trash 運用方針:
 - `_trial` ??????????????????????????
 - ??? `data/current`?remote mirror / backup ? R2 `data/current`?
 - GitHub?RAG backup???????
+
+## 37. 2026-05-04 docs sync（運用ルール・検索画像修正・監査結果の時系列反映）
+- 本タスクはdocs-only。コード変更・data/current更新・R2実行・API呼び出し・commit/pushは未実施。
+- CloudでのImportError/旧挙動残留の教訓を反映し、app/import/cache変更後は `python -c "import app"` 検証 + Cloud側 `最新deploy確認 -> Clear cache -> Reboot app -> 実画面確認` を標準手順化。
+- Art Work Searchでは重いcache署名/全件scan実装によりCloud検索が5分以上終わらない劣化が発生したため、重いscan系を禁止ルール化。
+- Art Work SearchのRobert Barry型不具合を整理。
+  - 症状: 参考画像なし化、またはpreview-gating後の結果脱落。
+  - 構造: `r2_key/image_url空 + current cache local_pathのみ`（B+C複合）。
+  - 対応: local_path文字列から軽量derived `r2_key` 補完（既存キー非上書き、個別ハードコード禁止、data/current非更新、R2非依存）。
+- Artist/Exhibition Searchは「画像なしカード許容 + 後方化」方針を確定。
+  - 行削除なし、total維持、ページング維持、各グループ内順位維持。
+  - Artist側は実カード描画と同基準の画像解決判定へ寄せて修正済み。
+  - Exhibition側は実画面OKのため追加修正なし。
+- 2026-05-04 verify-first監査ログを反映。
+  - `logs/artist_exhibition_no_image_integrity_audit_20260504.json`
+  - 監査キーワード: 絵画/painting/installation/blue/sculpture/abstract
+  - Artist: 画像なし300件（A=300、B/C/D/E/F/G=0）
+  - Exhibition: 画像なし407件（A=407、B/C/D/E/F/G=0）
+  - 判定: 監査範囲ではすべて真の画像なし。Artist/ExhibitionにRobert Barry型は未検出。
+- 運用固定:
+  - Codexはcommit/pushを行わない。
+  - 以後のCodexタスクは `git status --short` / `git diff --stat` / 変更ファイル / 確認結果 / ユーザー用commitコマンド案の提示を必須化。
+

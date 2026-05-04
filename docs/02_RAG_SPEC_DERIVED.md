@@ -1118,3 +1118,81 @@ Art Pulse 調整時の運用ルール
 - `run_block_closeout.py --current-only` ???metadata / vector id_map ????? image cache??? current??????
 - current???? metadata / cache / vector id_map ?????????????????
 - `rag_gellery_breakdown_master.xlsx` ????? cache ???????????
+
+## 2026-05-04 docs同期追記（運用ルール・検索画像修正・Cloud運用）
+
+### 1) Codexのcommit/push運用
+- 今後はCodexにcommit/pushを任せない。
+- Codexの役割は、実装・静的確認・smoke・差分提示までとする。
+- commit/pushはユーザー本人が実行する。
+- Codexタスクには必ず以下を含める。
+  - commitしない
+  - pushしない
+  - `git status --short` を提示
+  - `git diff --stat` を提示
+  - 変更ファイル一覧を提示
+  - 確認結果を提示
+  - ユーザー実行用のcommit/pushコマンド案のみ提示
+- 旧テンプレの「commit/push済みを完了条件に含める」運用は廃止する。
+
+### 2) Cloud確認の基本手順
+- ユーザー本人のcommit/push後、Cloud挙動確認は以下を基本とする。
+  1. 最新deploy確認
+  2. Clear cache
+  3. Reboot app
+  4. 実画面確認
+- 特に `app.py` / `phase2_*_readonly.py` / import / cache / 検索 / 画像表示 / R2参照 / current読み込み契約 / Streamlit表示関連の変更では毎回実施する。
+- docs-onlyやローカル限定作業では必須ではない。
+- Cloudログに古いImportErrorや古いapp.py相当の挙動が残る場合は、古いプロセス/キャッシュ残留を優先疑いとする。
+
+### 3) ImportErrorの検証ルール
+- `py_compile` 単体ではImportErrorを保証できない。
+- app.pyやimport周り変更時は以下を必須検証とする。
+  - `python -c "import app"`
+  - `python -m py_compile app.py 関連readonlyファイル`
+- `phase2_common_readonly.py` 等からdirect importを増やす場合は、定義名/import名/呼び出し側の突合を必ず行う。
+- 不要なdirect import追加は避け、可能なら対象readonly内ローカルhelperで完結させる。
+
+### 4) Art Work Search: Robert Barry型（B+C複合）
+- 事象: Robert Barry / Francesca Mininiで、過去に「参考画像なし」や結果脱落が発生。
+- 原因:
+  - vector/raw/current cacheには存在し、画像実体も存在。
+  - ただし `r2_key` / `image_url` が空で、`local_path` のみ current cache を参照。
+  - Cloud想定ではlocal_path依存のみだとpreview判定で落ち、preview-gating後に結果から脱落しうる。
+- 解決方針:
+  - `local_path` が `data/current/images/cache/artist_works_images/...` を指す場合、文字列変換のみで derived `r2_key` を軽量補完。
+  - 既存 `r2_key` がある場合は上書きしない。
+  - 個別ハードコード（gallery/artist/source URL、blue/Robert Barry専用）禁止。
+  - `data/current` 更新なし、R2アクセスなし、重い走査なし。
+- 最終確認: Art Work Searchで `blue` / Robert Barry は画像付き表示を確認済み。
+
+### 5) Art Work Searchで禁止する重い実装
+- 検索導線で以下を禁止する。
+  - `os.walk`
+  - `rglob`
+  - `images/cache` 全件scan
+  - 全画像hash計算
+  - 検索ごとの大量R2 HEAD/hydrate
+  - 検索ごとの大量data URI生成
+  - 全件画像解決
+- 方針: row内既存フィールド + 軽量文字列変換を優先し、必要最小限・表示ページ分中心で解決する。
+
+### 6) Artist/Exhibition Searchの「参考画像なし」方針
+- Artist/Exhibitionでは「参考画像なし」カード自体は許容する。
+- ただし画像なしカードは後方へ回す（削除しない）。
+- 画像ありグループ内順位・画像なしグループ内順位は保持。
+- total件数を減らさない。ページングは並び替え後に実施する。
+- Art Work Searchとは性質が異なるため、Artist/Exhibitionでは画像なし完全排除を行わない。
+
+### 7) Artist判定・Exhibition判定の現時点
+- Artist Searchは、候補フィールド存在のみではなく実カード描画に近い画像解決基準で後方化する方式へ修正済み（実画面確認済み）。
+- Exhibition Searchは現行後方化で実画面OK。現時点で追加修正は行わず、問題再発時のみ別Taskで描画条件との完全一致を検討する。
+
+### 8) Artist/Exhibition 画像なし実体監査（2026-05-04）
+- 監査ログ: `logs/artist_exhibition_no_image_integrity_audit_20260504.json`（アプリ必須ファイルではなくcommit対象はユーザー判断）。
+- 監査キーワード: `絵画 / painting / installation / blue / sculpture / abstract`
+- 結果:
+  - Artist: 画像なし300件、`A=300`、`B/C/D/E/F/G=0`
+  - Exhibition: 画像なし407件、`A=407`、`B/C/D/E/F/G=0`
+- 判定: 監査範囲ではArtist/Exhibitionの画像なしはすべて真の画像なし。Robert Barry型はArtist/Exhibitionでは未検出。追加修正は不要。
+
