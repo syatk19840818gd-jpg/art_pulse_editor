@@ -114,13 +114,66 @@ GALLERY_LIST_PATHS = {
 IMAGE_CACHE_ROOT = REPO_ROOT / get_image_cache_dir()
 
 
+def derive_current_cache_r2_key_from_local_path(path_text: object) -> str:
+    normalized = normalize_image_local_path_text(path_text or "")
+    if not normalized:
+        return ""
+    try:
+        as_r2_key = str(get_image_r2_key(normalized, repo_root=REPO_ROOT) or "").strip()
+    except Exception:
+        as_r2_key = ""
+    if as_r2_key.startswith("data/current/images/cache/"):
+        return as_r2_key
+    posix = normalized.replace("\\", "/")
+    marker = "data/current/images/cache/"
+    idx = posix.lower().find(marker)
+    if idx < 0:
+        return ""
+    rel = posix[idx + len(marker) :].strip().lstrip("/")
+    if not rel:
+        return ""
+    return f"{marker}{rel}"
+
+
+def derive_current_artist_works_r2_key_from_local_path(path_text: object) -> str:
+    r2_key = derive_current_cache_r2_key_from_local_path(path_text)
+    if not r2_key.startswith("data/current/images/cache/artist_works_images/"):
+        return ""
+    return r2_key
+
+
+def summarize_current_artist_works_cache_root(
+    *,
+    target_year: int = TARGET_YEAR,
+) -> tuple[str, int, int, int]:
+    cache_root = REPO_ROOT / get_artist_image_cache_dir() / str(int(target_year or TARGET_YEAR))
+    file_count = 0
+    total_size = 0
+    max_mtime_ns = 0
+    if not cache_root.exists():
+        return str(cache_root), file_count, total_size, max_mtime_ns
+    for current_root, _dirs, files in os.walk(cache_root):
+        for name in files:
+            file_count += 1
+            path = Path(current_root) / name
+            try:
+                stat = path.stat()
+            except OSError:
+                continue
+            total_size += int(stat.st_size)
+            max_mtime_ns = max(max_mtime_ns, int(getattr(stat, "st_mtime_ns", int(stat.st_mtime * 1e9))))
+    return str(cache_root), file_count, total_size, max_mtime_ns
+
+
 @lru_cache(maxsize=8192)
 def resolve_current_artist_works_local_path(
     path_text: object,
     *,
     fair_slug: str = "",
     target_year: int = TARGET_YEAR,
+    cache_signature: tuple = (),
 ) -> str:
+    _ = cache_signature
     normalized = normalize_image_local_path_text(path_text or "")
     if not normalized:
         return ""

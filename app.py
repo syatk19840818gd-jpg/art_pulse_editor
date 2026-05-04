@@ -19,6 +19,7 @@ from phase2_art_pulse_draft import generate_art_pulse_draft
 from phase2_art_pulse_readonly import build_art_pulse_overview
 from phase2_common_readonly import (
     GALLERY_LIST_PATHS,
+    derive_current_artist_works_r2_key_from_local_path,
     resolve_current_exhibitions_available_years,
     resolve_current_artist_works_local_path,
 )
@@ -49,6 +50,7 @@ from phase2_artist_search_readonly import (
 )
 from phase2_artwork_search_readonly import (
     ARTWORK_SEARCH_TOP_K_DEFAULT,
+    get_artwork_search_artifact_signature,
     search_artwork_images_by_image,
     search_artwork_images_by_text,
 )
@@ -1233,6 +1235,13 @@ def _get_r2_settings() -> dict[str, str]:
     }
 
 
+def _build_artwork_image_cache_signature() -> tuple:
+    try:
+        return tuple(get_artwork_search_artifact_signature())
+    except Exception:
+        return ()
+
+
 @st.cache_resource(show_spinner=False)
 def _get_r2_s3_client():
     if boto3 is None:
@@ -1253,7 +1262,8 @@ def _get_r2_s3_client():
 
 
 @st.cache_data(show_spinner=False, ttl=1800)
-def _resolve_existing_r2_key(r2_key: str) -> str:
+def _resolve_existing_r2_key(r2_key: str, cache_signature: tuple = ()) -> str:
+    _ = cache_signature
     key = str(r2_key or "").strip().lstrip("/")
     if not key:
         return ""
@@ -1291,8 +1301,8 @@ def _resolve_existing_r2_key(r2_key: str) -> str:
 
 
 @st.cache_data(show_spinner=False, ttl=1800)
-def _presign_r2_get_url(r2_key: str) -> str:
-    resolved_key = _resolve_existing_r2_key(r2_key)
+def _presign_r2_get_url(r2_key: str, cache_signature: tuple = ()) -> str:
+    resolved_key = _resolve_existing_r2_key(r2_key, cache_signature)
     if not resolved_key:
         return ""
     client = _get_r2_s3_client()
@@ -1313,7 +1323,8 @@ def _presign_r2_get_url(r2_key: str) -> str:
 
 
 @st.cache_data(show_spinner=False, ttl=1800)
-def _local_image_path_to_data_uri(path_text: str) -> str:
+def _local_image_path_to_data_uri(path_text: str, cache_signature: tuple = ()) -> str:
+    _ = cache_signature
     raw = str(path_text or "").strip()
     if not raw:
         return ""
@@ -1338,10 +1349,15 @@ def _local_image_path_to_data_uri(path_text: str) -> str:
         return ""
 
 
-def _resolve_cached_or_remote_image_url(r2_key: object = "", local_path: object = "", direct_image_url: object = "") -> str:
-    resolved = _presign_r2_get_url(str(r2_key or "").strip())
+def _resolve_cached_or_remote_image_url(
+    r2_key: object = "",
+    local_path: object = "",
+    direct_image_url: object = "",
+    cache_signature: tuple = (),
+) -> str:
+    resolved = _presign_r2_get_url(str(r2_key or "").strip(), cache_signature)
     if not resolved:
-        resolved = _local_image_path_to_data_uri(str(local_path or "").strip())
+        resolved = _local_image_path_to_data_uri(str(local_path or "").strip(), cache_signature)
     if not resolved:
         resolved = str(direct_image_url or "").strip()
     return resolved
@@ -1411,6 +1427,8 @@ def _resolve_art_pulse_image_ref(item: dict, local_lookup: dict[str, dict[str, d
     local_path = str(ref.get("local_path") or item.get("local_path") or "").strip()
     if local_path and not Path(local_path).exists():
         local_path = ""
+    if not r2_key:
+        r2_key = derive_current_artist_works_r2_key_from_local_path(local_path)
     return {"r2_key": r2_key, "local_path": local_path, "image_url": image_url}
 
 
@@ -1539,6 +1557,7 @@ def _build_artist_card_html(row: dict, idx: int) -> str:
     safe_src = escape(source_url, quote=True)
     summary = escape(str(row.get("summary_display_ja") or "\u672a\u4ed8\u4e0e"))
     image_layout = str(row.get("artist_image_layout") or "").strip()
+    cache_signature = tuple(row.get("_artwork_image_cache_signature") or ())
 
     preview_urls: list[str] = []
     preview_candidates = list(row.get("artist_image_preview_candidates") or [])[:ARTIST_SEARCH_THUMB_FROM_ARTIST]
@@ -1547,6 +1566,7 @@ def _build_artist_card_html(row: dict, idx: int) -> str:
             candidate.get("r2_key"),
             candidate.get("local_path"),
             candidate.get("image_url"),
+            cache_signature,
         )
         if resolved:
             preview_urls.append(resolved)
@@ -2270,12 +2290,20 @@ def _build_artwork_result_artist_rows(rows: list[dict]) -> list[dict]:
         if str(row.get("source_url") or "").strip()
     }
 
+    cache_signature = _build_artwork_image_cache_signature()
     display_rows: list[dict] = []
     for row in rows:
         source_url = str(row.get("source_url") or "").strip()
         identity_key = str(row.get("artist_identity_key") or "").strip()
         matched_row = dict(artist_by_identity.get(identity_key) or artist_by_source.get(source_url) or {})
         summary_ja = str(matched_row.get("summary_ja") or "").strip()
+        resolved_local_path = resolve_current_artist_works_local_path(
+            row.get("local_path"),
+            fair_slug=str(row.get("fair_slug") or "").strip(),
+            cache_signature=cache_signature,
+        )
+        explicit_r2_key = str(row.get("r2_key") or "").strip()
+        derived_r2_key = derive_current_artist_works_r2_key_from_local_path(resolved_local_path or row.get("local_path"))
         display_rows.append(
             {
                 "artist_name": str(matched_row.get("artist_name") or row.get("artist_name_en") or "").strip() or "(artist unknown)",
@@ -2291,15 +2319,13 @@ def _build_artwork_result_artist_rows(rows: list[dict]) -> list[dict]:
                 ),
                 "artist_image_preview_candidates": [
                     {
-                        "r2_key": str(row.get("r2_key") or "").strip(),
-                        "local_path": resolve_current_artist_works_local_path(
-                            row.get("local_path"),
-                            fair_slug=str(row.get("fair_slug") or "").strip(),
-                        ),
+                        "r2_key": explicit_r2_key or derived_r2_key,
+                        "local_path": resolved_local_path,
                         "image_url": str(row.get("image_url") or "").strip(),
                     }
                 ],
                 "artist_image_layout": "single_wide",
+                "_artwork_image_cache_signature": cache_signature,
             }
         )
     return display_rows
