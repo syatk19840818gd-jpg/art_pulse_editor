@@ -1617,12 +1617,14 @@ def _row_has_exhibition_card_image(row: dict) -> bool:
 
 
 def _row_has_artist_card_image(row: dict) -> bool:
-    preview_candidates = list(row.get("artist_image_preview_candidates") or [])
+    preview_candidates = list(row.get("artist_image_preview_candidates") or [])[:ARTIST_SEARCH_THUMB_FROM_ARTIST]
     for candidate in preview_candidates:
-        if any(
-            str(candidate.get(field) or "").strip()
-            for field in ("r2_key", "local_path", "image_url")
-        ):
+        resolved = _resolve_cached_or_remote_image_url(
+            candidate.get("r2_key"),
+            candidate.get("local_path"),
+            candidate.get("image_url"),
+        )
+        if resolved:
             return True
     return False
 
