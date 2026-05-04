@@ -2295,6 +2295,7 @@ def _build_artwork_result_artist_rows(rows: list[dict]) -> list[dict]:
                         "local_path": resolve_current_artist_works_local_path(
                             row.get("local_path"),
                             fair_slug=str(row.get("fair_slug") or "").strip(),
+                            hydrate_from_r2=False,
                         ),
                         "image_url": str(row.get("image_url") or "").strip(),
                     }

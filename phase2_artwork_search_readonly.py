@@ -814,6 +814,7 @@ def _resolve_preview_local_path(row: dict) -> str:
     local_path = resolve_current_artist_works_local_path(
         row.get("local_path"),
         fair_slug=str(row.get("fair_slug") or "").strip(),
+        hydrate_from_r2=False,
     )
     if not local_path:
         return ""

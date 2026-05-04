@@ -120,6 +120,7 @@ def resolve_current_artist_works_local_path(
     *,
     fair_slug: str = "",
     target_year: int = TARGET_YEAR,
+    hydrate_from_r2: bool = True,
 ) -> str:
     normalized = normalize_image_local_path_text(path_text or "")
     if not normalized:
@@ -146,7 +147,7 @@ def resolve_current_artist_works_local_path(
         try:
             if candidate.exists() and candidate.is_file():
                 return str(candidate)
-            if hydrate_path_from_r2(candidate) and candidate.is_file():
+            if hydrate_from_r2 and hydrate_path_from_r2(candidate) and candidate.is_file():
                 return str(candidate)
         except Exception:
             continue
@@ -161,7 +162,7 @@ def resolve_current_artist_works_local_path(
     try:
         if original.exists() and original.is_file():
             return str(original)
-        if hydrate_path_from_r2(original) and original.is_file():
+        if hydrate_from_r2 and hydrate_path_from_r2(original) and original.is_file():
             return str(original)
     except Exception:
         return ""
