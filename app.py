@@ -1708,10 +1708,48 @@ def _scroll_to_results_top_if_requested(anchor_id: str, request_flag_key: str) -
     <script>
     (function () {{
       const anchorId = {json.dumps(str(anchor_id or ""))};
-      const doc = (window.parent && window.parent.document) ? window.parent.document : document;
-      const target = doc.getElementById(anchorId);
-      if (target) {{
-        target.scrollIntoView({{ behavior: "auto", block: "start" }});
+      const roots = [window, window.parent, window.parent && window.parent.parent].filter(Boolean);
+
+      function findTarget() {{
+        for (const root of roots) {{
+          try {{
+            const doc = root && root.document;
+            if (!doc) continue;
+            const el = doc.getElementById(anchorId);
+            if (el) return el;
+          }} catch (e) {{}}
+        }}
+        return null;
+      }}
+
+      function scrollNow() {{
+        const target = findTarget();
+        if (!target) {{
+          return false;
+        }}
+        try {{
+          target.scrollIntoView({{ behavior: "auto", block: "start", inline: "nearest" }});
+        }} catch (e) {{}}
+        try {{
+          const doc = target.ownerDocument || document;
+          const win = doc.defaultView || window;
+          const rectTop = target.getBoundingClientRect().top;
+          const y = Math.max(0, rectTop + (win.pageYOffset || 0));
+          win.scrollTo(0, y);
+          if (win.parent && win.parent !== win) {{
+            try {{ win.parent.scrollTo(0, y); }} catch (e) {{}}
+          }}
+        }} catch (e) {{}}
+        return true;
+      }}
+
+      // Run repeatedly to beat Streamlit/browser scroll restoration timing.
+      const delays = [0, 100, 300, 700, 1200];
+      for (const delay of delays) {{
+        setTimeout(scrollNow, delay);
+      }}
+      if (typeof requestAnimationFrame === "function") {{
+        requestAnimationFrame(scrollNow);
       }}
     }})();
     </script>
