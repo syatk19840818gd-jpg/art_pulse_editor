@@ -7,9 +7,9 @@ import mimetypes
 from base64 import b64encode
 from html import escape
 from pathlib import Path
+from urllib.parse import urlencode
 
 import streamlit as st
-import streamlit.components.v1 as components
 try:
     import boto3
 except Exception:
@@ -1672,24 +1672,35 @@ def _slice_rows_by_page(rows: list[dict], page_state_key: str) -> tuple[list[dic
 
 
 def _render_page_switcher(
-    page_state_key: str,
     current_page: int,
     total_pages: int,
     *,
-    on_change=None,
-    on_change_args: tuple | None = None,
+    query_param_key: str,
+    anchor_id: str,
 ) -> None:
     if total_pages <= 1:
         return
-    options = list(range(1, total_pages + 1))
-    if st.session_state.get(page_state_key) not in options:
-        st.session_state[page_state_key] = current_page
     st.markdown('<p class="ap-black-caption" style="margin:0 0 -0.45rem 0;">Page（30件づつ表示）</p>', unsafe_allow_html=True)
-    radio_kwargs = {}
-    if on_change is not None:
-        radio_kwargs["on_change"] = on_change
-        radio_kwargs["args"] = tuple(on_change_args or ())
-    st.radio("", options=options, horizontal=True, key=page_state_key, label_visibility="collapsed", **radio_kwargs)
+    links: list[str] = []
+    safe_anchor = str(anchor_id or "").strip()
+    for page in range(1, total_pages + 1):
+        href = _build_page_href(query_param_key, page, safe_anchor)
+        if page == current_page:
+            links.append(
+                f'<span style="display:inline-block;margin:0 .24rem .24rem 0;padding:.22rem .56rem;'
+                'border-radius:999px;border:1px solid #111;background:#111;color:#fff;'
+                'font-size:.85rem;font-weight:600;">'
+                f"{page}</span>"
+            )
+        else:
+            links.append(
+                f'<a href="{escape(href, quote=True)}" '
+                'style="display:inline-block;margin:0 .24rem .24rem 0;padding:.22rem .56rem;'
+                'border-radius:999px;border:1px solid #999;background:#fff;color:#111;'
+                'font-size:.85rem;font-weight:500;text-decoration:none;">'
+                f"{page}</a>"
+            )
+    st.markdown(f'<div style="margin-top:.15rem;">{"".join(links)}</div>', unsafe_allow_html=True)
 
 
 def _render_results_top_anchor(anchor_id: str) -> None:
@@ -1697,65 +1708,62 @@ def _render_results_top_anchor(anchor_id: str) -> None:
     st.markdown(f'<div id="{safe_id}" style="height:0;"></div>', unsafe_allow_html=True)
 
 
-def _request_scroll_to_top_flag(flag_key: str) -> None:
-    st.session_state[str(flag_key)] = True
+def _normalize_page_from_query_param(query_param_key: str) -> int | None:
+    raw = st.query_params.get(query_param_key)
+    if isinstance(raw, list):
+        raw = raw[0] if raw else ""
+    text = str(raw or "").strip()
+    if not text:
+        return None
+    try:
+        value = int(text)
+    except Exception:
+        return None
+    return max(1, value)
 
 
-def _scroll_to_results_top_if_requested(anchor_id: str, request_flag_key: str) -> None:
-    if not bool(st.session_state.get(request_flag_key, False)):
+def _sync_page_state_from_query_param(
+    page_state_key: str,
+    query_param_key: str,
+    total_pages: int,
+    *,
+    skip_query_sync: bool = False,
+) -> int:
+    if not skip_query_sync:
+        queried_page = _normalize_page_from_query_param(query_param_key)
+        if queried_page is not None:
+            st.session_state[page_state_key] = queried_page
+    try:
+        page = int(st.session_state.get(page_state_key, 1) or 1)
+    except Exception:
+        page = 1
+    page = min(max(page, 1), max(1, int(total_pages or 1)))
+    st.session_state[page_state_key] = page
+    return page
+
+
+def _build_page_href(query_param_key: str, page: int, anchor_id: str) -> str:
+    pairs: list[tuple[str, str]] = []
+    for key, value in st.query_params.items():
+        if key == query_param_key:
+            continue
+        if isinstance(value, list):
+            for v in value:
+                pairs.append((str(key), str(v)))
+        else:
+            pairs.append((str(key), str(value)))
+    pairs.append((str(query_param_key), str(int(page))))
+    query = urlencode(pairs, doseq=True)
+    base = f"?{query}" if query else ""
+    anchor = f"#{anchor_id}" if str(anchor_id or "").strip() else ""
+    return f"{base}{anchor}"
+
+
+def _set_query_page_param(query_param_key: str, page: int) -> None:
+    try:
+        st.query_params[str(query_param_key)] = str(max(1, int(page)))
+    except Exception:
         return
-    script = f"""
-    <script>
-    (function () {{
-      const anchorId = {json.dumps(str(anchor_id or ""))};
-      const roots = [window, window.parent, window.parent && window.parent.parent].filter(Boolean);
-
-      function findTarget() {{
-        for (const root of roots) {{
-          try {{
-            const doc = root && root.document;
-            if (!doc) continue;
-            const el = doc.getElementById(anchorId);
-            if (el) return el;
-          }} catch (e) {{}}
-        }}
-        return null;
-      }}
-
-      function scrollNow() {{
-        const target = findTarget();
-        if (!target) {{
-          return false;
-        }}
-        try {{
-          target.scrollIntoView({{ behavior: "auto", block: "start", inline: "nearest" }});
-        }} catch (e) {{}}
-        try {{
-          const doc = target.ownerDocument || document;
-          const win = doc.defaultView || window;
-          const rectTop = target.getBoundingClientRect().top;
-          const y = Math.max(0, rectTop + (win.pageYOffset || 0));
-          win.scrollTo(0, y);
-          if (win.parent && win.parent !== win) {{
-            try {{ win.parent.scrollTo(0, y); }} catch (e) {{}}
-          }}
-        }} catch (e) {{}}
-        return true;
-      }}
-
-      // Run repeatedly to beat Streamlit/browser scroll restoration timing.
-      const delays = [0, 100, 300, 700, 1200];
-      for (const delay of delays) {{
-        setTimeout(scrollNow, delay);
-      }}
-      if (typeof requestAnimationFrame === "function") {{
-        requestAnimationFrame(scrollNow);
-      }}
-    }})();
-    </script>
-    """
-    components.html(script, height=0, width=0)
-    st.session_state[request_flag_key] = False
 
 
 def _consume_text_search_reset(reset_requested_key: str, keyword_key: str, results_key: str, page_key: str) -> None:
@@ -2211,7 +2219,7 @@ def render_exhibition_search() -> None:
     results_key = "exh_search_results"
     keyword_key = "exh_keyword"
     page_key = "exh_search_page"
-    scroll_flag_key = "exhibition_search_scroll_to_top_requested"
+    page_query_key = "exhibition_page"
     results_top_anchor_id = "exhibition-search-results-top"
     search_reset_requested_key = "exh_search_reset_requested"
     spinner_complete = None
@@ -2239,7 +2247,7 @@ def render_exhibition_search() -> None:
             )
             st.session_state[results_key] = result_rows
             st.session_state[page_key] = 1
-            st.session_state[scroll_flag_key] = True
+            _set_query_page_param(page_query_key, 1)
         except Exception as exc:
             st.error(f"Exhibition 検索エラー: {type(exc).__name__}: {exc}")
             return
@@ -2274,17 +2282,22 @@ def render_exhibition_search() -> None:
         display_rows.append(row_copy)
     display_rows = _demote_rows_without_images(display_rows, _row_has_exhibition_card_image)
 
+    total_pages = max(1, (len(display_rows) + SEARCH_RESULTS_PAGE_SIZE - 1) // SEARCH_RESULTS_PAGE_SIZE)
+    _sync_page_state_from_query_param(
+        page_key,
+        page_query_key,
+        total_pages,
+        skip_query_sync=bool(search_clicked),
+    )
     page_rows, current_page, total_pages = _slice_rows_by_page(display_rows, page_key)
     page_start_index = (current_page - 1) * SEARCH_RESULTS_PAGE_SIZE + 1
     _render_results_top_anchor(results_top_anchor_id)
-    _scroll_to_results_top_if_requested(results_top_anchor_id, scroll_flag_key)
     _render_exhibition_result_cards(page_rows, start_index=page_start_index)
     _render_page_switcher(
-        page_key,
         current_page,
         total_pages,
-        on_change=_request_scroll_to_top_flag,
-        on_change_args=(scroll_flag_key,),
+        query_param_key=page_query_key,
+        anchor_id=results_top_anchor_id,
     )
     if spinner_complete:
         spinner_complete()
@@ -2307,7 +2320,7 @@ def render_artist_search() -> None:
     results_key = "artist_search_results"
     keyword_key = "artist_keyword"
     page_key = "artist_search_page"
-    scroll_flag_key = "artist_search_scroll_to_top_requested"
+    page_query_key = "artist_page"
     results_top_anchor_id = "artist-search-results-top"
     search_reset_requested_key = "artist_search_reset_requested"
     spinner_complete = None
@@ -2335,7 +2348,7 @@ def render_artist_search() -> None:
             )
             st.session_state[results_key] = result_rows
             st.session_state[page_key] = 1
-            st.session_state[scroll_flag_key] = True
+            _set_query_page_param(page_query_key, 1)
         except Exception as exc:
             st.error(f"Artist 検索エラー: {type(exc).__name__}: {exc}")
             return
@@ -2369,17 +2382,22 @@ def render_artist_search() -> None:
         display_rows.append(row_copy)
     display_rows = _demote_rows_without_images(display_rows, _row_has_artist_card_image)
 
+    total_pages = max(1, (len(display_rows) + SEARCH_RESULTS_PAGE_SIZE - 1) // SEARCH_RESULTS_PAGE_SIZE)
+    _sync_page_state_from_query_param(
+        page_key,
+        page_query_key,
+        total_pages,
+        skip_query_sync=bool(search_clicked),
+    )
     page_rows, current_page, total_pages = _slice_rows_by_page(display_rows, page_key)
     page_start_index = (current_page - 1) * SEARCH_RESULTS_PAGE_SIZE + 1
     _render_results_top_anchor(results_top_anchor_id)
-    _scroll_to_results_top_if_requested(results_top_anchor_id, scroll_flag_key)
     _render_artist_result_cards(page_rows, start_index=page_start_index)
     _render_page_switcher(
-        page_key,
         current_page,
         total_pages,
-        on_change=_request_scroll_to_top_flag,
-        on_change_args=(scroll_flag_key,),
+        query_param_key=page_query_key,
+        anchor_id=results_top_anchor_id,
     )
     if spinner_complete:
         spinner_complete()
@@ -2460,7 +2478,7 @@ def render_artwork_search() -> None:
     text_query_key = "artwork_search_text_query"
     fair_filter_key = "artwork_search_fair_filter"
     page_key = "artwork_search_page"
-    scroll_flag_key = "artwork_search_scroll_to_top_requested"
+    page_query_key = "artwork_page"
     results_top_anchor_id = "artwork-search-results-top"
     reset_requested_key = "artwork_search_reset_requested"
     uploaded_image_nonce_key = "artwork_search_uploaded_image_nonce"
@@ -2534,7 +2552,7 @@ def render_artwork_search() -> None:
                 )
             st.session_state[results_key] = result
             st.session_state[page_key] = 1
-            st.session_state[scroll_flag_key] = True
+            _set_query_page_param(page_query_key, 1)
         except Exception as exc:
             st.error(f"ArtWork Search エラー: {type(exc).__name__}: {exc}")
             return
@@ -2564,17 +2582,22 @@ def render_artwork_search() -> None:
         return
 
     display_rows = _build_artwork_result_artist_rows(rows)
+    total_pages = max(1, (len(display_rows) + SEARCH_RESULTS_PAGE_SIZE - 1) // SEARCH_RESULTS_PAGE_SIZE)
+    _sync_page_state_from_query_param(
+        page_key,
+        page_query_key,
+        total_pages,
+        skip_query_sync=bool(search_clicked),
+    )
     page_rows, current_page, total_pages = _slice_rows_by_page(display_rows, page_key)
     page_start_index = (current_page - 1) * SEARCH_RESULTS_PAGE_SIZE + 1
     _render_results_top_anchor(results_top_anchor_id)
-    _scroll_to_results_top_if_requested(results_top_anchor_id, scroll_flag_key)
     _render_artist_result_cards(page_rows, start_index=page_start_index)
     _render_page_switcher(
-        page_key,
         current_page,
         total_pages,
-        on_change=_request_scroll_to_top_flag,
-        on_change_args=(scroll_flag_key,),
+        query_param_key=page_query_key,
+        anchor_id=results_top_anchor_id,
     )
     if spinner_complete:
         spinner_complete()
