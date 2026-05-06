@@ -1671,14 +1671,25 @@ def _slice_rows_by_page(rows: list[dict], page_state_key: str) -> tuple[list[dic
     return rows[start:end], current_page, total_pages
 
 
-def _render_page_switcher(page_state_key: str, current_page: int, total_pages: int) -> None:
+def _render_page_switcher(
+    page_state_key: str,
+    current_page: int,
+    total_pages: int,
+    *,
+    on_change=None,
+    on_change_args: tuple | None = None,
+) -> None:
     if total_pages <= 1:
         return
     options = list(range(1, total_pages + 1))
     if st.session_state.get(page_state_key) not in options:
         st.session_state[page_state_key] = current_page
     st.markdown('<p class="ap-black-caption" style="margin:0 0 -0.45rem 0;">Page（30件づつ表示）</p>', unsafe_allow_html=True)
-    st.radio("", options=options, horizontal=True, key=page_state_key, label_visibility="collapsed")
+    radio_kwargs = {}
+    if on_change is not None:
+        radio_kwargs["on_change"] = on_change
+        radio_kwargs["args"] = tuple(on_change_args or ())
+    st.radio("", options=options, horizontal=True, key=page_state_key, label_visibility="collapsed", **radio_kwargs)
 
 
 def _render_results_top_anchor(anchor_id: str) -> None:
@@ -1686,21 +1697,13 @@ def _render_results_top_anchor(anchor_id: str) -> None:
     st.markdown(f'<div id="{safe_id}" style="height:0;"></div>', unsafe_allow_html=True)
 
 
-def _scroll_to_results_top_on_page_change(page_state_key: str, prev_page_state_key: str, anchor_id: str) -> None:
-    try:
-        current_page = int(st.session_state.get(page_state_key, 1) or 1)
-    except Exception:
-        current_page = 1
-    try:
-        prev_page = st.session_state.get(prev_page_state_key)
-        prev_page = int(prev_page) if prev_page is not None else None
-    except Exception:
-        prev_page = None
+def _request_scroll_to_top_flag(flag_key: str) -> None:
+    st.session_state[str(flag_key)] = True
 
-    st.session_state[prev_page_state_key] = current_page
-    if prev_page is None or prev_page == current_page:
+
+def _scroll_to_results_top_if_requested(anchor_id: str, request_flag_key: str) -> None:
+    if not bool(st.session_state.get(request_flag_key, False)):
         return
-
     script = f"""
     <script>
     (function () {{
@@ -1714,6 +1717,7 @@ def _scroll_to_results_top_on_page_change(page_state_key: str, prev_page_state_k
     </script>
     """
     components.html(script, height=0, width=0)
+    st.session_state[request_flag_key] = False
 
 
 def _consume_text_search_reset(reset_requested_key: str, keyword_key: str, results_key: str, page_key: str) -> None:
@@ -2169,7 +2173,7 @@ def render_exhibition_search() -> None:
     results_key = "exh_search_results"
     keyword_key = "exh_keyword"
     page_key = "exh_search_page"
-    prev_page_key = "exhibition_search_prev_page"
+    scroll_flag_key = "exhibition_search_scroll_to_top_requested"
     results_top_anchor_id = "exhibition-search-results-top"
     search_reset_requested_key = "exh_search_reset_requested"
     spinner_complete = None
@@ -2197,6 +2201,7 @@ def render_exhibition_search() -> None:
             )
             st.session_state[results_key] = result_rows
             st.session_state[page_key] = 1
+            st.session_state[scroll_flag_key] = True
         except Exception as exc:
             st.error(f"Exhibition 検索エラー: {type(exc).__name__}: {exc}")
             return
@@ -2234,9 +2239,15 @@ def render_exhibition_search() -> None:
     page_rows, current_page, total_pages = _slice_rows_by_page(display_rows, page_key)
     page_start_index = (current_page - 1) * SEARCH_RESULTS_PAGE_SIZE + 1
     _render_results_top_anchor(results_top_anchor_id)
+    _scroll_to_results_top_if_requested(results_top_anchor_id, scroll_flag_key)
     _render_exhibition_result_cards(page_rows, start_index=page_start_index)
-    _render_page_switcher(page_key, current_page, total_pages)
-    _scroll_to_results_top_on_page_change(page_key, prev_page_key, results_top_anchor_id)
+    _render_page_switcher(
+        page_key,
+        current_page,
+        total_pages,
+        on_change=_request_scroll_to_top_flag,
+        on_change_args=(scroll_flag_key,),
+    )
     if spinner_complete:
         spinner_complete()
     _render_black_caption(
@@ -2258,7 +2269,7 @@ def render_artist_search() -> None:
     results_key = "artist_search_results"
     keyword_key = "artist_keyword"
     page_key = "artist_search_page"
-    prev_page_key = "artist_search_prev_page"
+    scroll_flag_key = "artist_search_scroll_to_top_requested"
     results_top_anchor_id = "artist-search-results-top"
     search_reset_requested_key = "artist_search_reset_requested"
     spinner_complete = None
@@ -2286,6 +2297,7 @@ def render_artist_search() -> None:
             )
             st.session_state[results_key] = result_rows
             st.session_state[page_key] = 1
+            st.session_state[scroll_flag_key] = True
         except Exception as exc:
             st.error(f"Artist 検索エラー: {type(exc).__name__}: {exc}")
             return
@@ -2322,9 +2334,15 @@ def render_artist_search() -> None:
     page_rows, current_page, total_pages = _slice_rows_by_page(display_rows, page_key)
     page_start_index = (current_page - 1) * SEARCH_RESULTS_PAGE_SIZE + 1
     _render_results_top_anchor(results_top_anchor_id)
+    _scroll_to_results_top_if_requested(results_top_anchor_id, scroll_flag_key)
     _render_artist_result_cards(page_rows, start_index=page_start_index)
-    _render_page_switcher(page_key, current_page, total_pages)
-    _scroll_to_results_top_on_page_change(page_key, prev_page_key, results_top_anchor_id)
+    _render_page_switcher(
+        page_key,
+        current_page,
+        total_pages,
+        on_change=_request_scroll_to_top_flag,
+        on_change_args=(scroll_flag_key,),
+    )
     if spinner_complete:
         spinner_complete()
     _render_black_caption(
@@ -2404,7 +2422,7 @@ def render_artwork_search() -> None:
     text_query_key = "artwork_search_text_query"
     fair_filter_key = "artwork_search_fair_filter"
     page_key = "artwork_search_page"
-    prev_page_key = "artwork_search_prev_page"
+    scroll_flag_key = "artwork_search_scroll_to_top_requested"
     results_top_anchor_id = "artwork-search-results-top"
     reset_requested_key = "artwork_search_reset_requested"
     uploaded_image_nonce_key = "artwork_search_uploaded_image_nonce"
@@ -2478,6 +2496,7 @@ def render_artwork_search() -> None:
                 )
             st.session_state[results_key] = result
             st.session_state[page_key] = 1
+            st.session_state[scroll_flag_key] = True
         except Exception as exc:
             st.error(f"ArtWork Search エラー: {type(exc).__name__}: {exc}")
             return
@@ -2510,9 +2529,15 @@ def render_artwork_search() -> None:
     page_rows, current_page, total_pages = _slice_rows_by_page(display_rows, page_key)
     page_start_index = (current_page - 1) * SEARCH_RESULTS_PAGE_SIZE + 1
     _render_results_top_anchor(results_top_anchor_id)
+    _scroll_to_results_top_if_requested(results_top_anchor_id, scroll_flag_key)
     _render_artist_result_cards(page_rows, start_index=page_start_index)
-    _render_page_switcher(page_key, current_page, total_pages)
-    _scroll_to_results_top_on_page_change(page_key, prev_page_key, results_top_anchor_id)
+    _render_page_switcher(
+        page_key,
+        current_page,
+        total_pages,
+        on_change=_request_scroll_to_top_flag,
+        on_change_args=(scroll_flag_key,),
+    )
     if spinner_complete:
         spinner_complete()
     _render_black_caption(
