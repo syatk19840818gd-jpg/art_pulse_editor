@@ -9,6 +9,7 @@ from html import escape
 from pathlib import Path
 
 import streamlit as st
+import streamlit.components.v1 as components
 try:
     import boto3
 except Exception:
@@ -1680,6 +1681,41 @@ def _render_page_switcher(page_state_key: str, current_page: int, total_pages: i
     st.radio("", options=options, horizontal=True, key=page_state_key, label_visibility="collapsed")
 
 
+def _render_results_top_anchor(anchor_id: str) -> None:
+    safe_id = escape(str(anchor_id or "").strip(), quote=True)
+    st.markdown(f'<div id="{safe_id}" style="height:0;"></div>', unsafe_allow_html=True)
+
+
+def _scroll_to_results_top_on_page_change(page_state_key: str, prev_page_state_key: str, anchor_id: str) -> None:
+    try:
+        current_page = int(st.session_state.get(page_state_key, 1) or 1)
+    except Exception:
+        current_page = 1
+    try:
+        prev_page = st.session_state.get(prev_page_state_key)
+        prev_page = int(prev_page) if prev_page is not None else None
+    except Exception:
+        prev_page = None
+
+    st.session_state[prev_page_state_key] = current_page
+    if prev_page is None or prev_page == current_page:
+        return
+
+    script = f"""
+    <script>
+    (function () {{
+      const anchorId = {json.dumps(str(anchor_id or ""))};
+      const doc = (window.parent && window.parent.document) ? window.parent.document : document;
+      const target = doc.getElementById(anchorId);
+      if (target) {{
+        target.scrollIntoView({{ behavior: "auto", block: "start" }});
+      }}
+    }})();
+    </script>
+    """
+    components.html(script, height=0, width=0)
+
+
 def _consume_text_search_reset(reset_requested_key: str, keyword_key: str, results_key: str, page_key: str) -> None:
     if st.session_state.pop(reset_requested_key, False):
         st.session_state[keyword_key] = ""
@@ -2133,6 +2169,8 @@ def render_exhibition_search() -> None:
     results_key = "exh_search_results"
     keyword_key = "exh_keyword"
     page_key = "exh_search_page"
+    prev_page_key = "exhibition_search_prev_page"
+    results_top_anchor_id = "exhibition-search-results-top"
     search_reset_requested_key = "exh_search_reset_requested"
     spinner_complete = None
 
@@ -2195,8 +2233,10 @@ def render_exhibition_search() -> None:
 
     page_rows, current_page, total_pages = _slice_rows_by_page(display_rows, page_key)
     page_start_index = (current_page - 1) * SEARCH_RESULTS_PAGE_SIZE + 1
+    _render_results_top_anchor(results_top_anchor_id)
     _render_exhibition_result_cards(page_rows, start_index=page_start_index)
     _render_page_switcher(page_key, current_page, total_pages)
+    _scroll_to_results_top_on_page_change(page_key, prev_page_key, results_top_anchor_id)
     if spinner_complete:
         spinner_complete()
     _render_black_caption(
@@ -2218,6 +2258,8 @@ def render_artist_search() -> None:
     results_key = "artist_search_results"
     keyword_key = "artist_keyword"
     page_key = "artist_search_page"
+    prev_page_key = "artist_search_prev_page"
+    results_top_anchor_id = "artist-search-results-top"
     search_reset_requested_key = "artist_search_reset_requested"
     spinner_complete = None
 
@@ -2279,8 +2321,10 @@ def render_artist_search() -> None:
 
     page_rows, current_page, total_pages = _slice_rows_by_page(display_rows, page_key)
     page_start_index = (current_page - 1) * SEARCH_RESULTS_PAGE_SIZE + 1
+    _render_results_top_anchor(results_top_anchor_id)
     _render_artist_result_cards(page_rows, start_index=page_start_index)
     _render_page_switcher(page_key, current_page, total_pages)
+    _scroll_to_results_top_on_page_change(page_key, prev_page_key, results_top_anchor_id)
     if spinner_complete:
         spinner_complete()
     _render_black_caption(
@@ -2360,6 +2404,8 @@ def render_artwork_search() -> None:
     text_query_key = "artwork_search_text_query"
     fair_filter_key = "artwork_search_fair_filter"
     page_key = "artwork_search_page"
+    prev_page_key = "artwork_search_prev_page"
+    results_top_anchor_id = "artwork-search-results-top"
     reset_requested_key = "artwork_search_reset_requested"
     uploaded_image_nonce_key = "artwork_search_uploaded_image_nonce"
     spinner_complete = None
@@ -2463,8 +2509,10 @@ def render_artwork_search() -> None:
     display_rows = _build_artwork_result_artist_rows(rows)
     page_rows, current_page, total_pages = _slice_rows_by_page(display_rows, page_key)
     page_start_index = (current_page - 1) * SEARCH_RESULTS_PAGE_SIZE + 1
+    _render_results_top_anchor(results_top_anchor_id)
     _render_artist_result_cards(page_rows, start_index=page_start_index)
     _render_page_switcher(page_key, current_page, total_pages)
+    _scroll_to_results_top_on_page_change(page_key, prev_page_key, results_top_anchor_id)
     if spinner_complete:
         spinner_complete()
     _render_black_caption(
