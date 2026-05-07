@@ -2658,6 +2658,7 @@ def _derive_advisor_followup_reference_outputs(reference_context: dict) -> dict:
         if len(urls) >= 8:
             break
     return {
+        "reference_entities": reference_entities,
         "reference_examples": reference_examples,
         "reference_images": reference_images,
         "reference_urls": urls,
@@ -2710,6 +2711,7 @@ def _ensure_advisor_followup_base_state(question_text: str, context: dict, draft
     st.session_state["advisor_followup_last_answer"] = ""
     st.session_state["advisor_followup_reference_core_context"] = reference_core_context
     st.session_state["advisor_followup_reference_dynamic_context"] = reference_dynamic_context
+    st.session_state["advisor_followup_reference_entities"] = list(draft.get("answer_reference_entities", []) or [])
     st.session_state["advisor_followup_reference_examples"] = list(draft.get("reference_examples", []) or [])
     st.session_state["advisor_followup_reference_images"] = dict(draft.get("reference_images") or {})
 
@@ -2903,6 +2905,7 @@ def render_advisor() -> None:
         st.session_state.pop("advisor_followup_base_image_label", None)
         st.session_state.pop("advisor_followup_reference_core_context", None)
         st.session_state.pop("advisor_followup_reference_dynamic_context", None)
+        st.session_state.pop("advisor_followup_reference_entities", None)
         st.session_state.pop("advisor_followup_reference_examples", None)
         st.session_state.pop("advisor_followup_reference_images", None)
         st.session_state.pop("advisor_followup_input", None)
@@ -3084,6 +3087,11 @@ def render_advisor() -> None:
         or list(reference_dynamic_context.get("artist_evidence", []) or [])
     )
     advisor_reference_display_context = advisor_reference_context if has_dynamic_reference_rows else context
+    advisor_reference_entities = list(
+        st.session_state.get("advisor_followup_reference_entities")
+        or draft.get("answer_reference_entities")
+        or []
+    )
     advisor_reference_images = dict(
         st.session_state.get("advisor_followup_reference_images")
         or draft.get("reference_images")
@@ -3094,6 +3102,9 @@ def render_advisor() -> None:
         or draft.get("reference_examples")
         or []
     )
+    if advisor_reference_entities:
+        advisor_reference_examples = _build_art_pulse_style_reference_lines(advisor_reference_entities)
+        advisor_reference_images = _build_reference_images(advisor_reference_entities)
     advisor_reference_rows = list(advisor_reference_images.get("all", []) or [])
 
     reference_year_display = (
@@ -3132,6 +3143,16 @@ def render_advisor() -> None:
     )
     followup_turns = list(st.session_state.get("advisor_followup_turns", []) or [])
     followup_memory_summary = str(st.session_state.get("advisor_followup_memory_summary") or "")
+    advisor_reference_urls: list[str] = []
+    advisor_reference_seen_urls = set()
+    for entity in advisor_reference_entities:
+        source_url = str(entity.get("source_url") or "").strip()
+        if not source_url or source_url in advisor_reference_seen_urls:
+            continue
+        advisor_reference_seen_urls.add(source_url)
+        advisor_reference_urls.append(source_url)
+        if len(advisor_reference_urls) >= 8:
+            break
     base_payload = {
         "base_question": str(st.session_state.get("advisor_followup_base_question") or ""),
         "base_answer": str(st.session_state.get("advisor_followup_base_answer") or ""),
@@ -3140,7 +3161,7 @@ def render_advisor() -> None:
         "base_urls": list(st.session_state.get("advisor_followup_base_urls", []) or []),
         "base_visual_summary": str(st.session_state.get("advisor_followup_base_visual_summary") or ""),
         "current_reference_examples": list(st.session_state.get("advisor_followup_reference_examples", []) or []),
-        "current_reference_urls": _derive_advisor_followup_reference_outputs(advisor_reference_context).get("reference_urls", []),
+        "current_reference_urls": list(advisor_reference_urls),
     }
     if followup_turns:
         for idx, turn in enumerate(followup_turns, start=2):
@@ -3196,6 +3217,9 @@ def render_advisor() -> None:
                     )
                     refreshed_reference_state = _derive_advisor_followup_reference_outputs(advisor_reference_context)
                     st.session_state["advisor_followup_reference_dynamic_context"] = reference_dynamic_context
+                    st.session_state["advisor_followup_reference_entities"] = list(
+                        refreshed_reference_state.get("reference_entities", []) or []
+                    )
                     st.session_state["advisor_followup_reference_examples"] = list(
                         refreshed_reference_state.get("reference_examples", []) or []
                     )
@@ -3242,6 +3266,7 @@ def render_advisor() -> None:
                         break
                 st.session_state["advisor_followup_reference_examples"] = list(followup_reference_examples)
                 st.session_state["advisor_followup_reference_images"] = dict(followup_reference_images or {})
+                st.session_state["advisor_followup_reference_entities"] = list(followup_reference_entities or [])
                 base_payload["current_reference_examples"] = list(followup_reference_examples)
                 base_payload["current_reference_urls"] = list(followup_reference_urls)
                 updated_turns = (

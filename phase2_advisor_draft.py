@@ -992,7 +992,8 @@ def _select_reference_entities_for_output(
     context: Dict[str, object],
     selected_entities: List[dict],
 ) -> List[dict]:
-    # 参照例は回答本文で使った entity を第1優先にし、不足枠のみ evidence から補完する。
+    # selected_entities がある場合は、その集合だけを参照例正本として返す。
+    # selected_entities が空の場合のみ、evidence 起点の候補集合を返す。
     selection = context.get("selection", {}) if isinstance(context, dict) else {}
     question_focus = str(selection.get("intent_focus") or "").strip()
     broad_reference_mode = bool(
@@ -1097,15 +1098,49 @@ def _select_reference_entities_for_output(
             kind_counts[kind] = kind_counts.get(kind, 0) + 1
 
     if mention_order_map:
+        by_dedup_key: Dict[tuple[str, str, str, str], dict] = {
+            _candidate_dedup_key(candidate): dict(candidate)
+            for candidate in remaining
+        }
+        by_kind_label: Dict[tuple[str, str], dict] = {}
+        for candidate in remaining:
+            key = (
+                str(candidate.get("kind") or "").strip(),
+                str(candidate.get("display_label") or candidate.get("label") or "").strip(),
+            )
+            by_kind_label.setdefault(key, dict(candidate))
         prioritized: List[dict] = []
+        seen_prioritized = set()
         for candidate in remaining:
             dedup_key = _candidate_dedup_key(candidate)
             mention_order = mention_order_map.get(dedup_key)
             if mention_order is None:
                 continue
+            if dedup_key in seen_prioritized:
+                continue
+            seen_prioritized.add(dedup_key)
             item = dict(candidate)
             item["mention_order"] = int(mention_order)
             prioritized.append(item)
+        for selected_candidate in selected_entities:
+            dedup_key = (
+                str(selected_candidate.get("kind") or "").strip(),
+                str(selected_candidate.get("display_label") or selected_candidate.get("label") or "").strip(),
+                str(selected_candidate.get("link_url") or "").strip(),
+                str(selected_candidate.get("source_url") or "").strip(),
+            )
+            mention_order = mention_order_map.get(dedup_key)
+            if mention_order is None or dedup_key in seen_prioritized:
+                continue
+            matched = by_dedup_key.get(dedup_key)
+            if matched is None:
+                matched = by_kind_label.get((dedup_key[0], dedup_key[1]))
+            if matched is None:
+                continue
+            item = dict(matched)
+            item["mention_order"] = int(mention_order)
+            prioritized.append(item)
+            seen_prioritized.add(dedup_key)
         prioritized.sort(
             key=lambda c: (
                 int(c.get("mention_order") or 999),
@@ -1113,13 +1148,7 @@ def _select_reference_entities_for_output(
                 -int(c.get("_tiebreak_seed") or 0),
             )
         )
-        prioritized_keys = {_candidate_dedup_key(c) for c in prioritized}
-        remaining = [c for c in remaining if _candidate_dedup_key(c) not in prioritized_keys]
-        for candidate in prioritized:
-            if len(selected) >= ADVISOR_REF_IMAGE_TOTAL:
-                break
-            selected.append(candidate)
-            _apply_selected_counts(candidate)
+        return prioritized[:ADVISOR_REF_IMAGE_TOTAL]
 
     def _base_score(candidate: dict) -> int:
         kind = str(candidate.get("kind") or "").strip()
@@ -1392,15 +1421,10 @@ def _build_reference_images(selected_entities: List[dict]) -> Dict[str, object]:
             "r2_key": str(entity.get("r2_key") or "").strip(),
             "image_url": str(entity.get("image_url") or "").strip(),
         }
-        if not (item["local_path"] or item["r2_key"] or item["image_url"]):
-            continue
         dedup_key = (
             str(item.get("kind") or ""),
             str(item.get("label") or ""),
             str(item.get("source_url") or ""),
-            str(item.get("local_path") or ""),
-            str(item.get("r2_key") or ""),
-            str(item.get("image_url") or ""),
         )
         if dedup_key in seen:
             continue
@@ -2404,6 +2428,7 @@ def _build_prompt(question_text: str, context: Dict[str, object]) -> str:
     image_subject_mode = _question_targets_uploaded_image(question_text, bool(visual_observation_digest))
     asks_named_references = _question_requests_named_references(question_text)
     image_request_kind = _image_request_kind(question_text)
+    answer_reference_entities = list(context.get("answer_reference_entities", []) or [])
     ex_lines = []
     for row in list(context.get("exhibition_evidence", []))[:10]:
         ex_lines.append(
@@ -2419,6 +2444,14 @@ def _build_prompt(question_text: str, context: Dict[str, object]) -> str:
         )
     evidence_digest = _build_evidence_digest(context, per_kind=3)
     cross_fair_digest = _build_cross_fair_digest(context, fair_labels) if cross_fair_mode else ""
+    allowed_reference_labels: List[str] = []
+    for entity in answer_reference_entities:
+        label = str(entity.get("display_label") or entity.get("label") or "").strip()
+        if not label or label in allowed_reference_labels:
+            continue
+        allowed_reference_labels.append(label)
+        if len(allowed_reference_labels) >= 8:
+            break
     include_action_steps = _should_include_action_steps(question_text)
     visual_prompt_rule = ""
     visual_observation_section = ""
@@ -2542,6 +2575,7 @@ def _build_prompt(question_text: str, context: Dict[str, object]) -> str:
 {answer_basis}
 制約:
 - 質問に自然に必要な範囲で Artist名 or Exhibition名 を使うこと。無理に固有名を増やさないこと。
+- 具体的な Artist名 / Exhibition名 をおすすめ対象として出す場合は、Allowed references にある名称のみを使うこと。
 - 強く推せる根拠がない場合は、無理に人数合わせせず「今の根拠では強く推せない」と明示してよい。
 - broad query でも短すぎる一言で終わらせず、必要な範囲で少し具体化すること。無理に話題を増やして埋めないこと。
 - {PLAIN_JAPANESE_RULE}
@@ -2553,6 +2587,9 @@ def _build_prompt(question_text: str, context: Dict[str, object]) -> str:
 
 質問:
 {question_text}
+
+Allowed references（この回答で使える固有名）:
+{chr(10).join(f"- {label}" for label in allowed_reference_labels) if allowed_reference_labels else "- なし"}
 
 {visual_observation_section}根拠要約（優先参照）:
 {evidence_digest if evidence_digest else "- なし"}
@@ -2602,6 +2639,9 @@ def generate_advisor_grounded_draft(
     working_context["selection"] = working_selection
     context = working_context
     _, fair_labels = _detect_cross_fair_mode(context)
+    answer_reference_entities = _select_reference_entities_for_output(context, [])
+    context["answer_reference_entities"] = [dict(entity) for entity in answer_reference_entities]
+    working_selection["answer_reference_entities_count"] = len(answer_reference_entities)
     evidence_urls = context.get("evidence_urls", {}) if isinstance(context, dict) else {}
     ex_urls = _dedup_urls(list(evidence_urls.get("exhibition", [])))
     ar_urls = _dedup_urls(list(evidence_urls.get("artist", [])))
@@ -2818,6 +2858,7 @@ def generate_advisor_grounded_draft(
         "warnings": warnings,
         "attachment_note": attachment_note,
         "reference_examples": reference_examples,
+        "answer_reference_entities": [dict(entity) for entity in reference_entities],
         "broad_diversity_meta": broad_diversity_meta,
         "visual_observation_used": visual_observation_used,
     }
