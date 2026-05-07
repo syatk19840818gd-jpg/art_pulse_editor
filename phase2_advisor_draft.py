@@ -11,6 +11,7 @@ from typing import Dict, List, Tuple
 
 from phase1_artist_link_utils import is_invalid_artist_name
 from phase2_art_pulse_draft import _google_image_search_url
+from phase2_common_readonly import normalize_url
 from phase2_response_style import PLAIN_JAPANESE_RULE
 
 ADVISOR_TEXT_MAX_CHARS = 550
@@ -1065,6 +1066,27 @@ def _select_reference_entities_for_output(
         seen.add(dedup_key)
         remaining.append(candidate)
 
+    sampled_main_items: List[dict] = []
+    sampled_main_keys: List[str] = []
+    if not mention_order_map:
+        for item in list(selection.get("sampled_main_references") or []):
+            if not isinstance(item, dict):
+                continue
+            sampled_main_items.append(dict(item))
+            key = str(item.get("key") or "").strip()
+            if key and key not in sampled_main_keys:
+                sampled_main_keys.append(key)
+
+    def _candidate_reference_key(candidate: dict) -> str:
+        kind = str(candidate.get("kind") or "").strip()
+        source = normalize_url(str(candidate.get("source_url") or ""))
+        if source:
+            return f"{kind}::{source}"
+        label = str(candidate.get("display_label") or candidate.get("label") or "").strip().lower()
+        fair = str(candidate.get("fair_label") or "").strip().lower()
+        gallery = str(candidate.get("gallery") or "").strip().lower()
+        return f"{kind}::{fair}::{gallery}::{label}"
+
     selected: List[dict] = []
     source_counts: Dict[str, int] = {}
     gallery_counts: Dict[str, int] = {}
@@ -1097,6 +1119,81 @@ def _select_reference_entities_for_output(
             fair_counts[fair] = fair_counts.get(fair, 0) + 1
         if kind:
             kind_counts[kind] = kind_counts.get(kind, 0) + 1
+
+    if sampled_main_keys:
+        by_ref_key: Dict[str, dict] = {}
+        for candidate in remaining:
+            ref_key = _candidate_reference_key(candidate)
+            if ref_key and ref_key not in by_ref_key:
+                by_ref_key[ref_key] = dict(candidate)
+        prioritized: List[dict] = []
+        seen_prioritized = set()
+        for idx, sampled_item in enumerate(sampled_main_items, start=1):
+            ref_key = str(sampled_item.get("key") or "").strip()
+            sampled_kind = str(sampled_item.get("kind") or "").strip()
+            sampled_source = normalize_url(str(sampled_item.get("source_url") or ""))
+            sampled_label = str(sampled_item.get("label") or "").strip()
+            matched = by_ref_key.get(ref_key)
+            if matched is None:
+                for candidate in remaining:
+                    kind = str(candidate.get("kind") or "").strip()
+                    source = normalize_url(str(candidate.get("source_url") or ""))
+                    label = str(candidate.get("display_label") or candidate.get("label") or "").strip()
+                    if sampled_kind and kind and sampled_kind != kind:
+                        continue
+                    if sampled_source and source and sampled_source == source:
+                        matched = dict(candidate)
+                        break
+                    if sampled_label and label and sampled_label == label:
+                        matched = dict(candidate)
+                        break
+            if matched is None:
+                continue
+            dedup_key = (
+                str(matched.get("kind") or "").strip(),
+                str(matched.get("display_label") or matched.get("label") or "").strip(),
+                str(matched.get("link_url") or "").strip(),
+                str(matched.get("source_url") or "").strip(),
+            )
+            if dedup_key in seen_prioritized:
+                continue
+            item = dict(matched)
+            item["mention_order"] = int(idx)
+            prioritized.append(item)
+            seen_prioritized.add(dedup_key)
+        if prioritized:
+            if len(prioritized) >= ADVISOR_REF_IMAGE_TOTAL:
+                prioritized.sort(
+                    key=lambda c: (
+                        int(c.get("mention_order") or 999),
+                        int(c.get("evidence_rank") or 999),
+                        -int(c.get("_tiebreak_seed") or 0),
+                    )
+                )
+                return prioritized[:ADVISOR_REF_IMAGE_TOTAL]
+            selected.extend(prioritized)
+            selected_dedup = {
+                (
+                    str(item.get("kind") or "").strip(),
+                    str(item.get("display_label") or item.get("label") or "").strip(),
+                    str(item.get("link_url") or "").strip(),
+                    str(item.get("source_url") or "").strip(),
+                )
+                for item in prioritized
+            }
+            remaining = [
+                candidate
+                for candidate in remaining
+                if (
+                    str(candidate.get("kind") or "").strip(),
+                    str(candidate.get("display_label") or candidate.get("label") or "").strip(),
+                    str(candidate.get("link_url") or "").strip(),
+                    str(candidate.get("source_url") or "").strip(),
+                )
+                not in selected_dedup
+            ]
+            for chosen in prioritized:
+                _apply_selected_counts(chosen)
 
     if mention_order_map:
         by_dedup_key: Dict[tuple[str, str, str, str], dict] = {

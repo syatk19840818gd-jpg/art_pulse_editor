@@ -539,8 +539,16 @@ def _tokenize_query(query_text: str) -> List[str]:
 
 
 def _is_broad_query(question_text: str, tokens: List[str]) -> bool:
-    q = (question_text or "").strip().lower()
+    raw_q = (question_text or "").strip()
+    q = raw_q.lower()
     if not q:
+        return False
+    specific_suffixes = ["について", "の作品", "を見たい", "教えて", "知りたい"]
+    looks_like_latin_name = bool(
+        re.search(r"[A-Za-zÀ-ÖØ-öø-ÿ][A-Za-zÀ-ÖØ-öø-ÿ'’\-.]+(?:\s+[A-Za-zÀ-ÖØ-öø-ÿ][A-Za-zÀ-ÖØ-öø-ÿ'’\-.]+)+", raw_q)
+    )
+    looks_like_kana_name = bool(re.search(r"[ァ-ヴー]{2,}(?:[・･\s][ァ-ヴー]{2,})+", raw_q))
+    if (looks_like_latin_name or looks_like_kana_name) and any(token in raw_q for token in specific_suffixes):
         return False
     starter_hints = [
         "\u3069\u3093\u306a",
@@ -830,6 +838,210 @@ def _pick_top_by_score(
     return selected
 
 
+def _reference_key_from_row(row: dict, kind: str) -> str:
+    source_key = normalize_url(str(row.get("source_url") or ""))
+    if source_key:
+        return f"{kind}::{source_key}"
+    label = str(row.get("artist_name") if kind == "artist" else row.get("title") or "").strip().lower()
+    fair = str(row.get("fair_label") or row.get("fair_slug") or "").strip().lower()
+    gallery = str(row.get("gallery") or "").strip().lower()
+    return f"{kind}::{fair}::{gallery}::{label}"
+
+
+def _sample_broad_main_references(
+    question_text: str,
+    ex_rows: List[dict],
+    ar_rows: List[dict],
+    cross_fair_mode: bool,
+    intent_focus: str,
+    diversity_seed: int,
+    recent_reference_keys: List[str] | None = None,
+    target_count: int = 4,
+    pool_limit: int = 100,
+) -> List[dict]:
+    if target_count <= 0:
+        return []
+    seed_value = abs(int(diversity_seed or 0))
+    if seed_value <= 0:
+        return []
+
+    q = str(question_text or "").strip().lower()
+    asks_artist = any(token in q for token in ["作家", "artist", "アーティスト", "who", "誰"])
+    asks_exhibition = any(token in q for token in ["展示", "exhibition", "インスタレーション", "空間"])
+
+    per_fair_gallery_cap = 1 if cross_fair_mode else 2
+    ex_pool = _pick_top_by_score(
+        ex_rows,
+        min(len(ex_rows), pool_limit),
+        prefer_cross_fair_diversity=cross_fair_mode,
+        per_fair_gallery_cap=per_fair_gallery_cap,
+    )
+    ar_pool = _pick_top_by_score(
+        ar_rows,
+        min(len(ar_rows), pool_limit),
+        prefer_cross_fair_diversity=cross_fair_mode,
+        per_fair_gallery_cap=per_fair_gallery_cap,
+    )
+
+    ex_candidates = [
+        {
+            "kind": "exhibition",
+            "row": row,
+            "rank": idx,
+            "key": _reference_key_from_row(row, "exhibition"),
+        }
+        for idx, row in enumerate(ex_pool, start=1)
+    ]
+    ar_candidates = [
+        {
+            "kind": "artist",
+            "row": row,
+            "rank": idx,
+            "key": _reference_key_from_row(row, "artist"),
+        }
+        for idx, row in enumerate(ar_pool, start=1)
+    ]
+
+    interleaved: List[dict] = []
+    if asks_artist and not asks_exhibition:
+        interleaved.extend(ar_candidates)
+        interleaved.extend(ex_candidates)
+    elif asks_exhibition and not asks_artist:
+        interleaved.extend(ex_candidates)
+        interleaved.extend(ar_candidates)
+    else:
+        max_len = max(len(ex_candidates), len(ar_candidates))
+        for idx in range(max_len):
+            if idx < len(ar_candidates):
+                interleaved.append(ar_candidates[idx])
+            if idx < len(ex_candidates):
+                interleaved.append(ex_candidates[idx])
+    top_pool = list(interleaved[: min(len(interleaved), pool_limit)])
+    if not top_pool:
+        return []
+
+    recent_set = {str(key or "").strip() for key in list(recent_reference_keys or []) if str(key or "").strip()}
+    rng = random.Random(f"mainrefs:{seed_value}:{intent_focus}:{len(top_pool)}")
+
+    sampled: List[dict] = []
+    used_keys: set[str] = set()
+    source_seen: set[str] = set()
+    gallery_counts: Dict[str, int] = {}
+    artist_seen: set[str] = set()
+    title_seen: set[str] = set()
+
+    def _eligible(candidate: dict, strict_recent: bool) -> bool:
+        key = str(candidate.get("key") or "").strip()
+        if not key or key in used_keys:
+            return False
+        if strict_recent and key in recent_set:
+            return False
+        row = candidate.get("row") or {}
+        source = normalize_url(str(row.get("source_url") or ""))
+        if source and source in source_seen:
+            return False
+        gallery = str(row.get("gallery") or "").strip()
+        if gallery and gallery_counts.get(gallery, 0) >= 2:
+            return False
+        if str(candidate.get("kind") or "") == "artist":
+            artist_name = str(row.get("artist_name") or "").strip()
+            if artist_name and artist_name in artist_seen:
+                return False
+        else:
+            title = str(row.get("title") or "").strip()
+            if title and title in title_seen:
+                return False
+        return True
+
+    for strict_recent in (True, False):
+        if len(sampled) >= target_count:
+            break
+        while len(sampled) < target_count:
+            candidates = [candidate for candidate in top_pool if _eligible(candidate, strict_recent)]
+            if not candidates:
+                break
+            weighted = sorted(
+                candidates,
+                key=lambda candidate: (int(candidate.get("rank") or 9999), rng.random()),
+            )
+            pick_band = max(1, min(len(weighted), max(8, len(weighted) // 4)))
+            picked = weighted[rng.randrange(pick_band)]
+            row = picked.get("row") or {}
+            key = str(picked.get("key") or "").strip()
+            sampled.append(
+                {
+                    "kind": str(picked.get("kind") or "").strip(),
+                    "key": key,
+                    "source_url": str(row.get("source_url") or "").strip(),
+                    "label": str(row.get("artist_name") or row.get("title") or "").strip(),
+                    "fair_label": str(row.get("fair_label") or "").strip(),
+                    "gallery": str(row.get("gallery") or "").strip(),
+                }
+            )
+            used_keys.add(key)
+            source = normalize_url(str(row.get("source_url") or ""))
+            if source:
+                source_seen.add(source)
+            gallery = str(row.get("gallery") or "").strip()
+            if gallery:
+                gallery_counts[gallery] = gallery_counts.get(gallery, 0) + 1
+            if str(picked.get("kind") or "") == "artist":
+                artist_name = str(row.get("artist_name") or "").strip()
+                if artist_name:
+                    artist_seen.add(artist_name)
+            else:
+                title = str(row.get("title") or "").strip()
+                if title:
+                    title_seen.add(title)
+            if len(sampled) >= target_count:
+                break
+
+    return sampled[:target_count]
+
+
+def _promote_main_reference_rows(
+    rows: List[dict],
+    main_keys: Dict[str, int],
+    kind: str,
+    limit: int,
+    row_lookup: Dict[str, dict] | None = None,
+) -> List[dict]:
+    if not rows:
+        return []
+    if not main_keys:
+        return rows[:limit]
+
+    promoted: List[dict] = []
+    seen_keys: set[str] = set()
+    if row_lookup:
+        for key, _order in sorted(main_keys.items(), key=lambda item: item[1]):
+            if not key.startswith(f"{kind}::"):
+                continue
+            row = row_lookup.get(key)
+            if not isinstance(row, dict):
+                continue
+            if key in seen_keys:
+                continue
+            promoted.append(dict(row))
+            seen_keys.add(key)
+            if len(promoted) >= limit:
+                return promoted[:limit]
+
+    indexed: List[tuple[int, int, dict]] = []
+    for idx, row in enumerate(rows):
+        key = _reference_key_from_row(row, kind)
+        if key in seen_keys:
+            continue
+        priority = main_keys.get(key, 10_000 + idx)
+        indexed.append((priority, idx, row))
+    indexed.sort(key=lambda item: (item[0], item[1]))
+    for _priority, _idx, row in indexed:
+        promoted.append(row)
+        if len(promoted) >= limit:
+            break
+    return promoted[:limit]
+
+
 def build_advisor_grounded_context(
     fair_label: str,
     question_text: str,
@@ -837,6 +1049,7 @@ def build_advisor_grounded_context(
     rotation_index: int = 0,
     diversity_seed: int = 0,
     recent_broad_history: List[dict] | None = None,
+    recent_reference_keys: List[str] | None = None,
 ) -> Dict[str, object]:
     fair_slugs = set(resolve_fair_slugs(fair_label))
     cross_fair_mode = len(fair_slugs) > 1
@@ -1011,6 +1224,51 @@ def build_advisor_grounded_context(
         intent_focus=intent_focus,
     )
 
+    sampled_main_references: List[dict] = []
+    sampled_main_keys_order: Dict[str, int] = {}
+    if broad_query_mode and safe_diversity_seed:
+        sampled_main_references = _sample_broad_main_references(
+            question_text=question_text,
+            ex_rows=ex_scored,
+            ar_rows=ar_scored,
+            cross_fair_mode=cross_fair_mode,
+            intent_focus=intent_focus,
+            diversity_seed=safe_diversity_seed,
+            recent_reference_keys=recent_reference_keys,
+            target_count=4,
+            pool_limit=100,
+        )
+        for idx, item in enumerate(sampled_main_references):
+            key = str(item.get("key") or "").strip()
+            if not key or key in sampled_main_keys_order:
+                continue
+            sampled_main_keys_order[key] = idx
+        if sampled_main_keys_order:
+            ex_lookup: Dict[str, dict] = {}
+            for row in ex_scored:
+                key = _reference_key_from_row(row, "exhibition")
+                if key and key not in ex_lookup:
+                    ex_lookup[key] = row
+            ar_lookup: Dict[str, dict] = {}
+            for row in ar_scored:
+                key = _reference_key_from_row(row, "artist")
+                if key and key not in ar_lookup:
+                    ar_lookup[key] = row
+            exhibition_evidence = _promote_main_reference_rows(
+                exhibition_evidence,
+                sampled_main_keys_order,
+                kind="exhibition",
+                limit=exhibition_limit_per_kind,
+                row_lookup=ex_lookup,
+            )
+            artist_evidence = _promote_main_reference_rows(
+                artist_evidence,
+                sampled_main_keys_order,
+                kind="artist",
+                limit=artist_limit_per_kind,
+                row_lookup=ar_lookup,
+            )
+
     for row in exhibition_evidence:
         row.pop("_score", None)
         row.pop("_intent_score", None)
@@ -1045,6 +1303,9 @@ def build_advisor_grounded_context(
             "rotation_index": safe_rotation_index,
             "diversity_seed": safe_diversity_seed,
             "recent_broad_history": list(recent_broad_history or [])[-8:],
+            "recent_reference_keys": list(recent_reference_keys or [])[-40:],
+            "sampled_main_references": [dict(item) for item in sampled_main_references],
+            "sampled_main_reference_keys": list(sampled_main_keys_order.keys()),
             "grounded_anchor_count": matched_exhibition_count + matched_artist_count,
         },
         "counts": {

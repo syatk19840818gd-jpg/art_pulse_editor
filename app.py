@@ -3265,6 +3265,8 @@ def render_advisor() -> None:
         st.session_state["advisor_broad_diversity_counter"] = diversity_counter
         broad_history = list(st.session_state.get("advisor_broad_query_history", []) or [])
         recent_broad_history = [item for item in broad_history if str(item.get("fair_mode") or "") == effective_fair][-8:]
+        recent_reference_key_map = dict(st.session_state.get("advisor_broad_recent_reference_keys_map", {}) or {})
+        recent_reference_keys = list(recent_reference_key_map.get(str(effective_fair), []) or [])[-40:]
         try:
             _render_advisor_progress(8)
             context = build_advisor_grounded_context(
@@ -3273,6 +3275,7 @@ def render_advisor() -> None:
                 rotation_index=rotation_index,
                 diversity_seed=diversity_counter,
                 recent_broad_history=recent_broad_history,
+                recent_reference_keys=recent_reference_keys,
             )
             _render_advisor_progress(34)
             st.session_state["advisor_context"] = context
@@ -3301,6 +3304,19 @@ def render_advisor() -> None:
                 broad_meta["question_text"] = question_text.strip()
                 broad_history.append(broad_meta)
                 st.session_state["advisor_broad_query_history"] = broad_history[-12:]
+            sampled_main_keys = list((context.get("selection", {}) or {}).get("sampled_main_reference_keys") or [])
+            if sampled_main_keys:
+                fair_key = str(effective_fair)
+                merged_recent: list[str] = []
+                seen_recent = set()
+                for key in list(recent_reference_key_map.get(fair_key, []) or []) + sampled_main_keys:
+                    text = str(key or "").strip()
+                    if not text or text in seen_recent:
+                        continue
+                    seen_recent.add(text)
+                    merged_recent.append(text)
+                recent_reference_key_map[fair_key] = merged_recent[-40:]
+                st.session_state["advisor_broad_recent_reference_keys_map"] = recent_reference_key_map
 
             if wants_image_generation:
                 _render_advisor_progress(86)
