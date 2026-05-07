@@ -19,6 +19,7 @@ from phase2_art_pulse_draft import generate_art_pulse_draft
 from phase2_art_pulse_readonly import build_art_pulse_overview
 from phase2_common_readonly import (
     GALLERY_LIST_PATHS,
+    normalize_url,
     resolve_current_exhibitions_available_years,
     resolve_current_artist_works_local_path,
 )
@@ -1741,6 +1742,141 @@ def get_gallery_list_data(cache_signature: tuple[tuple[str, int, int], ...] = ()
     return load_gallery_list_records_readonly()
 
 
+def _advisor_source_url_lookup_keys(url: object) -> list[str]:
+    normalized = normalize_url(str(url or "").strip())
+    if not normalized:
+        return []
+    keys = [normalized]
+    if "?" in normalized:
+        base = normalized.split("?", 1)[0].rstrip("/")
+        if base and base not in keys:
+            keys.append(base)
+    return keys
+
+
+def _normalize_artist_preview_candidates(candidates: list[dict], limit: int = ARTIST_SEARCH_THUMB_FROM_ARTIST) -> list[dict]:
+    normalized: list[dict] = []
+    seen = set()
+    for candidate in list(candidates or []):
+        if not isinstance(candidate, dict):
+            continue
+        r2_key = str(candidate.get("r2_key") or "").strip()
+        local_path = str(candidate.get("local_path") or "").strip()
+        image_url = str(candidate.get("image_url") or "").strip()
+        if not (r2_key or local_path or image_url):
+            continue
+        dedup_key = (r2_key, local_path, image_url)
+        if dedup_key in seen:
+            continue
+        seen.add(dedup_key)
+        normalized.append(
+            {
+                "r2_key": r2_key,
+                "local_path": local_path,
+                "image_url": image_url,
+            }
+        )
+        if len(normalized) >= limit:
+            break
+    return normalized
+
+
+def _has_resolvable_artist_preview(candidates: list[dict]) -> bool:
+    for candidate in list(candidates or []):
+        resolved = _resolve_cached_or_remote_image_url(
+            candidate.get("r2_key"),
+            candidate.get("local_path"),
+            candidate.get("image_url"),
+        )
+        if resolved:
+            return True
+    return False
+
+
+@st.cache_data(show_spinner=False)
+def _get_artist_preview_lookup() -> dict[str, object]:
+    by_source: dict[str, list[dict]] = {}
+    by_artist: dict[str, list[dict]] = {}
+    try:
+        rows = list(get_artist_search_data().records)
+    except Exception:
+        rows = []
+
+    for row in rows:
+        preview_candidates = _normalize_artist_preview_candidates(
+            list(row.get("artist_image_preview_candidates") or [])
+        )
+        if not preview_candidates:
+            continue
+        source_url = str(row.get("source_url") or "").strip()
+        for key in _advisor_source_url_lookup_keys(source_url):
+            by_source.setdefault(key, preview_candidates)
+
+        artist_key = str(row.get("artist_name") or "").strip().lower()
+        if not artist_key:
+            continue
+        by_artist.setdefault(artist_key, []).append(
+            {
+                "fair_label": str(row.get("fair_label") or "").strip(),
+                "gallery": str(row.get("gallery_name") or "").strip(),
+                "source_url": source_url,
+                "preview_candidates": preview_candidates,
+            }
+        )
+
+    return {"by_source": by_source, "by_artist": by_artist}
+
+
+def _resolve_advisor_artist_preview_candidates(item: dict, matched_row: dict) -> list[dict]:
+    # Preserve pre-resolved candidates first, then fill only missing artists from Artist Search index.
+    candidates = _normalize_artist_preview_candidates(list(matched_row.get("artist_image_preview_candidates") or []))
+    if not candidates:
+        candidates = _normalize_artist_preview_candidates(list(item.get("artist_image_preview_candidates") or []))
+    if not candidates:
+        fallback_single = {
+            "r2_key": str(item.get("r2_key") or "").strip(),
+            "local_path": str(item.get("local_path") or "").strip(),
+            "image_url": str(item.get("image_url") or "").strip(),
+        }
+        candidates = _normalize_artist_preview_candidates([fallback_single])
+    if candidates and _has_resolvable_artist_preview(candidates):
+        return candidates[:ARTIST_SEARCH_THUMB_FROM_ARTIST]
+
+    lookup = _get_artist_preview_lookup()
+    by_source = dict(lookup.get("by_source") or {})
+    by_artist = dict(lookup.get("by_artist") or {})
+
+    source_url = str(item.get("source_url") or matched_row.get("source_url") or "").strip()
+    for key in _advisor_source_url_lookup_keys(source_url):
+        source_candidates = _normalize_artist_preview_candidates(list(by_source.get(key) or []))
+        if source_candidates and _has_resolvable_artist_preview(source_candidates):
+            return source_candidates[:ARTIST_SEARCH_THUMB_FROM_ARTIST]
+
+    artist_label = str(item.get("label") or matched_row.get("artist_name") or "").strip().lower()
+    if not artist_label:
+        return candidates[:ARTIST_SEARCH_THUMB_FROM_ARTIST]
+    fair_label = str(item.get("fair_label") or matched_row.get("fair_label") or "").strip()
+    gallery = str(item.get("gallery") or matched_row.get("gallery") or "").strip()
+
+    best_candidates: list[dict] = []
+    best_score = -1
+    for record in list(by_artist.get(artist_label) or []):
+        record_candidates = _normalize_artist_preview_candidates(list(record.get("preview_candidates") or []))
+        if not record_candidates:
+            continue
+        score = 0
+        if fair_label and fair_label == str(record.get("fair_label") or "").strip():
+            score += 2
+        if gallery and gallery == str(record.get("gallery") or "").strip():
+            score += 1
+        if score > best_score and _has_resolvable_artist_preview(record_candidates):
+            best_score = score
+            best_candidates = record_candidates
+    if best_candidates:
+        return best_candidates[:ARTIST_SEARCH_THUMB_FROM_ARTIST]
+    return candidates[:ARTIST_SEARCH_THUMB_FROM_ARTIST]
+
+
 def _build_gallery_list_cache_signature() -> tuple[tuple[str, int, int], ...]:
     paths = [
         GALLERY_LIST_PATHS.get("frieze_london"),
@@ -1847,13 +1983,7 @@ def _render_reference_image_candidates(
             if compact_advisor_cards and evidence_context:
                 matched_row = _match_advisor_reference_evidence(item)
                 if kind == "artist":
-                    preview_candidates = list(matched_row.get("artist_image_preview_candidates") or [])
-                    if not preview_candidates:
-                        preview_candidates = [{
-                            "local_path": str(item.get("local_path") or "").strip(),
-                            "r2_key": str(item.get("r2_key") or "").strip(),
-                            "image_url": str(item.get("image_url") or "").strip(),
-                        }]
+                    preview_candidates = _resolve_advisor_artist_preview_candidates(item, matched_row)
                     artist_summary = str(
                         matched_row.get("summary_ja")
                         or matched_row.get("headline_ja")
