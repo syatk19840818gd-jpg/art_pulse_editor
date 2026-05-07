@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import random
 import re
 from typing import Dict, List
 
@@ -253,8 +254,9 @@ def _select_evidence_with_rotation(
     working_rows = rows
     pool_limit = limit
     per_fair_gallery_cap = 2
+    broad_pool_limit = 100
     if broad_query_mode:
-        pool_limit = min(len(rows), max(limit * 3, limit + 8))
+        pool_limit = min(len(rows), max(broad_pool_limit, limit * 3, limit + 8))
         if cross_fair_mode:
             per_fair_gallery_cap = 1
         if recent_broad_history:
@@ -273,22 +275,62 @@ def _select_evidence_with_rotation(
         selected = _rotate_rows(selected, rotation_index)
         if selected and int(diversity_seed or 0) != 0:
             seed_value = abs(int(diversity_seed))
-            # Broad mode only: keep top anchors stable, diversify the near-top pool.
-            # This avoids reset-time lock-in while preserving quality.
-            anchor_count = min(3, len(selected), max(1, limit // 4))
-            span_cap = min(len(selected), max(limit + 6, min(limit * 2, 24)))
-            head = selected[:anchor_count]
-            tail = selected[anchor_count:span_cap]
-            if tail:
-                if kind == "artist":
-                    offset = (seed_value * 3) % len(tail)
-                elif kind == "exhibition":
-                    offset = (seed_value * 5) % len(tail)
-                else:
-                    offset = seed_value % len(tail)
-                if offset:
-                    tail = _rotate_rows(tail, offset)
-            selected = head + tail + selected[span_cap:]
+            rng = random.Random(
+                f"{seed_value}:{kind}:{cross_fair_mode}:{intent_focus}:{rotation_index}:{len(selected)}"
+            )
+            top_pool = list(selected[: min(len(selected), broad_pool_limit)])
+            rank_map = {id(row): idx for idx, row in enumerate(top_pool)}
+            sampled: List[dict] = []
+            gallery_counts: Dict[str, int] = {}
+            artist_counts: Dict[str, int] = {}
+            source_seen: set[str] = set()
+            gallery_cap = 2 if kind == "artist" else 1
+            artist_cap = 1
+
+            def _eligible(row: dict, strict: bool) -> bool:
+                source = normalize_url(str(row.get("source_url") or ""))
+                gallery = str(row.get("gallery") or "").strip()
+                artist = str(row.get("artist_name") or "").strip() if kind == "artist" else ""
+                if source and source in source_seen:
+                    return False
+                if strict and gallery and gallery_counts.get(gallery, 0) >= gallery_cap:
+                    return False
+                if strict and artist and artist_counts.get(artist, 0) >= artist_cap:
+                    return False
+                return True
+
+            while top_pool and len(sampled) < limit:
+                candidates = [row for row in top_pool if _eligible(row, strict=True)]
+                if not candidates:
+                    candidates = [row for row in top_pool if _eligible(row, strict=False)]
+                if not candidates:
+                    break
+                weighted = sorted(
+                    candidates,
+                    key=lambda row: (rank_map.get(id(row), 0), rng.random()),
+                )
+                pick_band = max(1, min(len(weighted), max(4, len(weighted) // 5)))
+                picked = weighted[rng.randrange(pick_band)]
+                sampled.append(picked)
+                top_pool.remove(picked)
+                source = normalize_url(str(picked.get("source_url") or ""))
+                gallery = str(picked.get("gallery") or "").strip()
+                artist = str(picked.get("artist_name") or "").strip() if kind == "artist" else ""
+                if source:
+                    source_seen.add(source)
+                if gallery:
+                    gallery_counts[gallery] = gallery_counts.get(gallery, 0) + 1
+                if artist:
+                    artist_counts[artist] = artist_counts.get(artist, 0) + 1
+
+            if len(sampled) < limit:
+                for row in selected:
+                    if row in sampled:
+                        continue
+                    sampled.append(row)
+                    if len(sampled) >= limit:
+                        break
+            selected = sampled
     return selected[:limit]
 
 
