@@ -1,0 +1,760 @@
+{
+  "question": "面白い作品コンセプトの作家をおしえて",
+  "generated_at": "2026-05-07T09:49:48.909062Z",
+  "retrieval_candidates": {
+    "top_exhibitions_scored": [
+      {
+        "title": "SUPRAINFINIT |  mechanisms of seduction, economies of exposure",
+        "gallery": "Suprainfinit",
+        "fair": "Liste Art Fair Basel",
+        "source_url": "https://www.suprainfinit.com/exhibitions/mechanisms-of-seduction-economies-of-exposure",
+        "score": 8,
+        "category": "exhibition",
+        "family": "advisor_text_evidence"
+      },
+      {
+        "title": "Divine Southgate-Smith – Navigator - Nicoletti",
+        "gallery": "Nicoletti",
+        "fair": "Liste Art Fair Basel",
+        "source_url": "https://nicoletticontemporary.com/2025/03/6163",
+        "score": 8,
+        "category": "exhibition",
+        "family": "advisor_text_evidence"
+      },
+      {
+        "title": "“I have lived on the land long before swords turned man into prey” | 27 September - 18 October 2025 - Overview | Selma F",
+        "gallery": "Selma Feriani",
+        "fair": "Frieze London",
+        "source_url": "https://www.selmaferiani.com/exhibitions/80-i-have-lived-on-the-land-long-before-zineb-sedira-kamal-aljafari-azzedine-saleck/overview",
+        "score": 7,
+        "category": "exhibition",
+        "family": "advisor_text_evidence"
+      },
+      {
+        "title": "whistle | Tenses",
+        "gallery": "Whistle",
+        "fair": "Liste Art Fair Basel",
+        "source_url": "https://whistlewhistle.kr/exhibitions/tenses",
+        "score": 7,
+        "category": "exhibition",
+        "family": "advisor_text_evidence"
+      },
+      {
+        "title": "whistle | Secret Asian Man Presents: 언니(unni)",
+        "gallery": "Whistle",
+        "fair": "Liste Art Fair Basel",
+        "source_url": "https://whistlewhistle.kr/ko/exhibitions/secret-asian-man-presents-unni",
+        "score": 7,
+        "category": "exhibition",
+        "family": "advisor_text_evidence"
+      },
+      {
+        "title": "whistle | Beauty as Formalism",
+        "gallery": "Whistle",
+        "fair": "Liste Art Fair Basel",
+        "source_url": "https://whistlewhistle.kr/exhibitions/beauty-as-formalism",
+        "score": 7,
+        "category": "exhibition",
+        "family": "advisor_text_evidence"
+      },
+      {
+        "title": "Who's Afraid of Red, Yellow and Blue - Adams and Ollman",
+        "gallery": "Adams and Ollman",
+        "fair": "Frieze London",
+        "source_url": "https://adamsandollman.com/Who-s-Afraid-of-Red-Yellow-and-Blue",
+        "score": 7,
+        "category": "exhibition",
+        "family": "advisor_text_evidence"
+      },
+      {
+        "title": "Supernature - Francesca Minini",
+        "gallery": "Francesca Minini",
+        "fair": "Frieze London",
+        "source_url": "https://www.francescaminini.it/exhibition/supernature?mobile=",
+        "score": 7,
+        "category": "exhibition",
+        "family": "advisor_text_evidence"
+      },
+      {
+        "title": "Louis Blue Newby - Reading in Bed",
+        "gallery": "Ehrlich Steinberg",
+        "fair": "Liste Art Fair Basel",
+        "source_url": "https://www.ehrlichsteinberg.com/reading-in-bed",
+        "score": 7,
+        "category": "exhibition",
+        "family": "advisor_text_evidence"
+      },
+      {
+        "title": "Life Hum | Margot Samel",
+        "gallery": "Margot Samel",
+        "fair": "Liste Art Fair Basel",
+        "source_url": "https://www.margotsamel.com/exhibition/life-hum",
+        "score": 7,
+        "category": "exhibition",
+        "family": "advisor_text_evidence"
+      },
+      {
+        "title": "Jose Dávila - Half Empty, Half Full - Almine Rech",
+        "gallery": "Almine Rech",
+        "fair": "Frieze London",
+        "source_url": "https://www.alminerech.com/exhibitions/10622-jose-davila-half-empty-half-full",
+        "score": 7,
+        "category": "exhibition",
+        "family": "advisor_text_evidence"
+      },
+      {
+        "title": "Ian Kiaer - health house — CHRIS SHARP",
+        "gallery": "Chris Sharp Gallery",
+        "fair": "Liste Art Fair Basel",
+        "source_url": "https://www.chrissharpgallery.com/ian-kiaer/health-house",
+        "score": 7,
+        "category": "exhibition",
+        "family": "advisor_text_evidence"
+      },
+      {
+        "title": "Houses without eyebrows",
+        "gallery": "Turnus",
+        "fair": "Liste Art Fair Basel",
+        "source_url": "https://turnus.fun/exhibition/houses-without-eyebrows",
+        "score": 7,
+        "category": "exhibition",
+        "family": "advisor_text_evidence"
+      },
+      {
+        "title": "Honeymoon. Happily ever after? - blank projects",
+        "gallery": "blank",
+        "fair": "Frieze London",
+        "source_url": "https://blankprojects.com/Honeymoon-Happily-ever-after",
+        "score": 7,
+        "category": "exhibition",
+        "family": "advisor_text_evidence"
+      },
+      {
+        "title": "Condo London 2025 - Brunette Coleman",
+        "gallery": "Brunette Coleman",
+        "fair": "Liste Art Fair Basel",
+        "source_url": "https://www.brunettecoleman.com/exhibitions/zazou-roddam-rachel-fath",
+        "score": 7,
+        "category": "exhibition",
+        "family": "advisor_text_evidence"
+      },
+      {
+        "title": "Body Count - blank projects",
+        "gallery": "blank",
+        "fair": "Frieze London",
+        "source_url": "https://blankprojects.com/Body-Count",
+        "score": 7,
+        "category": "exhibition",
+        "family": "advisor_text_evidence"
+      },
+      {
+        "title": "Beyond Sculpture | Group Exhibition | Exhibitions - Afriart Gallery",
+        "gallery": "Afriart Gallery",
+        "fair": "Liste Art Fair Basel",
+        "source_url": "https://afriartgallery.org/exhibitions/beyond-sculpture-group-exhibition",
+        "score": 7,
+        "category": "exhibition",
+        "family": "advisor_text_evidence"
+      },
+      {
+        "title": "4 Broken Walls – Anca Poterasu Gallery",
+        "gallery": "Anca Poteraşu Gallery",
+        "fair": "Liste Art Fair Basel",
+        "source_url": "https://www.ancapoterasu.com/expozitii/4-broken-walls",
+        "score": 7,
+        "category": "exhibition",
+        "family": "advisor_text_evidence"
+      },
+      {
+        "title": "whistle | Nest in the Field",
+        "gallery": "Whistle",
+        "fair": "Liste Art Fair Basel",
+        "source_url": "https://whistlewhistle.kr/exhibitions/nest-in-the-field",
+        "score": 6,
+        "category": "exhibition",
+        "family": "advisor_text_evidence"
+      },
+      {
+        "title": "whistle | Inaudible Garden",
+        "gallery": "Whistle",
+        "fair": "Liste Art Fair Basel",
+        "source_url": "https://whistlewhistle.kr/ko/exhibitions/inaudible-garden",
+        "score": 6,
+        "category": "exhibition",
+        "family": "advisor_text_evidence"
+      }
+    ],
+    "top_artists_scored": [
+      {
+        "artist": "Tizta Berhanu",
+        "gallery": "Addis Fine Art",
+        "fair": "Liste Art Fair Basel",
+        "source_url": "https://addisfineart.com/artists/79-tizta-berhanu/works",
+        "score": 8,
+        "category": "artist",
+        "family": "advisor_text_evidence"
+      },
+      {
+        "artist": "Tamar Mason",
+        "gallery": "Pippy Houldsworth Gallery",
+        "fair": "Frieze London",
+        "source_url": "https://www.houldsworth.co.uk/artists/45-tamar-mason/overview",
+        "score": 8,
+        "category": "artist",
+        "family": "advisor_text_evidence"
+      },
+      {
+        "artist": "Sandra Mujinga",
+        "gallery": "The Approach",
+        "fair": "Frieze London",
+        "source_url": "https://www.theapproach.co.uk/artists/sandra-mujinga",
+        "score": 8,
+        "category": "artist",
+        "family": "advisor_text_evidence"
+      },
+      {
+        "artist": "Robert Barry",
+        "gallery": "Francesca Minini",
+        "fair": "Frieze London",
+        "source_url": "https://www.francescaminini.it/artist/robert-barry-2/?mobile",
+        "score": 8,
+        "category": "artist",
+        "family": "advisor_text_evidence"
+      },
+      {
+        "artist": "Paulo Wirz",
+        "gallery": "Suprainfinit",
+        "fair": "Liste Art Fair Basel",
+        "source_url": "https://www.suprainfinit.com/artists/wirz",
+        "score": 8,
+        "category": "artist",
+        "family": "advisor_text_evidence"
+      },
+      {
+        "artist": "Michel François",
+        "gallery": "Xavier Hufkens",
+        "fair": "Frieze London",
+        "source_url": "https://www.xavierhufkens.com/artists/michel-francois",
+        "score": 8,
+        "category": "artist",
+        "family": "advisor_text_evidence"
+      },
+      {
+        "artist": "Luke Diiorio",
+        "gallery": "Pippy Houldsworth Gallery",
+        "fair": "Frieze London",
+        "source_url": "https://www.houldsworth.co.uk/artists/36-luke-diiorio/overview",
+        "score": 8,
+        "category": "artist",
+        "family": "advisor_text_evidence"
+      },
+      {
+        "artist": "Koh San Keum",
+        "gallery": "Gallery Baton",
+        "fair": "Frieze London",
+        "source_url": "https://gallerybaton.com/artists/53-koh-san-keum",
+        "score": 8,
+        "category": "artist",
+        "family": "advisor_text_evidence"
+      },
+      {
+        "artist": "Jung Kwang Ho",
+        "gallery": "Johyun Gallery",
+        "fair": "Frieze London",
+        "source_url": "https://www.johyungallery.com/artists/44-jung-kwang-ho/overview",
+        "score": 8,
+        "category": "artist",
+        "family": "advisor_text_evidence"
+      },
+      {
+        "artist": "John Stezaker",
+        "gallery": "The Approach",
+        "fair": "Frieze London",
+        "source_url": "https://www.theapproach.co.uk/artists/john-stezaker",
+        "score": 8,
+        "category": "artist",
+        "family": "advisor_text_evidence"
+      },
+      {
+        "artist": "Elena Tejada Herrera",
+        "gallery": "Livia Benavides",
+        "fair": "Frieze London",
+        "source_url": "https://liviabenavides.com/artistas/elena-tejada-herrera",
+        "score": 8,
+        "category": "artist",
+        "family": "advisor_text_evidence"
+      },
+      {
+        "artist": "Danh Vō",
+        "gallery": "Xavier Hufkens",
+        "fair": "Frieze London",
+        "source_url": "https://www.xavierhufkens.com/artists/danh-vo",
+        "score": 8,
+        "category": "artist",
+        "family": "advisor_text_evidence"
+      },
+      {
+        "artist": "Claude Viallat",
+        "gallery": "Johyun Gallery",
+        "fair": "Frieze London",
+        "source_url": "https://www.johyungallery.com/artists/37-claude-viallat/overview",
+        "score": 8,
+        "category": "artist",
+        "family": "advisor_text_evidence"
+      },
+      {
+        "artist": "Candace Hill Montgomery",
+        "gallery": "Hollybush Gardens",
+        "fair": "Frieze London",
+        "source_url": "https://hollybushgardens.co.uk/artists/candace-hill-montgomery",
+        "score": 8,
+        "category": "artist",
+        "family": "advisor_text_evidence"
+      },
+      {
+        "artist": "Aurora Kiraly",
+        "gallery": "Anca Poteraşu Gallery",
+        "fair": "Liste Art Fair Basel",
+        "source_url": "https://www.ancapoterasu.com/artists/aurora-kiraly",
+        "score": 8,
+        "category": "artist",
+        "family": "advisor_text_evidence"
+      },
+      {
+        "artist": "Virginia Chihota",
+        "gallery": "Tiwani Contemporary",
+        "fair": "Liste Art Fair Basel",
+        "source_url": "https://www.tiwani.co.uk/artists/31-virginia-chihota",
+        "score": 7,
+        "category": "artist",
+        "family": "advisor_text_evidence"
+      },
+      {
+        "artist": "Trinh Cam Nhi",
+        "gallery": "A+ Works of Art",
+        "fair": "Liste Art Fair Basel",
+        "source_url": "https://aplusart.asia/artists/85-trinh-cam-nhi",
+        "score": 7,
+        "category": "artist",
+        "family": "advisor_text_evidence"
+      },
+      {
+        "artist": "Tomokazu Matsuyama",
+        "gallery": "Almine Rech",
+        "fair": "Frieze London",
+        "source_url": "https://www.alminerech.com/artists/7720-tomokazu-matsuyama",
+        "score": 7,
+        "category": "artist",
+        "family": "advisor_text_evidence"
+      },
+      {
+        "artist": "Tatsuo Miyajima",
+        "gallery": "Gallery Baton",
+        "fair": "Frieze London",
+        "source_url": "https://gallerybaton.com/artists/38-tatsuo-miyajima",
+        "score": 7,
+        "category": "artist",
+        "family": "advisor_text_evidence"
+      },
+      {
+        "artist": "Srijon Chowdhury",
+        "gallery": "Ciaccia Levi",
+        "fair": "Liste Art Fair Basel",
+        "source_url": "https://ciaccialevi.com/artists/srijon-chowdhury",
+        "score": 7,
+        "category": "artist",
+        "family": "advisor_text_evidence"
+      }
+    ],
+    "artwork": {
+      "used_in_advisor_pipeline": false,
+      "reason": "build_advisor_grounded_context uses only exhibition + artist loaders, not artwork search"
+    }
+  },
+  "llm_context_candidates": {
+    "exhibition_evidence": [
+      {
+        "title": "SUPRAINFINIT |  mechanisms of seduction, economies of exposure",
+        "gallery": "Suprainfinit",
+        "fair": "Liste Art Fair Basel",
+        "source_url": "https://www.suprainfinit.com/exhibitions/mechanisms-of-seduction-economies-of-exposure",
+        "category": "exhibition",
+        "family": "advisor_context"
+      },
+      {
+        "title": "Jose Dávila - Half Empty, Half Full - Almine Rech",
+        "gallery": "Almine Rech",
+        "fair": "Frieze London",
+        "source_url": "https://www.alminerech.com/exhibitions/10622-jose-davila-half-empty-half-full",
+        "category": "exhibition",
+        "family": "advisor_context"
+      },
+      {
+        "title": "Divine Southgate-Smith – Navigator - Nicoletti",
+        "gallery": "Nicoletti",
+        "fair": "Liste Art Fair Basel",
+        "source_url": "https://nicoletticontemporary.com/2025/03/6163",
+        "category": "exhibition",
+        "family": "advisor_context"
+      },
+      {
+        "title": "Supernature - Francesca Minini",
+        "gallery": "Francesca Minini",
+        "fair": "Frieze London",
+        "source_url": "https://www.francescaminini.it/exhibition/supernature?mobile=",
+        "category": "exhibition",
+        "family": "advisor_context"
+      },
+      {
+        "title": "Life Hum | Margot Samel",
+        "gallery": "Margot Samel",
+        "fair": "Liste Art Fair Basel",
+        "source_url": "https://www.margotsamel.com/exhibition/life-hum",
+        "category": "exhibition",
+        "family": "advisor_context"
+      },
+      {
+        "title": "“I have lived on the land long before swords turned man into prey” | 27 September - 18 October 2025 - Overview | Selma F",
+        "gallery": "Selma Feriani",
+        "fair": "Frieze London",
+        "source_url": "https://www.selmaferiani.com/exhibitions/80-i-have-lived-on-the-land-long-before-zineb-sedira-kamal-aljafari-azzedine-saleck/overview",
+        "category": "exhibition",
+        "family": "advisor_context"
+      },
+      {
+        "title": "Ian Kiaer - health house — CHRIS SHARP",
+        "gallery": "Chris Sharp Gallery",
+        "fair": "Liste Art Fair Basel",
+        "source_url": "https://www.chrissharpgallery.com/ian-kiaer/health-house",
+        "category": "exhibition",
+        "family": "advisor_context"
+      },
+      {
+        "title": "Honeymoon. Happily ever after? - blank projects",
+        "gallery": "blank",
+        "fair": "Frieze London",
+        "source_url": "https://blankprojects.com/Honeymoon-Happily-ever-after",
+        "category": "exhibition",
+        "family": "advisor_context"
+      },
+      {
+        "title": "Condo London 2025 - Brunette Coleman",
+        "gallery": "Brunette Coleman",
+        "fair": "Liste Art Fair Basel",
+        "source_url": "https://www.brunettecoleman.com/exhibitions/zazou-roddam-rachel-fath",
+        "category": "exhibition",
+        "family": "advisor_context"
+      },
+      {
+        "title": "Erin Wright: Mapping the Middle - ANAT EBGI GALLERY",
+        "gallery": "Anat Ebgi",
+        "fair": "Frieze London",
+        "source_url": "https://anatebgi.com/exhibitions/erin-wright-mapping-the-middle",
+        "category": "exhibition",
+        "family": "advisor_context"
+      },
+      {
+        "title": "whistle | Secret Asian Man Presents: 언니(unni)",
+        "gallery": "Whistle",
+        "fair": "Liste Art Fair Basel",
+        "source_url": "https://whistlewhistle.kr/ko/exhibitions/secret-asian-man-presents-unni",
+        "category": "exhibition",
+        "family": "advisor_context"
+      },
+      {
+        "title": "Who's Afraid of Red, Yellow and Blue - Adams and Ollman",
+        "gallery": "Adams and Ollman",
+        "fair": "Frieze London",
+        "source_url": "https://adamsandollman.com/Who-s-Afraid-of-Red-Yellow-and-Blue",
+        "category": "exhibition",
+        "family": "advisor_context"
+      },
+      {
+        "title": "Houses without eyebrows",
+        "gallery": "Turnus",
+        "fair": "Liste Art Fair Basel",
+        "source_url": "https://turnus.fun/exhibition/houses-without-eyebrows",
+        "category": "exhibition",
+        "family": "advisor_context"
+      },
+      {
+        "title": "Art Basel Miami Plus: Additional Works From This Year's Featured Artists | December 5, 2025—January 5, 2026  | David Zwi",
+        "gallery": "David Zwirner",
+        "fair": "Frieze London",
+        "source_url": "https://www.davidzwirner.com/exhibitions/2025/art-basel-miami-beach-plus",
+        "category": "exhibition",
+        "family": "advisor_context"
+      }
+    ],
+    "artist_evidence": [
+      {
+        "artist": "Jung Kwang Ho",
+        "gallery": "Johyun Gallery",
+        "fair": "Frieze London",
+        "source_url": "https://www.johyungallery.com/artists/44-jung-kwang-ho/overview",
+        "category": "artist",
+        "family": "advisor_context"
+      },
+      {
+        "artist": "Paulo Wirz",
+        "gallery": "Suprainfinit",
+        "fair": "Liste Art Fair Basel",
+        "source_url": "https://www.suprainfinit.com/artists/wirz",
+        "category": "artist",
+        "family": "advisor_context"
+      },
+      {
+        "artist": "Robert Barry",
+        "gallery": "Francesca Minini",
+        "fair": "Frieze London",
+        "source_url": "https://www.francescaminini.it/artist/robert-barry-2/?mobile",
+        "category": "artist",
+        "family": "advisor_context"
+      },
+      {
+        "artist": "Aurora Kiraly",
+        "gallery": "Anca Poteraşu Gallery",
+        "fair": "Liste Art Fair Basel",
+        "source_url": "https://www.ancapoterasu.com/artists/aurora-kiraly",
+        "category": "artist",
+        "family": "advisor_context"
+      },
+      {
+        "artist": "Danh Vō",
+        "gallery": "Xavier Hufkens",
+        "fair": "Frieze London",
+        "source_url": "https://www.xavierhufkens.com/artists/danh-vo",
+        "category": "artist",
+        "family": "advisor_context"
+      },
+      {
+        "artist": "Tizta Berhanu",
+        "gallery": "Addis Fine Art",
+        "fair": "Liste Art Fair Basel",
+        "source_url": "https://addisfineart.com/artists/79-tizta-berhanu/works",
+        "category": "artist",
+        "family": "advisor_context"
+      },
+      {
+        "artist": "Luke Diiorio",
+        "gallery": "Pippy Houldsworth Gallery",
+        "fair": "Frieze London",
+        "source_url": "https://www.houldsworth.co.uk/artists/36-luke-diiorio/overview",
+        "category": "artist",
+        "family": "advisor_context"
+      },
+      {
+        "artist": "DAI Zhankun",
+        "gallery": "Vanguard Gallery",
+        "fair": "Liste Art Fair Basel",
+        "source_url": "https://www.vanguardgallery.com/artists/dai-zhankun",
+        "category": "artist",
+        "family": "advisor_context"
+      },
+      {
+        "artist": "Candace Hill Montgomery",
+        "gallery": "Hollybush Gardens",
+        "fair": "Frieze London",
+        "source_url": "https://hollybushgardens.co.uk/artists/candace-hill-montgomery",
+        "category": "artist",
+        "family": "advisor_context"
+      },
+      {
+        "artist": "Julia Scher",
+        "gallery": "Drei",
+        "fair": "Liste Art Fair Basel",
+        "source_url": "https://drei.cologne/artists/julia-scher",
+        "category": "artist",
+        "family": "advisor_context"
+      },
+      {
+        "artist": "Elena Tejada Herrera",
+        "gallery": "Livia Benavides",
+        "fair": "Frieze London",
+        "source_url": "https://liviabenavides.com/artistas/elena-tejada-herrera",
+        "category": "artist",
+        "family": "advisor_context"
+      },
+      {
+        "artist": "Anna Irina Russell",
+        "gallery": "Bombon",
+        "fair": "Liste Art Fair Basel",
+        "source_url": "https://www.bombonprojects.com/collaborators/anna-irina-russell",
+        "category": "artist",
+        "family": "advisor_context"
+      },
+      {
+        "artist": "Ceal Floyer",
+        "gallery": "Esther Schipper",
+        "fair": "Frieze London",
+        "source_url": "https://www.estherschipper.com/artists/37-ceal-floyer",
+        "category": "artist",
+        "family": "advisor_context"
+      },
+      {
+        "artist": "Virginia Chihota",
+        "gallery": "Tiwani Contemporary",
+        "fair": "Liste Art Fair Basel",
+        "source_url": "https://www.tiwani.co.uk/artists/31-virginia-chihota",
+        "category": "artist",
+        "family": "advisor_context"
+      }
+    ],
+    "selection_flags": {
+      "fair_label": "Frieze London + Liste Art Fair Basel",
+      "year": 2025,
+      "reference_year_display": "2025",
+      "tokens": [
+        "面白い作品コンセプトの作家をおしえて",
+        "面白い作品コンセプト",
+        "面白",
+        "作品",
+        "コンセプト",
+        "作家"
+      ],
+      "cross_fair_mode": true,
+      "broad_query_mode": true,
+      "ideation_query": true,
+      "intent_focus": "concept",
+      "artist_intent_focus": "concept",
+      "rotation_index": 0,
+      "recent_broad_history": [],
+      "grounded_anchor_count": 2038
+    }
+  },
+  "displayed_reference_candidates": {
+    "selection_mode": "_select_reference_entities_for_output(context, selected_entities_from_answer)",
+    "simulated_without_answer_mentions": [
+      {
+        "kind": "artist",
+        "label": "Tizta Berhanu",
+        "gallery": "Addis Fine Art",
+        "fair": "Liste Art Fair Basel",
+        "source_url": "https://addisfineart.com/artists/79-tizta-berhanu/works",
+        "mention_order": 0,
+        "evidence_rank": 6,
+        "category": "artist",
+        "family": "advisor_reference_output"
+      },
+      {
+        "kind": "exhibition",
+        "label": "Life Hum | Margot Samel",
+        "gallery": "Margot Samel",
+        "fair": "Liste Art Fair Basel",
+        "source_url": "https://www.margotsamel.com/exhibition/life-hum",
+        "mention_order": 0,
+        "evidence_rank": 5,
+        "category": "exhibition",
+        "family": "advisor_reference_output"
+      },
+      {
+        "kind": "exhibition",
+        "label": "Jose Dávila - Half Empty, Half Full - Almine Rech",
+        "gallery": "Almine Rech",
+        "fair": "Frieze London",
+        "source_url": "https://www.alminerech.com/exhibitions/10622-jose-davila-half-empty-half-full",
+        "mention_order": 0,
+        "evidence_rank": 2,
+        "category": "exhibition",
+        "family": "advisor_reference_output"
+      },
+      {
+        "kind": "artist",
+        "label": "Aurora Kiraly",
+        "gallery": "Anca Poteraşu Gallery",
+        "fair": "Liste Art Fair Basel",
+        "source_url": "https://www.ancapoterasu.com/artists/aurora-kiraly",
+        "mention_order": 0,
+        "evidence_rank": 4,
+        "category": "artist",
+        "family": "advisor_reference_output"
+      },
+      {
+        "kind": "artist",
+        "label": "Robert Barry",
+        "gallery": "Francesca Minini",
+        "fair": "Frieze London",
+        "source_url": "https://www.francescaminini.it/artist/robert-barry-2/?mobile",
+        "mention_order": 0,
+        "evidence_rank": 3,
+        "category": "artist",
+        "family": "advisor_reference_output"
+      },
+      {
+        "kind": "exhibition",
+        "label": "Honeymoon. Happily ever after? - blank projects",
+        "gallery": "blank",
+        "fair": "Frieze London",
+        "source_url": "https://blankprojects.com/Honeymoon-Happily-ever-after",
+        "mention_order": 0,
+        "evidence_rank": 8,
+        "category": "exhibition",
+        "family": "advisor_reference_output"
+      },
+      {
+        "kind": "exhibition",
+        "label": "SUPRAINFINIT |  mechanisms of seduction, economies of exposure",
+        "gallery": "Suprainfinit",
+        "fair": "Liste Art Fair Basel",
+        "source_url": "https://www.suprainfinit.com/exhibitions/mechanisms-of-seduction-economies-of-exposure",
+        "mention_order": 0,
+        "evidence_rank": 1,
+        "category": "exhibition",
+        "family": "advisor_reference_output"
+      },
+      {
+        "kind": "artist",
+        "label": "Elena Tejada Herrera",
+        "gallery": "Livia Benavides",
+        "fair": "Frieze London",
+        "source_url": "https://liviabenavides.com/artistas/elena-tejada-herrera",
+        "mention_order": 0,
+        "evidence_rank": 11,
+        "category": "artist",
+        "family": "advisor_reference_output"
+      }
+    ],
+    "reference_examples_lines": [
+      "- [Tizta Berhanu](https://www.google.com/search?tbm=isch&q=Tizta+Berhanu+art)（ティズタ・ベルハヌ）",
+      "- [Life Hum | Margot Samel](https://www.margotsamel.com/exhibition/life-hum)",
+      "- [Jose Dávila - Half Empty, Half Full - Almine Rech](https://www.alminerech.com/exhibitions/10622-jose-davila-half-empty-half-full)",
+      "- [Aurora Kiraly](https://www.google.com/search?tbm=isch&q=Aurora+Kiraly+art)（オーロラ・キラーイ）",
+      "- [Robert Barry](https://www.google.com/search?tbm=isch&q=Robert+Barry+art)（ロバート・バリー）",
+      "- [Honeymoon. Happily ever after? - blank projects](https://blankprojects.com/Honeymoon-Happily-ever-after)",
+      "- [SUPRAINFINIT |  mechanisms of seduction, economies of exposure](https://www.suprainfinit.com/exhibitions/mechanisms-of-seduction-economies-of-exposure)",
+      "- [Elena Tejada Herrera](https://www.google.com/search?tbm=isch&q=Elena+Tejada+Herrera+art)（エレナ・テハダ・エレラ）"
+    ]
+  },
+  "answer_named_entities_if_extracted": {
+    "available": false,
+    "reason": "Screenshot answer text not present in repository/session artifacts",
+    "entities": []
+  },
+  "mismatch_summary": {
+    "candidate_pool_size": 54,
+    "llm_context_total": 28,
+    "display_reference_total": 8,
+    "note": "Reference candidates are selected from context evidence candidates with diversification/randomized band logic, not strict answer-mention-only mapping."
+  },
+  "cause_classification": {
+    "primary": "D/E/F",
+    "secondary": [
+      "B(partial: followup refresh path only)",
+      "H"
+    ],
+    "details": [
+      "Answer and reference draw from same evidence pool in initial run, but reference selection is intentionally decoupled from exact answer mentions.",
+      "Broad mode applies diversified/randomized reference picking; order can differ from answer narrative order.",
+      "Reference cards can mix artist/exhibition types, reducing one-to-one readability with prose answer.",
+      "Follow-up flow can refresh references with separate patch retrieval, but this does not apply to initial question unless follow-up was used."
+    ]
+  },
+  "next_task_recommendation": {
+    "target_files": [
+      "phase2_advisor_draft.py",
+      "app.py",
+      "phase2_advisor_readonly.py"
+    ],
+    "direction": "Align displayed reference set with entities actually used/mentioned in final answer first, then fill remaining slots from context with stable deterministic tie-break while preserving non-template answer freedom."
+  }
+}

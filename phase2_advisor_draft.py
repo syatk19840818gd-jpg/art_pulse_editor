@@ -4,7 +4,6 @@ import ast
 import hashlib
 import json
 import os
-import random
 import re
 from base64 import b64encode
 from typing import Dict, List, Tuple
@@ -993,7 +992,7 @@ def _select_reference_entities_for_output(
     context: Dict[str, object],
     selected_entities: List[dict],
 ) -> List[dict]:
-    # 本文リンク(selected_entities)と分離し、参照例/参照画像は evidence 起点で組む。
+    # 参照例は回答本文で使った entity を第1優先にし、不足枠のみ evidence から補完する。
     selection = context.get("selection", {}) if isinstance(context, dict) else {}
     question_focus = str(selection.get("intent_focus") or "").strip()
     broad_reference_mode = bool(
@@ -1026,12 +1025,12 @@ def _select_reference_entities_for_output(
         local_path = str(item.get("local_path") or "").strip()
         r2_key = str(item.get("r2_key") or "").strip()
         image_url = str(item.get("image_url") or "").strip()
-        has_image = bool(local_path or r2_key or image_url)
-        if not (kind and label and link_url and has_image):
+        if not (kind and label and link_url):
             continue
         dedup_key = (kind, label, link_url, source_url)
         if dedup_key in mention_order_map:
             item["mention_order"] = mention_order_map[dedup_key]
+        item["has_image"] = bool(local_path or r2_key or image_url)
         item["display_label"] = label
         item["_tiebreak_seed"] = int.from_bytes(
             hashlib.blake2b(
@@ -1074,6 +1073,53 @@ def _select_reference_entities_for_output(
         for candidate in remaining
         if str(candidate.get("kind") or "").strip()
     }
+
+    def _candidate_dedup_key(candidate: dict) -> tuple[str, str, str, str]:
+        return (
+            str(candidate.get("kind") or "").strip(),
+            str(candidate.get("display_label") or candidate.get("label") or "").strip(),
+            str(candidate.get("link_url") or "").strip(),
+            str(candidate.get("source_url") or "").strip(),
+        )
+
+    def _apply_selected_counts(chosen: dict) -> None:
+        source_url = str(chosen.get("source_url") or "").strip()
+        gallery = str(chosen.get("gallery") or "").strip()
+        fair = str(chosen.get("fair_label") or "").strip()
+        kind = str(chosen.get("kind") or "").strip()
+        if source_url:
+            source_counts[source_url] = source_counts.get(source_url, 0) + 1
+        if gallery:
+            gallery_counts[gallery] = gallery_counts.get(gallery, 0) + 1
+        if fair:
+            fair_counts[fair] = fair_counts.get(fair, 0) + 1
+        if kind:
+            kind_counts[kind] = kind_counts.get(kind, 0) + 1
+
+    if mention_order_map:
+        prioritized: List[dict] = []
+        for candidate in remaining:
+            dedup_key = _candidate_dedup_key(candidate)
+            mention_order = mention_order_map.get(dedup_key)
+            if mention_order is None:
+                continue
+            item = dict(candidate)
+            item["mention_order"] = int(mention_order)
+            prioritized.append(item)
+        prioritized.sort(
+            key=lambda c: (
+                int(c.get("mention_order") or 999),
+                int(c.get("evidence_rank") or 999),
+                -int(c.get("_tiebreak_seed") or 0),
+            )
+        )
+        prioritized_keys = {_candidate_dedup_key(c) for c in prioritized}
+        remaining = [c for c in remaining if _candidate_dedup_key(c) not in prioritized_keys]
+        for candidate in prioritized:
+            if len(selected) >= ADVISOR_REF_IMAGE_TOTAL:
+                break
+            selected.append(candidate)
+            _apply_selected_counts(candidate)
 
     def _base_score(candidate: dict) -> int:
         kind = str(candidate.get("kind") or "").strip()
@@ -1160,45 +1206,11 @@ def _select_reference_entities_for_output(
             break
         scored_candidates.sort(key=lambda item: item[3], reverse=True)
         best_index = scored_candidates[0][0]
-        if broad_reference_mode:
-            top_score = scored_candidates[0][2]
-            near_score_band = max(6, min(16, (max(top_score, 0) // 12) + 4))
-            weighted_band = [
-                item for item in scored_candidates if (top_score - item[2]) <= near_score_band
-            ]
-            band_size = min(len(scored_candidates), max(6, min(12, ADVISOR_REF_IMAGE_TOTAL * 2)))
-            if len(weighted_band) < band_size:
-                weighted_band = list(scored_candidates[:band_size])
-            if len(weighted_band) >= 2:
-                band_floor = min(item[2] for item in weighted_band)
-                total_weight = 0.0
-                weighted_rows: List[tuple[float, int]] = []
-                for idx, candidate, score, _sort_key in weighted_band:
-                    weight = float(max(1, (score - band_floor) + 1))
-                    total_weight += weight
-                    weighted_rows.append((total_weight, idx))
-                if total_weight > 0:
-                    draw = random.random() * total_weight
-                    for cumulative_weight, idx in weighted_rows:
-                        if draw <= cumulative_weight:
-                            best_index = idx
-                            break
         if best_index < 0:
             break
         chosen = remaining.pop(best_index)
         selected.append(chosen)
-        source_url = str(chosen.get("source_url") or "").strip()
-        gallery = str(chosen.get("gallery") or "").strip()
-        fair = str(chosen.get("fair_label") or "").strip()
-        kind = str(chosen.get("kind") or "").strip()
-        if source_url:
-            source_counts[source_url] = source_counts.get(source_url, 0) + 1
-        if gallery:
-            gallery_counts[gallery] = gallery_counts.get(gallery, 0) + 1
-        if fair:
-            fair_counts[fair] = fair_counts.get(fair, 0) + 1
-        if kind:
-            kind_counts[kind] = kind_counts.get(kind, 0) + 1
+        _apply_selected_counts(chosen)
     return selected
 
 

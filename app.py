@@ -30,6 +30,7 @@ from phase2_advisor_draft import (
     _ensure_natural_ending,
     _ensure_plain_answer_text,
     _normalize_answer_text,
+    _select_entities_for_answer,
     _select_reference_entities_for_output,
     generate_advisor_grounded_draft,
 )
@@ -3218,6 +3219,31 @@ def render_advisor() -> None:
                 followup_answer = str(followup_result.get("answer") or "").strip()
                 if not followup_answer:
                     raise ValueError("empty_followup_answer")
+                followup_stage = "reference_sync_from_answer"
+                followup_selected_entities = _select_entities_for_answer(
+                    followup_answer,
+                    advisor_reference_context,
+                )
+                followup_reference_entities = _select_reference_entities_for_output(
+                    advisor_reference_context,
+                    followup_selected_entities,
+                )
+                followup_reference_examples = _build_art_pulse_style_reference_lines(followup_reference_entities)
+                followup_reference_images = _build_reference_images(followup_reference_entities)
+                followup_reference_urls: list[str] = []
+                followup_seen_urls = set()
+                for entity in followup_reference_entities:
+                    source_url = str(entity.get("source_url") or "").strip()
+                    if not source_url or source_url in followup_seen_urls:
+                        continue
+                    followup_seen_urls.add(source_url)
+                    followup_reference_urls.append(source_url)
+                    if len(followup_reference_urls) >= 8:
+                        break
+                st.session_state["advisor_followup_reference_examples"] = list(followup_reference_examples)
+                st.session_state["advisor_followup_reference_images"] = dict(followup_reference_images or {})
+                base_payload["current_reference_examples"] = list(followup_reference_examples)
+                base_payload["current_reference_urls"] = list(followup_reference_urls)
                 updated_turns = (
                     followup_turns
                     + [{"question": followup_question.strip(), "answer": followup_answer}]
