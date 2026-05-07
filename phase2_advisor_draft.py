@@ -1334,57 +1334,171 @@ def _build_selected_entity_candidates(context: Dict[str, object]) -> List[dict]:
     return candidates
 
 
-def _select_entities_for_answer(answer: str, context: Dict[str, object]) -> List[dict]:
-    def _normalize_alias_text(value: object) -> str:
-        text = unicodedata.normalize("NFKC", str(value or ""))
-        text = re.sub(r"[\s\u3000]+", " ", text).strip()
-        return text
+def _normalize_entity_alias_text(value: object) -> str:
+    text = unicodedata.normalize("NFKC", str(value or ""))
+    text = (
+        text.replace("“", '"')
+        .replace("”", '"')
+        .replace("‘", "'")
+        .replace("’", "'")
+    )
+    text = re.sub(r"[\s\u3000]+", " ", text).strip()
+    return text
 
-    def _candidate_aliases(candidate: dict) -> List[str]:
-        aliases: List[str] = []
-        seeds = [str(candidate.get("label") or "").strip()]
-        if str(candidate.get("kind") or "").strip() == "artist":
-            seeds.append(str(candidate.get("artist_name_kana") or "").strip())
-        for seed in seeds:
-            base = _normalize_alias_text(seed)
-            if not base:
+
+def _alias_compact_key(value: object) -> str:
+    text = _normalize_entity_alias_text(value)
+    return re.sub(r"[ \u3000・･\-‐‑‒–—\"'`「」『』()（）\[\]{}<>]+", "", text).strip().lower()
+
+
+def _is_generic_exhibition_alias(value: object) -> bool:
+    text = _normalize_entity_alias_text(value)
+    compact = _alias_compact_key(text)
+    if not compact:
+        return True
+    blocked = {
+        "exhibition",
+        "show",
+        "solo",
+        "soloshow",
+        "soloexhibition",
+        "individualexhibition",
+        "groupexhibition",
+        "pastworks",
+        "works",
+        "individualshow",
+        "個展",
+        "展示",
+        "展覧会",
+        "企画展",
+        "グループ展",
+        "作品",
+    }
+    if compact in blocked:
+        return True
+    if compact.isdigit():
+        return True
+    if len(compact) <= 2:
+        return True
+    if len(compact) <= 3 and re.fullmatch(r"[a-z]+", compact):
+        return True
+    return False
+
+
+def _collect_exhibition_alias_seeds(entity: dict) -> List[str]:
+    seeds: List[str] = []
+    for key in ("label", "display_label", "title", "exhibition_title"):
+        value = str(entity.get(key) or "").strip()
+        if value:
+            seeds.append(value)
+
+    for value in list(seeds):
+        for token in re.split(r"\s*(?:[:：|/／]|\s+[‐‑‒–—-]\s+)\s*", value):
+            token = _normalize_entity_alias_text(token)
+            if token:
+                seeds.append(token)
+
+        for pattern in (
+            r"[\"“”'‘’「『]([^\"“”'‘’」』]{3,80})[\"“”'‘’」』]",
+            r"[（(]([^()（）]{3,80})[）)]",
+        ):
+            for match in re.finditer(pattern, value):
+                token = _normalize_entity_alias_text(match.group(1))
+                if token:
+                    seeds.append(token)
+
+    cleaned: List[str] = []
+    seen = set()
+    for seed in seeds:
+        val = _normalize_entity_alias_text(seed)
+        if not val:
+            continue
+        val = re.sub(
+            r"^(?:solo\s+exhibition|individual\s+exhibition|group\s+exhibition|exhibition|show|個展|展示|展覧会|企画展)\s*[:：\-‐‑‒–—]?\s*",
+            "",
+            val,
+            flags=re.IGNORECASE,
+        ).strip()
+        if not val:
+            continue
+        key = val.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        cleaned.append(val)
+    return cleaned
+
+
+def _build_entity_aliases(entity: dict) -> List[str]:
+    kind = str(entity.get("kind") or "").strip()
+    seeds: List[str] = []
+    matched_alias = str(entity.get("matched_alias") or "").strip()
+    if matched_alias:
+        seeds.append(matched_alias)
+    label = str(entity.get("label") or "").strip()
+    if label:
+        seeds.append(label)
+
+    if kind == "artist":
+        kana = str(entity.get("artist_name_kana") or "").strip()
+        if kana:
+            seeds.append(kana)
+    elif kind == "exhibition":
+        seeds.extend(_collect_exhibition_alias_seeds(entity))
+
+    aliases: List[str] = []
+    seen = set()
+    for seed in seeds:
+        base = _normalize_entity_alias_text(seed)
+        if not base:
+            continue
+        variants = [
+            base,
+            base.replace("・", " "),
+            base.replace(" ", "・"),
+            base.replace("・", "").replace(" ", ""),
+        ]
+        for alias in variants:
+            cleaned = _normalize_entity_alias_text(alias)
+            if not cleaned:
                 continue
-            variants = [
-                base,
-                base.replace("・", " "),
-                base.replace(" ", "・"),
-                base.replace("・", "").replace(" ", ""),
-            ]
-            for alias in variants:
-                cleaned = _normalize_alias_text(alias)
-                compact = cleaned.replace(" ", "").replace("・", "")
+            compact = _alias_compact_key(cleaned)
+            if kind == "artist":
                 if len(compact) < 2:
                     continue
-                if cleaned not in aliases:
-                    aliases.append(cleaned)
-        return aliases
+            else:
+                if len(compact) < 3 or _is_generic_exhibition_alias(cleaned):
+                    continue
+            if cleaned in seen:
+                continue
+            seen.add(cleaned)
+            aliases.append(cleaned)
+    return aliases
 
-    def _find_alias_span(text: str, alias: str) -> tuple[int, int] | None:
-        if not text or not alias:
-            return None
-        direct = text.find(alias)
-        if direct >= 0:
-            return direct, direct + len(alias)
-        tokens = [token for token in re.split(r"[ \u3000・･]+", alias) if token]
-        flags = re.IGNORECASE if re.search(r"[A-Za-z]", alias) else 0
-        if len(tokens) >= 2:
-            pattern = r"[ \u3000・･\-‐‑‒–—]*".join(re.escape(token) for token in tokens)
-            match = re.search(pattern, text, flags=flags)
-            if match:
-                return int(match.start()), int(match.end())
-        compact = re.sub(r"[ \u3000・･\-‐‑‒–—]+", "", alias)
-        if len(compact) >= 3:
-            pattern = r"[ \u3000・･\-‐‑‒–—]*".join(re.escape(ch) for ch in compact)
-            match = re.search(pattern, text, flags=flags)
-            if match:
-                return int(match.start()), int(match.end())
+
+def _find_entity_alias_span(text: str, alias: str) -> tuple[int, int] | None:
+    if not text or not alias:
         return None
+    direct = text.find(alias)
+    if direct >= 0:
+        return direct, direct + len(alias)
+    tokens = [token for token in re.split(r"[ \u3000・･]+", alias) if token]
+    flags = re.IGNORECASE if re.search(r"[A-Za-z]", alias) else 0
+    if len(tokens) >= 2:
+        pattern = r"[ \u3000・･\-‐‑‒–—\"'`“”‘’（）()]*".join(re.escape(token) for token in tokens)
+        match = re.search(pattern, text, flags=flags)
+        if match:
+            return int(match.start()), int(match.end())
+    compact = re.sub(r"[ \u3000・･\-‐‑‒–—\"'`“”‘’（）()]+", "", alias)
+    if len(compact) >= 3:
+        pattern = r"[ \u3000・･\-‐‑‒–—\"'`“”‘’（）()]*".join(re.escape(ch) for ch in compact)
+        match = re.search(pattern, text, flags=flags)
+        if match:
+            return int(match.start()), int(match.end())
+    return None
 
+
+def _select_entities_for_answer(answer: str, context: Dict[str, object]) -> List[dict]:
     plain_answer = _plain_answer_text(answer)
     matches: List[tuple[int, int, int, int, dict, str]] = []
     for candidate in _build_selected_entity_candidates(context):
@@ -1393,8 +1507,8 @@ def _select_entities_for_answer(answer: str, context: Dict[str, object]) -> List
             continue
         best_span: tuple[int, int] | None = None
         best_alias = ""
-        for alias in _candidate_aliases(candidate):
-            span = _find_alias_span(plain_answer, alias)
+        for alias in _build_entity_aliases(candidate):
+            span = _find_entity_alias_span(plain_answer, alias)
             if span is None:
                 continue
             if best_span is None or span[0] < best_span[0] or (span[0] == best_span[0] and (span[1] - span[0]) > (best_span[1] - best_span[0])):
@@ -1722,59 +1836,6 @@ def _replace_once_outside_markdown_links(text: str, needle: str, replacement: st
 
 
 def _inject_art_pulse_style_inline_links(answer: str, context: Dict[str, object], selected_entities: List[dict]) -> str:
-    def _normalize_alias_text(value: object) -> str:
-        text = unicodedata.normalize("NFKC", str(value or ""))
-        text = re.sub(r"[\s\u3000]+", " ", text).strip()
-        return text
-
-    def _entity_aliases(entity: dict) -> List[str]:
-        aliases: List[str] = []
-        seeds = [
-            str(entity.get("matched_alias") or "").strip(),
-            str(entity.get("label") or "").strip(),
-        ]
-        if str(entity.get("kind") or "").strip() == "artist":
-            seeds.append(str(entity.get("artist_name_kana") or "").strip())
-        for seed in seeds:
-            base = _normalize_alias_text(seed)
-            if not base:
-                continue
-            variants = [
-                base,
-                base.replace("・", " "),
-                base.replace(" ", "・"),
-                base.replace("・", "").replace(" ", ""),
-            ]
-            for alias in variants:
-                cleaned = _normalize_alias_text(alias)
-                compact = cleaned.replace(" ", "").replace("・", "")
-                if len(compact) < 2:
-                    continue
-                if cleaned not in aliases:
-                    aliases.append(cleaned)
-        return aliases
-
-    def _find_alias_span(text: str, alias: str) -> tuple[int, int] | None:
-        if not text or not alias:
-            return None
-        direct = text.find(alias)
-        if direct >= 0:
-            return direct, direct + len(alias)
-        tokens = [token for token in re.split(r"[ \u3000・･]+", alias) if token]
-        flags = re.IGNORECASE if re.search(r"[A-Za-z]", alias) else 0
-        if len(tokens) >= 2:
-            pattern = r"[ \u3000・･\-‐‑‒–—]*".join(re.escape(token) for token in tokens)
-            match = re.search(pattern, text, flags=flags)
-            if match:
-                return int(match.start()), int(match.end())
-        compact = re.sub(r"[ \u3000・･\-‐‑‒–—]+", "", alias)
-        if len(compact) >= 3:
-            pattern = r"[ \u3000・･\-‐‑‒–—]*".join(re.escape(ch) for ch in compact)
-            match = re.search(pattern, text, flags=flags)
-            if match:
-                return int(match.start()), int(match.end())
-        return None
-
     def _replace_alias_once_outside_markdown_links(text: str, aliases: List[str], link_url: str) -> str:
         if not text or not aliases or not link_url:
             return text
@@ -1786,7 +1847,7 @@ def _inject_art_pulse_style_inline_links(answer: str, context: Dict[str, object]
             if not replaced:
                 best: tuple[int, int] | None = None
                 for alias in aliases:
-                    span = _find_alias_span(segment, alias)
+                    span = _find_entity_alias_span(segment, alias)
                     if span is None:
                         continue
                     if best is None or span[0] < best[0] or (span[0] == best[0] and (span[1] - span[0]) > (best[1] - best[0])):
@@ -1804,7 +1865,7 @@ def _inject_art_pulse_style_inline_links(answer: str, context: Dict[str, object]
         if not replaced:
             best: tuple[int, int] | None = None
             for alias in aliases:
-                span = _find_alias_span(tail, alias)
+                span = _find_entity_alias_span(tail, alias)
                 if span is None:
                     continue
                 if best is None or span[0] < best[0] or (span[0] == best[0] and (span[1] - span[0]) > (best[1] - best[0])):
@@ -1828,7 +1889,7 @@ def _inject_art_pulse_style_inline_links(answer: str, context: Dict[str, object]
         else:
             inline_label = label.replace("[", "（").replace("]", "）")
         inline = f"[{inline_label}]({link_url})"
-        aliases = _entity_aliases(entity)
+        aliases = _build_entity_aliases(entity)
         body_after_alias = _replace_alias_once_outside_markdown_links(body, aliases, link_url)
         if body_after_alias != body:
             body = body_after_alias
