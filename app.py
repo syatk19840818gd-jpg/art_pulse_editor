@@ -1795,6 +1795,45 @@ def _has_resolvable_artist_preview(candidates: list[dict]) -> bool:
     return False
 
 
+def _normalize_exhibition_preview_fields(
+    r2_key: object = "",
+    local_path: object = "",
+    image_direct_url: object = "",
+) -> dict[str, str]:
+    norm_r2_key = str(r2_key or "").strip()
+    norm_local_path = str(local_path or "").strip()
+    norm_image_direct_url = str(image_direct_url or "").strip()
+    if not norm_r2_key and norm_local_path:
+        norm_r2_key = str(get_image_r2_key(norm_local_path) or "").strip()
+    return {
+        "image_preview_r2_key": norm_r2_key,
+        "image_preview": norm_local_path,
+        "image_direct_url": norm_image_direct_url,
+    }
+
+
+def _has_resolvable_exhibition_preview(fields: dict) -> bool:
+    resolved = _resolve_cached_or_remote_image_url(
+        fields.get("image_preview_r2_key"),
+        fields.get("image_preview"),
+        fields.get("image_direct_url"),
+    )
+    return bool(resolved)
+
+
+def _normalize_exhibition_title_key(value: object) -> str:
+    text = str(value or "").strip().lower()
+    text = (
+        text.replace("“", '"')
+        .replace("”", '"')
+        .replace("‘", "'")
+        .replace("’", "'")
+    )
+    text = re.sub(r"[\s\u3000]+", " ", text)
+    text = re.sub(r'[\"\'`「」『』（）()]', "", text)
+    return text.strip()
+
+
 @st.cache_data(show_spinner=False)
 def _get_artist_preview_lookup() -> dict[str, object]:
     by_source: dict[str, list[dict]] = {}
@@ -1827,6 +1866,42 @@ def _get_artist_preview_lookup() -> dict[str, object]:
         )
 
     return {"by_source": by_source, "by_artist": by_artist}
+
+
+@st.cache_data(show_spinner=False)
+def _get_exhibition_preview_lookup() -> dict[str, object]:
+    by_source: dict[str, dict[str, str]] = {}
+    by_title: dict[str, list[dict[str, str]]] = {}
+    try:
+        rows = list(get_exhibition_search_data().records)
+    except Exception:
+        rows = []
+
+    for row in rows:
+        preview_fields = _normalize_exhibition_preview_fields(
+            row.get("image_preview_r2_key"),
+            row.get("image_preview"),
+            row.get("image_direct_url"),
+        )
+        if not _has_resolvable_exhibition_preview(preview_fields):
+            continue
+
+        source_url = str(row.get("source_url") or "").strip()
+        for key in _advisor_source_url_lookup_keys(source_url):
+            by_source.setdefault(key, dict(preview_fields))
+
+        title_key = _normalize_exhibition_title_key(row.get("exhibition_title"))
+        if title_key:
+            by_title.setdefault(title_key, []).append(
+                {
+                    "fair_label": str(row.get("fair_label") or "").strip(),
+                    "gallery": str(row.get("gallery_name") or "").strip(),
+                    "source_url": source_url,
+                    **preview_fields,
+                }
+            )
+
+    return {"by_source": by_source, "by_title": by_title}
 
 
 def _resolve_advisor_artist_preview_candidates(item: dict, matched_row: dict) -> list[dict]:
@@ -1877,6 +1952,63 @@ def _resolve_advisor_artist_preview_candidates(item: dict, matched_row: dict) ->
     if best_candidates:
         return best_candidates[:ARTIST_SEARCH_THUMB_FROM_ARTIST]
     return candidates[:ARTIST_SEARCH_THUMB_FROM_ARTIST]
+
+
+def _resolve_advisor_exhibition_preview_fields(item: dict, matched_row: dict) -> dict[str, str]:
+    fields = _normalize_exhibition_preview_fields(
+        matched_row.get("image_preview_r2_key") or item.get("r2_key"),
+        matched_row.get("image_preview") or item.get("local_path"),
+        item.get("image_url"),
+    )
+    if _has_resolvable_exhibition_preview(fields):
+        return fields
+
+    lookup = _get_exhibition_preview_lookup()
+    by_source = dict(lookup.get("by_source") or {})
+    by_title = dict(lookup.get("by_title") or {})
+
+    source_url = str(item.get("source_url") or matched_row.get("source_url") or "").strip()
+    for key in _advisor_source_url_lookup_keys(source_url):
+        source_payload = dict(by_source.get(key) or {})
+        source_fields = _normalize_exhibition_preview_fields(
+            source_payload.get("image_preview_r2_key"),
+            source_payload.get("image_preview"),
+            source_payload.get("image_direct_url"),
+        )
+        if _has_resolvable_exhibition_preview(source_fields):
+            return source_fields
+
+    title_key = _normalize_exhibition_title_key(
+        item.get("label") or matched_row.get("title") or item.get("exhibition_title")
+    )
+    if not title_key:
+        return fields
+    fair_label = str(item.get("fair_label") or matched_row.get("fair_label") or "").strip()
+    gallery = str(item.get("gallery") or matched_row.get("gallery") or "").strip()
+
+    best_fields: dict[str, str] = {}
+    best_score = -1
+    for record in list(by_title.get(title_key) or []):
+        record_fields = _normalize_exhibition_preview_fields(
+            record.get("image_preview_r2_key"),
+            record.get("image_preview"),
+            record.get("image_direct_url"),
+        )
+        if not _has_resolvable_exhibition_preview(record_fields):
+            continue
+        score = 0
+        if fair_label and fair_label == str(record.get("fair_label") or "").strip():
+            score += 2
+        if gallery and gallery == str(record.get("gallery") or "").strip():
+            score += 1
+        if source_url and source_url == str(record.get("source_url") or "").strip():
+            score += 3
+        if score > best_score:
+            best_score = score
+            best_fields = record_fields
+    if best_fields:
+        return best_fields
+    return fields
 
 
 def _build_gallery_list_cache_signature() -> tuple[tuple[str, int, int], ...]:
@@ -1970,12 +2102,18 @@ def _render_reference_image_candidates(
                     continue
                 return dict(row)
             return {}
-        for row in list(evidence_context.get("exhibition_evidence", []) or []):
-            if source_url and str(row.get("source_url") or "").strip() != source_url:
-                continue
-            if label and str(row.get("title") or "").strip() != label:
-                continue
-            return dict(row)
+        exhibition_rows = list(evidence_context.get("exhibition_evidence", []) or [])
+        source_keys = set(_advisor_source_url_lookup_keys(source_url))
+        if source_keys:
+            for row in exhibition_rows:
+                row_source = str(row.get("source_url") or "").strip()
+                row_keys = set(_advisor_source_url_lookup_keys(row_source))
+                if source_keys.intersection(row_keys):
+                    return dict(row)
+        if label:
+            for row in exhibition_rows:
+                if str(row.get("title") or "").strip() == label:
+                    return dict(row)
         return {}
 
     def _render_reference_image_cards(items: list[dict]) -> None:
@@ -2020,13 +2158,14 @@ def _render_reference_image_candidates(
                             matched_row,
                             max_chars=EXHIBITION_SEARCH_SUMMARY_MAX_CHARS,
                         )
+                    preview_fields = _resolve_advisor_exhibition_preview_fields(item, matched_row)
                     exhibition_row = {
                         "exhibition_title": str(item.get("label") or "").strip(),
                         "source_url": str(item.get("source_url") or matched_row.get("source_url") or "").strip(),
                         "summary_display_ja": exhibition_summary,
-                        "image_preview_r2_key": str(matched_row.get("image_preview_r2_key") or item.get("r2_key") or "").strip(),
-                        "image_preview": str(matched_row.get("image_preview") or item.get("local_path") or "").strip(),
-                        "image_direct_url": str(item.get("image_url") or "").strip(),
+                        "image_preview_r2_key": str(preview_fields.get("image_preview_r2_key") or "").strip(),
+                        "image_preview": str(preview_fields.get("image_preview") or "").strip(),
+                        "image_direct_url": str(preview_fields.get("image_direct_url") or "").strip(),
                     }
                     cards.append(_build_exhibition_card_html(exhibition_row, idx))
                 continue
