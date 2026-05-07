@@ -14,7 +14,7 @@ try:
 except Exception:
     boto3 = None
 
-from phase2_art_pulse_config import PERSONAS
+from phase2_art_pulse_config import PERSONAS, get_image_r2_key
 from phase2_art_pulse_draft import generate_art_pulse_draft
 from phase2_art_pulse_readonly import build_art_pulse_overview
 from phase2_common_readonly import (
@@ -1763,6 +1763,8 @@ def _normalize_artist_preview_candidates(candidates: list[dict], limit: int = AR
         r2_key = str(candidate.get("r2_key") or "").strip()
         local_path = str(candidate.get("local_path") or "").strip()
         image_url = str(candidate.get("image_url") or "").strip()
+        if not r2_key and local_path:
+            r2_key = str(get_image_r2_key(local_path) or "").strip()
         if not (r2_key or local_path or image_url):
             continue
         dedup_key = (r2_key, local_path, image_url)
