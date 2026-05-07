@@ -242,6 +242,7 @@ def _select_evidence_with_rotation(
     cross_fair_mode: bool,
     broad_query_mode: bool,
     rotation_index: int,
+    diversity_seed: int = 0,
     recent_broad_history: List[dict] | None = None,
     kind: str = "",
     intent_focus: str = "",
@@ -270,6 +271,24 @@ def _select_evidence_with_rotation(
         selected = _order_cross_fair_rows(selected)
     if broad_query_mode:
         selected = _rotate_rows(selected, rotation_index)
+        if selected and int(diversity_seed or 0) != 0:
+            seed_value = abs(int(diversity_seed))
+            # Broad mode only: keep top anchors stable, diversify the near-top pool.
+            # This avoids reset-time lock-in while preserving quality.
+            anchor_count = min(3, len(selected), max(1, limit // 4))
+            span_cap = min(len(selected), max(limit + 6, min(limit * 2, 24)))
+            head = selected[:anchor_count]
+            tail = selected[anchor_count:span_cap]
+            if tail:
+                if kind == "artist":
+                    offset = (seed_value * 3) % len(tail)
+                elif kind == "exhibition":
+                    offset = (seed_value * 5) % len(tail)
+                else:
+                    offset = seed_value % len(tail)
+                if offset:
+                    tail = _rotate_rows(tail, offset)
+            selected = head + tail + selected[span_cap:]
     return selected[:limit]
 
 
@@ -774,6 +793,7 @@ def build_advisor_grounded_context(
     question_text: str,
     text_limit_per_kind: int = 14,
     rotation_index: int = 0,
+    diversity_seed: int = 0,
     recent_broad_history: List[dict] | None = None,
 ) -> Dict[str, object]:
     fair_slugs = set(resolve_fair_slugs(fair_label))
@@ -783,6 +803,7 @@ def build_advisor_grounded_context(
     ideation_query = _is_ideation_query(question_text)
     intent_focus = _detect_intent_focus(question_text, tokens)
     safe_rotation_index = max(0, int(rotation_index or 0))
+    safe_diversity_seed = int(diversity_seed or 0)
     warnings: List[str] = []
 
     ex_data = load_exhibition_records_readonly()
@@ -931,6 +952,7 @@ def build_advisor_grounded_context(
         cross_fair_mode=cross_fair_mode,
         broad_query_mode=broad_query_mode,
         rotation_index=safe_rotation_index,
+        diversity_seed=safe_diversity_seed,
         recent_broad_history=recent_broad_history,
         kind="exhibition",
         intent_focus=intent_focus,
@@ -941,6 +963,7 @@ def build_advisor_grounded_context(
         cross_fair_mode=cross_fair_mode,
         broad_query_mode=broad_query_mode,
         rotation_index=safe_rotation_index,
+        diversity_seed=safe_diversity_seed,
         recent_broad_history=recent_broad_history,
         kind="artist",
         intent_focus=intent_focus,
@@ -978,6 +1001,7 @@ def build_advisor_grounded_context(
             "intent_focus": intent_focus,
             "artist_intent_focus": intent_focus,
             "rotation_index": safe_rotation_index,
+            "diversity_seed": safe_diversity_seed,
             "recent_broad_history": list(recent_broad_history or [])[-8:],
             "grounded_anchor_count": matched_exhibition_count + matched_artist_count,
         },

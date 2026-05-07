@@ -3122,6 +3122,8 @@ def render_advisor() -> None:
         rotation_index = int(rotation_map.get(rotation_key, 0) or 0)
         rotation_map[rotation_key] = rotation_index + 1
         st.session_state["advisor_broad_query_rotation"] = rotation_map
+        diversity_counter = int(st.session_state.get("advisor_broad_diversity_counter", 0) or 0) + 1
+        st.session_state["advisor_broad_diversity_counter"] = diversity_counter
         broad_history = list(st.session_state.get("advisor_broad_query_history", []) or [])
         recent_broad_history = [item for item in broad_history if str(item.get("fair_mode") or "") == effective_fair][-8:]
         try:
@@ -3130,6 +3132,7 @@ def render_advisor() -> None:
                 fair_label=effective_fair,
                 question_text=question_text,
                 rotation_index=rotation_index,
+                diversity_seed=diversity_counter,
                 recent_broad_history=recent_broad_history,
             )
             _render_advisor_progress(34)
