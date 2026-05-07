@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 import re
+import unicodedata
 from base64 import b64encode
 from typing import Dict, List, Tuple
 
@@ -1334,17 +1335,39 @@ def _build_selected_entity_candidates(context: Dict[str, object]) -> List[dict]:
 
 
 def _select_entities_for_answer(answer: str, context: Dict[str, object]) -> List[dict]:
+    def _normalize_entity_match_text(text: object) -> str:
+        normalized = unicodedata.normalize("NFKC", str(text or ""))
+        normalized = re.sub(r"[ \t\r\n\u00A0\u2000-\u200B\u3000]+", " ", normalized)
+        return normalized.strip()
+
+    def _find_entity_label_position(answer_text: str, label_text: str) -> int:
+        normalized_answer = _normalize_entity_match_text(answer_text)
+        normalized_label = _normalize_entity_match_text(label_text)
+        if not normalized_answer or not normalized_label:
+            return -1
+        direct_pos = normalized_answer.find(normalized_label)
+        if direct_pos >= 0:
+            return direct_pos
+        label_parts = [re.escape(part) for part in normalized_label.split(" ") if part]
+        if len(label_parts) >= 2:
+            pattern = r"\s+".join(label_parts)
+            match = re.search(pattern, normalized_answer, flags=re.IGNORECASE)
+            if match:
+                return int(match.start())
+        return -1
+
     plain_answer = _plain_answer_text(answer)
     matches: List[tuple[int, int, int, int, dict]] = []
     for candidate in _build_selected_entity_candidates(context):
         label = str(candidate.get("label") or "").strip()
         if not label:
             continue
-        pos = plain_answer.find(label)
+        pos = _find_entity_label_position(plain_answer, label)
         if pos < 0:
             continue
         kind_order = 0 if str(candidate.get("kind") or "") == "exhibition" else 1
-        matches.append((pos, pos + len(label), kind_order, -len(label), candidate))
+        normalized_label_len = len(_normalize_entity_match_text(label))
+        matches.append((pos, pos + max(1, normalized_label_len), kind_order, -len(label), candidate))
 
     matches.sort(key=lambda value: (value[0], value[2], value[3]))
 
