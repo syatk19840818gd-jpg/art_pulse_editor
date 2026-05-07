@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 import re
+import unicodedata
 from base64 import b64encode
 from typing import Dict, List, Tuple
 
@@ -1334,17 +1335,75 @@ def _build_selected_entity_candidates(context: Dict[str, object]) -> List[dict]:
 
 
 def _select_entities_for_answer(answer: str, context: Dict[str, object]) -> List[dict]:
+    def _normalize_alias_text(value: object) -> str:
+        text = unicodedata.normalize("NFKC", str(value or ""))
+        text = re.sub(r"[\s\u3000]+", " ", text).strip()
+        return text
+
+    def _candidate_aliases(candidate: dict) -> List[str]:
+        aliases: List[str] = []
+        seeds = [str(candidate.get("label") or "").strip()]
+        if str(candidate.get("kind") or "").strip() == "artist":
+            seeds.append(str(candidate.get("artist_name_kana") or "").strip())
+        for seed in seeds:
+            base = _normalize_alias_text(seed)
+            if not base:
+                continue
+            variants = [
+                base,
+                base.replace("・", " "),
+                base.replace(" ", "・"),
+                base.replace("・", "").replace(" ", ""),
+            ]
+            for alias in variants:
+                cleaned = _normalize_alias_text(alias)
+                compact = cleaned.replace(" ", "").replace("・", "")
+                if len(compact) < 2:
+                    continue
+                if cleaned not in aliases:
+                    aliases.append(cleaned)
+        return aliases
+
+    def _find_alias_span(text: str, alias: str) -> tuple[int, int] | None:
+        if not text or not alias:
+            return None
+        direct = text.find(alias)
+        if direct >= 0:
+            return direct, direct + len(alias)
+        tokens = [token for token in re.split(r"[ \u3000・･]+", alias) if token]
+        flags = re.IGNORECASE if re.search(r"[A-Za-z]", alias) else 0
+        if len(tokens) >= 2:
+            pattern = r"[ \u3000・･\-‐‑‒–—]*".join(re.escape(token) for token in tokens)
+            match = re.search(pattern, text, flags=flags)
+            if match:
+                return int(match.start()), int(match.end())
+        compact = re.sub(r"[ \u3000・･\-‐‑‒–—]+", "", alias)
+        if len(compact) >= 3:
+            pattern = r"[ \u3000・･\-‐‑‒–—]*".join(re.escape(ch) for ch in compact)
+            match = re.search(pattern, text, flags=flags)
+            if match:
+                return int(match.start()), int(match.end())
+        return None
+
     plain_answer = _plain_answer_text(answer)
-    matches: List[tuple[int, int, int, int, dict]] = []
+    matches: List[tuple[int, int, int, int, dict, str]] = []
     for candidate in _build_selected_entity_candidates(context):
         label = str(candidate.get("label") or "").strip()
         if not label:
             continue
-        pos = plain_answer.find(label)
-        if pos < 0:
+        best_span: tuple[int, int] | None = None
+        best_alias = ""
+        for alias in _candidate_aliases(candidate):
+            span = _find_alias_span(plain_answer, alias)
+            if span is None:
+                continue
+            if best_span is None or span[0] < best_span[0] or (span[0] == best_span[0] and (span[1] - span[0]) > (best_span[1] - best_span[0])):
+                best_span = span
+                best_alias = alias
+        if best_span is None:
             continue
         kind_order = 0 if str(candidate.get("kind") or "") == "exhibition" else 1
-        matches.append((pos, pos + len(label), kind_order, -len(label), candidate))
+        matches.append((best_span[0], best_span[1], kind_order, -len(label), candidate, best_alias))
 
     matches.sort(key=lambda value: (value[0], value[2], value[3]))
 
@@ -1352,7 +1411,7 @@ def _select_entities_for_answer(answer: str, context: Dict[str, object]) -> List
     occupied_spans: List[tuple[int, int]] = []
     seen = set()
     order = 0
-    for start, end, _kind_order, _label_len, candidate in matches:
+    for start, end, _kind_order, _label_len, candidate, matched_alias in matches:
         dedup_key = (
             str(candidate.get("kind") or ""),
             str(candidate.get("label") or ""),
@@ -1367,6 +1426,7 @@ def _select_entities_for_answer(answer: str, context: Dict[str, object]) -> List
         order += 1
         item = dict(candidate)
         item["mention_order"] = order
+        item["matched_alias"] = str(matched_alias or "").strip()
         selected.append(item)
     return selected
 
@@ -1662,6 +1722,101 @@ def _replace_once_outside_markdown_links(text: str, needle: str, replacement: st
 
 
 def _inject_art_pulse_style_inline_links(answer: str, context: Dict[str, object], selected_entities: List[dict]) -> str:
+    def _normalize_alias_text(value: object) -> str:
+        text = unicodedata.normalize("NFKC", str(value or ""))
+        text = re.sub(r"[\s\u3000]+", " ", text).strip()
+        return text
+
+    def _entity_aliases(entity: dict) -> List[str]:
+        aliases: List[str] = []
+        seeds = [
+            str(entity.get("matched_alias") or "").strip(),
+            str(entity.get("label") or "").strip(),
+        ]
+        if str(entity.get("kind") or "").strip() == "artist":
+            seeds.append(str(entity.get("artist_name_kana") or "").strip())
+        for seed in seeds:
+            base = _normalize_alias_text(seed)
+            if not base:
+                continue
+            variants = [
+                base,
+                base.replace("・", " "),
+                base.replace(" ", "・"),
+                base.replace("・", "").replace(" ", ""),
+            ]
+            for alias in variants:
+                cleaned = _normalize_alias_text(alias)
+                compact = cleaned.replace(" ", "").replace("・", "")
+                if len(compact) < 2:
+                    continue
+                if cleaned not in aliases:
+                    aliases.append(cleaned)
+        return aliases
+
+    def _find_alias_span(text: str, alias: str) -> tuple[int, int] | None:
+        if not text or not alias:
+            return None
+        direct = text.find(alias)
+        if direct >= 0:
+            return direct, direct + len(alias)
+        tokens = [token for token in re.split(r"[ \u3000・･]+", alias) if token]
+        flags = re.IGNORECASE if re.search(r"[A-Za-z]", alias) else 0
+        if len(tokens) >= 2:
+            pattern = r"[ \u3000・･\-‐‑‒–—]*".join(re.escape(token) for token in tokens)
+            match = re.search(pattern, text, flags=flags)
+            if match:
+                return int(match.start()), int(match.end())
+        compact = re.sub(r"[ \u3000・･\-‐‑‒–—]+", "", alias)
+        if len(compact) >= 3:
+            pattern = r"[ \u3000・･\-‐‑‒–—]*".join(re.escape(ch) for ch in compact)
+            match = re.search(pattern, text, flags=flags)
+            if match:
+                return int(match.start()), int(match.end())
+        return None
+
+    def _replace_alias_once_outside_markdown_links(text: str, aliases: List[str], link_url: str) -> str:
+        if not text or not aliases or not link_url:
+            return text
+        cursor = 0
+        replaced = False
+        chunks: List[str] = []
+        for match in ADVISOR_MARKDOWN_LINK_PATTERN.finditer(text):
+            segment = text[cursor : match.start()]
+            if not replaced:
+                best: tuple[int, int] | None = None
+                for alias in aliases:
+                    span = _find_alias_span(segment, alias)
+                    if span is None:
+                        continue
+                    if best is None or span[0] < best[0] or (span[0] == best[0] and (span[1] - span[0]) > (best[1] - best[0])):
+                        best = span
+                if best is not None:
+                    start, end = best
+                    matched_text = segment[start:end]
+                    inline = f"[{matched_text}]({link_url})"
+                    segment = segment[:start] + inline + segment[end:]
+                    replaced = True
+            chunks.append(segment)
+            chunks.append(match.group(0))
+            cursor = match.end()
+        tail = text[cursor:]
+        if not replaced:
+            best: tuple[int, int] | None = None
+            for alias in aliases:
+                span = _find_alias_span(tail, alias)
+                if span is None:
+                    continue
+                if best is None or span[0] < best[0] or (span[0] == best[0] and (span[1] - span[0]) > (best[1] - best[0])):
+                    best = span
+            if best is not None:
+                start, end = best
+                matched_text = tail[start:end]
+                inline = f"[{matched_text}]({link_url})"
+                tail = tail[:start] + inline + tail[end:]
+        chunks.append(tail)
+        return "".join(chunks)
+
     body = _strip_entity_suffixes(answer, context)
     for entity in selected_entities:
         label = str(entity.get("label") or "").strip()
@@ -1673,7 +1828,12 @@ def _inject_art_pulse_style_inline_links(answer: str, context: Dict[str, object]
         else:
             inline_label = label.replace("[", "（").replace("]", "）")
         inline = f"[{inline_label}]({link_url})"
-        body = _replace_once_outside_markdown_links(body, label, inline)
+        aliases = _entity_aliases(entity)
+        body_after_alias = _replace_alias_once_outside_markdown_links(body, aliases, link_url)
+        if body_after_alias != body:
+            body = body_after_alias
+        else:
+            body = _replace_once_outside_markdown_links(body, label, inline)
 
     return body
 
