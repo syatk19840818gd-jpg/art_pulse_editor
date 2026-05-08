@@ -1158,3 +1158,44 @@ Art Pulse 調整時の運用ルール
   - Exhibition: 画像なし407件、`A=407`、`B/C/D/E/F/G=0`
 - 判定: 監査範囲ではArtist/Exhibitionの画像なしはすべて真の画像なし。Robert Barry型はArtist/Exhibitionでは未検出。追加修正は不要。
 
+
+
+## 2026-05-05 docs同期索引（運用・Advisor・未解決課題）
+- 本節は索引追記のみ。新仕様の独自定義は行わず、01正本に従う。
+
+### 1) Codex運用契約（索引）
+- Codexは commit/push を実行しない。
+- 出力必須: `git status --short` / `git diff --stat` / 変更ファイル一覧 / 確認結果 / ユーザー実行用コマンド案。
+- commit/push はユーザー本人が実行する。
+
+### 2) Cloud運用契約（索引）
+- ユーザー commit/push 後の基本確認は `最新deploy確認 -> Clear cache -> Reboot app -> 実画面確認`。
+- `app.py` / `phase2_*_readonly.py` / import / cache / data読み込み契約 / R2画像解決 / current参照 / Streamlit表示の変更時は必須。
+- docs-only / ローカルのみ変更は必須ではない。
+
+### 3) current image cache / derived r2_key 補完契約（索引）
+- Art Work Searchで `r2_key`/`image_url` 空かつ `local_path` が `data/current/images/cache/artist_works_images/...` の行は、軽量文字列変換で derived `r2_key` を補完する。
+- 既存キー上書き禁止、個別ハードコード禁止、重い全件走査禁止。
+
+### 4) Search画像契約（索引）
+- Art Work Search: 作品画像検索のため「参考画像なし」を原則許容しない。画像解決不能は補完対象として扱う。
+- Artist/Exhibition Search: 「参考画像なし」カードは許容し、削除せず後方化する（ページング前の安定ソート）。
+- no-image integrity audit（`logs/artist_exhibition_no_image_integrity_audit_20260504.json`）結果は、監査範囲で真の画像なし分類のみ。
+
+### 5) Advisor alias matching契約（索引）
+- Artist alias: 英字名・カタカナ名・表記ゆれを実データ（`artist_name_kana` 等）で汎用照合。
+- Exhibition alias: `label` / `display_label` / `title` / `exhibition_title` / 引用部 / 括弧内 / title断片から汎用aliasを構築。
+- 短すぎるalias・汎用語aliasは誤リンク防止で除外。
+- 参照entity抽出と本文リンク付与は同一aliasルールを使う。
+
+### 6) Advisor card image契約（索引）
+- Artist参照カードは `1Artist=1カード（最大3枚画像）` を維持。
+- 画像解決不能でもカードを削除しない。
+- Exhibition参照カードは `1カード1画像` 契約に揃える。
+- Advisor Exhibitionカードのサムネイル未表示問題は未解決（別Task）。
+
+### 7) 未解決課題（索引）
+- broad質問の回答固定化（常連Artist再収束）は未解決。
+- broad多様化は「main references先行抽選 + context/allowed references/カード同期 + セッション内直近重複回避」を次Taskで実装する。
+- narrow質問・具体名質問は精度優先を維持。
+- Task分割: broad多様化 / Advisor Exhibitionサムネ / docs同期 / RAG-current-R2同期を分離して扱う。

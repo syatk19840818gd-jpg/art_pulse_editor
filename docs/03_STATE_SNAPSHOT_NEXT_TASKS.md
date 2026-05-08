@@ -8059,3 +8059,35 @@ TASK A-3A-CLOSE-1 実施結果（2026-02-27 / Adams and Ollman）
 - 追加タスクは現時点で必須なし。
 - 問題再発時のみ、verify-firstで再監査してから最小修正を起票する。
 
+
+
+## 2026-05-05 現在地更新（docs同期）
+
+### STATE_SNAPSHOT
+- Codex運用は恒久的に commit/push 禁止。Codexは差分提示までで停止し、commit/push はユーザー本人が実行する。
+- Cloud確認手順は、ユーザー commit/push 後に `最新deploy確認 -> Clear cache -> Reboot app -> 実画面確認` を標準とする。
+- Art Work Search の Robert Barry 型「参考画像なし」問題は、`local_path -> derived r2_key` の軽量補完方針で改善済み。
+- Artist/Exhibition Search の画像なしカードは、削除せず後方化する方針で実装・確認済み。
+- Artist/Exhibition no-image integrity audit（`logs/artist_exhibition_no_image_integrity_audit_20260504.json`）は、監査範囲で真の画像なしのみと判定。
+- Advisor Artist alias（英字/カタカナ/表記ゆれ）対応は改善済み。
+- Advisor Exhibition alias（展示名/断片名）対応は改善済み。
+- Advisor Artist参照カード画像補完は、`1Artist=1カード（最大3枚）` 契約を維持したうえで改善済み。
+- Advisor broad質問の回答固定化（常連再収束）は未解決。
+- Advisor Exhibition参照カードのサムネイル未表示は未解決（別Task）。
+
+### CHANGELOG（今回反映）
+- docs 01/02/03/04 へ、運用固定（Codex commit/push禁止、Cloud確認手順）を再明文化。
+- Art Work Search画像契約、Artist/Exhibition後方化契約、Advisor alias契約、Advisorカード画像契約を追記同期。
+- 未解決課題（broad多様化 / Exhibitionサムネ）を完了扱いせず、次Taskへ分離した。
+
+### NEXT_TASKS（優先順）
+1. Advisor broad質問で常連Artist/Exhibitionへ再収束しないよう、main references先行抽選 + context/allowed references/カード同期を実装する。
+2. Advisor Exhibition参照カードのサムネイル表示を、Exhibition Search と同じ `1カード1画像` 契約で修正する。
+3. 上記2件の実画面確認後に、必要最小限のdocs再同期を行う。
+
+### TASK分割方針（固定）
+- broad質問多様化修正
+- Advisor Exhibitionサムネ修正
+- docs同期
+- RAG/current/R2同期
+- 上記は同一Taskで混ぜず、原因混線を避ける。

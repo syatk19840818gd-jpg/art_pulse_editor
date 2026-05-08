@@ -6104,3 +6104,38 @@ _trash 運用方針:
   - Codexはcommit/pushを行わない。
   - 以後のCodexタスクは `git status --short` / `git diff --stat` / 変更ファイル / 確認結果 / ユーザー用commitコマンド案の提示を必須化。
 
+
+
+## 38. 2026-05-05 docs同期（前回docs更新以降の決定事項整理）
+- 本タスクは docs-only / local patch only。commit/push、コード変更、`data/current` 更新、R2実行、API呼び出し、`_trial` 新規作成は未実施。
+- 02/03/04末尾と01末尾追記を点検し、実ファイルUTF-8基準で文字化け・途中停止ブロックの残存がないことを確認した（端末表示側のエンコーディング崩れはデータ破損ではない）。
+
+### 完了として記録する事項
+- Codex commit/push 恒久禁止を再固定。
+  - Codexは `git status --short` / `git diff --stat` / 変更ファイル一覧 / 確認結果 / ユーザー実行用コマンド案の提示で停止。
+  - commit/push はユーザー本人が実行。
+- Cloud反映後の基本確認手順を再固定。
+  - `最新deploy確認 -> Clear cache -> Reboot app -> 実画面確認`
+  - `app.py` / `phase2_*_readonly.py` / import / cache / data読み込み契約 / R2画像解決 / current参照 / Streamlit表示の変更時は必須。
+- Art Work SearchのRobert Barry型問題は、重いscan案を不採用とし、`local_path -> derived r2_key` 軽量補完を採用。
+- Artist/Exhibition Searchは「画像なしカード許容 + 後方化（削除しない）」を採用。
+- Artist/Exhibition no-image integrity audit結果（`logs/artist_exhibition_no_image_integrity_audit_20260504.json`）を完了履歴として確定。
+  - 監査範囲では真の画像なし分類のみ。
+- Advisor Artist alias対応（英字/カタカナ/表記ゆれ）を汎用契約として確定。
+- Advisor Exhibition alias対応（展示名/断片名）を汎用契約として確定。
+- Advisor Artist参照カード画像補完は、`1Artist=1カード（最大3枚）` 契約を維持して反映。
+
+### 未完了として残す事項（完了扱い禁止）
+- Advisor broad質問の回答固定化（常連Artist再収束）は未解決。
+  - 原因調査で、LLM前段候補選定の固定化（`rotation_index=0` reset時の再固定）を確認。
+  - 上位pool並び替えのみでは不十分で、main references先行抽選と参照同期が次Task。
+- Advisor Exhibition参照カードのサムネイル未表示は未解決。
+  - Exhibition Search契約（`1カード1画像`）との整合修正を別Taskで実施する。
+- 常連Artist再収束問題・Exhibitionサムネ問題は相互依存させず、別Taskで分割して扱う。
+
+### 今後のTask分割方針
+- broad質問多様化修正
+- Advisor Exhibitionサムネ修正
+- docs同期
+- RAG/current/R2同期
+- 回答文生成・参照entity抽出・カード描画・画像解決を同時に混ぜて変更しない。
