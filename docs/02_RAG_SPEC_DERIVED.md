@@ -1199,3 +1199,53 @@ Art Pulse 調整時の運用ルール
 - broad多様化は「main references先行抽選 + context/allowed references/カード同期 + セッション内直近重複回避」を次Taskで実装する。
 - narrow質問・具体名質問は精度優先を維持。
 - Task分割: broad多様化 / Advisor Exhibitionサムネ / docs同期 / RAG-current-R2同期を分離して扱う。
+
+## 2026-05-11 docs同期（Phase 3 新block 完了反映）
+- 今回blockは以下を完了した。
+  - closeout apply: GO_APPLIED
+  - workbook/current/skipped registry 人間確認: OK
+  - current_required_rag_full plan: GO_R2_APPLY_READY
+  - current_required_rag_full apply: GO_R2_APPLIED
+  - current_required_rag_full post-check: GO_R2_POSTCHECK_ZERO
+  - app/current smoke: GO_APP_SMOKE_READY
+  - _trial cleanup apply: 完了
+- current主要値（完了時点）:
+  - raw: artists 2708 / exhibitions 1052
+  - image metadata: artist works 2641 / exhibitions 582
+  - enrichment: artists 2696 / exhibitions 1052
+  - vector: artists text 2502（dim 1536）/ artist works images 10813（dim 512）
+- R2 post-check（current_required_rag_full）:
+  - would_upload=0 / would_prune=0 / missing local->R2=0 / remote_only=0 / size_mismatch=0 / out-of-scope=0
+- skip確定:
+  - frieze_london / Galerie Poggi
+  - frieze_london / Galleria Lorcan O'Neill
+  - skip_reason/evidence: human_review_after_breakdown_insufficient / human_skip_after_verify_first
+- closeout verify-first tiny-fix（run_block_closeout.py）:
+  - duplicate gate は verify-first 時に planned_current_paths.artist.image_metadata を優先し、なければ current_paths を使用する。
+  - duplicate audit 出力に input_image_metadata_path_source / input_image_metadata_paths を追加。
+  - all_rag_zero projection が current-only stats 由来で staged scope 非ゼロの場合は verify-first 非阻害である旨を report へ明示。
+  - 修正後結果: scanned_record_count=1641 / duplicate_cluster_count=0 / exact=0 / visual=0 / contextual=0。
+- _trial cleanup結果:
+  - 削除済み: _trial/p3_next_real_20260508/ 、_trial/phase3_next_real_scope_20260508.csv
+  - logs/r2_sync/* は保持。
+
+## 2026-05-11 cleanup運用方針更新（verify-first廃止）
+- 標準運用では `29. _trial cleanup verify-first` を独立Taskとして置かない。
+- 以下4条件を満たす完了済みblockは、cleanup verify-first を挟まず `_trial cleanup apply` へ直接進む。
+  1. current integrity / closeout post-check が GO
+  2. R2 post-check が all zero
+  3. app/current smoke が GO
+  4. runtime の本番導線で `_trial` 参照が 0
+- cleanup apply では、削除対象を当該blockの `_trial` に限定して最小確認する。
+- 例外的に cleanup verify-first を挟む条件:
+  - R2 post-check が all zero でない
+  - app/runtime が `_trial` を参照している
+  - 複数blockの trial が混在し削除対象が曖昧
+  - current反映 / workbook確認 / app smoke が未完了
+  - 途中停止により未反映trial成果物が残る可能性がある
+
+### 2026-05-11 以降の標準順序（該当block完了後）
+- R2 post-check all zero 確認
+- app/current smoke verify-first
+- `_trial cleanup apply`（verify-firstを独立で挟まない）
+- docs同期

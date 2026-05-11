@@ -8091,3 +8091,35 @@ TASK A-3A-CLOSE-1 実施結果（2026-02-27 / Adams and Ollman）
 - docs同期
 - RAG/current/R2同期
 - 上記は同一Taskで混ぜず、原因混線を避ける。
+
+## 2026-05-11 現在地更新（Phase 3 新block）
+- 状態:
+  - closeout apply: GO_APPLIED
+  - workbook/current/skipped registry 人間確認: OK
+  - current_required_rag_full plan/apply/post-check: 完了（post-check all zero）
+  - app/current smoke: GO_APP_SMOKE_READY
+  - _trial cleanup apply: 完了
+  - docs同期: 実施中（本更新）
+- _trial cleanup結果:
+  - 削除済み: _trial/p3_next_real_20260508/ 、_trial/phase3_next_real_scope_20260508.csv
+  - logs/r2_sync は保持
+
+## 2026-05-11 標準順序更新（cleanup verify-first 廃止）
+- 標準順序:
+  1. R2 post-check all zero
+  2. app/current smoke verify-first
+  3. _trial cleanup apply
+  4. docs同期
+- `29. _trial cleanup verify-first` は標準Task一覧から外す（原則不要）。
+- 例外的に verify-first を挟む条件:
+  - R2 post-check 非zero
+  - runtime `_trial` 参照あり
+  - 複数block trial混在で削除対象曖昧
+  - current/workbook/app smoke 未完了
+  - 未反映trial成果物残存の可能性
+
+## 次アクション（docs同期後）
+- ユーザー本人が docs 差分確認
+- 問題なければユーザー本人が commit / push
+- push後に必要ならCloud確認
+- 次blockへ進む場合は `Phase 3 / 次 block の 1. 次 block 再開判定`

@@ -6139,3 +6139,36 @@ _trash 運用方針:
 - docs同期
 - RAG/current/R2同期
 - 回答文生成・参照entity抽出・カード描画・画像解決を同時に混ぜて変更しない。
+
+## 39. 2026-05-11 Phase 3 新block完了 + cleanup方針更新（docs同期）
+- 今回は docs同期のみ。data/current 更新、R2実行、closeout再実行、API実行、workbook更新、code変更は行っていない。
+- block完了結果:
+  - closeout apply: GO_APPLIED
+  - workbook/current/skipped registry 人間確認: OK
+  - current_required_rag_full plan: GO_R2_APPLY_READY
+  - current_required_rag_full apply: GO_R2_APPLIED（uploaded=1743 / deleted=0 / failed=0）
+  - current_required_rag_full post-check: GO_R2_POSTCHECK_ZERO
+    - would_upload=0 / would_prune=0 / missing local->R2=0 / remote_only=0 / size_mismatch=0 / out-of-scope=0
+  - app/current smoke: GO_APP_SMOKE_READY（app import OK、readonly reader OK、runtime `_trial` 参照0、画像解決sample OK）
+  - _trial cleanup apply: 完了
+    - 削除: _trial/p3_next_real_20260508/ 、_trial/phase3_next_real_scope_20260508.csv
+    - logs/r2_sync/* は保持
+- run_block_closeout.py tiny-fix:
+  - verify-first duplicate gate が planned_current_paths.artist.image_metadata を監査対象に取れるよう最小修正。
+  - duplicate audit 出力へ input_image_metadata_path_source / input_image_metadata_paths を追加。
+  - all_rag_zero projection（current-only stats由来）を staged scope 非ゼロ時は verify-first 非阻害として report 明示。
+  - 再verify結果: scanned_record_count=1641 / duplicate_cluster_count=0 / exact=0 / visual=0 / contextual=0。
+- cleanup方針更新:
+  - `cleanup verify-first` は独立標準Taskとして原則廃止。
+  - 4条件（current integrity GO、R2 post-check all zero、app smoke GO、runtime `_trial` 参照0）成立時は `_trial cleanup apply` へ直接進む。
+  - 例外時のみ verify-first を挟む（R2非zero、runtime `_trial` 参照あり、複数trial混在、前提未完、未反映成果物残存懸念）。
+- 代表成果物パス:
+  - closeout apply: _trial/p3_next_real_20260508/closeout_apply_summary_20260511T103844Z.json
+  - closeout post-check: _trial/p3_next_real_20260508/closeout_apply_postcheck_20260511T104354Z.json
+  - app smoke: _trial/p3_next_real_20260508/app_current_smoke_20260511T121951Z.json
+  - R2 logs:
+    - logs/r2_sync/r2_sync_plan_current_required_rag_full_p3_next_real_20260508_r2plan.json
+    - logs/r2_sync/r2_sync_plan_current_required_rag_full_p3_next_real_20260508_r2apply.json
+    - logs/r2_sync/r2_sync_apply_current_required_rag_full_p3_next_real_20260508_r2apply.json
+    - logs/r2_sync/r2_sync_run_p3_next_real_20260508_r2apply.json
+    - logs/r2_sync/r2_sync_plan_current_required_rag_full_p3_next_real_20260508_r2postcheck.json

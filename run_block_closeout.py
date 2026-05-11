@@ -456,16 +456,39 @@ def _target_scope_keys_from_report(report: dict[str, Any]) -> set[tuple[str, str
     return keys
 
 
-def _iter_target_artist_work_image_records(report: dict[str, Any]) -> list[dict[str, Any]]:
+def _resolve_duplicate_gate_image_metadata_paths(report: dict[str, Any]) -> tuple[dict[str, Any], str]:
+    """
+    Pick image metadata paths for duplicate audit.
+    For mixed-source verify-first planning, prefer staged planned paths.
+    """
     current_paths = report.get("current_paths", {})
+    planned_paths = report.get("planned_current_paths", {})
     if not isinstance(current_paths, dict):
-        return []
-    artist_paths = current_paths.get("artist", {})
-    if not isinstance(artist_paths, dict):
-        return []
-    image_meta_paths = artist_paths.get("image_metadata", {})
-    if not isinstance(image_meta_paths, dict):
-        return []
+        current_paths = {}
+    if not isinstance(planned_paths, dict):
+        planned_paths = {}
+
+    current_artist_paths = current_paths.get("artist", {})
+    planned_artist_paths = planned_paths.get("artist", {})
+    if not isinstance(current_artist_paths, dict):
+        current_artist_paths = {}
+    if not isinstance(planned_artist_paths, dict):
+        planned_artist_paths = {}
+
+    current_meta_paths = current_artist_paths.get("image_metadata", {})
+    planned_meta_paths = planned_artist_paths.get("image_metadata", {})
+    if not isinstance(current_meta_paths, dict):
+        current_meta_paths = {}
+    if not isinstance(planned_meta_paths, dict):
+        planned_meta_paths = {}
+
+    if planned_meta_paths:
+        return planned_meta_paths, "planned_current_paths"
+    return current_meta_paths, "current_paths"
+
+
+def _iter_target_artist_work_image_records(report: dict[str, Any]) -> list[dict[str, Any]]:
+    image_meta_paths, _path_source = _resolve_duplicate_gate_image_metadata_paths(report)
     target_scope_keys = _target_scope_keys_from_report(report)
     if not target_scope_keys:
         return []
@@ -526,6 +549,7 @@ def _iter_target_artist_work_image_records(report: dict[str, Any]) -> list[dict[
 
 
 def audit_artist_works_image_duplicate_gate(report: dict[str, Any]) -> dict[str, Any]:
+    image_meta_paths, path_source = _resolve_duplicate_gate_image_metadata_paths(report)
     records = _iter_target_artist_work_image_records(report)
     gallery_records: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
     missing_local_path_count = 0
@@ -682,6 +706,11 @@ def audit_artist_works_image_duplicate_gate(report: dict[str, Any]) -> dict[str,
 
     return {
         "status": status,
+        "input_image_metadata_path_source": path_source,
+        "input_image_metadata_paths": {
+            str(fair_slug): str(path_text)
+            for fair_slug, path_text in image_meta_paths.items()
+        },
         "target_gallery_count": len(gallery_records),
         "scanned_record_count": len(records),
         "scanned_local_file_count": scanned_with_local,
@@ -1955,6 +1984,70 @@ def augment_block_closeout_report(
     contract["formal_post_workbook_r2_sequence"] = list(FORMAL_REQUIRED_R2_SEQUENCE)
     contract["formal_post_workbook_r2_success_criteria"] = list(FORMAL_REQUIRED_R2_SUCCESS_CRITERIA)
     contract["closeout_report_status"] = "generated"
+    skip_cleanup_report = report.get("skip_registry_gallery_list_cleanup", {})
+    if not isinstance(skip_cleanup_report, dict):
+        skip_cleanup_report = {}
+    skip_cleanup_status = str(contract.get("skip_registry_gallery_list_cleanup_status") or "").strip()
+    all_rag_zero_detected_count = int(skip_cleanup_report.get("all_rag_zero_detected_count") or 0)
+    target_total = int(contract.get("target_total") or 0)
+    scope_counts = current_write_report.get("scope_counts", {})
+    if not isinstance(scope_counts, dict):
+        scope_counts = {}
+
+    def _scope_positive(counts: dict[str, Any]) -> bool:
+        artist = counts.get("artist", {})
+        artist_works = counts.get("artist_works_images", {})
+        exhibition = counts.get("exhibition", {})
+        candidates = []
+        if isinstance(artist, dict):
+            candidates.extend(
+                [
+                    int(artist.get("raw_rows_total") or 0),
+                    int(artist.get("image_metadata_rows_total") or 0),
+                    int(artist.get("text_vector_rows_total") or 0),
+                ]
+            )
+        if isinstance(artist_works, dict):
+            candidates.append(int(artist_works.get("vector_rows_total") or 0))
+        if isinstance(exhibition, dict):
+            candidates.extend(
+                [
+                    int(exhibition.get("raw_rows_total") or 0),
+                    int(exhibition.get("image_metadata_rows_total") or 0),
+                ]
+            )
+        return any(value > 0 for value in candidates)
+
+    staged_scope_positive = _scope_positive(scope_counts)
+    mixed_source_verify_first = (
+        contract.get("mode") == "dry_run"
+        and str(current_write_report.get("source_of_truth") or "") == "mixed_current_plus_trial_bounded_merge"
+    )
+    if mixed_source_verify_first:
+        projection_source = "current_only_stats"
+        projection_source_mismatch = (
+            all_rag_zero_detected_count >= target_total > 0
+            and staged_scope_positive
+            and skip_cleanup_status == "planned"
+        )
+        skip_cleanup_report["projection_diagnostics"] = {
+            "projection_source": projection_source,
+            "staged_scope_counts_nonzero": staged_scope_positive,
+            "all_rag_zero_detected_count": all_rag_zero_detected_count,
+            "target_total": target_total,
+            "source_mismatch_detected": projection_source_mismatch,
+            "non_blocking_for_verify_first": bool(projection_source_mismatch),
+            "non_blocking_reason": (
+                "all_rag_zero projection is based on current-only stats while verify-first evaluates staged mixed-source merge"
+                if projection_source_mismatch
+                else ""
+            ),
+        }
+        report["skip_registry_gallery_list_cleanup"] = skip_cleanup_report
+        contract["skip_cleanup_projection_source"] = projection_source
+        contract["skip_cleanup_projection_source_mismatch_detected"] = bool(projection_source_mismatch)
+        contract["skip_cleanup_projection_non_blocking_for_verify_first"] = bool(projection_source_mismatch)
+
     if contract.get("mode") == "dry_run":
         if (
             contract.get("current_write_status") == "planned"
