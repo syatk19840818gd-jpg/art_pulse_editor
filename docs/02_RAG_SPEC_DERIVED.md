@@ -954,6 +954,15 @@ block必須工程チェックリスト（圧縮索引）
 22. `current_required_rag_full` post-check
 23. docs同期
 
+Task数・Task順固定索引:
+- 01の block必須工程 1〜23 がTask順・Task数の正本。
+- AI側判断による勝手なTask細分化は禁止。
+- apply後確認は原則として当該apply Task内の確認項目に含める。
+- 例外は、エラー、明確なblocker、またはユーザー明示指示がある場合のみ。
+- 23は block後処理として、app/current smoke verify-first -> _trial cleanup apply -> docs同期を含む。
+- _trial cleanup apply を独立追加Taskにしない。
+- `rag_gellery_breakdown_master.xlsx 更新 + 人間確認` を含む定義済み工程を後ろ倒しにしない。
+
 raw verify-first→artists image collect verify-first 成果物受け渡し固定ルール（再発防止）
 - raw verify-first には、`dry-run 診断` と `rebuild verify-first（artists raw trial生成）` の2種類がある。
 - `dry-run 診断` は診断JSONのみを出力し、artists image collect verify-first 用の artist raw artifact は生成しない。
@@ -1249,3 +1258,24 @@ Art Pulse 調整時の運用ルール
 - app/current smoke verify-first
 - `_trial cleanup apply`（verify-firstを独立で挟まない）
 - docs同期
+
+## 2026-05-15 Phase 3 今回block完了（工程23反映）
+- 今回blockは docs 正式順で 23/23 まで完了した。
+- `current_required_rag_full` 実績:
+  - 20 plan: would_upload=1558 / would_prune=0 / missing local->R2=1545 / remote_only=0 / size_mismatch=13 / out-of-scope=0
+  - 21 apply: uploaded=1558 / failed=0 / deleted=0
+  - 22 post-check: would_upload=0 / would_prune=0 / missing local->R2=0 / remote_only=0 / size_mismatch=0 / out-of-scope=0
+- 23 block後処理実績:
+  - app/current smoke verify-first: GO（app import / readonly reader / current件数 / 画像参照サンプル / runtime `_trial` 本番参照0）
+  - `_trial cleanup apply`: `_trial/p3_next_real_20260512/` と `_trial/phase3_next_scope_20260512.csv` を削除完了
+  - docs 01〜04 同期: 完了
+- current主要値（最終）:
+  - raw artists 3030 / raw exhibitions 1163
+  - artist image metadata 2962 / exhibition image metadata 629
+  - artists enrichment 3018 / exhibitions enrichment 1163
+  - artists text vector 2824（dim 1536）
+  - artist works images vector 12311（dim 512）
+- モデル契約（維持）:
+  - Text embeddings: `gemini-embedding-001`
+  - Enrichment: `gpt-5-mini` + OpenAI Batch
+- 次Task: `Phase 3 / 次 block の 1. 次 block 再開判定 verify-first`

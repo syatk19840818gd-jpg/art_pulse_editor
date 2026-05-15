@@ -1,3 +1,20 @@
+﻿## 2026-05-15 現在地更新（Phase 3 今回block完了）
+- 現在地: 今回blockは工程23（app/current smoke verify-first -> _trial cleanup apply -> docs同期）まで完了。
+- R2正式同期結果: `current_required_rag_full` は plan/apply/post-check を完了し、post-check は all zero（would_upload=0 / would_prune=0 / missing=0 / remote_only=0 / size_mismatch=0 / out-of-scope=0）。
+- current主要値:
+  - raw artists: 3030
+  - raw exhibitions: 1163
+  - artist image metadata: 2962
+  - exhibition image metadata: 629
+  - artists enrichment: 3018
+  - exhibitions enrichment: 1163
+  - artists text vector: 2824（dim 1536）
+  - artist works images vector: 12311（dim 512）
+- skip確定（今回block）:
+  - frieze_london / Kukje Gallery（human_review_after_breakdown_insufficient, human_skip_after_verify_first_low_yield）
+  - frieze_london / Maisterravalbuena（human_review_after_breakdown_insufficient, human_skip_after_verify_first_timeout_zero_continued）
+- 次Task:
+  - `Phase 3 / 次 block の 1. 次 block 再開判定 verify-first`
 # 03_STATE_SNAPSHOT_NEXT_TASKS（復旧後現在地）
 
 最終更新: 2026-04-22 JST（01〜04 docs 復旧中）
@@ -8118,8 +8135,18 @@ TASK A-3A-CLOSE-1 実施結果（2026-02-27 / Adams and Ollman）
   - current/workbook/app smoke 未完了
   - 未反映trial成果物残存の可能性
 
+運用固定追記:
+- 今後のCodex Task生成では、docs定義済みの block必須工程 1〜23 に必ず沿う。
+- エラー・例外・明確なblockerがない限り、verify-first / apply / post-check をChatGPT側判断で勝手に独立Taskへ細分化しない。
+- apply後確認は原則として当該apply Task内で行う。
+- 工程23は、app/current smoke verify-first -> _trial cleanup apply -> docs同期を含むblock後処理として扱う。
+- _trial cleanup apply を独立追加Taskにしない。
+- 現在の次Taskは、直近の `GO_EXHIBITION_IMAGE_COLLECT_APPLY_READY` を受けて、docs工程に沿い `exhibitions image collect apply` へ戻る。
+- その後は、docs工程どおり `rag_gellery_breakdown_master.xlsx 更新 + 人間確認` へ進む。勝手に追加post-check Taskを挟まない。
+
 ## 次アクション（docs同期後）
 - ユーザー本人が docs 差分確認
 - 問題なければユーザー本人が commit / push
 - push後に必要ならCloud確認
 - 次blockへ進む場合は `Phase 3 / 次 block の 1. 次 block 再開判定`
+

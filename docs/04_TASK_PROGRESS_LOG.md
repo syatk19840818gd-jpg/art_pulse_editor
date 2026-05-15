@@ -6172,3 +6172,44 @@ _trash 運用方針:
     - logs/r2_sync/r2_sync_apply_current_required_rag_full_p3_next_real_20260508_r2apply.json
     - logs/r2_sync/r2_sync_run_p3_next_real_20260508_r2apply.json
     - logs/r2_sync/r2_sync_plan_current_required_rag_full_p3_next_real_20260508_r2postcheck.json
+
+## 40. 2026-05-12 Task数・Task順の勝手な細分化禁止 / cleanup位置の明確化
+- ChatGPT側が安全確認を理由に、docs定義の工程を越えて raw / artists image collect の apply後確認を独立Task化し、Task数を勝手に増やした。
+- ユーザーより、Task数・Task順はdocsで定義された回数/順序に必ず沿うべきであり、エラーや例外がない限り勝手な細分化は禁止と明示された。
+- 今後は、01の block必須工程 1〜23 をTask順・Task数の正本として扱う。
+- verify-first / apply / post-check 等はdocs定義の工程に従い、apply後確認を独立Taskとして勝手に増やさない。
+- 例外は、実行失敗、scope不整合、current/R2/docs/workbook破損疑い、API事故、重複・欠損・混入などの明確なblocker、またはユーザー明示指示がある場合のみ。
+- _trial cleanup apply は独立追加Taskにせず、工程23のblock後処理として app/current smoke verify-first -> _trial cleanup apply -> docs同期 の順で行う。
+- このルールにより、`rag_gellery_breakdown_master.xlsx 更新 + 人間確認` などの定義済み工程をAI側判断で後ろ倒しにしない。
+- 01に存在した2026-05-11追記の文字化けは、02/03/04の正常な日本語記録を根拠に局所修復した。
+
+## 41. 2026-05-15 Phase 3 今回block完了（工程23: smoke -> cleanup -> docs同期）
+- 本節は Task23（block後処理）を docs 正式順どおりに1タスクで実行した記録。
+- 実行順序:
+  1. app/current smoke verify-first
+  2. _trial cleanup apply
+  3. docs 01〜04 同期
+- app/current smoke verify-first:
+  - `python -c "import app"` で import OK。
+  - readonly reader（artist/exhibition/gallery/art pulse overview）読込 OK。
+  - current主要件数は `3030 / 1163 / 2962 / 629 / 3018 / 1163 / 2824 / 12311` を再確認。
+  - vector整合は artists `2824x1536`、artist works images `12311x512` を再確認。
+  - 画像参照サンプルで local_path 実在 / `data/current/images/cache/*` R2 key / 解決URL有効を確認。
+  - runtime `_trial` 参照は app導線で 0（config 内の legacy helper 定義のみ、実行導線参照なし）。
+- cleanup前4条件:
+  - closeout apply GO（前工程）
+  - R2 post-check all zero（前工程）
+  - app/current smoke GO（本工程）
+  - runtime `_trial` 本番参照0（本工程）
+  - 以上を満たしたため cleanup を実行。
+- _trial cleanup apply:
+  - 削除対象: `_trial/p3_next_real_20260512/`、`_trial/phase3_next_scope_20260512.csv`
+  - 削除結果: 2件とも削除完了
+  - 保持確認: `logs/r2_sync/*` は削除していない
+- docs同期:
+  - 01/02/03/04 を局所追記で同期
+  - docs全置換・大規模削除は実施していない
+  - 日本語追記のみ（英語追記なし）
+- 今回block最終判定: `GO_BLOCK_FINALIZED`
+- 次Task: `Phase 3 / 次 block の 1. 次 block 再開判定 verify-first`
+- 非実行（明示）: R2 plan/apply/post-check、raw/image collect、enrichment、vector、closeout再実行、commit/push
